@@ -47,7 +47,7 @@ Pixi/tool diagnostics go to stderr. `PFVARX_JSON_OUT` can save command JSON atom
 
 | Stage/command | Required state | What is written / success criteria |
 | --- | --- | --- |
-| `workspace-init` | Installed profile or full source | Three missing editable YAML files, config-required input folders and metadata/init report; never overwrite user config |
+| `workspace-init` | Installed profile or full source | Three missing editable YAML files and, unless --config-only is set, input folders and an initialization report; never overwrite user config |
 | `config-init --purpose analysis|benchmarking` | Full source/compatible selection | Missing config/quality/compute templates only; legacy explicit setup |
 | `init` | Valid config | Assay/purpose-specific input directories and blank sample-sheet header only |
 | `discover-inputs --directory DIR` | Actual FASTQ folder | `metadata/discovered_samples.tsv`; REVIEW_REQUIRED, complete unambiguous pairs only |

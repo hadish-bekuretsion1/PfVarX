@@ -237,18 +237,18 @@ def main() -> None:
         if not a.no_install:
             subprocess.run(["pixi", "install", "--locked", "-e", meta["environment"]], cwd=destination, check=True)
             subprocess.run(
-                ["pixi", "run", "-e", meta["environment"], "pfvarx", "workspace-init"], cwd=destination, check=True
+                ["pixi", "run", "-e", meta["environment"], "pfvarx", "workspace-init", "--config-only"], cwd=destination, check=True
             )
         print(
             json.dumps(
                 {
                     "workspace": str(destination),
                     "installation": meta,
-                    "initialized": not a.no_install,
+                    "configuration_ready": not a.no_install,
                     "next": (
-                        f"Run pixi install --locked -e {meta['environment']}, then ./pfvarx workspace-init"
+                        f"Run pixi install --locked -e {meta['environment']}, then ./pfvarx workspace-init --config-only"
                         if a.no_install
-                        else "Edit config/config.yaml, then ./pfvarx discover-inputs or register-inputs"
+                        else "Configure with ./pfvarx configure --gui, or edit YAML and run ./pfvarx init"
                     ),
                 },
                 indent=2,

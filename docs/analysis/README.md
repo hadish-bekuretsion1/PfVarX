@@ -21,8 +21,7 @@ appropriate. A new destination is required; original scientific inputs can be sh
 read-only by absolute path. The installed `./pfvarx` launcher selects its locked environment.
 
 Bootstrap creates three editable files: `config/config.yaml`, `quality.yaml`,
-`compute.yaml`; capability metadata in `config/installation.json`; only required input
-folders; the sample-sheet header and metadata initialization record. Edit actual assay,
+`compute.yaml`; capability metadata in `config/installation.json`; input folders are created after GUI save or after editing YAML and running `./pfvarx init`. Edit actual assay,
 UMI structure, resources, outputs and compute limits before analysis. No samples or
 references are fabricated. Full-source/development users may still install the full
 default environment and use `config-init`/`init` explicitly.

@@ -14,7 +14,7 @@ cd PfVarX-study
 ./pfvarx version</pre>
 <h2>2. Configure your study</h2>
 <pre>./pfvarx configure --gui</pre>
-<p>Alternatively edit <code>config/config.yaml</code>, <code>config/quality.yaml</code> and <code>config/compute.yaml</code>. Set the actual reference release, FASTA, matching core BED, assay and compute limits. The default sample profile runs FO002. Choose a cohort or downstream profile at bootstrap if you need those outputs.</p>
+<p>Alternatively edit <code>config/config.yaml</code>, <code>config/quality.yaml</code> and <code>config/compute.yaml</code>. Save in the GUI to create input folders. If you edit YAML, run <code>./pfvarx init</code> afterward. Set the actual reference release, FASTA, matching core BED, assay and compute limits. The default sample profile runs FO002. Choose a cohort or downstream profile at bootstrap if you need those outputs.</p>
 <h2>3. Register reads</h2>
 <p>Replace the example path with your FASTQ directory. Review sample identities, libraries and paired files before registration. Use a reviewed TSV manifest directly when the filenames do not match the discovery convention.</p>
 <pre>./pfvarx discover-inputs --directory /absolute/path/to/fastq

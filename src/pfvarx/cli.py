@@ -263,10 +263,10 @@ def benchmark_resources(run_id: str | None = typer.Option(None, "--run-id")) -> 
 
 
 @app.command("workspace-init")
-def workspace_init() -> None:
+def workspace_init(config_only: bool = typer.Option(False, "--config-only")) -> None:
     """Initialize only profile/config-selected input and metadata folders; never overwrite configuration."""
     from pfvarx.initialization.workspace import initialize
-    emit(guard(lambda: initialize(_root())))
+    emit(guard(lambda: initialize(_root(), config_only=config_only)))
 
 
 @app.command("discover-inputs")

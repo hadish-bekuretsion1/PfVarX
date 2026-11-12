@@ -23,7 +23,7 @@ cd ../pfvarx-analysis
 
 Bootstrap reads selected source blobs (also works from a full source extraction),
 exports a new workspace, installs its locked environment and initializes editable
-configuration plus only required input/metadata directories. Existing destinations are
+configuration templates. Saving in the GUI or running `./pfvarx init` after editing YAML creates input directories. Existing destinations are
 refused. The reviewed bootstrap must be available on the GitHub branch being cloned;
 local 0.0.0 changes are not published automatically by this update.
 

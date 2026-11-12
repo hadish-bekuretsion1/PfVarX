@@ -1129,7 +1129,7 @@ cat config/compute.yaml
 
 ### 4. Expected outputs
 
-Installed `.pixi`, three editable configuration files, runtime input directories and blank sample-sheet header. No run/call output yet.
+Bootstrap installs `.pixi` and writes three editable configuration files. Save the GUI configuration or run `./pfvarx init` after YAML edits to create input folders.
 
 ### 5. Verification and quality control
 

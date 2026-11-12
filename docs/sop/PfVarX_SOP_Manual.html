@@ -870,7 +870,7 @@ sha256sum pixi.lock &gt; &quot;$RECORDS/analysis/pixi-lock.sha256&quot;
 cat config/compute.yaml
 </code></pre>
 <h3>4. Expected outputs</h3>
-<p>Installed <code>.pixi</code>, three editable configuration files, runtime input directories and blank sample-sheet header. No run/call output yet.</p>
+<p>Installed <code>.pixi</code>, three editable configuration files, Input folders are created after GUI save or YAML edits followed by <code>./pfvarx init</code>.</p>
 <h3>5. Verification and quality control</h3>
 <p>CLI version must identify the chosen release; <code>config-init</code> must not overwrite existing config. 4 cores/6500 MiB workflow RAM/20 GB temporary disk in the template are planner examples, not a whole-genome sizing guarantee. Set available budgets honestly.</p>
 <h3>6. Error handling and troubleshooting</h3>

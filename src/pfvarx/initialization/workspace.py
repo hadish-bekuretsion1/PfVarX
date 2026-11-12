@@ -12,7 +12,7 @@ from pfvarx.initialization.layout import config_init, init_inputs
 from pfvarx.io import read_json, write_json
 
 
-def initialize(root: Path) -> dict[str, Any]:
+def initialize(root: Path, *, config_only: bool = False) -> dict[str, Any]:
     path = root / "config/installation.json"
     metadata = read_json(path) if path.exists() else None
     purpose = metadata["purpose"] if metadata else "analysis"
@@ -44,7 +44,14 @@ def initialize(root: Path) -> dict[str, Any]:
             if "DA007" in requested:
                 config["analyses"]["spatial_outcome_source"] = "DA002"
         config_path.write_text(yaml.safe_dump(config, sort_keys=False))
-    result = init_inputs(root, load_bundle(root).config)
+    bundle = load_bundle(root)
+    if config_only:
+        return {
+            "status": "CONFIGURATION_READY",
+            "configuration_created": [str(p.relative_to(root)) for p in created],
+            "next": "Configure with ./pfvarx configure --gui, or edit YAML and run ./pfvarx init",
+        }
+    result = init_inputs(root, bundle.config)
     (root / "metadata").mkdir(exist_ok=True)
     report = {
         "status": "INITIALIZED",
