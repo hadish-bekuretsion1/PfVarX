@@ -15,7 +15,17 @@ Linux x86-64, Python 3.11+ for bootstrap, Git and Pixi are required. An authoriz
 GitHub login is needed while this repository is private. A clone never executes code
 by itself: run the explicit reviewed bootstrap command after cloning.
 
+The source and study workspace sit side by side. For example:
+
+```text
+~/demo/
+├── PfVarX-source/     # GitHub clone
+└── pfvarx-analysis/   # study workspace
+```
+
 ```bash
+mkdir -p ~/demo
+cd ~/demo
 git clone --filter=blob:none --sparse https://github.com/hadish-bekuretsion1/PfVarX.git PfVarX-source
 python3 PfVarX-source/bootstrap.py --profile sample
 cd pfvarx-analysis
