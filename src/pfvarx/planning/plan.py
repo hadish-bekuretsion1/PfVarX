@@ -39,8 +39,6 @@ def layers_for(cfg_final: FinalOutput, input_type: InputType) -> list[int]:
     stop = {FinalOutput.FO001: 1, FinalOutput.FO002: 2, FinalOutput.FO003: 3,
             FinalOutput.FO004: 5}[cfg_final]
     layers = [0] + [layer for layer in range(start, stop + 1)]
-    if cfg_final == FinalOutput.FO001 and input_type != InputType.FASTQ:
-        layers = [0, 1]  # FO001 from caller-ready BAM: validate and reuse the alignment contract
     if cfg_final == FinalOutput.FO004:
         layers = sorted(set(layers) | {3, 4})
     return layers + [6]

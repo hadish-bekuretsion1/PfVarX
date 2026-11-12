@@ -1,6 +1,6 @@
 # PfVarX computational envelope. Jobs that cannot fit are blocked before launch.
 schema_version: "pfvarx.compute/2"   # FIXED
-executor: local                      # REVIEW: local, including within one SLURM node allocation
+executor: local                      # REVIEW: local | hpc | server | cloud (single-host execution)
 max_cores: 4                         # EDIT: total cores PfVarX may use
 max_mem_mb: 6500                     # EDIT: total RAM PfVarX may use
 max_jobs: 1                          # EDIT: maximum concurrent jobs

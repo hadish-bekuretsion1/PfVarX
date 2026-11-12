@@ -133,8 +133,8 @@ class ProjectConfig(Strict):
     schema_version: str
     purpose: Purpose
     project_id: str = Field(pattern=r"^[A-Za-z0-9][A-Za-z0-9_-]{0,63}$")
-    final_output: FinalOutput
     input_type: InputType
+    final_output: FinalOutput
     assay: AssayConfig
     reference: ReferenceConfig
     samples_tsv: Path
@@ -159,6 +159,8 @@ class ProjectConfig(Strict):
             raise ValueError("FO004 requires reference.gff for reference-matched annotation")
         if self.final_output != FinalOutput.FO004 and (self.analyses.requested or self.analyses.selection == "auto"):
             raise ValueError("downstream analyses can only be requested with FO004")
+        if self.input_type in (InputType.BAM, InputType.CRAM) and self.final_output == FinalOutput.FO001:
+            raise ValueError("BAM/CRAM enter at Layer 2. Choose FO002, FO003 or FO004.")
         if self.input_type == InputType.VCF:
             raise ValueError("VCF entry is not implemented; supply FASTQ, BAM or CRAM")
         if self.assay.design != Design.WGS and set(self.analyses.requested) & {"DA005", "DA006"}:
@@ -187,7 +189,9 @@ class JobLimits(Strict):
 
 class ComputeConfig(Strict):
     schema_version: str
-    executor: str = Field(pattern=r"^(local|slurm)$")
+    executor: Literal["local", "hpc", "server", "cloud", "slurm"] = Field(
+        description="Deployment target. HPC uses one allocated node; server and cloud use the local executor on the host."
+    )
     max_cores: int = Field(ge=1)
     max_mem_mb: int = Field(ge=512)
     max_jobs: int = Field(ge=1)

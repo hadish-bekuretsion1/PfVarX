@@ -86,7 +86,13 @@ function draw(parent, object, schema, path = "") {
         const row = document.createElement("div");
         row.dataset.field = id;
         const label = document.createElement("label");
-        label.textContent = key.replaceAll("_", " ") + " ";
+        const labels = {
+            "config.assay.design": "Assay design", "config.assay.sequencing_type": "Sequencing type",
+            "config.assay.amplification_route": "Amplification route",
+            "config.assay.targets_bed": "Target regions (BED)", "config.assay.primers_tsv": "Primer definitions (TSV)",
+            "config.reference.core_mask_bed": "Core-genome mask (BED)"
+        };
+        label.textContent = (labels[id] || key.replaceAll("_", " ")) + " ";
         row.append(label);
         parent.append(row);
         if (id === "config.analyses.requested") {
@@ -123,16 +129,25 @@ function draw(parent, object, schema, path = "") {
             continue;
         }
         let input;
-        const options = spec.enum || ({
+        let options = spec.enum || ({
             "config.analyses.spatial_outcome_source": ["DA002"],
-            "compute.executor": ["local"],
             "config.purpose": ["analysis", "benchmarking"]
         })[id];
+        if (id === "config.input_type") options = options.filter(value => value !== "VCF");
+        if (id === "compute.executor") options = options.filter(value => value !== "slurm");
         if (options) {
             input = document.createElement("select");
             const optional = original.anyOf?.some(item => item.type === "null");
             for (const value of optional ? ["", ...options] : options) {
-                input.append(new Option(value || "Unspecified", value));
+                const names = {
+                    FASTQ: "FASTQ / FASTQ.GZ (Layer 1)", BAM: "BAM (Layer 2)", CRAM: "CRAM (Layer 2)",
+                    local: "Local", hpc: "HPC (single node)", server: "Server", cloud: "Cloud VM",
+                    WGS: "Whole-genome sequencing", SWGS: "Shallow whole-genome sequencing",
+                    TARGETED_NON_UMI: "Targeted without UMI", TARGETED_UMI: "Targeted with UMI",
+                    AMPLICON: "Amplicon", DIRECT: "Direct", SWGA: "Selective whole-genome amplification",
+                    TBS_UMI: "Targeted barcode with UMI", TBS_NON_UMI: "Targeted barcode without UMI"
+                };
+                input.append(new Option(names[value] || value || "Unspecified", value));
             }
             input.value = object[key] ?? "";
         } else if (spec.type === "object" || spec.type === "array") {
@@ -163,7 +178,7 @@ function draw(parent, object, schema, path = "") {
             filter.addEventListener("input", () => {
                 const query = filter.value.trim().toLowerCase();
                 for (const option of input.options) {
-                    option.hidden = !option.selected && !option.text.toLowerCase().includes(query);
+                    option.hidden = !option.selected && !(option.text + " " + option.value).toLowerCase().includes(query);
                 }
             });
             row.append(filter);
@@ -202,6 +217,15 @@ function changed(id) {
     const config = values.config;
     const assay = config.assay;
     const analyses = config.analyses;
+    if (id === "config.input_type" && config.input_type !== "FASTQ" && config.final_output === "FO001") {
+        config.final_output = "FO002";
+        render();
+        return;
+    }
+    const outputs = byId("config.final_output");
+    for (const option of outputs.options) {
+        option.disabled = option.value === "FO001" && config.input_type !== "FASTQ";
+    }
     const full = config.final_output === "FO004";
     const targeted = assay.design !== "WGS";
     if (id === "config.assay.design") {

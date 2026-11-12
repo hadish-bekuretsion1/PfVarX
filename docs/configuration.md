@@ -102,3 +102,12 @@ sbatch --cpus-per-task=8 --mem=24G --time=08:00:00 \
 Adjust resources and partition to your site. Per-rule SLURM scheduling has no
 qualified execution profile in this release. The single-node example requires a
 site-specific smoke test.
+
+Select the input type before the final output. FASTQ and FASTQ.GZ enter at
+Layer 1 and can stop at FO001. BAM and CRAM enter at Layer 2 and start at
+FO002. Bootstrap a matching input profile when changing entry types in a
+selective installation.
+
+The executor menu records Local, HPC, Server or Cloud. These use the same
+single-host workflow engine. Submit HPC runs inside one allocated node using
+the deployment guide. Server and Cloud refer to Linux hosts and cloud VMs.

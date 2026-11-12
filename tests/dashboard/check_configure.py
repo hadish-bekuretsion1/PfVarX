@@ -35,6 +35,19 @@ with tempfile.TemporaryDirectory(prefix="pfvarx040-gui-") as directory:
             errors = []
             page.on("pageerror", lambda error: errors.append(str(error)))
             page.goto(url)
+            source_type = page.locator('[id="config.input_type"]')
+            output = page.locator('[id="config.final_output"]')
+            assert source_type.locator('option[value="VCF"]').count() == 0
+            for aligned in ("BAM", "CRAM"):
+                source_type.select_option("FASTQ")
+                output.select_option("FO001")
+                source_type.select_option(aligned)
+                expect(output).to_have_value("FO002")
+                assert output.locator('option[value="FO001"]').evaluate('(option) => option.disabled')
+            source_type.select_option("FASTQ")
+            assert page.locator('[id="compute.executor"] option').evaluate_all(
+                "(options) => options.map(option => option.value)"
+            ) == ["local", "hpc", "server", "cloud"]
             save = page.locator("#save")
             expect(save).to_be_disabled()
             page.locator('[id="config.reference.release_label"]').fill("fixture release")
