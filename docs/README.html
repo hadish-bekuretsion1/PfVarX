@@ -7,10 +7,10 @@
 <h1>Run PfVarX 0.0.0</h1>
 <p>This example uses paired-end WGS FASTQ and the sample profile for per-sample variant calls. Use a Linux x86-64 host with Python 3.11+ and Pixi on PATH.</p>
 <h2>1. Download and install</h2>
-<p>Sign in to GitHub with access to the private repository. Run these commands from the directory where you want the source and study workspace.</p>
+<p>Sign in to GitHub with access to the private repository. Run these commands from the parent directory. The clone creates <code>PfVarX-source/</code>, and bootstrap creates <code>pfvarx-analysis/</code> beside it.</p>
 <pre>git clone https://github.com/hadish-bekuretsion1/PfVarX.git PfVarX-source
-python3 PfVarX-source/bootstrap.py --profile sample --workspace PfVarX-study
-cd PfVarX-study
+python3 PfVarX-source/bootstrap.py --profile sample
+cd pfvarx-analysis
 ./pfvarx version</pre>
 <h2>2. Configure your study</h2>
 <pre>./pfvarx configure --gui</pre>

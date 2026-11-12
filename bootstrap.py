@@ -214,7 +214,8 @@ def export_workspace(
 
 def main() -> None:
     p = argparse.ArgumentParser(description=__doc__)
-    p.add_argument("--workspace", type=Path, required=True)
+    p.add_argument("--workspace", type=Path, default=ROOT.parent / "pfvarx-analysis",
+                   help="New workspace path (default: pfvarx-analysis beside the source checkout)")
     p.add_argument(
         "--profile", choices=["sample", "cohort", "downstream", "benchmark", "development"], default="sample"
     )

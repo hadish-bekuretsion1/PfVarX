@@ -8,8 +8,8 @@ alone cannot run setup; use an explicit post-clone command:
 
 ```bash
 git clone --filter=blob:none --sparse https://github.com/hadish-bekuretsion1/PfVarX.git PfVarX-source
-python3 PfVarX-source/bootstrap.py --profile sample --workspace ../study
-cd ../study
+python3 PfVarX-source/bootstrap.py --profile sample
+cd pfvarx-analysis
 ./pfvarx --help
 ```
 

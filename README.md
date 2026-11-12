@@ -17,8 +17,8 @@ by itself: run the explicit reviewed bootstrap command after cloning.
 
 ```bash
 git clone --filter=blob:none --sparse https://github.com/hadish-bekuretsion1/PfVarX.git PfVarX-source
-python3 PfVarX-source/bootstrap.py --profile sample --workspace ../pfvarx-analysis
-cd ../pfvarx-analysis
+python3 PfVarX-source/bootstrap.py --profile sample
+cd pfvarx-analysis
 ```
 
 Bootstrap reads selected source blobs (also works from a full source extraction),
