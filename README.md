@@ -136,3 +136,5 @@ See the [configuration editor and input procedure](docs/configuration.md) and th
 [sequencing and downstream eligibility matrix](docs/sequencing.md).
 
 Open the [step-by-step HTML quick start](docs/README.html) after downloading the source.
+
+See the [HTML configuration guide](docs/configuration                   0uide.html) for field-by-field choices and examples.
