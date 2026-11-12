@@ -1,0 +1,97 @@
+"""DA004 relatedness and identity by descent.
+
+Method is matched to clonal status (from DA001): pairs of MONOCLONAL samples are
+analysed with hmmIBD on dominant-allele haploid genotypes; pairs including a POLYCLONAL
+sample with Dcifer on distance-thinned allele-presence data, using DA001 COI medians.
+INDETERMINATE samples were excluded at the eligibility checkpoint. Network thresholds in
+the dashboard are display settings, not relatedness classifications.
+"""
+
+from __future__ import annotations
+
+import shutil
+import subprocess
+from itertools import combinations
+
+from pfvarx.constants import Reason, Terminal
+from pfvarx.downstream.coi import informative_sites
+from pfvarx.downstream.common import Context, decisions, write_manifest
+from pfvarx.downstream.diversity import dominant
+from pfvarx.io import read_tsv, write_tsv
+
+
+def run(ctx: Context, threads: int = 1) -> None:
+    out = ctx.out("DA004")
+    dec = decisions(ctx)["analyses"]["DA004"]
+    eligible = sorted({s for c in dec["scales"].values() for s in c["eligible"]})
+    excluded = {"INELIGIBLE": sorted(set(ctx.samples) - set(eligible))}
+    clon = {r["sample_id"]: r for r in read_tsv(ctx.results / "downstream" / "DA001" / "clonality.tsv")}
+    mono = [s for s in eligible if clon.get(s, {}).get("clonality") == "MONOCLONAL"]
+    min_markers = int(ctx.params["da004_min_informative_markers"])
+    pairs_out = []
+    # hmmIBD on monoclonal samples
+    if len(mono) >= 2 and shutil.which("hmmIBD"):
+        chrom_ids: dict[str, int] = {}
+        lines = ["chrom\tpos\t" + "\t".join(mono)]
+        for s in ctx.sites:
+            if s["type"] != "SNV":
+                continue
+            g = [dominant(ctx, s["site_id"], x) for x in mono]
+            cid = chrom_ids.setdefault(s["chrom"], len(chrom_ids) + 1)
+            lines.append(f"{cid}\t{s['pos']}\t" + "\t".join("-1" if v is None else str(v) for v in g))
+        geno = out / "hmmibd_input.txt"
+        geno.write_text("\n".join(lines) + "\n")
+        r = subprocess.run(["hmmIBD", "-i", str(geno), "-o", str(out / "hmmibd")], capture_output=True, text=True)
+        (out / "hmmibd.log").write_text(r.stdout + r.stderr)
+        if r.returncode != 0:
+            raise SystemExit(f"hmmIBD failed with exit code {r.returncode}")
+        for row in read_tsv(out / "hmmibd.hmm_fract.txt"):
+            n = int(row["N_informative_sites"])
+            pairs_out.append({"sample_1": row["sample1"], "sample_2": row["sample2"], "method": "hmmIBD",
+                              "estimate": row["fract_sites_IBD"], "ci_lower": "", "ci_upper": "",
+                              "informative_markers": n,
+                              "status": "ESTIMATED" if n >= min_markers else "EXCLUDED_FEW_MARKERS"})
+    # Dcifer for pairs with at least one polyclonal sample
+    poly_pairs = [(a, b) for a, b in combinations(eligible, 2)
+                  if "POLYCLONAL" in (clon.get(a, {}).get("clonality"), clon.get(b, {}).get("clonality"))]
+    if poly_pairs and shutil.which("Rscript"):
+        sites = informative_sites(ctx)
+        rows = []
+        for s in sites:
+            for sid in eligible:
+                c = ctx.matrix[s["site_id"]].get(sid)
+                if not c or c["wsaf"] is None:
+                    continue
+                if c["wsaf"] <= 0.95:
+                    rows.append({"sample_id": sid, "locus": s["site_id"], "allele": "R"})
+                if c["wsaf"] >= 0.05:
+                    rows.append({"sample_id": sid, "locus": s["site_id"], "allele": "A"})
+        lf = out / "dcifer_input.tsv"
+        write_tsv(lf, rows, ["sample_id", "locus", "allele"])
+        coi_rows = [{"sample_id": s, "coi": clon[s]["coi_median"] or 1} for s in eligible]
+        write_tsv(out / "dcifer_coi.tsv", coi_rows, ["sample_id", "coi"])
+        r = subprocess.run(["Rscript", str(ctx.root / "workflow" / "scripts" / "da004_dcifer.R"), str(lf),
+                            str(out / "dcifer_coi.tsv"), str(out / "dcifer_pairs.tsv")], capture_output=True, text=True)
+        (out / "dcifer.log").write_text(r.stdout + r.stderr)
+        if r.returncode != 0:
+            raise SystemExit(f"Dcifer failed with exit code {r.returncode}")
+        wanted = {frozenset(p) for p in poly_pairs}
+        for row in read_tsv(out / "dcifer_pairs.tsv"):
+            if frozenset((row["sample_1"], row["sample_2"])) in wanted:
+                pairs_out.append({"sample_1": row["sample_1"], "sample_2": row["sample_2"], "method": "Dcifer",
+                                  "estimate": row["estimate"], "ci_lower": row["ci_lower"], "ci_upper": row["ci_upper"],
+                                  "informative_markers": len(sites), "status": "ESTIMATED"})
+    cols = ["sample_1", "sample_2", "method", "estimate", "ci_lower", "ci_upper", "informative_markers", "status"]
+    write_tsv(out / "pairwise_relatedness.tsv", pairs_out, cols)
+    if not pairs_out:
+        write_manifest(ctx, "DA004", Terminal.SKIPPED_INELIGIBLE.value, reason_codes=[Reason.NO_ELIGIBLE_PAIR.value],
+                       requested=ctx.samples, eligible=eligible, excluded=excluded, analysed=[], outputs=[],
+                       caveats=[], method={"tools": ["hmmIBD", "Dcifer"]})
+        return
+    write_manifest(ctx, "DA004", (Terminal.COMPLETED_WITH_EXCLUSIONS if excluded["INELIGIBLE"] else Terminal.COMPLETED).value,
+                   reason_codes=[], requested=ctx.samples, eligible=eligible, excluded=excluded, analysed=eligible,
+                   outputs=[out / "pairwise_relatedness.tsv"],
+                   caveats=["hmmIBD estimates for monoclonal pairs have no interval in this release.",
+                            "Dcifer assumes approximately unlinked loci; distance thinning is a proxy."],
+                   method={"monoclonal": "hmmIBD", "polyclonal": "Dcifer", "min_markers": min_markers},
+                   results_summary={"pairs": len(pairs_out)})

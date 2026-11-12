@@ -1,0 +1,14 @@
+body{margin:0;background:#edf3f7;color:#173042;font:16px/1.5 system-ui,sans-serif}
+main{max-width:1000px;margin:auto;padding:2rem}
+fieldset,details,dialog{border:1px solid #aec5d4;border-radius:.45rem;background:white;margin:1rem 0;padding:1rem}
+legend{font-weight:700}label{display:block;margin:.6rem 0}small{display:block;color:#42596a}
+input,select,textarea,button{font:inherit;padding:.35rem;margin:.2rem;max-width:95%}
+input:not([type=checkbox]):not([type=radio]),textarea{width:26rem}
+button{background:#164963;color:white;border:0;border-radius:.25rem;padding:.5rem .8rem}
+button:disabled{opacity:.45}pre{white-space:pre-wrap;overflow-wrap:anywhere}dialog{margin:auto;max-width:90vw}
+#entries{max-height:55vh;overflow:auto}#entries button{display:block}
+
+[hidden]{display:none!important}
+*,*::before,*::after{box-sizing:border-box}
+fieldset{min-width:0}label,button{overflow-wrap:anywhere}
+@media(max-width:600px){main{padding:1rem}fieldset{padding:.65rem}button{max-width:100%}}

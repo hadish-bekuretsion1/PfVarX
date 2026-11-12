@@ -1,0 +1,34 @@
+# runtime (generated on demand; never committed)
+/inputs/
+/prepared/
+/metadata/
+/runs/
+/work/
+/logs/
+/results
+/benchmarks/
+/.pixi/
+/.snakemake/
+config/config.yaml
+config/quality.yaml
+config/compute.yaml
+config/profiles/resources.yaml
+__pycache__/
+*.pyc
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+*.egg-info/
+dist/
+build/
+
+# local editor/OS artifacts
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
+
+/.pfvarx.lock
+config/installation.json

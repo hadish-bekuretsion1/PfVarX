@@ -1,0 +1,39 @@
+# PfVarX project configuration (benchmarking workspace).
+# Tags: EDIT = you must set it; REVIEW = check the default; FIXED = do not change;
+# OPTIONAL = may be left as is. Scientific gates are NOT configurable here.
+schema_version: "pfvarx.config/3"          # FIXED
+purpose: benchmarking                         # FIXED
+project_id: MY_BENCHMARK                   # EDIT: letters, digits, _ or -
+final_output: FO002                        # EDIT: FO001 | FO002 | FO003 | FO004 (exactly one per run)
+input_type: FASTQ                          # EDIT: FASTQ | BAM | CRAM (VCF entry unsupported)
+assay:
+  design: WGS                              # EDIT: WGS | TARGETED_NON_UMI | TARGETED_UMI
+  amplification_route: DIRECT              # EDIT: DIRECT | SWGA (WGS) ; AMPLICON (targeted)
+  read_structure: null                     # EDIT for TARGETED_UMI only, e.g. "8M143T 8M143T"
+  targets_bed: null                        # EDIT for targeted designs: inputs/targets/targets.bed
+  primers_tsv: null                        # EDIT for targeted designs: inputs/targets/primers.tsv
+  two_colour_chemistry: false              # REVIEW: true for NextSeq/NovaSeq (poly-G trimming)
+  platform: ILLUMINA                       # REVIEW
+reference:
+  fasta: inputs/reference/Pf3D7.fasta      # EDIT
+  gff: null                               # EDIT: matching GFF path required for FO004
+  core_mask_bed: inputs/reference/core_genome.bed   # EDIT: versioned core-genome mask
+  host_fasta: null                         # OPTIONAL: human GRCh38 primary assembly as decoy
+  release_label: SET_REFERENCE_RELEASE     # EDIT: exact release used for FASTA and GFF
+  snpeff_genome_id: null                   # OPTIONAL: id of a SnpEff database built from the same files
+samples_tsv: inputs/metadata/samples.tsv   # FIXED path written by 'pixi run init'
+analyses:
+  selection: explicit                     # auto: FO004, empty requested and scales
+  requested: []                            # EDIT for FO004, e.g. [DA002, DA001, DA006]
+  scales: {}                               # EDIT for FO004, e.g. {DA002: [SAMPLE, POPULATION]}
+  population_column: null                  # OPTIONAL: metadata column holding population labels
+  resistance_catalog: null                 # OPTIONAL: versioned catalogue (default: config/registry/resistance_catalog_pfvarx_v1.tsv)
+  spatial_outcome_source: null             # EDIT if DA007 requested, e.g. DA002
+run_policy: CONTINUE_INDEPENDENT           # REVIEW: CONTINUE_INDEPENDENT | STRICT
+random_seed: 20261106                      # REVIEW
+
+retention:
+  intermediates: successful   # successful: remove completed intermediates; keep: retain for debugging
+
+caller:
+  backend: native  # native or external; see docs/caller.md

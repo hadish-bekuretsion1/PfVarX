@@ -1,0 +1,1 @@
+"""Synthetic software-test fixtures."""

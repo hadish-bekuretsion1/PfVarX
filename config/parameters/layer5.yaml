@@ -1,0 +1,25 @@
+version: "1.0.0"
+parameters:
+  da001_credibility: {value: 0.95, source: UNCALIBRATED_PROVISIONAL, note: "candidate {0.90,0.95}"}
+  da001_min_informative_loci: {value: 10, source: UNCALIBRATED_PROVISIONAL}
+  da001_fws_reference_cutoff: {value: 0.95, source: LITERATURE_SUPPORTED, note: "reported for comparison only"}
+  da006_min_monoclonal: {value: 4, source: FRAMEWORK_POLICY, note: "mathematical floor for an informative unrooted topology"}
+  da006_min_informative_sites: {value: 10, source: UNCALIBRATED_PROVISIONAL}
+  da006_max_sample_missing: {value: 0.2, source: UNCALIBRATED_PROVISIONAL}
+  da006_max_site_missing: {value: 0.2, source: UNCALIBRATED_PROVISIONAL}
+  da006_ufboot: {value: 1000, source: LITERATURE_SUPPORTED}
+  da006_alrt: {value: 1000, source: LITERATURE_SUPPORTED}
+  da004_min_informative_markers: {value: 20, source: UNCALIBRATED_PROVISIONAL}
+  da005_ld_window: {value: 100, source: SOFTWARE_DEFAULT, note: "scikit-allel locate_unlinked"}
+  da005_ld_step: {value: 20, source: SOFTWARE_DEFAULT}
+  da005_ld_threshold: {value: 0.1, source: SOFTWARE_DEFAULT}
+  da005_min_group_size: {value: 3, source: UNCALIBRATED_PROVISIONAL}
+  da003_min_group_size: {value: 3, source: UNCALIBRATED_PROVISIONAL}
+  da002_min_callable_per_group: {value: 3, source: UNCALIBRATED_PROVISIONAL}
+  da002_reporting_floor: {value: 0.05, source: UNCALIBRATED_PROVISIONAL, note: "Experiment D detection curve"}
+  da002_mixed_threshold: {value: 0.95, source: UNCALIBRATED_PROVISIONAL, note: "WSAF above which a call is MUTANT rather than MIXED"}
+  da007_min_samples_per_unit: {value: 3, source: UNCALIBRATED_PROVISIONAL}
+  da001_moire_burnin: {value: 2000, source: UNCALIBRATED_PROVISIONAL, note: "MOIRE run_mcmc burnin; convergence to be assessed in Phase 3"}
+  da001_moire_samples: {value: 2000, source: UNCALIBRATED_PROVISIONAL}
+  da001_allele_presence_floor: {value: 0.05, source: UNCALIBRATED_PROVISIONAL, note: "WSAF above which an allele is called present for MOIRE input"}
+  da001_thin_bp: {value: 500, source: FRAMEWORK_POLICY, note: "distance thinning as a linkage proxy for MOIRE's independent-loci assumption"}

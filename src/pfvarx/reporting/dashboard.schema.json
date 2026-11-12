@@ -1,0 +1,715 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:pfvarx:dashboard:1",
+  "title": "PfVarX offline reporting data",
+  "type": "object",
+  "required": [
+    "schema",
+    "project_id",
+    "run_id",
+    "samples"
+  ],
+  "properties": {
+    "schema": {
+      "const": "pfvarx.dashboard/2"
+    },
+    "project_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "run_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "data_kind": {
+      "enum": [
+        "synthetic",
+        "not_declared",
+        "experimental"
+      ]
+    },
+    "samples": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "sample_id"
+        ],
+        "properties": {
+          "sample_id": {
+            "type": "string"
+          },
+          "metrics": {
+            "type": "object"
+          },
+          "latitude": {
+            "type": [
+              "number",
+              "null"
+            ]
+          },
+          "longitude": {
+            "type": [
+              "number",
+              "null"
+            ]
+          }
+        },
+        "additionalProperties": true
+      }
+    },
+    "variants_total": {
+      "type": [
+        "integer",
+        "null"
+      ],
+      "minimum": 0
+    },
+    "variants": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/variant"
+      }
+    },
+    "qc_matrix": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/gate"
+      }
+    },
+    "eligibility": {
+      "type": "array"
+    },
+    "diagnostics": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/diagnostic"
+      }
+    },
+    "log_content": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/log"
+      }
+    },
+    "requested_analyses": {
+      "type": "array"
+    },
+    "internal_analyses": {
+      "type": "array"
+    },
+    "downstream": {
+      "type": "object",
+      "additionalProperties": {
+        "$ref": "#/$defs/analysis"
+      }
+    },
+    "resources": {
+      "type": "object",
+      "properties": {
+        "measured": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/measurement"
+          }
+        },
+        "plan": {
+          "type": [
+            "object",
+            "null"
+          ]
+        },
+        "passes": {
+          "type": "array"
+        }
+      },
+      "additionalProperties": true
+    },
+    "software": {
+      "type": "object",
+      "properties": {
+        "pfvarx_version": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "tools_installed": {
+          "type": "object"
+        },
+        "parameters": {
+          "type": "object"
+        },
+        "configuration": {
+          "type": "object"
+        },
+        "environment": {
+          "type": "object"
+        },
+        "report_renderer": {
+          "type": "object"
+        }
+      },
+      "additionalProperties": true
+    },
+    "inputs": {
+      "type": "object",
+      "properties": {
+        "files": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/input_file"
+          }
+        },
+        "validation": {
+          "type": [
+            "object",
+            "null"
+          ]
+        }
+      },
+      "additionalProperties": true
+    },
+    "run_status": {
+      "type": "object",
+      "properties": {
+        "status": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "updated_utc": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "passes": {
+          "type": "array"
+        }
+      },
+      "additionalProperties": true
+    },
+    "reference": {
+      "type": "object"
+    },
+    "variant_summary": {
+      "type": "object"
+    }
+  },
+  "additionalProperties": true,
+  "description": "Additive reporting interface. Optional data may be absent. Null is unavailable, never zero. Numeric TSV summaries may contain strings.",
+  "$defs": {
+    "variant": {
+      "type": "object",
+      "properties": {
+        "sample_id": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "chrom": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "ref": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "alt": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "type": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "status": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "genotype": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "annotation": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "consequence": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "source": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "pos": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "wsaf": {
+          "type": [
+            "number",
+            "string",
+            "null"
+          ]
+        },
+        "wsaf_lo": {
+          "type": [
+            "number",
+            "string",
+            "null"
+          ]
+        },
+        "wsaf_hi": {
+          "type": [
+            "number",
+            "string",
+            "null"
+          ]
+        },
+        "depth": {
+          "type": [
+            "number",
+            "string",
+            "null"
+          ]
+        },
+        "alt_reads": {
+          "type": [
+            "number",
+            "string",
+            "null"
+          ]
+        },
+        "quality": {
+          "type": [
+            "number",
+            "string",
+            "null"
+          ]
+        },
+        "screen": {
+          "type": [
+            "number",
+            "string",
+            "null"
+          ]
+        }
+      },
+      "additionalProperties": true
+    },
+    "gate": {
+      "type": "object",
+      "properties": {
+        "sample_id": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "gate_id": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "gate": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "stage": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "metric": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "unit": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "direction": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "status": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "threshold_source": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "reason": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "observed": {
+          "type": [
+            "number",
+            "string",
+            "null"
+          ]
+        },
+        "fail_threshold": {
+          "type": [
+            "number",
+            "string",
+            "null"
+          ]
+        },
+        "warn_threshold": {
+          "type": [
+            "number",
+            "string",
+            "null"
+          ]
+        },
+        "calibrated": {
+          "type": [
+            "boolean",
+            "null"
+          ]
+        }
+      },
+      "additionalProperties": true
+    },
+    "measurement": {
+      "type": "object",
+      "properties": {
+        "rule": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "job": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "source": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "wall_s": {
+          "type": [
+            "number",
+            "string",
+            "null"
+          ]
+        },
+        "cpu_time_s": {
+          "type": [
+            "number",
+            "string",
+            "null"
+          ]
+        },
+        "max_rss_mb": {
+          "type": [
+            "number",
+            "string",
+            "null"
+          ]
+        },
+        "io_in_mb": {
+          "type": [
+            "number",
+            "string",
+            "null"
+          ]
+        },
+        "io_out_mb": {
+          "type": [
+            "number",
+            "string",
+            "null"
+          ]
+        },
+        "average_cpu_cores": {
+          "type": [
+            "number",
+            "string",
+            "null"
+          ]
+        }
+      },
+      "additionalProperties": true
+    },
+    "log": {
+      "type": "object",
+      "properties": {
+        "path": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "text": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "truncated": {
+          "type": "boolean"
+        },
+        "size_bytes": {
+          "type": [
+            "integer",
+            "null"
+          ]
+        }
+      },
+      "additionalProperties": true
+    },
+    "diagnostic": {
+      "type": "object",
+      "properties": {
+        "event_id": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "sample_id": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "analysis_id": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "severity": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "stage": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "status": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "code": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "failure_class": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "cause_confirmed": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "remedies": {
+          "type": "array"
+        },
+        "log_paths": {
+          "type": "array"
+        }
+      },
+      "additionalProperties": true
+    },
+    "input_file": {
+      "type": "object",
+      "properties": {
+        "path": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "role": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "sample_id": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "size_bytes": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0
+        }
+      },
+      "additionalProperties": true
+    },
+    "analysis": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "terminal": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "requested": {
+          "type": "boolean"
+        },
+        "internal": {
+          "type": "boolean"
+        },
+        "manifest": {
+          "type": [
+            "object",
+            "null"
+          ]
+        },
+        "newick": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "calls": {
+          "type": "array",
+          "items": {
+            "type": "object"
+          }
+        },
+        "prevalence": {
+          "type": "array",
+          "items": {
+            "type": "object"
+          }
+        },
+        "fws": {
+          "type": "array",
+          "items": {
+            "type": "object"
+          }
+        },
+        "diversity": {
+          "type": "array",
+          "items": {
+            "type": "object"
+          }
+        },
+        "clonality": {
+          "type": "array",
+          "items": {
+            "type": "object"
+          }
+        },
+        "pairs": {
+          "type": "array",
+          "items": {
+            "type": "object"
+          }
+        },
+        "pca": {
+          "type": "array",
+          "items": {
+            "type": "object"
+          }
+        },
+        "fst": {
+          "type": "array",
+          "items": {
+            "type": "object"
+          }
+        },
+        "summary": {
+          "type": "array",
+          "items": {
+            "type": "object"
+          }
+        },
+        "grid": {
+          "type": "array",
+          "items": {
+            "type": "object"
+          }
+        },
+        "distance_matrix": {
+          "type": "array",
+          "items": {
+            "type": "object"
+          }
+        },
+        "pca_model": {
+          "type": [
+            "object",
+            "null"
+          ]
+        }
+      },
+      "additionalProperties": true
+    }
+  }
+}

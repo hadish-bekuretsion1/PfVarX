@@ -1,0 +1,5 @@
+# PfVarX QC policy selection. Thresholds live in maintainer-owned
+# config/registry/qc_policy_<id>.yaml and cannot be relaxed here.
+schema_version: "pfvarx.quality/2"   # FIXED
+policy_id: pfvarx_qc_v1              # REVIEW: must be a registered policy
+report_not_applicable: true          # OPTIONAL: show NOT_APPLICABLE gates in the dashboard

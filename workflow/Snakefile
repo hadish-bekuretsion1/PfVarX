@@ -1,0 +1,102 @@
+# PfVarX Snakemake workflow. Invoked by 'pfvarx pipeline' with
+#   --config run_dir=<runs/RUN_ID> root=<workspace>
+# The run directory holds the frozen configuration and plan written by Layer 0;
+# this workflow never reads the user's editable YAML directly.
+import json
+from pathlib import Path
+
+ROOT = Path(config["root"]).resolve()
+RUN = Path(config["run_dir"]).resolve()
+EFF = json.loads((RUN / "frozen_config.json").read_text())
+PLAN = json.loads((RUN / "frozen_plan.json").read_text())
+R = RUN / "results"
+LOGS = RUN / "logs"
+BENCH = RUN / "benchmarks"
+CFG = EFF["config"]
+DESIGN = CFG["assay"]["design"]
+P = {k: v["value"] for k, v in EFF["parameters"].items()}
+SAMPLES = {s["sample_id"]: s for s in PLAN["samples"]}
+REF = str(ROOT / PLAN["reference"]["combined_fasta"])
+PREF = str(ROOT / PLAN["reference"]["parasite_fasta"])
+CORE = str(ROOT / CFG["reference"]["core_mask_bed"])
+LAYERS = PLAN["layers"]
+COMPUTE = EFF["compute"]
+FROZEN = str(RUN / "frozen_config.json")
+EXCLUDED = set(json.loads((RUN / "runtime_exclusions.json").read_text())["samples"]) \
+    if (RUN / "runtime_exclusions.json").is_file() else set()
+
+
+wildcard_constraints:
+    sample=r"[A-Za-z0-9][A-Za-z0-9_-]*",
+    lane=r"[A-Za-z0-9][A-Za-z0-9_-]*",
+
+
+def mem(base):
+    """Attempt-scaled memory within the per-job ceiling (retries only on memory-scalable rules)."""
+    cap = COMPUTE["per_job"]["max_mem_mb"]
+    factor = COMPUTE["retry_memory_factor"]
+    return lambda wc, attempt: int(min(base * factor ** (attempt - 1), cap))
+
+
+def threads(n):
+    return min(n, COMPUTE["per_job"]["max_threads"])
+
+
+RUNTIME = COMPUTE["per_job"]["max_runtime_min"]
+
+include: "rules/l1_fastq_qc.smk"
+include: "rules/l1_align.smk"
+if DESIGN == "TARGETED_UMI" and PLAN["input_type"] == "FASTQ":
+    include: "rules/l1_umi.smk"
+include: "rules/l1_metrics.smk"
+include: "rules/l2_caller.smk"
+if 3 in LAYERS:
+    include: "rules/l3_cohort.smk"
+if 4 in LAYERS:
+    include: "rules/l4_annotation.smk"
+if 5 in LAYERS:
+    include: "rules/l5_downstream.smk"
+
+
+def gate(sample):
+    """Layer 1 -> 2 gate decision for one sample (forces the per-sample checkpoint)."""
+    out = checkpoints.l1_gate.get(sample=sample).output[0]
+    return json.loads(Path(out).read_text())
+
+
+def passing(stage):
+    """Samples allowed into *stage* after their own QC gate (failure isolation)."""
+    out = []
+    for s in sorted(SAMPLES):
+        if s in EXCLUDED:
+            continue
+        g = gate(s)
+        if g["permitted"].get(stage, False):
+            out.append(s)
+    return out
+
+
+GATES = [str(R / "qc" / "samples" / s / "qc_decision.json") for s in sorted(SAMPLES) if s not in EXCLUDED]
+
+
+def final_targets(wildcards):
+    targets = []
+    if 1 in LAYERS and PLAN["input_type"] == "FASTQ":
+        targets += [str(R / "alignments" / f"{s}.bam") for s in passing("L1_OUTPUT")]
+    if 2 in LAYERS:
+        targets += [str(R / "variants" / "samples" / f"{s}.vcf.gz") for s in passing("L2")]
+    if 3 in LAYERS:
+        targets += [str(R / "cohort" / "cohort.vcf.gz"), str(R / "cohort" / "missingness.tsv")]
+    if 4 in LAYERS:
+        targets += [str(R / "annotation" / "cohort.ann.vcf.gz"), str(R / "annotation" / "annotation_qc.json")]
+    if 5 in LAYERS:
+        targets += da_targets()
+    return targets
+
+
+rule all:
+    input:
+        GATES,  # static: every sample's Layer 1 work is scheduled in parallel before any checkpoint
+        final_targets,
+    output:
+        touch(str(RUN / "workflow.complete")),

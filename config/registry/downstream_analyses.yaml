@@ -1,0 +1,80 @@
+# Maintainer-owned downstream method registry (Table F.3). Users cannot edit it.
+version: "2.0.0"
+analyses:
+  DA001:
+    name: Complexity of infection and clonal status
+    method: MOIRE (r-moire) on biallelic or multiallelic loci; FWS descriptive
+    tool: moire
+    designs: [WGS, TARGETED_NON_UMI, TARGETED_UMI]
+    scales: [SAMPLE, COHORT, POPULATION]
+    clonality: [MONOCLONAL, POLYCLONAL, INDETERMINATE]
+    requires: [cohort_variants]
+    prerequisites: []
+    required_metadata: []
+    validation_status: TESTED
+  DA002:
+    name: Drug-resistance markers
+    method: catalogue-matched marker genotyping with callable denominators
+    tool: pfvarx.downstream.resistance
+    designs: [WGS, TARGETED_NON_UMI, TARGETED_UMI]
+    scales: [SAMPLE, COHORT, POPULATION, BETWEEN_POPULATIONS]
+    clonality: [MONOCLONAL, POLYCLONAL, INDETERMINATE]
+    requires: [annotated_variants, callability]
+    prerequisites: []
+    required_metadata: []
+    validation_status: TESTED
+  DA003:
+    name: Genetic diversity
+    method: FWS, nucleotide diversity per callable base, expected heterozygosity
+    tool: pfvarx.downstream.diversity
+    designs: [WGS, TARGETED_NON_UMI, TARGETED_UMI]
+    scales: [SAMPLE, COHORT, POPULATION, BETWEEN_POPULATIONS]
+    clonality: [MONOCLONAL, POLYCLONAL, INDETERMINATE]
+    requires: [cohort_variants, callability]
+    prerequisites: []
+    required_metadata: []
+    validation_status: TESTED
+  DA004:
+    name: Relatedness and identity by descent
+    method: hmmIBD for monoclonal pairs; Dcifer for pairs including polyclonal samples
+    tool: hmmIBD|dcifer
+    designs: [WGS, TARGETED_NON_UMI, TARGETED_UMI]
+    scales: [PAIRWISE, COHORT, POPULATION]
+    clonality: [MONOCLONAL, POLYCLONAL]
+    requires: [cohort_variants]
+    prerequisites: [DA001]
+    required_metadata: []
+    validation_status: TESTED
+  DA005:
+    name: Population structure
+    method: PCA (haploid, ploidy=1) and Hudson FST with block jackknife (scikit-allel)
+    tool: scikit-allel
+    designs: [WGS]
+    scales: [COHORT, POPULATION, BETWEEN_POPULATIONS]
+    clonality: [MONOCLONAL, POLYCLONAL]
+    requires: [cohort_variants]
+    prerequisites: [DA001]
+    required_metadata: [population]
+    validation_status: TESTED
+  DA006:
+    name: Conventional single-lineage phylogenetics
+    method: IQ-TREE 2, ModelFinder restricted to +ASC models, UFBoot and SH-aLRT
+    tool: iqtree2
+    designs: [WGS]
+    scales: [COHORT, POPULATION]
+    clonality: [MONOCLONAL]
+    requires: [cohort_variants, callability]
+    prerequisites: [DA001]
+    required_metadata: []
+    validation_status: TESTED
+  DA007:
+    name: Spatial and temporal summary
+    method: descriptive maps and time series; mgcv GAM (REML) where supported
+    tool: Rscript
+    designs: [WGS, TARGETED_NON_UMI, TARGETED_UMI]
+    scales: [SAMPLE, COHORT, POPULATION]
+    clonality: [MONOCLONAL, POLYCLONAL, INDETERMINATE]
+    requires: [source_outcome]
+    prerequisites: [SOURCE]
+    required_metadata: [latitude, longitude, collection_date, country]
+    validation_status: TESTED

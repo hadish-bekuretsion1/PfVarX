@@ -1,0 +1,77 @@
+# Architecture and ownership — 0.0.0
+
+Layer 2 exposes a versioned sample artifact contract. The workflow can load the native
+caller or invoke a separately installed adapter. The same downstream consumers read
+the resulting artifacts. The configuration editor, input validation, preparation
+and execution are separate entry points.
+
+| Boundary | Owner | Contract |
+| --- | --- | --- |
+| Post-clone export/install | `bootstrap.py` | Standard-library/Python 3.11+ entry point; new destination only; full/sparse source support; selected source/locked environment |
+| Environment dispatch | root `pfvarx` launcher | Run from workspace root; use installation metadata to choose Pixi environment; `tool` dispatch for installed utilities |
+| Configuration/capabilities | `configuration/`, templates, installation metadata | Strict typed config; reject unavailable modes/analyses/assays/input types and unsupported VCF entry |
+| Optional configuration editor | `configuration/web.py`, `configuration/gui/` | Loopback form uses the same schema and capability checks, saves YAML with backup protection, and creates input folders |
+| Layout | `initialization/layout.py`, `workspace.py` | Config-driven input folders, three editable YAMLs, sample header and init metadata; no fake runs/results |
+| Registration/acquisition | `inputs/organize.py` | Review-required discovery, reviewed TSV imports, references/symlinks, HTTPS checksum/no-clobber publication |
+| Validation/preparation | `inputs/`, `references/`, `execution/preflight.py` | Actual input facts, detailed reports, effective config/parameters, necessary derived reference artifacts and verification |
+| Scheduling/execution | `execution/runner.py`, Snakemake | Mandatory prep integrity/resource gates, frozen run, checkpoint scheduling, bounded local concurrency, failure isolation |
+| Retention | `execution/retention.py` | Workspace lock; keep/notemp or dependency cleanup; completed-run safe work-only cleanup; preview-first CLI |
+| Caller boundary | `caller_adapter.py`, `caller/`, `genomic_evidence.py` | Native or external backend emits VCF, evidence, callable/focal BED and QC under the same contract |
+| Downstream eligibility | `eligibility/`, method registry and Layer 5 checkpoint | Assay candidate selection, QC admission, DA001 clonality, metadata, artifact and method gates with reason codes |
+| Provenance | `runs/`, `provenance/`, diagnostics | Frozen config/plan/software plus launcher/installation metadata, attempts/events/logs; external file checksums remain a study responsibility |
+| Reporting | `reporting/` | Offline HTML, dashboard JSON /2 and QC artifacts; renderer hash separate from frozen scientific provenance |
+
+## Selection and dependency closure
+
+Sample and cohort profiles need no downstream implementation. Selected FO004 analyses
+add annotation and requested modules plus genuine prerequisites/shared helpers. DA004,
+DA005 and DA006 depend on DA001; DA007 currently uses DA002 outcomes. Registry/policy
+metadata remains shared because control/provenance code reads it. Tool feature groups
+are reads, targeted, annotation, coi, related, structure, phylogeny, spatial, bench and
+dev. Valid feature combinations are locked in the single Pixi manifest/lock. Core is
+FASTQ sample/cohort; aligned skips FASTQ alignment tools. Optional features are installed
+only in the selected environment; a full/development environment retains every tool.
+
+The source export omits unselected modules/rules/R adapters/unused geometry. Snakemake
+includes cohort/annotation/downstream rules only for layers in the validated plan, and
+UMI rules only for UMI FASTQ. The downstream dispatcher imports only the invoked method.
+Changing objectives beyond a selected export requires a NEW appropriate workspace;
+installation metadata is a capability declaration, not a security/access-control system.
+
+## Preparation and execution lifecycle
+
+Clone → explicit bootstrap → review configuration → discover/register/fetch actual
+inputs → validate → prepare → verify-prepared → ready/dry-run → execute → report →
+retention/explicit cleanup. `orchestrate` implements the ordered chain after inputs are
+configured and can stop at initialize/validate/prepare/verify. It holds a workspace lock
+through mutation/execution. Explicit pipeline entry also locks and re-enforces preflight.
+
+Reference manifest v2 stores source fingerprints and nonempty derived artifact hashes.
+Separate semantic checks compare derived FASTA index/dictionary names and lengths.
+Corruption/missing/stale artifacts prevent run creation; `prepare` repairs affected
+resources. BWA indexes are required only for FASTQ entry. Annotation-specific resources
+are deferred to the actual FO004 layer and checked against its reference/GFF there.
+
+No setup relies on clone hooks or implicit execution. No reference/truth resource is
+chosen/downloaded without explicit user input. No genotype, assay chemistry, geographic
+coordinate or wet-lab library identity is inferred as scientific truth by discovery.
+
+## Data boundaries
+
+Runtime paths are `inputs/`, `prepared/`, `metadata/`, `runs/`, `results`, benchmarks,
+installed `.pixi` and the workspace lock; they are excluded from source archives.
+The completed run retains BAM/VCF/evidence/callability/QC/frozen/log/measurement/report
+artifacts. Only safe regular files under `runs/ID/results/work` are bulk cleanup
+candidates; originals, symlinks and failed-run evidence are excluded. An explicit
+successful retention policy controls Snakemake temporary-output deletion as well.
+
+Only native Linux local execution has been qualified here. The optional Apptainer
+context/image builder is a deployment implementation with an explicit qualification
+gap, not evidence of a tested container image or cluster deployment.
+
+Layer 2 selects a backend behind the [caller contract](caller.md). Cohort, reporting,
+and benchmark consumers use the existing sample artifact paths. Shared read-filter
+and interval conventions live outside the native caller package.
+
+See the [configuration editor and input procedure](configuration.md) and the
+[sequencing and downstream eligibility matrix](sequencing.md).

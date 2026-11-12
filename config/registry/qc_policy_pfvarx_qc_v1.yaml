@@ -1,0 +1,44 @@
+# Maintainer-owned QC policy. Users select it by id in config/quality.yaml.
+# direction: 'min' means FAIL below fail / WARNING below warn; 'max' the reverse.
+# threshold_source UNSET_BLOCKING => gate reports NOT_EVALUATED (never PASS).
+# threshold_source UNCALIBRATED_PROVISIONAL => gate is evaluated, and every
+# decision is labelled calibrated=false until Phase 3 replaces the values.
+policy_id: pfvarx_qc_v1
+version: "1.0.0"
+gates:
+  - {id: G1.read_retention, gate: G1, stage: L1.fastq_qc, metric: reads_retained_fraction, unit: fraction,
+     direction: min, fail: 0.5, warn: 0.7, threshold_source: UNCALIBRATED_PROVISIONAL,
+     designs: [WGS, TARGETED_NON_UMI, TARGETED_UMI], mandatory: true, warning_permitted_for: [L1, L2, L3, L4]}
+  - {id: G1.mean_length, gate: G1, stage: L1.fastq_qc, metric: mean_read_length_after, unit: bp,
+     direction: min, fail: null, warn: null, threshold_source: UNSET_BLOCKING,
+     designs: [WGS, TARGETED_NON_UMI, TARGETED_UMI], mandatory: false, warning_permitted_for: [L1, L2, L3, L4]}
+  - {id: G1.q30, gate: G1, stage: L1.fastq_qc, metric: q30_fraction_after, unit: fraction,
+     direction: descriptive, fail: null, warn: null, threshold_source: FRAMEWORK_POLICY,
+     designs: [WGS, TARGETED_NON_UMI, TARGETED_UMI], mandatory: false, warning_permitted_for: []}
+  - {id: G2.mapped, gate: G2, stage: L1.alignment, metric: mapped_fraction, unit: fraction,
+     direction: min, fail: 0.5, warn: 0.8, threshold_source: UNCALIBRATED_PROVISIONAL,
+     designs: [WGS, TARGETED_NON_UMI, TARGETED_UMI], mandatory: true, warning_permitted_for: [L2, L3, L4]}
+  - {id: G2.properly_paired, gate: G2, stage: L1.alignment, metric: properly_paired_fraction, unit: fraction,
+     direction: min, fail: null, warn: null, threshold_source: UNSET_BLOCKING,
+     designs: [WGS, TARGETED_NON_UMI, TARGETED_UMI], mandatory: false, warning_permitted_for: [L2, L3, L4]}
+  - {id: G2.duplicates, gate: G2, stage: L1.alignment, metric: duplicate_fraction, unit: fraction,
+     direction: max, fail: 0.6, warn: 0.3, threshold_source: UNCALIBRATED_PROVISIONAL,
+     designs: [WGS], mandatory: true, warning_permitted_for: [L2, L3, L4, DA002]}
+  - {id: G2.depth, gate: G2, stage: L1.coverage, metric: median_depth_core, unit: reads,
+     direction: min, fail: 10, warn: 20, threshold_source: UNCALIBRATED_PROVISIONAL,
+     designs: [WGS], mandatory: true, warning_permitted_for: [L2, L3, L4, DA002]}
+  - {id: G2.callable, gate: G2, stage: L1.coverage, metric: callable_fraction_core, unit: fraction,
+     direction: min, fail: 0.5, warn: 0.8, threshold_source: UNCALIBRATED_PROVISIONAL,
+     designs: [WGS], mandatory: true, warning_permitted_for: [L2, L3, L4, DA002]}
+  - {id: G3.on_target, gate: G3, stage: L1.targets, metric: on_target_fraction, unit: fraction,
+     direction: min, fail: 0.5, warn: 0.7, threshold_source: UNCALIBRATED_PROVISIONAL,
+     designs: [TARGETED_NON_UMI, TARGETED_UMI], mandatory: true, warning_permitted_for: [L2, L3, L4]}
+  - {id: G3.dropout, gate: G3, stage: L1.targets, metric: amplicon_dropout_fraction, unit: fraction,
+     direction: max, fail: 0.5, warn: 0.2, threshold_source: UNCALIBRATED_PROVISIONAL,
+     designs: [TARGETED_NON_UMI, TARGETED_UMI], mandatory: true, warning_permitted_for: [L2, L3, L4, DA002]}
+  - {id: G3.umi_singletons, gate: G3, stage: L1.umi, metric: umi_singleton_fraction, unit: fraction,
+     direction: max, fail: null, warn: null, threshold_source: UNSET_BLOCKING,
+     designs: [TARGETED_UMI], mandatory: false, warning_permitted_for: [L2, L3, L4]}
+  - {id: G4.mixture_converged, gate: G4, stage: L2.mixture, metric: mixture_converged, unit: boolean,
+     direction: min, fail: 1, warn: null, threshold_source: FRAMEWORK_POLICY,
+     designs: [WGS, TARGETED_NON_UMI, TARGETED_UMI], mandatory: false, warning_permitted_for: [L3, DA002, DA003]}

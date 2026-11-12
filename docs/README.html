@@ -1,0 +1,35 @@
+<!doctype html>
+<html lang="en"><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Run PfVarX 0.0.0</title>
+<style>body{font:16px/1.6 system-ui;color:#193247;max-width:780px;margin:2rem auto;padding:0 1rem}pre{background:#edf3f7;padding:1rem;overflow:auto}a{color:#17658c}</style>
+<main>
+<h1>Run PfVarX 0.0.0</h1>
+<p>This example uses paired-end WGS FASTQ and the sample profile for per-sample variant calls. Use a Linux x86-64 host with Python 3.11+ and Pixi on PATH.</p>
+<h2>1. Download and install</h2>
+<p>Sign in to GitHub with access to the private repository. Run these commands from the directory where you want the source and study workspace.</p>
+<pre>git clone https://github.com/hadish-bekuretsion1/PfVarX.git PfVarX-source
+python3 PfVarX-source/bootstrap.py --profile sample --workspace PfVarX-study
+cd PfVarX-study
+./pfvarx version</pre>
+<h2>2. Configure your study</h2>
+<pre>./pfvarx configure --gui</pre>
+<p>Alternatively edit <code>config/config.yaml</code>, <code>config/quality.yaml</code> and <code>config/compute.yaml</code>. Set the actual reference release, FASTA, matching core BED, assay and compute limits. The default sample profile runs FO002. Choose a cohort or downstream profile at bootstrap if you need those outputs.</p>
+<h2>3. Register reads</h2>
+<p>Replace the example path with your FASTQ directory. Review sample identities, libraries and paired files before registration. Use a reviewed TSV manifest directly when the filenames do not match the discovery convention.</p>
+<pre>./pfvarx discover-inputs --directory /absolute/path/to/fastq
+nano metadata/discovered_samples.tsv
+./pfvarx register-inputs --manifest metadata/discovered_samples.tsv --mode reference</pre>
+<h2>4. Validate and prepare</h2>
+<pre>./pfvarx validate
+./pfvarx prepare
+./pfvarx verify-prepared
+./pfvarx ready
+./pfvarx dry-run</pre>
+<p>Inspect the validation report under <code>metadata/</code> and resolve failures before running. Confirm that readiness is true and the dry run reports OK.</p>
+<h2>5. Execute and review</h2>
+<pre>./pfvarx pipeline --mode NEW</pre>
+<p>Record the returned run ID. Open <code>results/report/pfvarx_dashboard.html</code> and review sample QC before interpreting calls. FO002 results include sample VCFs under <code>results/variants/samples/</code>. Run logs and frozen configuration are under <code>runs/RUN_ID/</code>.</p>
+<h2>6. Continue with the full procedures</h2>
+<p>Use the <a href="sop/PfVarX_SOP_Manual.html#procedure-index">Operational SOP procedure index</a> for targeted sequencing, BAM/CRAM, cohort and downstream runs, benchmarking, and troubleshooting. See the <a href="deployment.md">deployment guide</a> for server, cloud VM and single-node SLURM setup.</p>
+</main></html>
