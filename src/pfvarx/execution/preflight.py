@@ -13,6 +13,28 @@ from pfvarx.io import write_json, write_tsv
 from pfvarx.references.prepare import prepare, verify_prepared
 
 
+VALIDATION_FIXES = {
+    "FILE_MISSING": "Add the required file or correct its saved path, then validate again.",
+    "REFERENCE_MISMATCH": "Use files that match the configured reference assembly and contig names.",
+    "REFERENCE_MALFORMED": "Check the file format against the finding and replace malformed inputs.",
+    "BED_MALFORMED": "Check tab-separated BED coordinates, contig names, and reference bounds.",
+    "PRIMER_TABLE_MALFORMED": "Correct the primer TSV using the assay definitions and the reported field.",
+    "METADATA_MISSING_FIELD": "Fill in the reported field in the sample sheet.",
+    "METADATA_DUPLICATE_SAMPLE": "Review the sample sheet and correct duplicate sample/lane records.",
+    "ALIGNMENT_UNSORTED": "Coordinate-sort the alignment and regenerate its index.",
+    "ALIGNMENT_NO_INDEX": "Create the matching index and place it next to the alignment.",
+    "ALIGNMENT_READ_GROUP": "Correct read group and sample identifiers to match the sample sheet.",
+    "ALIGNMENT_PROCESSING_STATE": "Supply an alignment that meets the configured processing requirements.",
+    "FASTQ_TRUNCATED": "Replace the incomplete FASTQ with a verified copy.",
+    "FASTQ_MATE_COUNT_MISMATCH": "Supply both mates from the same sample and lane with matching record counts.",
+    "FASTQ_MATE_NAME_MISMATCH": "Supply matched mates with corresponding read IDs in the same order.",
+    "FASTQ_QUALITY_ENCODING": "Check the input quality encoding against the sequencing export and configuration.",
+    "FASTQ_MALFORMED_RECORD": "Replace the malformed FASTQ with a verified export.",
+    "UMI_READ_STRUCTURE": "Match the configured read structure to the documented library and read lengths.",
+    "VCF_INCOMPATIBLE": "Supply a VCF compatible with the reference and sample configuration.",
+}
+
+
 def validate_inputs(root: Path) -> dict[str, Any]:
     bundle = load_bundle(root)
     cfg = bundle.config
@@ -20,6 +42,11 @@ def validate_inputs(root: Path) -> dict[str, Any]:
     if cfg.input_type.value == "FASTQ" and not sheet.exists() and not sheet.is_symlink():
         discover(root, root / "inputs/fastq", sheet)
     report = validate_all(root, bundle)
+    for entry in report["reports"]:
+        for finding in entry["findings"]:
+            finding["solution"] = VALIDATION_FIXES.get(
+                finding["reason"], "Review the reported detail and correct the affected input or configuration."
+            )
     write_json(root / "metadata/validation_report.json", report)
     matrix = []
     for entry in report["reports"]:
@@ -55,7 +82,14 @@ def prepare_inputs(root: Path, dry_run: bool = False) -> dict[str, Any]:
         raise ValueError(f"Created sample sheet template at {sheet}. Register or enter the samples, then rerun preparation.")
     validation = validate_inputs(root)
     if validation["status"] == "FAIL":
-        raise ValueError("Input validation failed; inspect metadata/validation_report.json before preparation")
+        failures = [
+            f"{finding['path']}: {finding['detail']} Suggested fix: {finding['solution']}"
+            for entry in validation["reports"]
+            for finding in entry["findings"]
+            if finding["level"] == "FAIL"
+        ]
+        details = "\n".join(failures)
+        raise ValueError(f"Input validation failed. See metadata/validation_report.json.\n{details}")
     result = prepare(root, bundle, False)
     verification = verify_prepared(root, bundle)
     write_json(root / "metadata/preparation_report.json", {"preparation": result, "verification": verification})
