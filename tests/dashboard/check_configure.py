@@ -77,7 +77,7 @@ with tempfile.TemporaryDirectory(prefix="pfvarx040-gui-") as directory:
             page.locator('[id="config.final_output"]').select_option("FO004")
             expect(page.locator("#summary")).to_be_visible()
             expect(page.locator("#summary")).to_contain_text('"final_output": "FO004"')
-            expect(page.locator("#summary")).to_contain_text('"DA001"')
+            expect(page.locator('[data-field="config.analyses.requested"] input[value="DA001"]')).not_to_be_checked()
             page.locator('[id="config.retention.intermediates"]').select_option("keep")
             expect(page.locator("#summary")).to_contain_text('"intermediates": "keep"')
 

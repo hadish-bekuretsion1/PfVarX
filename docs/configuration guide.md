@@ -55,7 +55,7 @@ The editor shows project settings from `config/config.yaml`, quality settings fr
 | Setting | Accepted values or example | When to use it |
 | --- | --- | --- |
 | `analyses.selection` | `explicit or auto` | Explicit runs selected methods. Auto is for FO004 and selects design-compatible candidates subject to QC and evidence gates. |
-| `analyses.requested` | `[] or [DA001, DA003]` | Use an empty list for auto or FO001–FO003. FO004 always includes DA001. For explicit selection, add other installed methods as needed. DA001 COI, DA002 markers, DA003 diversity, DA004 relatedness, DA005 structure, DA006 phylogeny, DA007 spatial/temporal. |
+| `analyses.requested` | `[] or [DA001, DA003]` | Use an empty list for auto or FO001–FO003. DA001 is optional for explicit selection and runs internally when required. For explicit selection, add other installed methods as needed. DA001 COI, DA002 markers, DA003 diversity, DA004 relatedness, DA005 structure, DA006 phylogeny, DA007 spatial/temporal. |
 | `analyses.scales` | `{} or {"DA003":["POPULATION"]}` | Use {} for defaults or auto. For explicit selection specify only requested IDs and supported scales from the registry. |
 | `analyses.population_column` | `null or population` | Use the sample TSV column containing actual population assignments for group analyses. |
 | `analyses.resistance_catalog` | `null or inputs/metadata/verified_catalog.tsv` | Use a reference-matched, independently verified catalogue for real marker outcomes. Null selects the shipped catalogue, whose draft status blocks real marker analysis. |
@@ -110,7 +110,7 @@ Bootstrap with `--profile sample --design TARGETED_UMI`. Choose FASTQ, FO002 and
 
 ### Automatic downstream analysis
 
-Bootstrap with `--profile downstream --auto-analyses` and the actual design. FO004 includes DA001 by default. Select FO004 and automatic analysis selection. Leave requested and scales empty. Supply matched annotation and an eligible catalogue for marker analysis. Add actual population, date and geography metadata where required. Review terminal reasons for excluded analyses.
+Bootstrap with `--profile downstream --auto-analyses` and the actual design. Select FO004 and automatic analysis selection. Leave requested and scales empty. Supply matched annotation and an eligible catalogue for marker analysis. Add actual population, date and geography metadata where required. Review terminal reasons for excluded analyses.
 
 ### After saving
 

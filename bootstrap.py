@@ -96,8 +96,8 @@ def export_workspace(
         raise ValueError("Unknown analysis; choose DA001–DA007")
     if profile in {"sample", "cohort"} and analyses:
         raise ValueError("Select downstream or benchmark profile for analyses")
-    if profile == "downstream" or analyses:
-        analyses = ["DA001", *(da for da in analyses if da != "DA001")]
+    if profile == "downstream" and not analyses:
+        raise ValueError("Choose --analyses or --auto-analyses for the downstream profile")
     if design != "WGS" and set(analyses) & {"DA005", "DA006"}:
         raise ValueError("DA005/DA006 require WGS")
     if rtg and profile not in {"benchmark", "development"}:
@@ -105,6 +105,8 @@ def export_workspace(
     if destination.exists():
         raise ValueError(f"Workspace exists: {destination}; choose a new directory")
     selected = set(analyses)
+    if selected & {"DA004", "DA005", "DA006"}:
+        selected.add("DA001")
     if "DA007" in selected:
         selected.add("DA002")
     modules = {METHODS[d] for d in selected}

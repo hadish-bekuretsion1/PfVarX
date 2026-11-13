@@ -38,7 +38,7 @@ initialized, enter it directly. Bootstrap requires a new destination.
 | --- | --- |
 | Alignment/QC or per-sample calls | `--profile sample` |
 | Cohort integration | `--profile cohort` |
-| Downstream analyses | `--profile downstream --analyses DA003` for diversity plus default COI, or `--profile downstream --auto-analyses` |
+| Downstream analyses | `--profile downstream --analyses DA003` for diversity, or `--profile downstream --auto-analyses` |
 | Benchmarking | `--profile benchmark` |
 | Full development environment | `--profile development` |
 

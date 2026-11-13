@@ -28,6 +28,7 @@ const filePlaceholders = {
     "config.reference.fasta": "inputs/reference/",
     "config.reference.core_mask_bed": "inputs/reference/",
     "config.reference.gff": "inputs/reference/",
+    "config.analyses.resistance_catalog": "inputs/metadata/",
 };
 
 function draw(parent, object, schema, path = "") {
@@ -70,7 +71,7 @@ function draw(parent, object, schema, path = "") {
                 const box = document.createElement("input");
                 box.type = "checkbox";
                 box.value = da;
-                box.checked = da === "DA001" || (object[key] || []).includes(da);
+                box.checked = (object[key] || []).includes(da);
                 box.addEventListener("change", () => {
                     object[key] = Array.from(row.querySelectorAll(":checked"), item => item.value);
                     changed(id);
@@ -221,6 +222,12 @@ function changed(id) {
             analyses.requested = [];
             analyses.scales = {};
         }
+        if (full && analyses.selection === "explicit" && !config.reference.gff) {
+            config.reference.gff = filePlaceholders["config.reference.gff"];
+        }
+        if (analyses.selection === "auto" && config.reference.gff === filePlaceholders["config.reference.gff"]) {
+            config.reference.gff = null;
+        }
         if (config.caller.backend === "native") {
             config.caller.executable = null;
             config.caller.sha256 = null;
@@ -252,7 +259,7 @@ function changed(id) {
     }[assay.design];
     for (const option of sequencing.options) option.disabled = option.value !== "" && !allowed.includes(option.value);
     for (const box of editor.querySelectorAll('[data-field="config.analyses.requested"] input')) {
-        box.disabled = box.value === "DA001" || !full || analyses.selection === "auto" || !state.analyses[box.value].designs.includes(assay.design);
+        box.disabled = !full || analyses.selection === "auto" || !state.analyses[box.value].designs.includes(assay.design);
     }
     const conditionalRequirements = {
         "config.assay.targets_bed": targeted,
@@ -270,7 +277,10 @@ function changed(id) {
     }
     const summary = structuredClone(values);
     if (full && analyses.selection === "explicit") {
-        summary.config.analyses.requested = [...new Set(["DA001", ...(analyses.requested || [])])];
+        const requested = analyses.requested || [];
+        const prerequisites = requested.flatMap(da => state.analyses[da]?.prerequisites || [])
+            .map(da => da === "SOURCE" ? analyses.spatial_outcome_source : da);
+        summary.internal_prerequisites = [...new Set(prerequisites.filter(da => da && !requested.includes(da)))];
     }
     byId("summary").textContent = JSON.stringify(summary, null, 2);
     saveButton.disabled = true;

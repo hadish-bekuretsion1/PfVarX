@@ -92,11 +92,6 @@ def validate_bundle(root: Path, parsed: dict[str, Any]) -> Bundle:
         bundle = bundle.model_copy(update={"config": bundle.config.model_copy(
             update={"analyses": analyses.model_copy(update=changes)}
         )})
-    if bundle.config.final_output.value == "FO004" and analyses.selection == "explicit":
-        requested = ["DA001", *(da for da in analyses.requested if da != "DA001")]
-        bundle = bundle.model_copy(update={"config": bundle.config.model_copy(
-            update={"analyses": analyses.model_copy(update={"requested": requested})}
-        )})
     installation = root / "config/installation.json"
     if installation.is_file():
         from pfvarx.io import read_json
@@ -106,7 +101,11 @@ def validate_bundle(root: Path, parsed: dict[str, Any]) -> Bundle:
             available = metadata["analyses_available"]
             if metadata["schema"] == "pfvarx.installation/1":
                 available = [LEGACY_IDS.get(da, da) for da in available]
-            unavailable = set(bundle.config.analyses.requested) - set(available)
+            from pfvarx.eligibility.engine import internal_prerequisites, load_registry
+
+            effective = bundle.config.analyses
+            prerequisites = internal_prerequisites(effective.requested, load_registry(root), effective.spatial_outcome_source)
+            unavailable = set(effective.requested + prerequisites) - set(available)
             if (
                 unavailable
                 or bundle.config.final_output.value > metadata["max_final_output"]

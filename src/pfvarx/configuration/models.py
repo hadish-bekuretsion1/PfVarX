@@ -152,6 +152,8 @@ class ProjectConfig(Strict):
 
     @model_validator(mode="after")
     def _mode(self) -> ProjectConfig:
+        if self.final_output == FinalOutput.FO004 and self.analyses.selection == "explicit" and not self.analyses.requested:
+            raise ValueError("Select at least one downstream analysis for explicit FO004")
         if self.final_output == FinalOutput.FO004 and self.reference.gff is None and self.analyses.selection != "auto":
             raise ValueError("FO004 requires reference.gff for reference-matched annotation")
         if self.final_output != FinalOutput.FO004 and (self.analyses.requested or self.analyses.selection == "auto"):
