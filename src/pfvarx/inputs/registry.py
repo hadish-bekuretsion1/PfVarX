@@ -58,16 +58,28 @@ def validate_all(root: Path, bundle: Bundle) -> dict[str, Any]:
                                     cfg.assay.design, required_metadata(bundle))
     reports.append(meta)
     sample_status: dict[str, str] = {}
-    if meta.status != "FAIL":
+    metadata_global_failure = False
+    for finding in meta.findings:
+        if finding.level != "FAIL":
+            continue
+        if finding.record is None:
+            metadata_global_failure = True
+        else:
+            sid = rows[finding.record - 2].get("sample_id")
+            if sid:
+                sample_status[sid] = "FAIL"
+    if not metadata_global_failure:
         nrec = int(param(params, "layer0.fastq_records_checked_for_encoding"))
         for row in rows:
-            sid = row["sample_id"]
+            sid = row.get("sample_id")
+            if not sid or sample_status.get(sid) == "FAIL":
+                continue
             if cfg.input_type == InputType.FASTQ:
                 r1, r2 = root / row["fastq_1"], root / row["fastq_2"]
                 rep = v.validate_fastq_pair(r1, r2, nrec)
                 rep.facts["sample_id"] = sid
                 reports.append(rep)
-                if cfg.assay.design == Design.TARGETED_UMI and cfg.assay.read_structure:
+                if rep.status != "FAIL" and cfg.assay.design == Design.TARGETED_UMI and cfg.assay.read_structure:
                     lengths = (v.first_read_length(r1), v.first_read_length(r2))
                     us = v.validate_read_structure(cfg.assay.read_structure, lengths)
                     us.facts["sample_id"] = sid
@@ -94,17 +106,20 @@ def validate_all(root: Path, bundle: Bundle) -> dict[str, Any]:
             prev = sample_status.get(sid, "PASS")
             sample_status[sid] = "FAIL" if "FAIL" in (prev, rep.status) else (
                 "WARNING" if "WARNING" in (prev, rep.status) else "PASS")
-    global_fail = any(r.status == "FAIL" for r in reports if r.kind not in ("FASTQ_PAIR", "ALIGNMENT", "UMI_READ_STRUCTURE"))
+    global_fail = metadata_global_failure or any(
+        r.status == "FAIL" for r in reports
+        if r.kind not in ("SAMPLE_METADATA", "FASTQ_PAIR", "ALIGNMENT", "UMI_READ_STRUCTURE")
+    )
     admitted = sum(status != "FAIL" for status in sample_status.values())
     if global_fail or not admitted:
         status = "FAIL"
     else:
-        status = "PASS" if admitted == len(sample_status) else "PARTIAL"
+        status = "PASS" if meta.status != "FAIL" and admitted == len(sample_status) else "PARTIAL"
     return {
         "schema": "pfvarx.validation/1",
         "status": status,
         "reference_contigs": contigs,
         "samples": sample_status,
-        "registry": rows,
+        "registry": [row for row in rows if sample_status.get(row.get("sample_id", "")) in ("PASS", "WARNING")],
         "reports": [r.as_dict() for r in reports],
     }
