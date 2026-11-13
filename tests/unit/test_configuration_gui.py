@@ -117,3 +117,26 @@ def test_validation_discovers_fastq_sample_sheet(workspace: Path) -> None:
     original = sheet.read_bytes()
     validate_inputs(workspace)
     assert sheet.read_bytes() == original
+
+
+def test_validation_continues_after_missing_sample_read(workspace: Path) -> None:
+    from pfvarx.execution.preflight import validate_inputs
+
+    state = editor_state(workspace, "analysis")
+    state["values"]["config"]["reference"]["release_label"] = "fixture"
+    save(workspace, state["values"], state["revision"], False)
+    reference = workspace / "inputs/reference"
+    (reference / "Pf3D7.fasta").write_text(">chr1\nACGT\n")
+    (reference / "core_genome.bed").write_text("chr1\t0\t4\n")
+    for mate in (1, 2):
+        (workspace / f"inputs/fastq/good_{mate}.fastq").write_text("@read\nACGT\n+\nIIII\n")
+    validate_inputs(workspace)
+    sheet = workspace / "inputs/metadata/samples.tsv"
+    text = sheet.read_text()
+    sheet.write_text(text + text.splitlines()[1].replace("good", "missing") + "\n")
+
+    report = validate_inputs(workspace)
+
+    assert report["status"] == "PARTIAL"
+    assert report["samples"] == {"good": "PASS", "missing": "FAIL"}
+    assert [row["sample_id"] for row in report["registry"]] == ["good"]
