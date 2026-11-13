@@ -474,7 +474,9 @@ async function loadFileTabs() {
             targets: [["Target BED", "targets"], ["Primer TSV", "targets"]],
             truth: [["Truth files", "truth"]]
         };
-        for (const folder of folders) {
+        const rawFolder = folders.find(folder => ["inputs/fastq", "inputs/alignments"].includes(folder));
+        const orderedFolders = rawFolder ? [rawFolder, ...folders.filter(folder => folder !== rawFolder)] : folders;
+        for (const folder of orderedFolders) {
             for (const [label, role] of labels[folder.split("/").at(-1)] || []) {
                 if (label === "GFF annotation" && !annotation) continue;
                 const button = document.createElement("button");
