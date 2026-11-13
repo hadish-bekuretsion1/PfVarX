@@ -22,7 +22,7 @@ PAIR = re.compile(
 )
 
 
-def discover(root: Path, directory: Path) -> dict[str, Any]:
+def discover(root: Path, directory: Path, target: Path | None = None) -> dict[str, Any]:
     directory = directory.resolve()
     if not directory.is_dir():
         raise ValueError("FASTQ directory does not exist")
@@ -47,7 +47,7 @@ def discover(root: Path, directory: Path) -> dict[str, Any]:
         raise ValueError("No supported R1/R2 FASTQ names; provide an explicit registration TSV")
     if any(not {"fastq_1", "fastq_2"} <= set(row) for row in pairs.values()):
         raise ValueError("Unmatched FASTQ mate; no sheet written")
-    target = root / "metadata/discovered_samples.tsv"
+    target = target if target is not None else root / "metadata/discovered_samples.tsv"
     if target.exists():
         raise ValueError("Discovery sheet exists; review it or choose a new workspace")
     write_tsv(target, list(pairs.values()), SAMPLE_COLUMNS)
