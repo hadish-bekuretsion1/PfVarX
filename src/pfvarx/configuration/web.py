@@ -64,6 +64,7 @@ def editor_state(root: Path, purpose: str) -> dict[str, Any]:
     parsed["config"] = project
     return {
         "values": parsed, "schema": Bundle.model_json_schema(), "revision": revision(root),
+        "input_folders_created": (root / "inputs").is_dir(),
         "field_guide": read_json(Path(__file__).with_name("gui") / "field-guide.json"),
         "analyses": read_yaml(root / "config/registry/downstream_analyses.yaml")["analyses"],
     }

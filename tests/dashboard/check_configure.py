@@ -52,6 +52,16 @@ with tempfile.TemporaryDirectory(prefix="pfvarx040-gui-") as directory:
             save = page.locator("#save")
             expect(save).to_be_disabled()
             page.locator('[id="config.reference.release_label"]').fill("fixture release")
+            for field, folder, filename in (
+                ("samples_tsv", "inputs/metadata/", "study.tsv"),
+                ("reference.fasta", "inputs/reference/", "study.fasta"),
+                ("reference.core_mask_bed", "inputs/reference/", "study.bed"),
+            ):
+                entry = page.locator(f'[id="config.{field}"]')
+                expect(entry).to_have_value("")
+                expect(entry).to_have_attribute("placeholder", folder)
+                entry.fill(folder + filename)
+
             page.locator('[id="config.assay.design"]').select_option("TARGETED_UMI")
             expect(page.locator('[id="config.assay.read_structure"]')).to_be_visible()
             expect(page.locator('[id="config.assay.amplification_route"]')).to_have_value("AMPLICON")

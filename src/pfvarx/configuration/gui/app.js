@@ -68,6 +68,12 @@ function selectPath(path, input) {
     byId("picker").close();
 }
 
+const filePlaceholders = {
+    "config.samples_tsv": "inputs/metadata/",
+    "config.reference.fasta": "inputs/reference/",
+    "config.reference.core_mask_bed": "inputs/reference/"
+};
+
 function draw(parent, object, schema, path = "") {
     for (const [key, original] of Object.entries(schema.properties || {})) {
         const id = path ? path + "." + key : key;
@@ -198,6 +204,7 @@ function draw(parent, object, schema, path = "") {
             });
             row.append(filter);
         }
+        if (filePlaceholders[id]) input.placeholder = filePlaceholders[id];
         if (spec.format === "path" && input.type === "text") {
             row.append(button("Browse", () => browse(".", input)));
         }
@@ -338,6 +345,16 @@ async function load() {
     try {
         state = await request("state?purpose=" + encodeURIComponent(byId("purpose").value));
         values = state.values;
+        if (!state.input_folders_created) {
+            const defaults = [
+                [values.config, "samples_tsv", "inputs/metadata/samples.tsv"],
+                [values.config.reference, "fasta", "inputs/reference/Pf3D7.fasta"],
+                [values.config.reference, "core_mask_bed", "inputs/reference/core_genome.bed"]
+            ];
+            for (const [group, key, template] of defaults) {
+                if (group[key] === template) group[key] = "";
+            }
+        }
         render();
     } catch (error) {
         status.textContent = error.message;
