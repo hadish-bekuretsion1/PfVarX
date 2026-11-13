@@ -38,7 +38,8 @@ with tempfile.TemporaryDirectory(prefix="pfvarx040-gui-") as directory:
             source_type = page.locator('[id="config.input_type"]')
             output = page.locator('[id="config.final_output"]')
             assert source_type.locator('option[value="VCF"]').count() == 0
-            for aligned in ("BAM", "CRAM"):
+            assert source_type.locator("option").all_text_contents() == ["FASTQ", "BAM"]
+            for aligned in ("BAM",):
                 source_type.select_option("FASTQ")
                 output.select_option("FO001")
                 source_type.select_option(aligned)

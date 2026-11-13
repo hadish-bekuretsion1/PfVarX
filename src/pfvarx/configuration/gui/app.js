@@ -140,14 +140,13 @@ function draw(parent, object, schema, path = "") {
             "config.analyses.spatial_outcome_source": ["DA002"],
             "config.purpose": ["analysis", "benchmarking"]
         })[id];
-        if (id === "config.input_type") options = options.filter(value => value !== "VCF");
+        if (id === "config.input_type") options = options.filter(value => value === "FASTQ" || value === "BAM");
         if (id === "compute.executor") options = options.filter(value => value !== "slurm");
         if (options) {
             input = document.createElement("select");
             const optional = original.anyOf?.some(item => item.type === "null");
             for (const value of optional ? ["", ...options] : options) {
                 const names = {
-                    FASTQ: "FASTQ / FASTQ.GZ (Layer 1)", BAM: "BAM (Layer 2)", CRAM: "CRAM (Layer 2)",
                     local: "Local", hpc: "HPC (single node)", server: "Server", cloud: "Cloud VM",
                     WGS: "Whole-genome sequencing", SWGS: "Shallow whole-genome sequencing",
                     TARGETED_NON_UMI: "Targeted without UMI", TARGETED_UMI: "Targeted with UMI",
