@@ -5,6 +5,11 @@
 
 if DESIGN == "TARGETED_UMI" and PLAN["input_type"] == "FASTQ":
 
+    from pfvarx.inputs.validate import runtime_read_structures
+
+    # A fixed final template segment is relaxed to +T: fastp shortens reads at the 3' end.
+    RUNTIME_READ_STRUCTURES = runtime_read_structures(CFG["assay"]["read_structure"])[0]
+
     rule umi_fastq_to_bam:
         input:
             r1=str(R / "work" / "trimmed" / "{sample}.{lane}.R1.fastq.gz"),
@@ -12,7 +17,7 @@ if DESIGN == "TARGETED_UMI" and PLAN["input_type"] == "FASTQ":
         output:
             temp(str(R / "work" / "umi" / "lanes" / "{sample}.{lane}.unmapped.bam")),
         params:
-            rs=CFG["assay"]["read_structure"].split(),
+            rs=RUNTIME_READ_STRUCTURES,
             lib=lambda wc: next(x for x in SAMPLES[wc.sample]["lanes"] if x["lane"] == wc.lane)["library_id"],
         resources:
             mem_mb=mem(2000),

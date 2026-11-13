@@ -170,6 +170,18 @@ def _execute(root: Path, mode: str = "NEW", previous: str | None = None) -> dict
                                                  delete=False) as archived:
                     archived.write(manifest.read_bytes())
                 manifest.unlink()
+        exclusions = run / "runtime_exclusions.json"
+        if exclusions.is_file():
+            # A resumed run retries samples that failed at run time (for example after a transient
+            # tool or resource failure). The earlier exclusion record is kept with the logs.
+            history = run / "logs" / "runtime_exclusions"
+            history.mkdir(parents=True, exist_ok=True)
+            with tempfile.NamedTemporaryFile(dir=history, prefix="exclusions-", suffix=".json",
+                                             delete=False) as archived:
+                archived.write(exclusions.read_bytes())
+            exclusions.unlink()
+        # Without this the finished target rule is treated as up to date and nothing is retried.
+        (run / "workflow.complete").unlink(missing_ok=True)
     runs.set_status(run, "RUNNING")
     env = dict(os.environ)
     env.pop("PFVARX_JSON_OUT", None)  # the CLI result file belongs to this command, not to workflow jobs

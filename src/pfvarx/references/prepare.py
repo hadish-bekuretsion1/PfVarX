@@ -25,14 +25,22 @@ def _tool(name: str) -> str:
     return found
 
 
+def _source_key(root: Path, source: Path) -> str:
+    """Workspace-relative key for sources inside the workspace, so a moved workspace stays current."""
+    resolved = (root / source).resolve()
+    base = root.resolve()
+    return resolved.relative_to(base).as_posix() if resolved.is_relative_to(base) else str(resolved)
+
+
 def plan_preparation(root: Path, bundle: Bundle) -> dict[str, Any]:
     cfg = bundle.config
     src = root / cfg.reference.fasta
     prep = root / "inputs/reference/prepared"
     manifest_path = root / "prepared" / "manifest.json"
     old = read_json(manifest_path) if manifest_path.is_file() else {}
-    fingerprints = {str(src.resolve()): sha256(src)}
-    stale = old.get("source_fingerprints") != fingerprints
+    fingerprints = {_source_key(root, src): sha256(src)}
+    recorded = {_source_key(root, Path(k)): v for k, v in (old.get("source_fingerprints") or {}).items()}
+    stale = recorded != fingerprints
     sealed = old.get("artifacts", {})
     def damaged(path: Path) -> bool:
         rel = str(path.relative_to(root))

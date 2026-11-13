@@ -1,5 +1,24 @@
 # Changelog
 
+## 0.0.0 — End-to-end execution audit
+
+Found by running real pipelines on the synthetic fixture for every design and entry route.
+
+- UMI route: accept a fully fixed read structure such as `8M143T 8M143T` (validation rejected
+  every one), pass it to fgbio as `8M+T` because adapter trimming shortens reads, and remove
+  pairs too short to hold the UMI before fgbio FastqToBam, which stopped on the first such read.
+- Annotation: write `cohort.ann.vcf.gz` as BGZF with a `.tbi` index instead of plain gzip,
+  verify the GFF checksum as well as the FASTA, and use the protozoan mitochondrial codon
+  table for the mitochondrial contig.
+- Portability: the SnpEff configuration and the prepared-reference manifest no longer store
+  absolute paths, so a workspace can be moved without re-indexing; DA007 reads country
+  boundaries from the workspace rather than from the source tree.
+- RESUME: retry samples that failed at run time; a finished run was reported as up to date and
+  the failed sample stayed excluded.
+- Input validation: an empty FASTQ read no longer marks the whole file malformed.
+- Tests: two real end-to-end runs (annotated WGS cohort, UMI with short reads) join the dry runs.
+- Lint: restore import order in `execution/preflight.py`, which had been failing CI.
+
 ## 0.0.0 — CPU deployment budgets
 
 - Default to one job and a 6500 MiB scheduling budget.

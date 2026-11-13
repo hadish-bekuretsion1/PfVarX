@@ -28,6 +28,7 @@ rule snpeff_annotate:
         check=str(SNPEFF_DIR / f"{GENOME_ID}.build_check.json"),
     output:
         vcf=str(R / "annotation" / "cohort.ann.vcf.gz"),
+        tbi=str(R / "annotation" / "cohort.ann.vcf.gz.tbi"),
         qc=str(R / "annotation" / "annotation_qc.json"),
     params:
         ud=P["layer4.snpeff_upstream_downstream_len"],

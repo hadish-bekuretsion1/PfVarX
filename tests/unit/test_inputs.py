@@ -54,3 +54,15 @@ def test_read_structure() -> None:
     assert v.validate_read_structure("8M+T 8M+T", (108, 108)).status == "PASS"
     assert v.validate_read_structure("100T 100T", (100, 100)).status == "FAIL"  # no UMI segment
     assert v.validate_read_structure("8M92T 8M92T", (108, 108)).status == "FAIL"  # length mismatch
+
+
+def test_fixed_length_read_structure_is_accepted_and_relaxed_for_trimmed_reads() -> None:
+    # A fully fixed structure that matches the read length is valid (it used to be rejected).
+    assert v.validate_read_structure("8M100T 8M100T", (108, 108)).status == "PASS"
+    assert v.validate_read_structure("8M143T 8M143T", (151, 151)).status == "PASS"
+    assert v.validate_read_structure("108M 108M", (108, 108)).status == "FAIL"  # no template bases
+    # fgbio receives '+T' because adapter trimming shortens reads at the 3' end.
+    assert v.runtime_read_structures("8M143T 8M143T") == (["8M+T", "8M+T"], 9, True)
+    assert v.runtime_read_structures("3S8M+T +T") == (["3S8M+T", "+T"], 12, True)
+    # A fixed non-template segment at the 3' end forbids trimming and keeps the exact length.
+    assert v.runtime_read_structures("8M135T8M 8M135T8M") == (["8M135T8M", "8M135T8M"], 151, False)

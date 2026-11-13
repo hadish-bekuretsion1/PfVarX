@@ -20,9 +20,18 @@ def fastp_args():
     else:
         a.append("--disable_trim_poly_g")
     if DESIGN == "TARGETED_UMI":
-        # UMIs are inline at the 5' end: no front or quality trimming before extraction.
-        a = [x for x in a if not x.startswith("--cut_right")] + ["--disable_quality_filtering",
-                                                                   "--disable_length_filtering"]
+        # UMIs are inline at the 5' end: no quality trimming or filtering before extraction.
+        # Pairs too short to hold the fixed read-structure segments (adapter dimers) are removed
+        # here, because fgbio FastqToBam stops on the first such read.
+        from pfvarx.inputs.validate import runtime_read_structures
+
+        _, min_len, trim_safe = runtime_read_structures(CFG["assay"]["read_structure"])
+        a = [x for x in a if not x.startswith(("--cut_right", "--length_required"))]
+        a += ["--disable_quality_filtering", f"--length_required {min_len}"]
+        if not trim_safe:
+            # A fixed non-template segment ends the read: 3' trimming would corrupt it.
+            a = [x for x in a if x not in ("--detect_adapter_for_pe", "--trim_poly_g", "--disable_trim_poly_g")]
+            a += ["--disable_adapter_trimming", "--disable_trim_poly_g"]
     return " ".join(a)
 
 

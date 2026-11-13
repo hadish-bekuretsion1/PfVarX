@@ -82,7 +82,7 @@ filenames. Configure a pilot first, then expand to the cohort after reviewing QC
 | `assay.amplification_route` | `AMPLICON` | `AMPLICON` |
 | `assay.targets_bed` | Matching target BED | Matching target BED |
 | `assay.primers_tsv` | Matching primer definitions | Matching primer definitions |
-| `assay.read_structure` | `null` | Two fgbio read structures, e.g. `8M+T 8M+T` |
+| `assay.read_structure` | `null` | Two fgbio read structures, e.g. `8M+T 8M+T`. A fixed final template segment (`8M143T`) is accepted and run as `8M+T`, because adapter trimming shortens reads |
 
 Target BED coordinates are zero-based, half-open. Primer TSV uses the fgbio TrimPrimers header `chrom`, `left_start`, `left_end`,
 `right_start`, `right_end`, with one-based inclusive coordinates satisfying

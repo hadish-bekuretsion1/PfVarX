@@ -154,3 +154,39 @@ def test_coi_withholds_summary_below_informative_locus_gate(
     assert manifest["samples"]["excluded"]["INSUFFICIENT_INFORMATIVE_SITES"] == ["S1"]
     assert manifest["denominators"]["analysed"] == 0
     assert not (out / "moire_coi.tsv").exists()
+
+
+def test_reference_fingerprint_survives_moving_the_workspace(tmp_path):
+    from pfvarx.references.prepare import _source_key
+
+    first, second = tmp_path / "a", tmp_path / "b"
+    for root in (first, second):
+        (root / "inputs/reference").mkdir(parents=True)
+        (root / "inputs/reference/ref.fasta").write_text(">c\nACGT\n")
+    relative = Path("inputs/reference/ref.fasta")
+    assert _source_key(first, relative) == _source_key(second, relative) == "inputs/reference/ref.fasta"
+    # Manifests written by earlier releases recorded the absolute path of the same file.
+    assert _source_key(first, (first / relative).resolve()) == "inputs/reference/ref.fasta"
+    outside = tmp_path / "shared.fasta"
+    outside.write_text(">c\nACGT\n")
+    assert _source_key(first, outside) == str(outside.resolve())
+
+
+def test_snpeff_configuration_is_relocatable_and_uses_the_mitochondrial_code(tmp_path):
+    from pfvarx.annotation import snpeff_db
+
+    fasta = tmp_path / "ref.fasta"
+    fasta.write_text(">Pf3D7_01_v3 | organism=Plasmodium\nACGT\n>Pf3D7_MIT_v3\nACGT\n>Pf3D7_API_v3\nACGT\n")
+    assert snpeff_db.mitochondrial_contigs(fasta) == ["Pf3D7_MIT_v3"]
+    text = snpeff_db.write_config(tmp_path, "pf", ["Pf3D7_MIT_v3"]).read_text()
+    assert "data.dir = ./data/" in text and str(tmp_path) not in text
+    assert "pf.Pf3D7_MIT_v3.codonTable : Protozoan_Mitochondrial" in text
+    codons = dict(c.strip().split("/") for c in snpeff_db.MITOCHONDRIAL_CODONS.split(","))
+    assert len(codons) == 64 and codons["TGA"] == "W" and codons["TAA"] == "*"
+    assert "codonTable" not in snpeff_db.write_config(tmp_path, "pf", []).read_text()
+
+
+def test_spatial_boundaries_are_read_from_the_workspace():
+    from pfvarx.downstream import spatial
+
+    assert not spatial.GEO.is_absolute()

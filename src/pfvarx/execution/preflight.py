@@ -6,12 +6,11 @@ from pathlib import Path
 from typing import Any
 
 from pfvarx.configuration.loader import effective_config, load_bundle
+from pfvarx.initialization.layout import SAMPLE_COLUMNS
 from pfvarx.inputs.organize import discover
 from pfvarx.inputs.registry import validate_all
-from pfvarx.initialization.layout import SAMPLE_COLUMNS
 from pfvarx.io import write_json, write_tsv
 from pfvarx.references.prepare import prepare, verify_prepared
-
 
 VALIDATION_FIXES = {
     "FILE_MISSING": "Add the required file or correct its saved path, then validate again.",

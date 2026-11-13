@@ -21,7 +21,7 @@ from pfvarx.constants import Reason, Terminal
 from pfvarx.downstream.common import Context, write_manifest
 from pfvarx.io import read_tsv, write_json, write_tsv
 
-GEO = Path(__file__).resolve().parents[3] / "config" / "geo" / "ne_110m_countries.geojson"
+GEO = Path("config") / "geo" / "ne_110m_countries.geojson"  # relative to the workspace root
 
 
 def _point_in_ring(x: float, y: float, ring: list[list[float]]) -> bool:
@@ -62,7 +62,8 @@ def run(ctx: Context, threads: int = 1) -> None:
                        requested=ctx.samples, eligible=[], excluded={}, analysed=[], outputs=[],
                        caveats=[f"source {source} has no registered spatial adapter"], method={"source": source})
         return
-    geo = json.loads(GEO.read_text()) if GEO.is_file() else {"features": []}
+    geo_path = ctx.root / GEO
+    geo = json.loads(geo_path.read_text()) if geo_path.is_file() else {"features": []}
     calls = read_tsv(ctx.results / "downstream" / "DA002" / "marker_calls.tsv")
     analysed = sorted({c["sample_id"] for c in calls})
     valid: dict[str, dict[str, Any]] = {}

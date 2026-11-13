@@ -107,12 +107,13 @@ def validate_fastq_pair(r1: Path, r2: Path, encoding_records: int) -> FileReport
                 if n <= encoding_records:
                     for q in (a[2], b[2]):
                         codes = [ord(c) for c in q]
-                        qmin, qmax = min(qmin, min(codes)), max(qmax, max(codes))
+                        if codes:  # an empty read (already trimmed away) carries no quality codes
+                            qmin, qmax = min(qmin, min(codes)), max(qmax, max(codes))
     except EOFError:
         rep.fail(Reason.FASTQ_TRUNCATED, "file ends inside a record", n + 1)
     except (ValueError, gzip.BadGzipFile, OSError) as exc:
         rep.fail(Reason.FASTQ_MALFORMED_RECORD, str(exc), n + 1)
-    if n and (qmin < PHRED33_MIN or qmax > PHRED33_MAX):
+    if n and qmin <= qmax and (qmin < PHRED33_MIN or qmax > PHRED33_MAX):
         rep.fail(Reason.FASTQ_QUALITY_ENCODING, f"quality codes {qmin}-{qmax} outside Phred+33")
     if n == 0 and rep.status != "FAIL":
         rep.fail(Reason.FASTQ_MALFORMED_RECORD, "no records")
@@ -232,12 +233,43 @@ def validate_read_structure(structure: str, read_lengths: tuple[int, int] | None
         rep.fail(Reason.UMI_READ_STRUCTURE, "no molecular-barcode (M) segment")
     if read_lengths:
         for p, length in zip(parts, read_lengths):
-            fixed = sum(int(n) for n, _ in re.findall(r"(\d+)([TBMSC])", p))
+            segments = re.findall(r"(\d+)([TBMSC])", p)
+            fixed = sum(int(n) for n, _ in segments)
+            # Only non-template segments (UMI, barcode, skip) consume bases before the template.
+            non_template = sum(int(n) for n, kind in segments if kind != "T")
             if "+" not in p and fixed != length:
                 rep.fail(Reason.UMI_READ_STRUCTURE, f"structure {p} totals {fixed}, reads are {length}")
-            if fixed >= length:
+            if "T" not in p or non_template >= length:
                 rep.fail(Reason.UMI_READ_STRUCTURE, f"structure {p} leaves no template bases")
     return rep
+
+
+SEGMENT = re.compile(r"(\d+|\+)([TBMSC])")
+
+
+def runtime_read_structures(structure: str) -> tuple[list[str], int, bool]:
+    """Read structures as passed to fgbio after 3' trimming, the shortest usable read, and trim safety.
+
+    Adapter and poly-G trimming shorten reads at the 3' end, so a fixed-length final template
+    segment ('8M143T') no longer matches every read and fgbio stops on the first shorter one.
+    Such a segment is relaxed to '+T' (the remaining bases are the template). The second value
+    is the smallest read length that still contains every fixed segment (plus one base for '+').
+    The third value is False when a read ends in a fixed non-template segment: 3' trimming would
+    then remove or shift that segment, so it has to be switched off for this library.
+    """
+    relaxed: list[str] = []
+    minimum = 0
+    trim_safe = True
+    for part in structure.split():
+        segments = SEGMENT.findall(part)
+        if segments and segments[-1][1] == "T":
+            segments[-1] = ("+", "T")
+        elif segments and segments[-1][0] != "+":
+            trim_safe = False
+        relaxed.append("".join(n + kind for n, kind in segments))
+        fixed = sum(int(n) for n, _ in segments if n != "+")
+        minimum = max(minimum, fixed + (1 if any(n == "+" for n, _ in segments) else 0))
+    return relaxed, minimum, trim_safe
 
 
 def first_read_length(path: Path) -> int:
