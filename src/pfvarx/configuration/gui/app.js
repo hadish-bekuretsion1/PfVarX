@@ -101,7 +101,7 @@ function draw(parent, object, schema, path = "") {
                 const box = document.createElement("input");
                 box.type = "checkbox";
                 box.value = da;
-                box.checked = (object[key] || []).includes(da);
+                box.checked = da === "DA001" || (object[key] || []).includes(da);
                 box.addEventListener("change", () => {
                     object[key] = Array.from(row.querySelectorAll(":checked"), item => item.value);
                     changed(id);
@@ -276,7 +276,7 @@ function changed(id) {
     }[assay.design];
     for (const option of sequencing.options) option.disabled = option.value !== "" && !allowed.includes(option.value);
     for (const box of editor.querySelectorAll('[data-field="config.analyses.requested"] input')) {
-        box.disabled = !full || analyses.selection === "auto" || !state.analyses[box.value].designs.includes(assay.design);
+        box.disabled = box.value === "DA001" || !full || analyses.selection === "auto" || !state.analyses[box.value].designs.includes(assay.design);
     }
     byId("summary").textContent = JSON.stringify(values, null, 2);
     saveButton.disabled = true;

@@ -89,3 +89,5 @@ and the spatial source. Leave the old schema marker in place unless you also
 translate those IDs. Start a NEW run for upgraded results. Keep archived result
 directories and dashboards with the original release. Dashboard JSON /2 uses the
 new identifier order. Use the original renderer for archived dashboard JSON /1.
+
+FO004 always requests DA001. The workflow evaluates COI first, and methods that require assessed clonality use that evidence. Independent methods can continue under CONTINUE_INDEPENDENT when COI cannot be estimated.

@@ -226,12 +226,12 @@ def test_keep_policy_changes_snakemake_retention_only(workspace):
     assert "--notemp" not in snakemake_cmd(workspace, workspace / "run", eff, False)
 
 
-def test_diversity_export_preserves_shared_fws_helper_without_moire_environment(tmp_path):
+def test_diversity_export_includes_default_coi(tmp_path):
     bootstrap = runpy.run_path(str(ROOT / "bootstrap.py"))
     result = bootstrap["export_workspace"](ROOT, tmp_path / "diversity", "downstream", "WGS", ["DA003"], False)
     assert (tmp_path / "diversity/src/pfvarx/downstream/coi.py").is_file()
-    assert result["analyses_available"] == ["DA003"]
-    assert "coi" not in result["environment"]
+    assert result["analyses_available"] == ["DA001", "DA003"]
+    assert "coi" in result["environment"]
 
 
 def test_aligned_profile_skips_read_tool_feature_and_creates_no_fastq_directory(tmp_path):

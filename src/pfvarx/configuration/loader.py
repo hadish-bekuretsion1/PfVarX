@@ -92,6 +92,11 @@ def validate_bundle(root: Path, parsed: dict[str, Any]) -> Bundle:
         bundle = bundle.model_copy(update={"config": bundle.config.model_copy(
             update={"analyses": analyses.model_copy(update=changes)}
         )})
+    if bundle.config.final_output.value == "FO004" and analyses.selection == "explicit":
+        requested = ["DA001", *(da for da in analyses.requested if da != "DA001")]
+        bundle = bundle.model_copy(update={"config": bundle.config.model_copy(
+            update={"analyses": analyses.model_copy(update={"requested": requested})}
+        )})
     installation = root / "config/installation.json"
     if installation.is_file():
         from pfvarx.io import read_json
