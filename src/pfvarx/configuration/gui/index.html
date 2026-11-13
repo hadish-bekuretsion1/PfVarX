@@ -12,6 +12,7 @@
 <p>Save the project settings and create input folders. Register inputs, validate and prepare from the terminal.</p>
 <nav aria-label="Workspace views">
 <button type="button" id="configuration-tab" aria-controls="configuration-panel" aria-pressed="true">Configuration</button>
+<button type="button" id="inputs-tab" aria-controls="inputs-panel" aria-pressed="false">Raw data</button>
 <button type="button" id="preflight-tab" aria-controls="preflight-panel" aria-pressed="false">Preflight</button>
 </nav>
 <section id="configuration-panel">
@@ -31,6 +32,21 @@
 <button id="save" disabled>Create Configuration and Input Directories</button>
 <details open><summary>Configuration summary</summary><pre id="summary"></pre></details>
 <pre id="result" aria-live="polite"></pre>
+</section>
+<section id="inputs-panel" hidden>
+<h2>Raw data</h2>
+<p>Save the configuration and create input directories first. Transfers use the saved input type. Register the files before running Preflight.</p>
+<h3>Upload from your computer</h3>
+<label>Raw files <input id="raw-files" type="file" multiple></label>
+<button type="button" id="upload-raw">Upload selected files</button>
+<h3>Download from an HTTPS link</h3>
+<form id="download-raw">
+<label>HTTPS link <input name="url" type="url" required></label>
+<label>Save as filename <input name="filename" required></label>
+<label>Trusted SHA-256 <input name="sha256" required pattern="[A-Fa-f0-9]{64}"></label>
+<button>Download file</button>
+</form>
+<pre id="transfer-status" role="status"></pre>
 </section>
 <section id="preflight-panel" hidden>
 <h2>Preflight</h2>

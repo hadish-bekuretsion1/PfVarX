@@ -4,9 +4,11 @@ from __future__ import annotations
 
 import json
 import os
+import re
 import secrets
 import subprocess
 import sys
+import tempfile
 import webbrowser
 from functools import partial
 from http.server import BaseHTTPRequestHandler, HTTPServer
@@ -19,6 +21,7 @@ import yaml
 from pfvarx.configuration.loader import (
     USER_FILES,
     canonical_json,
+    load_bundle,
     migrate_project,
     read_yaml,
     sha256_text,
@@ -27,6 +30,7 @@ from pfvarx.configuration.loader import (
 from pfvarx.configuration.models import Bundle
 from pfvarx.execution.retention import workspace_lock
 from pfvarx.initialization.layout import create_input_dirs, required_dirs
+from pfvarx.inputs.organize import fetch
 from pfvarx.io import atomic_write_text, read_json, within
 
 
@@ -150,6 +154,27 @@ def run_preflight(root: Path) -> dict[str, Any]:
     return {"stages": stages, "passed": len(stages) == len(PREFLIGHT_STAGES) and not stages[-1]["exit_code"]}
 
 
+def raw_destination(root: Path, name: str) -> Path:
+    if not re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9._-]*", name):
+        raise ValueError("Use a plain filename with letters, digits, dots, underscores or hyphens")
+    input_type = load_bundle(root).config.input_type.value
+    role = "fastq" if input_type == "FASTQ" else "alignments"
+    suffixes = {
+        "FASTQ": (".fastq", ".fq", ".fastq.gz", ".fq.gz"),
+        "BAM": (".bam", ".bai", ".csi"),
+        "CRAM": (".cram", ".crai", ".csi"),
+    }
+    if not name.lower().endswith(suffixes[input_type]):
+        raise ValueError(f"File extension does not match the saved {input_type} input type")
+    folder = within(root, f"inputs/{role}")
+    if not folder.is_dir():
+        raise ValueError("Save the configuration and create input directories first")
+    destination = folder / name
+    if destination.exists() or destination.is_symlink():
+        raise ValueError("Destination exists; refusing overwrite")
+    return destination
+
+
 class Handler(BaseHTTPRequestHandler):
     def __init__(self, *args: Any, root: Path, token: str, **kwargs: Any):
         self.root = root
@@ -198,11 +223,36 @@ class Handler(BaseHTTPRequestHandler):
 
     def do_POST(self) -> None:
         try:
-            name, _ = self.route()
+            name, query = self.route()
+            if name == "upload-raw":
+                size = int(self.headers.get("Content-Length", "0"))
+                if size <= 0 or self.headers.get_content_type() != "application/octet-stream":
+                    raise ValueError("Choose a nonempty raw data file")
+                with workspace_lock(self.root):
+                    destination = raw_destination(self.root, query.get("filename", [""])[0])
+                    with tempfile.NamedTemporaryFile(dir=destination.parent, prefix=".upload-") as staged:
+                        remaining = size
+                        while remaining:
+                            block = self.rfile.read(min(remaining, 1024 * 1024))
+                            if not block:
+                                raise ValueError("Upload ended before the complete file arrived")
+                            staged.write(block)
+                            remaining -= len(block)
+                        staged.flush()
+                        os.link(staged.name, destination)
+                self.respond({"path": str(destination.relative_to(self.root)), "bytes": size})
+                return
             size = int(self.headers.get("Content-Length", "0"))
             if not 0 < size <= 262144 or self.headers.get_content_type() != "application/json":
                 raise ValueError("Expected a configuration JSON request")
             payload = json.loads(self.rfile.read(size))
+            if name == "download-raw":
+                with workspace_lock(self.root):
+                    destination = raw_destination(self.root, payload["filename"])
+                    role = "fastq" if load_bundle(self.root).config.input_type.value == "FASTQ" else "alignments"
+                    result = fetch(self.root, payload["url"], payload["sha256"], role, destination.name)
+                self.respond(result)
+                return
             if name == "preflight":
                 self.respond(run_preflight(self.root))
                 return

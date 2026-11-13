@@ -70,6 +70,14 @@ nano metadata/discovered_samples.tsv
 ./pfvarx register-inputs --manifest metadata/discovered_samples.tsv --mode reference
 ```
 
+## Transfer raw data from the GUI
+
+After saving the configuration, open **Raw data**. Select local files and
+click **Upload selected files**, or enter an HTTPS link, destination filename
+and trusted SHA-256 and click **Download file**. Transfers use the saved input
+type and refuse to overwrite existing files. Upload both FASTQ mates or the
+alignment and its index as applicable. Register the files before Preflight.
+
 ## Validate, prepare and execute
 
 ```bash

@@ -420,9 +420,9 @@ editor.addEventListener("submit", event => event.preventDefault());
 byId("purpose").addEventListener("change", load);
 load();
 
-for (const view of ["configuration", "preflight"]) {
+for (const view of ["configuration", "inputs", "preflight"]) {
     byId(view + "-tab").addEventListener("click", () => {
-        for (const panel of ["configuration", "preflight"]) {
+        for (const panel of ["configuration", "inputs", "preflight"]) {
             byId(panel + "-panel").hidden = panel !== view;
             byId(panel + "-tab").setAttribute("aria-pressed", String(panel === view));
         }
@@ -449,4 +449,42 @@ byId("run-preflight").addEventListener("click", async () => {
     } finally {
         button.disabled = false;
     }
+});
+
+async function transfer(action) {
+    const controls = byId("inputs-panel").querySelectorAll("button");
+    const message = byId("transfer-status");
+    controls.forEach(button => { button.disabled = true; });
+    message.textContent = "Transferring files…";
+    const saved = [];
+    try {
+        await action(path => {
+            saved.push(path);
+            message.textContent = "Saved:\n" + saved.join("\n");
+        });
+    } catch (error) {
+        message.textContent = [...saved.map(path => "Saved: " + path), error.message].join("\n");
+    } finally {
+        controls.forEach(button => { button.disabled = false; });
+    }
+}
+
+byId("upload-raw").addEventListener("click", () => transfer(async report => {
+    const files = byId("raw-files").files;
+    if (!files.length) throw new Error("Choose at least one raw data file.");
+    for (const file of files) {
+        const response = await fetch("upload-raw?filename=" + encodeURIComponent(file.name), {
+            method: "POST", headers: {"Content-Type": "application/octet-stream"}, body: file
+        });
+        const result = await response.json();
+        if (!response.ok) throw new Error(result.error);
+        report(result.path);
+    }
+    byId("raw-files").value = "";
+}));
+
+byId("download-raw").addEventListener("submit", event => {
+    event.preventDefault();
+    const values = Object.fromEntries(new FormData(event.currentTarget));
+    transfer(async report => report((await request("download-raw", values)).path));
 });
