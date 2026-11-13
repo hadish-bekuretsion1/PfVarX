@@ -207,8 +207,8 @@ function changed(id) {
     if (id === "config.assay.design") {
         assay.sequencing_type = null;
         assay.amplification_route = targeted ? "AMPLICON" : "DIRECT";
-        assay.targets_bed = targeted ? assay.targets_bed || null : null;
-        assay.primers_tsv = targeted ? assay.primers_tsv || null : null;
+        assay.targets_bed = targeted ? assay.targets_bed || filePlaceholders["config.assay.targets_bed"] : null;
+        assay.primers_tsv = targeted ? assay.primers_tsv || filePlaceholders["config.assay.primers_tsv"] : null;
         if (assay.design !== "TARGETED_UMI") assay.read_structure = null;
         analyses.requested = (analyses.requested || []).filter(da => state.analyses[da].designs.includes(assay.design));
         analyses.scales = Object.fromEntries(Object.entries(analyses.scales || {}).filter(([da]) => analyses.requested.includes(da)));
@@ -265,6 +265,7 @@ function changed(id) {
     };
     for (const input of editor.querySelectorAll("[data-schema-required]")) {
         input.required = !input.disabled && (conditionalRequirements[input.id] ?? (input.dataset.schemaRequired === "true"));
+        if (filePlaceholders[input.id]) input.pattern = ".*[^/\\\\]";
         input.parentElement.querySelector("[data-required-mark]").hidden = !input.required;
     }
     const summary = structuredClone(values);
@@ -311,7 +312,7 @@ async function load() {
                 [values.config.reference, "core_mask_bed", "inputs/reference/core_genome.bed"]
             ];
             for (const [group, key, template] of defaults) {
-                if (group[key] === template) group[key] = "";
+                if (group[key] === template) group[key] = filePlaceholders[group === values.config ? "config." + key : group === values.config.assay ? "config.assay." + key : "config.reference." + key];
             }
         }
         render();

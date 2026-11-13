@@ -58,7 +58,7 @@ with tempfile.TemporaryDirectory(prefix="pfvarx040-gui-") as directory:
                 ("reference.core_mask_bed", "inputs/reference/", "study.bed"),
             ):
                 entry = page.locator(f'[id="config.{field}"]')
-                expect(entry).to_have_value("")
+                expect(entry).to_have_value(folder)
                 expect(entry).to_have_attribute("placeholder", folder)
                 entry.fill(folder + filename)
 
@@ -69,7 +69,7 @@ with tempfile.TemporaryDirectory(prefix="pfvarx040-gui-") as directory:
             page.locator('[id="config.assay.read_structure"]').fill("8M+T 8M+T")
             for field, filename in (("targets_bed", "study.bed"), ("primers_tsv", "study.tsv")):
                 entry = page.locator(f'[id="config.assay.{field}"]')
-                expect(entry).to_have_value("")
+                expect(entry).to_have_value("inputs/targets/")
                 expect(entry).to_have_attribute("placeholder", "inputs/targets/")
                 entry.fill("inputs/targets/" + filename)
             page.get_by_role("searchbox", name="Filter sequencing type choices").fill("TBS")

@@ -73,7 +73,7 @@
   },
   "config.reference.release_label": {
     "example": "Your actual reference release",
-    "help": "Record the verified release. Replace SET_REFERENCE_RELEASE before saving."
+    "help": "Enter the release of your FASTA as recorded in its download record or accompanying README. For example, enter PlasmoDB 68 only if your FASTA came from that release."
   },
   "config.reference.gff": {
     "example": "inputs/reference/Pf3D7.gff or null",
