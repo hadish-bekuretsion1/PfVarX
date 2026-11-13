@@ -95,6 +95,13 @@ function draw(parent, object, schema, path = "") {
         label.textContent = (labels[id] || key.replaceAll("_", " ")) + " ";
         row.append(label);
         parent.append(row);
+        const guide = state.field_guide?.[id];
+        if (guide || original.description) {
+            const help = document.createElement("small");
+            help.id = id + ".help";
+            help.textContent = guide ? guide.help + " Values or example: " + guide.example : original.description;
+            row.append(help);
+        }
         if (id === "config.analyses.requested") {
             for (const [da, contract] of Object.entries(state.analyses)) {
                 const choice = document.createElement("label");
@@ -167,6 +174,7 @@ function draw(parent, object, schema, path = "") {
             if (spec.pattern && input.type === "text") input.pattern = spec.pattern;
         }
         input.id = id;
+        if (guide || original.description) input.setAttribute("aria-describedby", id + ".help");
         label.htmlFor = id;
         label.append(input);
         if (id.endsWith(".schema_version")) input.disabled = true;
@@ -185,11 +193,6 @@ function draw(parent, object, schema, path = "") {
         }
         if (spec.format === "path" && input.type === "text") {
             row.append(button("Browse", () => browse(".", input)));
-        }
-        if (original.description) {
-            const help = document.createElement("small");
-            help.textContent = original.description;
-            row.append(help);
         }
         input.addEventListener("input", () => {
             input.setCustomValidity("");
