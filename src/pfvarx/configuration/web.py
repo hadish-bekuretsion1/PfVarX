@@ -1,9 +1,12 @@
-"""Loopback-only configuration editor. Scientific stages remain CLI commands."""
+"""Loopback-only configuration editor and CLI preflight launcher."""
 
 from __future__ import annotations
 
 import json
+import os
 import secrets
+import subprocess
+import sys
 import webbrowser
 from functools import partial
 from http.server import BaseHTTPRequestHandler, HTTPServer
@@ -126,6 +129,27 @@ def save(root: Path, values: dict[str, Any], expected: str, replace: bool) -> di
                 "backups": backups, "revision": revision(root)}
 
 
+PREFLIGHT_STAGES = ("validate", "prepare", "verify-prepared", "ready")
+
+
+def run_preflight(root: Path) -> dict[str, Any]:
+    stages = []
+    env = os.environ.copy()
+    env.pop("PFVARX_JSON_OUT", None)
+    for stage in PREFLIGHT_STAGES:
+        result = subprocess.run(
+            [sys.executable, "-m", "pfvarx.cli", stage],
+            cwd=root, env=env, capture_output=True, text=True, check=False,
+        )
+        stages.append({
+            "command": stage, "exit_code": result.returncode,
+            "stdout": result.stdout, "stderr": result.stderr,
+        })
+        if result.returncode:
+            break
+    return {"stages": stages, "passed": len(stages) == len(PREFLIGHT_STAGES) and not stages[-1]["exit_code"]}
+
+
 class Handler(BaseHTTPRequestHandler):
     def __init__(self, *args: Any, root: Path, token: str, **kwargs: Any):
         self.root = root
@@ -179,6 +203,9 @@ class Handler(BaseHTTPRequestHandler):
             if not 0 < size <= 262144 or self.headers.get_content_type() != "application/json":
                 raise ValueError("Expected a configuration JSON request")
             payload = json.loads(self.rfile.read(size))
+            if name == "preflight":
+                self.respond(run_preflight(self.root))
+                return
             values = payload["values"]
             if name == "check":
                 self.respond({"directories": check(self.root, values)})

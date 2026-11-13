@@ -419,3 +419,34 @@ saveButton.addEventListener("click", async () => {
 editor.addEventListener("submit", event => event.preventDefault());
 byId("purpose").addEventListener("change", load);
 load();
+
+for (const view of ["configuration", "preflight"]) {
+    byId(view + "-tab").addEventListener("click", () => {
+        for (const panel of ["configuration", "preflight"]) {
+            byId(panel + "-panel").hidden = panel !== view;
+            byId(panel + "-tab").setAttribute("aria-pressed", String(panel === view));
+        }
+    });
+}
+
+byId("run-preflight").addEventListener("click", async () => {
+    const button = byId("run-preflight");
+    const message = byId("preflight-status");
+    const output = byId("preflight-results");
+    button.disabled = true;
+    output.textContent = "";
+    message.textContent = "Running preflight checks…";
+    try {
+        const result = await request("preflight", {});
+        output.textContent = result.stages.map(stage =>
+            "./pfvarx " + stage.command + " (exit " + stage.exit_code + ")\n" +
+            [stage.stdout, stage.stderr].filter(Boolean).join("\n")
+        ).join("\n");
+        message.textContent = result.passed ? "Preflight passed." :
+            "Preflight stopped at " + result.stages.at(-1).command + ".";
+    } catch (error) {
+        message.textContent = error.message;
+    } finally {
+        button.disabled = false;
+    }
+});

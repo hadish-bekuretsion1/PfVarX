@@ -10,6 +10,11 @@
 <body><main>
 <h1>PfVarX configuration</h1>
 <p>Save the project settings and create input folders. Register inputs, validate and prepare from the terminal.</p>
+<nav aria-label="Workspace views">
+<button type="button" id="configuration-tab" aria-controls="configuration-panel" aria-pressed="true">Configuration</button>
+<button type="button" id="preflight-tab" aria-controls="preflight-panel" aria-pressed="false">Preflight</button>
+</nav>
+<section id="configuration-panel">
 <label>Template <select id="purpose"><option>analysis</option><option>benchmarking</option></select></label>
 <section id="raw-data-location" aria-label="Raw data location" hidden>
 <label for="raw-data-directory">Raw data folder</label>
@@ -26,4 +31,13 @@
 <button id="save" disabled>Create Configuration and Input Directories</button>
 <details open><summary>Configuration summary</summary><pre id="summary"></pre></details>
 <pre id="result" aria-live="polite"></pre>
+</section>
+<section id="preflight-panel" hidden>
+<h2>Preflight</h2>
+<p>Save the configuration and register inputs first. These checks use saved YAML and can create prepared reference files.</p>
+<ol><li>Validate inputs</li><li>Prepare references</li><li>Verify prepared files</li><li>Check readiness</li></ol>
+<button type="button" id="run-preflight">Run preflight checks</button>
+<p id="preflight-status" role="status"></p>
+<pre id="preflight-results"></pre>
+</section>
 </main></body></html>

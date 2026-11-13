@@ -106,6 +106,10 @@ with tempfile.TemporaryDirectory(prefix="pfvarx040-gui-") as directory:
             assert page.get_by_role("button", name="Browse", exact=True).count() == 0
             expect(page.locator('[id="config.reference.gff"]')).to_have_value("inputs/reference/fixture.gff")
             assert page.evaluate("document.documentElement.scrollWidth <= innerWidth")
+            page.get_by_role("button", name="Preflight", exact=True).click()
+            page.get_by_role("button", name="Run preflight checks").click()
+            expect(page.locator("#preflight-status")).to_have_text("Preflight stopped at validate.")
+            expect(page.locator("#preflight-results")).not_to_contain_text("./pfvarx prepare")
             assert not errors, errors
             print("GUI passed validation, exclusive choices, conditional fields, search, save and idempotent rerun")
     finally:
