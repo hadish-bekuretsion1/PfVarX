@@ -23,7 +23,7 @@ The editor shows project settings from `config/config.yaml`, quality settings fr
 | `project_id` | `Grace_WGS_01` | Use 1–64 letters, digits, underscores or hyphens. Start with a letter or digit. |
 | `input_type` | `FASTQ, BAM, CRAM` | Use FASTQ for paired .fastq or .fastq.gz reads. Use BAM or CRAM for compatible coordinate-sorted indexed alignments. Bootstrap a matching input profile. |
 | `final_output` | `FO001, FO002, FO003, FO004` | FO001 stops at alignment/QC and is FASTQ-only. FO002 adds per-sample calls. FO003 adds cohort integration. FO004 adds eligible downstream methods. Install the corresponding profile. |
-| `samples_tsv` | `inputs/metadata/samples.tsv` | Path to the reviewed sample registry. Register pairs or aligned inputs through the CLI. |
+| `samples_tsv` | `inputs/metadata/samples.tsv` | Shown as Study metadata and catalogue in Input directories. The GUI shows this path as read-only. For FASTQ input, validation or preparation creates a missing sample sheet here from paired reads. Review the inferred IDs. For BAM input, preparation creates a blank template if needed. Prepared reference files are stored in inputs/reference/prepared/ Store any separate marker catalogue in the metadata directory. |
 | `run_policy` | `CONTINUE_INDEPENDENT or STRICT` | Use the default to let eligible independent methods continue. Use STRICT when exclusions should stop dependent execution under the strict policy. |
 | `random_seed` | `20261106` | Nonnegative integer. Record and reuse it when repeating a study setup. |
 
