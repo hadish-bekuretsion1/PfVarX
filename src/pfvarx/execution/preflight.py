@@ -6,6 +6,7 @@ from pathlib import Path
 from typing import Any
 
 from pfvarx.configuration.loader import effective_config, load_bundle
+from pfvarx.inputs.organize import discover
 from pfvarx.inputs.registry import validate_all
 from pfvarx.initialization.layout import SAMPLE_COLUMNS
 from pfvarx.io import write_json, write_tsv
@@ -13,7 +14,12 @@ from pfvarx.references.prepare import prepare, verify_prepared
 
 
 def validate_inputs(root: Path) -> dict[str, Any]:
-    report = validate_all(root, load_bundle(root))
+    bundle = load_bundle(root)
+    cfg = bundle.config
+    sheet = root / cfg.samples_tsv
+    if cfg.input_type.value == "FASTQ" and not sheet.exists() and not sheet.is_symlink():
+        discover(root, root / "inputs/fastq", sheet)
+    report = validate_all(root, bundle)
     write_json(root / "metadata/validation_report.json", report)
     matrix = []
     for entry in report["reports"]:
@@ -42,7 +48,7 @@ def prepare_inputs(root: Path, dry_run: bool = False) -> dict[str, Any]:
     if dry_run:
         return prepare(root, bundle, True)
     sheet = root / bundle.config.samples_tsv
-    if not sheet.exists() and not sheet.is_symlink():
+    if bundle.config.input_type.value != "FASTQ" and not sheet.exists() and not sheet.is_symlink():
         sheet.parent.mkdir(parents=True, exist_ok=True)
         with sheet.open("x", encoding="utf-8") as handle:
             handle.write("\t".join(SAMPLE_COLUMNS) + "\n")
