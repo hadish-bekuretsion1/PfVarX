@@ -21,7 +21,7 @@
   },
   "config.samples_tsv": {
     "example": "inputs/metadata/samples.tsv",
-    "help": "Path to the reviewed sample registry. Register pairs or aligned inputs through the CLI."
+    "help": "Add study metadata to this sample registry TSV by sample_id. Preserve read paths, lane and library IDs. Repeat consistent sample-level values across lanes. DA007 uses country, latitude and longitude in decimal degrees, and collection_date in YYYY-MM-DD. For grouped analyses use population or the configured grouping column. Extra columns such as age_group or study_arm can be retained for study records."
   },
   "config.run_policy": {
     "example": "CONTINUE_INDEPENDENT or STRICT",

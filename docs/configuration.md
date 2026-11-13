@@ -116,3 +116,21 @@ single-host workflow engine. Submit HPC runs inside one allocated node using
 the deployment guide. Server and Cloud refer to Linux hosts and cloud VMs.
 
 For older workspaces, remove the retired host reference setting from the reference block. Run preparation again before starting a new run.
+
+## Add study metadata
+
+Keep study metadata under `inputs/metadata/`. Join a separate metadata TSV
+to the configured sample registry by `sample_id` before validation. Preserve
+the read or alignment paths, lane and library IDs. Repeat consistent
+sample-level values across lanes.
+
+| Column | Example | Use |
+| --- | --- | --- |
+| `country` | Ethiopia | DA007 |
+| `latitude` | 13.50 | DA007, decimal degrees |
+| `longitude` | 39.47 | DA007, decimal degrees |
+| `collection_date` | 2025-07-18 | DA007, YYYY-MM-DD |
+| `population` | Site_A | Grouped analyses, or use the configured grouping column |
+| `age_group`, `study_arm` | Adult, Arm_A | Optional study records |
+
+Review the coordinates included in the dashboard before sharing it.

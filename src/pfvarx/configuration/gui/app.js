@@ -191,7 +191,7 @@ function showInputFolders(directories) {
         "inputs/fastq": "Paired reads (.fastq or .fastq.gz), such as sample_R1.fastq.gz and sample_R2.fastq.gz.",
         "inputs/alignments": "Coordinate-sorted BAM files and their indexes (.bai or .csi).",
         "inputs/reference": "Reference FASTA and matching core-genome BED. Include matching GFF when annotation is needed.",
-        "inputs/metadata": "Sample registry TSV with input paths and study metadata. Optional verified marker catalogue TSV.",
+        "inputs/metadata": "Sample registry TSV with input paths and study metadata (country, latitude, longitude, collection_date and population where applicable). Optional separate study metadata and verified marker catalogue TSV. Join study metadata to the configured sample registry by sample_id before validation.",
         "inputs/targets": "Target regions BED and primer definitions TSV matched to the reference.",
         "inputs/truth": "truth.json, confident_regions.bed, and <MONOCLONAL_SAMPLE_ID>.truth.vcf for each scored monoclonal sample.",
         "inputs/partitions": "partition.json, created by ./pfvarx benchmark-partition."
