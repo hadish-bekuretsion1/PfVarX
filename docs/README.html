@@ -25,7 +25,7 @@ cd pfvarx-analysis
 <h3>Optional GUI configuration</h3>
 <pre>./pfvarx configure --gui</pre>
 <p>Open the printed local URL if needed. Review the form and click <strong>Create Configuration and Input Directories</strong>.</p>
-<p><a href="configuration%20guide.html">Configuration guide for every setting</a></p>
+<p><a href="configuration%20guide.html" target="_blank" rel="noopener noreferrer">Configuration guide for every setting</a></p>
 <h2>3. Register reads</h2>
 <p>Replace the example path with your FASTQ directory. Review sample identities, libraries and paired files before registration. Use a reviewed TSV manifest directly when the filenames do not match the discovery convention.</p>
 <pre>./pfvarx discover-inputs --directory /absolute/path/to/fastq
@@ -42,5 +42,5 @@ nano metadata/discovered_samples.tsv
 <pre>./pfvarx pipeline --mode NEW</pre>
 <p>Record the returned run ID. Open <code>results/report/pfvarx_dashboard.html</code> and review sample QC before interpreting calls. FO002 results include sample VCFs under <code>results/variants/samples/</code>. Run logs and frozen configuration are under <code>runs/RUN_ID/</code>.</p>
 <h2>6. Continue with the full procedures</h2>
-<p>Use the <a href="sop/PfVarX_SOP_Manual.html#procedure-index">Operational SOP procedure index</a> for targeted sequencing, BAM/CRAM, cohort and downstream runs, benchmarking, and troubleshooting. See the <a href="deployment.md">deployment guide</a> for server, cloud VM and single-node SLURM setup.</p>
+<p>Use the <a href="sop/PfVarX_SOP_Manual.html#procedure-index" target="_blank" rel="noopener noreferrer">Operational SOP procedure index</a> for targeted sequencing, BAM/CRAM, cohort and downstream runs, benchmarking, and troubleshooting. See the <a href="deployment.md">deployment guide</a> for server, cloud VM and single-node SLURM setup.</p>
 </main></html>
