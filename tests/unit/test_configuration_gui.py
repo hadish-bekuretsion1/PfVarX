@@ -81,3 +81,14 @@ def test_prepare_refuses_when_all_registered_samples_fail(workspace: Path) -> No
     with pytest.raises(ValueError, match="validation failed"):
         prepare_inputs(workspace)
     assert not (workspace / "prepared").exists()
+
+
+def test_bam_save_creates_alignment_folders(workspace: Path) -> None:
+    state = editor_state(workspace, "analysis")
+    values = state["values"]
+    values["config"]["input_type"] = "BAM"
+    values["config"]["reference"]["release_label"] = "fixture"
+    result = save(workspace, values, state["revision"], False)
+    assert set(result["directories"]) == {"inputs/alignments", "inputs/reference", "inputs/metadata"}
+    assert all((workspace / folder).is_dir() for folder in result["directories"])
+    assert not (workspace / "inputs/fastq").exists()

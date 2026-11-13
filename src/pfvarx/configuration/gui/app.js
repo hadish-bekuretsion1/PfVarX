@@ -120,6 +120,14 @@ function draw(parent, object, schema, path = "") {
                 input.append(new Option(names[value] || value || "Unspecified", value));
             }
             input.value = object[key] ?? "";
+            const installation = state.installation;
+            if (id === "config.input_type" && installation && installation.profile !== "development") {
+                for (const option of input.options) option.disabled = option.value !== installation.input_type;
+                const note = document.createElement("small");
+                note.textContent = "This workspace was installed for " + installation.input_type +
+                    ". For BAM, bootstrap a new workspace with --input-type BAM.";
+                row.append(note);
+            }
         } else if (spec.type === "object" || spec.type === "array") {
             input = document.createElement("textarea");
             input.value = JSON.stringify(object[key] ?? {});
