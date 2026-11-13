@@ -54,7 +54,7 @@ with a trailing slash. File fields still require filenames.
 
 | Folder | Place or reference these files |
 | --- | --- |
-| `inputs/reference/` | Parasite FASTA, core BED and optional host FASTA. Add a matching GFF for explicit FO004 or to enable markers in automatic FO004. |
+| `inputs/reference/` | Parasite FASTA, and core BED. Add a matching GFF for explicit FO004 or to enable markers in automatic FO004. |
 | `inputs/fastq/` | Paired FASTQ for FASTQ entry. Register read pairs with their verified sample and lane identities. |
 | `inputs/alignments/` | BAM or CRAM with the appropriate index for aligned entry. |
 | `inputs/metadata/` | Reviewed sample TSV and optional population and geographic fields. |
@@ -114,3 +114,5 @@ selective installation.
 The executor menu records Local, HPC, Server or Cloud. These use the same
 single-host workflow engine. Submit HPC runs inside one allocated node using
 the deployment guide. Server and Cloud refer to Linux hosts and cloud VMs.
+
+For older workspaces, remove the retired host reference setting from the reference block. Run preparation again before starting a new run.

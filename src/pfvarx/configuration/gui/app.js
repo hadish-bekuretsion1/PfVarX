@@ -28,7 +28,6 @@ const filePlaceholders = {
     "config.reference.fasta": "inputs/reference/",
     "config.reference.core_mask_bed": "inputs/reference/",
     "config.reference.gff": "inputs/reference/",
-    "config.reference.host_fasta": "inputs/reference/"
 };
 
 function draw(parent, object, schema, path = "") {

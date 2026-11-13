@@ -79,10 +79,6 @@
     "example": "inputs/reference/Pf3D7.gff or null",
     "help": "Use a matching GFF for explicit FO004 and to enable annotation and marker outcomes in automatic FO004. Enter the full file path, including the filename. Relative paths start at the study workspace."
   },
-  "config.reference.host_fasta": {
-    "example": "null or inputs/reference/host.fasta",
-    "help": "Optional host decoy. Use a compatible resource with distinct contig names. Enter the full file path, including the filename. Relative paths start at the study workspace."
-  },
   "config.reference.snpeff_genome_id": {
     "example": "null or Pf3D7_study",
     "help": "Leave unset for the pipeline default. Set a reviewed identifier for the reference-matched SnpEff database when needed."

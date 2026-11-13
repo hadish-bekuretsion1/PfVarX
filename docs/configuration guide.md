@@ -48,7 +48,6 @@ The editor shows project settings from `config/config.yaml`, quality settings fr
 | `reference.core_mask_bed` | `inputs/reference/core_genome.bed` | Supply the matching core-region BED. Check contig names and coordinates against the FASTA. |
 | `reference.release_label` | `Your actual reference release` | Record the verified release. Replace SET_REFERENCE_RELEASE before saving. |
 | `reference.gff` | `inputs/reference/Pf3D7.gff or null` | Use a matching GFF for explicit FO004 and to enable annotation and marker outcomes in automatic FO004. |
-| `reference.host_fasta` | `null or inputs/reference/host.fasta` | Optional host decoy. Use a compatible resource with distinct contig names. |
 | `reference.snpeff_genome_id` | `null or Pf3D7_study` | Leave unset for the pipeline default. Set a reviewed identifier for the reference-matched SnpEff database when needed. |
 
 ## Downstream analyses and caller

@@ -18,7 +18,6 @@ reference:
   fasta: inputs/reference/Pf3D7.fasta      # EDIT
   gff: null                               # EDIT: matching GFF path required for FO004
   core_mask_bed: inputs/reference/core_genome.bed   # EDIT: versioned core-genome mask
-  host_fasta: null                         # OPTIONAL: human GRCh38 primary assembly as decoy
   release_label: SET_REFERENCE_RELEASE     # EDIT: exact release used for FASTA and GFF
   snpeff_genome_id: null                   # OPTIONAL: id of a SnpEff database built from the same files
 samples_tsv: inputs/metadata/samples.tsv   # FIXED path written by 'pixi run init'

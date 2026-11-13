@@ -35,7 +35,6 @@ body{font:16px/1.55 system-ui;color:#173247;max-width:1000px;margin:auto;padding
 <tr><th scope="row"><code>reference.core_mask_bed</code></th><td><code>inputs/reference/core_genome.bed</code></td><td>Supply the matching core-region BED. Check contig names and coordinates against the FASTA.</td></tr>
 <tr><th scope="row"><code>reference.release_label</code></th><td><code>Your actual reference release</code></td><td>Record the verified release. Replace SET_REFERENCE_RELEASE before saving.</td></tr>
 <tr><th scope="row"><code>reference.gff</code></th><td><code>inputs/reference/Pf3D7.gff or null</code></td><td>Use a matching GFF for explicit FO004 and to enable annotation and marker outcomes in automatic FO004.</td></tr>
-<tr><th scope="row"><code>reference.host_fasta</code></th><td><code>null or inputs/reference/host.fasta</code></td><td>Optional host decoy. Use a compatible resource with distinct contig names.</td></tr>
 <tr><th scope="row"><code>reference.snpeff_genome_id</code></th><td><code>null or Pf3D7_study</code></td><td>Leave unset for the pipeline default. Set a reviewed identifier for the reference-matched SnpEff database when needed.</td></tr>
 </tbody></table></div></section>
 <section id="section-3"><h2>Downstream analyses and caller</h2><div class="table"><table><thead><tr><th scope="col">Setting</th><th scope="col">Values or example</th><th scope="col">When to choose it</th></tr></thead><tbody>

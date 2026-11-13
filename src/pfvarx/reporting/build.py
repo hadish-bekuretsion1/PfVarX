@@ -392,7 +392,7 @@ def harvest(root: Path, run: Path) -> dict[str, Any]:
         if sample.get("bam"):
             input_files.append({"sample_id": sample["sample_id"], "role": "alignment",
                                 "path": sample["bam"], "size_bytes": _file_size(root, sample["bam"])})
-    for key in ("fasta", "gff", "core_mask_bed", "host_fasta"):
+    for key in ("fasta", "gff", "core_mask_bed"):
         value = eff["config"]["reference"].get(key)
         if value:
             input_files.append({"role": "reference." + key, "path": value, "size_bytes": _file_size(root, value)})

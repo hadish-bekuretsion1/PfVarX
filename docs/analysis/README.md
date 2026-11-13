@@ -59,7 +59,6 @@ reference:
   fasta: inputs/reference/Pf3D7.fasta
   gff: null
   core_mask_bed: inputs/reference/core_genome.bed
-  host_fasta: null
   release_label: YOUR_EXACT_REFERENCE_RELEASE
   snpeff_genome_id: null
 analyses:
@@ -109,7 +108,6 @@ truth, results or masks. Populate the input paths from your own verified resourc
 | FASTA | Exact parasite assembly with stable contig IDs and lengths |
 | Core BED | Independently justified callable/core regions matched to that assembly |
 | GFF3 | Required for explicit FO004 and for annotation/marker outcomes in automatic FO004 |
-| Host FASTA | Optional declared decoy for alignment |
 | Targets / primers | Required for targeted assays, matched to the reference |
 
 Reference and input paths may be absolute or relative to the workspace root. Original

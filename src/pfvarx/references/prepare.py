@@ -31,8 +31,7 @@ def plan_preparation(root: Path, bundle: Bundle) -> dict[str, Any]:
     prep = root / "prepared" / "reference"
     manifest_path = root / "prepared" / "manifest.json"
     old = read_json(manifest_path) if manifest_path.is_file() else {}
-    sources = [src] + ([root / cfg.reference.host_fasta] if cfg.reference.host_fasta else [])
-    fingerprints = {str(p.resolve()): sha256(p) for p in sources}
+    fingerprints = {str(src.resolve()): sha256(src)}
     stale = old.get("source_fingerprints") != fingerprints
     sealed = old.get("artifacts", {})
     def damaged(path: Path) -> bool:
@@ -83,9 +82,7 @@ def prepare(root: Path, bundle: Bundle, dry_run: bool) -> dict[str, Any]:
         a = act["action"]
         if a == "write_combined_fasta":
             with combined.open("wb") as out:
-                for p in [root / cfg.reference.fasta] + ([root / cfg.reference.host_fasta]
-                                                          if cfg.reference.host_fasta else []):
-                    out.write(p.read_bytes().rstrip(b"\n") + b"\n")
+                out.write((root / cfg.reference.fasta).read_bytes().rstrip(b"\n") + b"\n")
         elif a == "write_parasite_fasta":
             shutil.copyfile(root / cfg.reference.fasta, parasite)
             _run_preparation(root, a, [_tool("samtools"), "faidx", str(parasite)])
@@ -105,7 +102,6 @@ def prepare(root: Path, bundle: Bundle, dry_run: bool) -> dict[str, Any]:
         "reference_sha256": sha256(root / cfg.reference.fasta),
         "combined_fasta": str(combined.relative_to(root)),
         "parasite_fasta": str(parasite.relative_to(root)),
-        "host_decoy": bool(cfg.reference.host_fasta),
         "actions_performed": done,
     }
     artifacts = required_artifacts(root, bundle)

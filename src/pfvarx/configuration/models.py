@@ -71,7 +71,6 @@ class ReferenceConfig(Strict):
     fasta: Path
     gff: Path | None = None
     core_mask_bed: Path
-    host_fasta: Path | None = None
     release_label: str = Field(description="PlasmoDB release, e.g. '68'; recorded in provenance")
     snpeff_genome_id: str | None = None
 

@@ -1226,7 +1226,7 @@ Operator signs off sample identities, paths, library design, optional metadata a
 
 ### 2. Prerequisites and requirements
 
-R01–R02; independently justified reference FASTA and core BED; matching GFF for explicit FO004 or automatic FO004 marker outcomes; optional declared host FASTA. BED is zero-based half-open; GFF/VCF positions are one-based.
+R01–R02; independently justified reference FASTA and core BED; matching GFF for explicit FO004 or automatic FO004 marker outcomes. BED is zero-based half-open; GFF/VCF positions are one-based.
 
 ### 3. Detailed operational procedure
 
@@ -1247,7 +1247,6 @@ reference:
   fasta: /absolute/path/to/verified/Pf3D7.fasta
   gff: null
   core_mask_bed: /absolute/path/to/verified/core_genome.bed
-  host_fasta: null
   release_label: YOUR_EXACT_REFERENCE_RELEASE
   snpeff_genome_id: null
 ```
@@ -3509,7 +3508,7 @@ For headless configuration, use `./pfvarx config-init --purpose analysis`, edit
 
 | Folder | Place or reference these files |
 | --- | --- |
-| `inputs/reference/` | Parasite FASTA, core BED and optional host FASTA. Add a matching GFF for explicit FO004 or to enable markers in automatic FO004. |
+| `inputs/reference/` | Parasite FASTA, and core BED. Add a matching GFF for explicit FO004 or to enable markers in automatic FO004. |
 | `inputs/fastq/` | Paired FASTQ for FASTQ entry. Register read pairs with their verified sample and lane identities. |
 | `inputs/alignments/` | BAM or CRAM with the appropriate index for aligned entry. |
 | `inputs/metadata/` | Reviewed sample TSV and optional population and geographic fields. |

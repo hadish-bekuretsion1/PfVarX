@@ -924,7 +924,7 @@ PYCODE
 <p><strong>Module:</strong> reference configuration and references/. <strong>Workflow:</strong> routine analysis.</p>
 <p><strong>Purpose and scope:</strong> Supply matching FASTA, core mask and annotation, derive indexes without modifying original resources.</p>
 <h3>2. Prerequisites and requirements</h3>
-<p>R01–R02; independently justified reference FASTA and core BED; matching GFF for explicit FO004 or automatic FO004 marker outcomes; optional declared host FASTA. BED is zero-based half-open; GFF/VCF positions are one-based.</p>
+<p>R01–R02; independently justified reference FASTA and core BED; matching GFF for explicit FO004 or automatic FO004 marker outcomes. BED is zero-based half-open; GFF/VCF positions are one-based.</p>
 <h3>3. Detailed operational procedure</h3>
 <p><strong>Step 1. Set the actual reference and initial analysis mode</strong></p>
 <pre><code class="language-bash">cd &quot;$ANALYSIS&quot;
@@ -938,7 +938,6 @@ reference:
   fasta: /absolute/path/to/verified/Pf3D7.fasta
   gff: null
   core_mask_bed: /absolute/path/to/verified/core_genome.bed
-  host_fasta: null
   release_label: YOUR_EXACT_REFERENCE_RELEASE
   snpeff_genome_id: null
 </code></pre>
@@ -2497,7 +2496,7 @@ server. Treat the URL as a private session link.</p>
 <tbody>
 <tr>
 <td><code>inputs/reference/</code></td>
-<td>Parasite FASTA, core BED and optional host FASTA. Add a matching GFF for explicit FO004 or to enable markers in automatic FO004.</td>
+<td>Parasite FASTA, and core BED. Add a matching GFF for explicit FO004 or to enable markers in automatic FO004.</td>
 </tr>
 <tr>
 <td><code>inputs/fastq/</code></td>
