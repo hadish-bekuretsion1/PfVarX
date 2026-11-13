@@ -32,7 +32,7 @@ The editor shows project settings from `config/config.yaml`, quality settings fr
 | Setting | Accepted values or example | When to use it |
 | --- | --- | --- |
 | `assay.design` | `WGS, TARGETED_NON_UMI, TARGETED_UMI` | Choose the processing branch from the lab protocol. Use the UMI branch only when reads or existing consensus alignments satisfy that contract. |
-| `assay.sequencing_type` | `WGS, SWGS, AMPLICON, TBS_NON_UMI, TBS_UMI, null` | WGS/SWGS require the WGS branch. AMPLICON uses either targeted branch. Each TBS label requires the matching targeted UMI status. Use null when the optional label is unspecified. |
+| `assay.sequencing_type` | `WGS, SELECTIVE_WGS, AMPLICON, TBS_NON_UMI, TBS_UMI, null` | WGS and SELECTIVE_WGS require the WGS branch. SELECTIVE_WGS records the SWGA route. AMPLICON uses either targeted branch. Each TBS label requires the matching targeted UMI status. Use null when the optional label is unspecified. |
 | `assay.amplification_route` | `DIRECT, SWGA, AMPLICON` | Use DIRECT for WGS without selective amplification, SWGA when documented in the WGS protocol, and AMPLICON for targeted branches. |
 | `assay.read_structure` | `8M143T 8M143T or null` | Only for the UMI branch. Example describes an 8-base molecular barcode and 143 template bases in each mate. Enter the actual lab structure, not the example by default. |
 | `assay.targets_bed` | `inputs/targets/targets.bed` | Required for targeted branches. Supply zero-based half-open intervals matched to the FASTA. Leave unset for ordinary WGS. |

@@ -33,7 +33,7 @@ class Strict(BaseModel):
 
 class AssayConfig(Strict):
     design: Design
-    sequencing_type: Literal["WGS", "SWGS", "AMPLICON", "TBS_UMI", "TBS_NON_UMI"] | None = None
+    sequencing_type: Literal["WGS", "SWGS", "SELECTIVE_WGS", "AMPLICON", "TBS_UMI", "TBS_NON_UMI"] | None = None
     amplification_route: Route
     read_structure: str | None = Field(
         default=None, description="fgbio read structure, e.g. '8M143T 8M143T'; UMI only"
@@ -46,13 +46,15 @@ class AssayConfig(Strict):
     @model_validator(mode="after")
     def _design_consistency(self) -> AssayConfig:
         compatible = {
-            "WGS": (Design.WGS,), "SWGS": (Design.WGS,),
+            "WGS": (Design.WGS,), "SWGS": (Design.WGS,), "SELECTIVE_WGS": (Design.WGS,),
             "AMPLICON": (Design.TARGETED_NON_UMI, Design.TARGETED_UMI),
             "TBS_UMI": (Design.TARGETED_UMI,),
             "TBS_NON_UMI": (Design.TARGETED_NON_UMI,),
         }
         if self.sequencing_type and self.design not in compatible[self.sequencing_type]:
             raise ValueError("sequencing_type is incompatible with assay.design")
+        if self.sequencing_type == "SELECTIVE_WGS" and self.amplification_route != Route.SWGA:
+            raise ValueError("SELECTIVE_WGS requires amplification_route: SWGA")
         targeted = self.design in (Design.TARGETED_NON_UMI, Design.TARGETED_UMI)
         if targeted and (self.targets_bed is None or self.primers_tsv is None):
             raise ValueError("targeted designs require assay.targets_bed and assay.primers_tsv")

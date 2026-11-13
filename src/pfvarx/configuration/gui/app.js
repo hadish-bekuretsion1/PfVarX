@@ -104,6 +104,7 @@ function draw(parent, object, schema, path = "") {
             "config.purpose": ["analysis", "benchmarking"]
         })[id];
         if (id === "config.input_type") options = options.filter(value => value === "FASTQ" || value === "BAM");
+        if (id === "config.assay.sequencing_type" && object[key] !== "SWGS") options = options.filter(value => value !== "SWGS");
         if (id === "compute.executor") options = options.filter(value => value !== "slurm");
         if (options) {
             input = document.createElement("select");
@@ -111,7 +112,7 @@ function draw(parent, object, schema, path = "") {
             for (const value of optional ? ["", ...options] : options) {
                 const names = {
                     local: "Local", hpc: "HPC (single node)", server: "Server", cloud: "Cloud VM",
-                    WGS: "Whole-genome sequencing", SWGS: "Shallow whole-genome sequencing",
+                    WGS: "Whole-genome sequencing", SELECTIVE_WGS: "Selective Whole Genome Sequencing",
                     TARGETED_NON_UMI: "Targeted without UMI", TARGETED_UMI: "Targeted with UMI",
                     AMPLICON: "Amplicon", DIRECT: "Direct", SWGA: "Selective whole-genome amplification",
                     TBS_UMI: "Targeted barcode with UMI", TBS_NON_UMI: "Targeted barcode without UMI"
@@ -251,13 +252,17 @@ function changed(id) {
     toggle("config.caller.sha256", config.caller.backend === "external");
     toggle("compute.slurm_partition", false);
     const route = byId("config.assay.amplification_route");
-    for (const option of route.options) option.disabled = targeted !== (option.value === "AMPLICON");
+    if (id === "config.assay.sequencing_type" && assay.sequencing_type === "SELECTIVE_WGS") {
+        assay.amplification_route = "SWGA";
+        route.value = "SWGA";
+    }
+    for (const option of route.options) option.disabled = targeted !== (option.value === "AMPLICON") || (assay.sequencing_type === "SELECTIVE_WGS" && option.value !== "SWGA");
     const sequencing = byId("config.assay.sequencing_type");
     const allowed = {
-        WGS: ["WGS", "SWGS"], TARGETED_NON_UMI: ["AMPLICON", "TBS_NON_UMI"],
+        WGS: ["WGS", "SELECTIVE_WGS"], TARGETED_NON_UMI: ["AMPLICON", "TBS_NON_UMI"],
         TARGETED_UMI: ["AMPLICON", "TBS_UMI"]
     }[assay.design];
-    for (const option of sequencing.options) option.disabled = option.value !== "" && !allowed.includes(option.value);
+    for (const option of sequencing.options) option.disabled = option.value !== "" && option.value !== assay.sequencing_type && !allowed.includes(option.value);
     for (const box of editor.querySelectorAll('[data-field="config.analyses.requested"] input')) {
         box.disabled = !full || analyses.selection === "auto" || !state.analyses[box.value].designs.includes(assay.design);
     }

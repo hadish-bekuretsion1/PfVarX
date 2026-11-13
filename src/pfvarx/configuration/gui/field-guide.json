@@ -36,8 +36,8 @@
     "help": "Choose the processing branch from the lab protocol. Use the UMI branch only when reads or existing consensus alignments satisfy that contract."
   },
   "config.assay.sequencing_type": {
-    "example": "WGS, SWGS, AMPLICON, TBS_NON_UMI, TBS_UMI, null",
-    "help": "WGS/SWGS require the WGS branch. AMPLICON uses either targeted branch. Each TBS label requires the matching targeted UMI status. Use null when the optional label is unspecified."
+    "example": "WGS, SELECTIVE_WGS, AMPLICON, TBS_NON_UMI, TBS_UMI, null",
+    "help": "WGS and SELECTIVE_WGS require the WGS branch. SELECTIVE_WGS records the SWGA route. AMPLICON uses either targeted branch. Each TBS label requires the matching targeted UMI status. Use null when the optional label is unspecified."
   },
   "config.assay.amplification_route": {
     "example": "DIRECT, SWGA, AMPLICON",
