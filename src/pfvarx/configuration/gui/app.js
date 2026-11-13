@@ -267,7 +267,11 @@ function changed(id) {
         input.required = !input.disabled && (conditionalRequirements[input.id] ?? (input.dataset.schemaRequired === "true"));
         input.parentElement.querySelector("[data-required-mark]").hidden = !input.required;
     }
-    byId("summary").textContent = JSON.stringify(values, null, 2);
+    const summary = structuredClone(values);
+    if (full && analyses.selection === "explicit") {
+        summary.config.analyses.requested = [...new Set(["DA001", ...(analyses.requested || [])])];
+    }
+    byId("summary").textContent = JSON.stringify(summary, null, 2);
     saveButton.disabled = true;
     const current = ++generation;
     clearTimeout(timer);

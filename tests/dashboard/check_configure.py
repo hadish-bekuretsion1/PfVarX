@@ -75,6 +75,12 @@ with tempfile.TemporaryDirectory(prefix="pfvarx040-gui-") as directory:
             page.get_by_role("searchbox", name="Filter sequencing type choices").fill("TBS")
             page.locator('[id="config.assay.sequencing_type"]').select_option("TBS_UMI")
             page.locator('[id="config.final_output"]').select_option("FO004")
+            expect(page.locator("#summary")).to_be_visible()
+            expect(page.locator("#summary")).to_contain_text('"final_output": "FO004"')
+            expect(page.locator("#summary")).to_contain_text('"DA001"')
+            page.locator('[id="config.retention.intermediates"]').select_option("keep")
+            expect(page.locator("#summary")).to_contain_text('"intermediates": "keep"')
+
             page.locator('[name="config.analyses.selection"][value="auto"]').check()
             expect(page.locator('[data-field="config.analyses.requested"]')).to_be_hidden()
             page.locator('[id="config.reference.gff"]').fill("inputs/reference/fixture.gff")
