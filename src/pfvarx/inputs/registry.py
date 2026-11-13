@@ -9,6 +9,7 @@ from pfvarx.configuration.loader import load_parameters, param
 from pfvarx.configuration.models import Bundle
 from pfvarx.constants import Design, InputType
 from pfvarx.inputs import validate as v
+from pfvarx.inputs.formats import FORMATS, check_extension
 
 
 def required_metadata(bundle: Bundle) -> set[str]:
@@ -27,6 +28,19 @@ def validate_all(root: Path, bundle: Bundle) -> dict[str, Any]:
     cfg = bundle.config
     params = load_parameters(root)
     reports: list[v.FileReport] = []
+    for role, path in (
+        ("fasta", cfg.reference.fasta), ("bed", cfg.reference.core_mask_bed),
+        ("annotation", cfg.reference.gff), ("bed", cfg.assay.targets_bed),
+        ("metadata", cfg.assay.primers_tsv), ("metadata", cfg.samples_tsv),
+        ("metadata", cfg.analyses.resistance_catalog),
+    ):
+        if path is not None:
+            try:
+                check_extension(path.name, FORMATS[role], role)
+            except ValueError as exc:
+                report = v.FileReport(path=str(path), kind="INPUT_EXTENSION")
+                report.fail(v.Reason.REFERENCE_MALFORMED, str(exc))
+                reports.append(report)
     fasta = v.validate_fasta(root / cfg.reference.fasta)
     reports.append(fasta)
     contigs = fasta.facts.get("contigs", {})
@@ -70,6 +84,13 @@ def validate_all(root: Path, bundle: Bundle) -> dict[str, Any]:
             else:
                 rep = v.FileReport(path=row.get("vcf", ""), kind="VCF")
                 reports.append(rep)
+            names = [row["fastq_1"], row["fastq_2"]] if cfg.input_type == InputType.FASTQ else [row["bam"]]
+            role = cfg.input_type.value.lower()
+            for name in names:
+                try:
+                    check_extension(name, FORMATS[role], role)
+                except ValueError as exc:
+                    rep.fail(v.Reason.REFERENCE_MALFORMED, str(exc))
             prev = sample_status.get(sid, "PASS")
             sample_status[sid] = "FAIL" if "FAIL" in (prev, rep.status) else (
                 "WARNING" if "WARNING" in (prev, rep.status) else "PASS")

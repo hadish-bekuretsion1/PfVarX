@@ -30,6 +30,7 @@ from pfvarx.configuration.loader import (
 from pfvarx.configuration.models import Bundle
 from pfvarx.execution.retention import workspace_lock
 from pfvarx.initialization.layout import create_input_dirs, required_dirs
+from pfvarx.inputs.formats import FOLDER_FORMATS, check_extension
 from pfvarx.inputs.organize import fetch
 from pfvarx.io import atomic_write_text, read_json, within
 
@@ -168,8 +169,8 @@ def raw_destination(root: Path, name: str, role: str = "raw") -> Path:
         "BAM": (".bam", ".bai", ".csi"),
         "CRAM": (".cram", ".crai", ".csi"),
     }
-    if role in {"fastq", "alignments"} and not name.lower().endswith(suffixes[input_type]):
-        raise ValueError(f"File extension does not match the saved {input_type} input type")
+    allowed = suffixes[input_type] if role == "alignments" else FOLDER_FORMATS[role]
+    check_extension(name, allowed, role)
     folder = within(root, f"inputs/{role}")
     if not folder.is_dir():
         raise ValueError("Save the configuration and create input directories first")
@@ -214,7 +215,7 @@ class Handler(BaseHTTPRequestHandler):
                 filename, media = assets[name]
                 self.respond(Path(__file__).with_name("gui").joinpath(filename).read_bytes(), media=media)
             elif name == "input-folders":
-                self.respond(required_dirs(load_bundle(self.root).config))
+                self.respond({"folders": required_dirs(load_bundle(self.root).config), "extensions": FOLDER_FORMATS})
             elif name == "state":
                 self.respond(editor_state(self.root, query.get("purpose", ["analysis"])[0]))
             elif name == "browse":

@@ -465,7 +465,7 @@ async function loadFileTabs() {
     tabs.replaceChildren();
     transferRole = undefined;
     try {
-        const folders = await request("input-folders");
+        const {folders, extensions} = await request("input-folders");
         const labels = {
             fastq: [["FASTQ reads", "fastq"]],
             alignments: [["Alignments and indexes", "alignments"]],
@@ -484,7 +484,9 @@ async function loadFileTabs() {
                     transferRole = role;
                     byId("raw-files").value = "";
                     for (const tab of tabs.children) tab.setAttribute("aria-pressed", String(tab === button));
-                    destination.textContent = label + " → " + folder + "/";
+                    const allowed = extensions[role];
+                    byId("raw-files").accept = allowed.join(",");
+                    destination.textContent = label + " → " + folder + "/. Accepted extensions: " + allowed.join(", ");
                 });
                 tabs.append(button);
             }
