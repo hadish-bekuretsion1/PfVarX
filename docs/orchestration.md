@@ -49,7 +49,7 @@ Pixi/tool diagnostics go to stderr. `PFVARX_JSON_OUT` can save command JSON atom
 | --- | --- | --- |
 | `workspace-init` | Installed profile or full source | Three missing editable YAML files and, unless --config-only is set, input folders and an initialization report; never overwrite user config |
 | `config-init --purpose analysis|benchmarking` | Full source/compatible selection | Missing config/quality/compute templates only; legacy explicit setup |
-| `init` | Valid config | Assay/purpose-specific input directories and blank sample-sheet header only |
+| `init` | Valid config | Assay/purpose-specific input directories only |
 | `discover-inputs --directory DIR` | Actual FASTQ folder | `metadata/discovered_samples.tsv`; REVIEW_REQUIRED, complete unambiguous pairs only |
 | `register-inputs --manifest FILE --mode reference|link` | Reviewed TSV and valid config | Registered sample sheet, optional organized symlinks, metadata/registration.json; refuses nonempty sheet overwrite |
 | `fetch-input --url URL --sha256 HASH --role ROLE --name NAME` | Explicit HTTPS source/trusted checksum | Only requested inputs/ROLE/NAME plus acquisition metadata; atomic checksum gate and no overwrite |
@@ -161,3 +161,5 @@ failed/empty artifacts are not accepted as a verified preparation.
 
 See the [configuration editor and input procedure](configuration.md) and the
 [sequencing and downstream eligibility matrix](sequencing.md).
+
+Reference Preparation creates a blank sample sheet if it is missing. Fill it or register a reviewed manifest, then rerun preparation. Existing sheets are preserved. To use combined readiness checks, register samples first.

@@ -13,7 +13,7 @@ from typing import Any
 
 from pfvarx.configuration.models import ProjectConfig
 from pfvarx.constants import Design, InputType, Purpose
-from pfvarx.io import atomic_write_text, within
+from pfvarx.io import within
 
 SAMPLE_COLUMNS = ["sample_id", "lane", "fastq_1", "fastq_2", "bam", "vcf", "library_id",
                   "flowcell_type", "population", "country", "latitude", "longitude",
@@ -69,13 +69,8 @@ def create_input_dirs(root: Path, directories: list[str]) -> list[str]:
 def init_inputs(root: Path, cfg: ProjectConfig) -> dict[str, Any]:
     directories = required_dirs(cfg)
     created = create_input_dirs(root, directories)
-    samples = root / cfg.samples_tsv
-    template_written = False
-    if not samples.exists():
-        atomic_write_text(samples, "\t".join(SAMPLE_COLUMNS) + "\n")
-        template_written = True
-    return {"directories": [rel + "/" for rel in directories], "created_dirs": created, "samples_template_written": template_written,
-            "result_dirs_created": []}
+    return {"directories": [rel + "/" for rel in directories], "created_dirs": created,
+            "samples_template_written": False, "result_dirs_created": []}
 
 
 def check_layout(root: Path, cfg: ProjectConfig) -> dict[str, Any]:

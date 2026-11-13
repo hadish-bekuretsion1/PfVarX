@@ -87,7 +87,7 @@ def config_init(purpose: str = typer.Option(..., "--purpose", help="analysis | b
 
 @app.command()
 def init() -> None:
-    """Create purpose- and assay-specific input folders and the samples.tsv template only."""
+    """Create purpose- and assay-specific input folders only."""
     from pfvarx.initialization.layout import init_inputs
 
     root = _root()

@@ -26,7 +26,7 @@ def test_save_creates_only_input_directories_and_preserves_yaml(workspace: Path)
     assert "MY_PROJECT" in (workspace / changed["backups"][0]).read_text()
     with pytest.raises(ValueError, match="changed"):
         save(workspace, values, result["revision"], True)
-    with pytest.raises(ValueError, match="validation failed"):
+    with pytest.raises(ValueError, match="Created sample sheet template"):
         prepare_inputs(workspace)
     assert not (workspace / "prepared").exists()
 

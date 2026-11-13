@@ -44,7 +44,7 @@ ssh -L 8765:127.0.0.1:8765 USER@HOST
 
 For headless configuration, use `./pfvarx config-init --purpose analysis`, edit
 `config/config.yaml`, `config/quality.yaml` and `config/compute.yaml`, then use
-`./pfvarx init` if you want a blank sample-sheet template. GUI saves create no sheet.
+`./pfvarx init` to create input folders. GUI saves also create only folders.
 
 Both GUI save and CLI initialization use the same workspace-relative input
 folder layout. The GUI preview and the CLI `init` report show directory paths
@@ -203,3 +203,5 @@ does not establish file integrity or reference compatibility.
 The Input files categories follow the saved configuration and existing input
 folders. After changing input type, save before returning to Input files.
 Folders from earlier settings can remain on disk while their tabs are hidden.
+
+Reference Preparation creates a blank sample sheet if it is missing. Fill it or register a reviewed manifest, then rerun preparation. Existing sheets are preserved. To use combined readiness checks, register samples first.

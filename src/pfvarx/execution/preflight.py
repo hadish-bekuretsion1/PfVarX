@@ -7,6 +7,7 @@ from typing import Any
 
 from pfvarx.configuration.loader import effective_config, load_bundle
 from pfvarx.inputs.registry import validate_all
+from pfvarx.initialization.layout import SAMPLE_COLUMNS
 from pfvarx.io import write_json, write_tsv
 from pfvarx.references.prepare import prepare, verify_prepared
 
@@ -40,6 +41,12 @@ def prepare_inputs(root: Path, dry_run: bool = False) -> dict[str, Any]:
     bundle = load_bundle(root)
     if dry_run:
         return prepare(root, bundle, True)
+    sheet = root / bundle.config.samples_tsv
+    if not sheet.exists() and not sheet.is_symlink():
+        sheet.parent.mkdir(parents=True, exist_ok=True)
+        with sheet.open("x", encoding="utf-8") as handle:
+            handle.write("\t".join(SAMPLE_COLUMNS) + "\n")
+        raise ValueError(f"Created sample sheet template at {sheet}. Register or enter the samples, then rerun preparation.")
     validation = validate_inputs(root)
     if validation["status"] == "FAIL":
         raise ValueError("Input validation failed; inspect metadata/validation_report.json before preparation")
