@@ -176,6 +176,14 @@ function draw(parent, object, schema, path = "") {
         if (guide || original.description) input.setAttribute("aria-describedby", id + ".help");
         label.htmlFor = id;
         label.append(input);
+        const requiredMark = document.createElement("span");
+        requiredMark.dataset.requiredMark = "";
+        requiredMark.textContent = " (required)";
+        requiredMark.hidden = true;
+        label.insertBefore(requiredMark, input);
+        input.dataset.schemaRequired = String(
+            (schema.required || []).includes(key) && !original.anyOf?.some(item => item.type === "null")
+        );
         if (id.endsWith(".schema_version")) input.disabled = true;
         if (options && options.length > 4) {
             const filter = document.createElement("input");
@@ -280,13 +288,27 @@ function changed(id) {
     for (const box of editor.querySelectorAll('[data-field="config.analyses.requested"] input')) {
         box.disabled = box.value === "DA001" || !full || analyses.selection === "auto" || !state.analyses[box.value].designs.includes(assay.design);
     }
+    const conditionalRequirements = {
+        "config.assay.targets_bed": targeted,
+        "config.assay.primers_tsv": targeted,
+        "config.assay.read_structure": assay.design === "TARGETED_UMI",
+        "config.reference.gff": full && analyses.selection !== "auto",
+        "config.analyses.spatial_outcome_source": full && (analyses.requested || []).includes("DA007"),
+        "config.caller.executable": config.caller.backend === "external",
+        "config.caller.sha256": config.caller.backend === "external"
+    };
+    for (const input of editor.querySelectorAll("[data-schema-required]")) {
+        input.required = !input.disabled && (conditionalRequirements[input.id] ?? (input.dataset.schemaRequired === "true"));
+        input.parentElement.querySelector("[data-required-mark]").hidden = !input.required;
+    }
     byId("summary").textContent = JSON.stringify(values, null, 2);
     saveButton.disabled = true;
     const current = ++generation;
     clearTimeout(timer);
     timer = setTimeout(async () => {
         try {
-            if (!editor.checkValidity()) throw new Error("Correct the highlighted configuration fields.");
+            const invalid = editor.querySelector(":invalid:not(form)");
+            if (invalid) throw new Error(invalid.id + ": " + invalid.validationMessage);
             const result = await request("check", {values});
             if (current !== generation) return;
             status.textContent = "Ready to save. Input folders: " + result.directories.join(", ");
