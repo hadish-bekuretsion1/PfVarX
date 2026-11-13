@@ -83,6 +83,9 @@ def resolve_input_defaults(project: dict[str, Any]) -> dict[str, Any]:
     if groups:
         resolved["reference"] = groups[1][0]
         resolved["assay"] = groups[2][0]
+    analyses = project.get("analyses")
+    if isinstance(analyses, dict) and analyses.get("resistance_catalog") == "inputs/metadata/":
+        resolved["analyses"] = {**analyses, "resistance_catalog": "inputs/metadata/verified_catalog.tsv"}
     return resolved
 
 
