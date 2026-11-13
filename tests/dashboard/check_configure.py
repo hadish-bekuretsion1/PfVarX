@@ -118,6 +118,18 @@ with tempfile.TemporaryDirectory(prefix="pfvarx040-gui-") as directory:
             page.get_by_role("button", name="Run readiness checks").click()
             expect(page.locator("#preflight-status")).to_have_text("Workflow Readiness Checks stopped at validate.")
             expect(page.locator("#preflight-results")).not_to_contain_text("./pfvarx prepare")
+            page.get_by_role("button", name="Input directories", exact=True).click()
+            page.locator('[id="config.input_type"]').select_option("BAM")
+            page.locator("#replace").check()
+            save.click()
+            expect(page.locator("#status")).to_have_text("Input directories are successfully created")
+            assert (ws / "inputs/fastq").is_dir()
+            page.get_by_role("button", name="Input files", exact=True).click()
+            alignment_tab = page.get_by_role("button", name="Alignments and indexes", exact=True)
+            expect(alignment_tab).to_be_visible()
+            assert page.get_by_role("button", name="FASTQ reads", exact=True).count() == 0
+            alignment_tab.click()
+            expect(page.locator("#raw-files")).to_have_attribute("accept", ".bam,.bai,.csi")
             assert not errors, errors
             print("GUI passed validation, exclusive choices, conditional fields, search, save and idempotent rerun")
     finally:

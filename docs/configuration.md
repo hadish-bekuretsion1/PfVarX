@@ -199,3 +199,7 @@ The GUI file picker filters by extension. Upload and download commands reject
 unsupported names. For files copied manually, validation checks registered
 input extensions and runs the existing file checks. A valid extension alone
 does not establish file integrity or reference compatibility.
+
+The Input files categories follow the saved configuration and existing input
+folders. After changing input type, save before returning to Input files.
+Folders from earlier settings can remain on disk while their tabs are hidden.

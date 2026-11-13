@@ -215,7 +215,18 @@ class Handler(BaseHTTPRequestHandler):
                 filename, media = assets[name]
                 self.respond(Path(__file__).with_name("gui").joinpath(filename).read_bytes(), media=media)
             elif name == "input-folders":
-                self.respond({"folders": required_dirs(load_bundle(self.root).config), "extensions": FOLDER_FORMATS})
+                cfg = load_bundle(self.root).config
+                folders = [folder for folder in required_dirs(cfg) if (self.root / folder).is_dir()]
+                extensions = dict(FOLDER_FORMATS)
+                if cfg.input_type.value == "BAM":
+                    extensions["alignments"] = (".bam", ".bai", ".csi")
+                elif cfg.input_type.value == "CRAM":
+                    extensions["alignments"] = (".cram", ".crai", ".csi")
+                self.respond({
+                    "folders": folders,
+                    "extensions": extensions,
+                    "annotation": cfg.reference.gff is not None,
+                })
             elif name == "state":
                 self.respond(editor_state(self.root, query.get("purpose", ["analysis"])[0]))
             elif name == "browse":

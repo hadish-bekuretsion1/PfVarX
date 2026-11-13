@@ -465,7 +465,7 @@ async function loadFileTabs() {
     tabs.replaceChildren();
     transferRole = undefined;
     try {
-        const {folders, extensions} = await request("input-folders");
+        const {folders, extensions, annotation} = await request("input-folders");
         const labels = {
             fastq: [["FASTQ reads", "fastq"]],
             alignments: [["Alignments and indexes", "alignments"]],
@@ -476,6 +476,7 @@ async function loadFileTabs() {
         };
         for (const folder of folders) {
             for (const [label, role] of labels[folder.split("/").at(-1)] || []) {
+                if (label === "GFF annotation" && !annotation) continue;
                 const button = document.createElement("button");
                 button.type = "button";
                 button.textContent = label;
@@ -491,7 +492,8 @@ async function loadFileTabs() {
                 tabs.append(button);
             }
         }
-        tabs.firstElementChild?.click();
+        if (tabs.firstElementChild) tabs.firstElementChild.click();
+        else destination.textContent = "Save the configuration and create input directories first.";
     } catch (error) {
         destination.textContent = error.message;
     }
