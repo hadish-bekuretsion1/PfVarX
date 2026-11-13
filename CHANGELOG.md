@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.0.0 — GUI and CLI parity
+
+- One rule set for placing input files: GUI upload/download and the CLI now share it. New
+  `add-input` copies files from disk like a GUI upload; `fetch-input` gained the GUI's checks
+  (folder must belong to the saved configuration and exist; extensions follow the input type).
+- The GUI gained a **Workflow Check and Run** tab; `workflow-check` and `workflow-run` are the
+  matching commands. Each GUI tab names its command.
+- `init`/`input-directories` refuse the placeholder reference release label, as the GUI does.
+- Sample sheets discovered inside the workspace record workspace-relative paths.
+
 ## 0.0.0 — End-to-end execution audit
 
 Found by running real pipelines on the synthetic fixture for every design and entry route.

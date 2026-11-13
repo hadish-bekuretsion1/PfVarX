@@ -33,6 +33,7 @@ def _ws(tmp: Path, design: str, fo: str) -> Path:
     cfg = yaml.safe_load((ws / "config/config.yaml").read_text())
     cfg["final_output"] = fo
     cfg["assay"]["design"] = design
+    cfg["reference"]["release_label"] = "synthetic"
     if design != "WGS":
         cfg["assay"].update(amplification_route="AMPLICON", targets_bed="inputs/targets/targets.bed",
                             primers_tsv="inputs/targets/primers.tsv")

@@ -9,15 +9,17 @@
 </head>
 <body><main>
 <h1>PfVarX configuration</h1>
-<p>Save the project settings and create input folders. Register inputs, validate and prepare from the terminal.</p>
+<p>Each tab runs the same step as its terminal command, shown on the tab. You can switch between this page and the terminal at any stage.</p>
 <nav aria-label="Workspace views">
 <button type="button" id="configuration-tab" aria-controls="configuration-panel" aria-pressed="true">Input directories</button>
 <button type="button" id="inputs-tab" aria-controls="inputs-panel" aria-pressed="false">Input files</button>
 <button type="button" id="validation-tab" aria-controls="validation-panel" aria-pressed="false">Input Files Validation</button>
 <button type="button" id="preparation-tab" aria-controls="preparation-panel" aria-pressed="false">Reference Preparation</button>
 <button type="button" id="preflight-tab" aria-controls="preflight-panel" aria-pressed="false">Workflow Readiness Checks</button>
+<button type="button" id="workflow-tab" aria-controls="workflow-panel" aria-pressed="false">Workflow Check and Run</button>
 </nav>
 <section id="configuration-panel">
+<p>Terminal equivalent: edit the YAML files in <code>config/</code>, then <code>./pfvarx input-directories</code>.</p>
 <label>Template <select id="purpose"><option>analysis</option><option>benchmarking</option></select></label>
 <section id="raw-data-location" aria-label="Raw data location" hidden>
 <label for="raw-data-directory">Raw data folder</label>
@@ -37,6 +39,7 @@
 </section>
 <section id="inputs-panel" hidden>
 <h2>Input files</h2>
+<p>Terminal equivalent: <code>./pfvarx add-input --file PATH</code> (from disk) and <code>./pfvarx fetch-input --url URL --name NAME</code> (download); add <code>--role reference</code>, <code>targets</code>, <code>metadata</code> or <code>truth</code> for the other folders.</p>
 <nav id="file-tabs" aria-label="Input file categories"></nav>
 <p id="file-destination"></p>
 <p>Save the configuration and create input directories first. Transfers use the saved input type. Register the files before running Workflow Readiness Checks.</p>
@@ -54,20 +57,32 @@
 </section>
 <section id="validation-panel" hidden>
 <h2>Input Files Validation</h2>
+<p>Terminal equivalent: <code>./pfvarx validate-input-files</code>.</p>
 <p>Register your sample files before validating the saved configuration.</p>
 <button type="button" id="run-validation">Validate inputs</button>
 <p id="validation-status" role="status"></p><pre id="validation-results"></pre>
 </section>
 <section id="preparation-panel" hidden>
 <h2>Reference Preparation</h2>
+<p>Terminal equivalent: <code>./pfvarx prepare-reference</code>.</p>
 <p>For FASTQ input, PfVarX creates a missing sample sheet from paired reads during validation or preparation. Review inferred sample and library IDs before analysis. For BAM input, preparation creates a blank template if needed. Preparation rechecks input validity and writes derived reference files under <code>inputs/reference/prepared/</code>. It builds the FASTA indexes and sequence dictionary, and adds BWA-MEM2 indexes for FASTQ entry.</p>
 <button type="button" id="run-preparation">Prepare and verify inputs</button>
 <p id="preparation-status" role="status"></p><pre id="preparation-results"></pre>
 </section>
 <section id="preflight-panel" hidden>
 <h2>Workflow Readiness Checks</h2>
+<p>Terminal equivalent: <code>./pfvarx workflow-readiness-checks</code>.</p>
 <button type="button" id="run-preflight">Run readiness checks</button>
 <p id="preflight-status" role="status"></p>
 <pre id="preflight-results"></pre>
+</section>
+<section id="workflow-panel" hidden>
+<h2>Workflow Check and Run</h2>
+<p>Terminal equivalent: <code>./pfvarx workflow-check</code> and <code>./pfvarx workflow-run</code>.</p>
+<p>The check plans the workflow without creating outputs. The run repeats the check and, only if it passes, starts a new analysis. A run continues in the background if you close this page; reopen this tab to see its status.</p>
+<button type="button" id="run-workflow-check">Check workflow</button>
+<p id="workflow-check-status" role="status"></p><pre id="workflow-check-results"></pre>
+<button type="button" id="start-workflow">Run workflow</button>
+<p id="workflow-status" role="status" aria-live="polite"></p><pre id="workflow-results"></pre>
 </section>
 </main></body></html>

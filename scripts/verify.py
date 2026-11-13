@@ -56,6 +56,7 @@ def verify(scenario: str, destination: Path, dry_run_only: bool = False) -> dict
         scenario, "FO004" if design == "WGS" else "FO002")
     cfg.update(project_id=f"VERIFY_{scenario.upper()}", final_output=final_output)
     cfg["assay"]["design"] = design
+    cfg["reference"]["release_label"] = "synthetic"
     if design != "WGS":
         cfg["assay"].update(amplification_route="AMPLICON", targets_bed="inputs/targets/targets.bed",
                              primers_tsv="inputs/targets/primers.tsv")

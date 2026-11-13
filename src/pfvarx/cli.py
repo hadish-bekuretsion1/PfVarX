@@ -1,8 +1,8 @@
 """PfVarX command-line interface (Layer 0). Every command prints JSON.
 
 Read-only commands: check-layout, validate (writes only metadata/validation_report.json),
-ready, dry-run, run-verify, status. Mutating commands: config-init, init, prepare,
-pipeline, report, fixture, benchmark-*.
+ready, dry-run, workflow-check, run-verify, status. Mutating commands: config-init, init,
+add-input, fetch-input, prepare, pipeline, workflow-run, report, fixture, benchmark-*.
 """
 
 from __future__ import annotations
@@ -88,10 +88,15 @@ def config_init(purpose: str = typer.Option(..., "--purpose", help="analysis | b
 @app.command()
 def init() -> None:
     """Create purpose- and assay-specific input folders only."""
-    from pfvarx.initialization.layout import init_inputs
+    from pfvarx.initialization.layout import check_release_label, init_inputs
 
     root = _root()
-    emit(guard(lambda: init_inputs(root, load_bundle(root).config)))
+
+    def create() -> Any:
+        cfg = load_bundle(root).config
+        check_release_label(cfg)  # the GUI applies the same gate before it creates folders
+        return init_inputs(root, cfg)
+    emit(guard(create))
 
 
 @app.command("check-layout")
@@ -286,10 +291,39 @@ def register_inputs(manifest: Path = typer.Option(..., "--manifest"),
 
 @app.command("fetch-input")
 def fetch_input(url: str = typer.Option(..., "--url"), sha256: str | None = typer.Option(None, "--sha256"),
-                role: str = typer.Option(..., "--role"), name: str = typer.Option(..., "--name")) -> None:
-    """Download an explicitly requested HTTPS resource; optionally verify SHA-256 and refuse overwrite."""
-    from pfvarx.inputs.organize import fetch
-    emit(guard(lambda: fetch(_root(), url, sha256, role, name)))
+                role: str = typer.Option("raw", "--role", help="raw (reads or alignments) | reference | targets | metadata | truth"),
+                name: str = typer.Option(..., "--name")) -> None:
+    """Download an HTTPS resource into its input folder (same checks as the GUI download)."""
+    from pfvarx.execution.retention import workspace_lock
+    from pfvarx.inputs.transfer import download
+
+    root = _root()
+
+    def run() -> Any:
+        with workspace_lock(root):
+            return download(root, url, sha256, role, name)
+    emit(guard(run))
+
+
+@app.command("add-input")
+def add_input(files: list[Path] = typer.Option(..., "--file", help="file on this computer; repeat for several"),
+              role: str = typer.Option("raw", "--role", help="raw (reads or alignments) | reference | targets | metadata | truth"),
+              name: str | None = typer.Option(None, "--name", help="destination filename (single --file only)")) -> None:
+    """Copy files from disk into their input folder (same checks as the GUI upload)."""
+    from pfvarx.execution.retention import workspace_lock
+    from pfvarx.inputs.transfer import import_file
+
+    root = _root()
+    if name is not None and len(files) != 1:
+        raise typer.BadParameter("--name needs exactly one --file")
+
+    def run() -> Any:
+        saved = []
+        with workspace_lock(root):
+            for source in files:
+                saved.append(import_file(root, source, role, name))
+        return {"saved": saved}
+    emit(guard(run))
 
 
 @app.command("verify-prepared")
@@ -364,6 +398,26 @@ def workflow_readiness_checks() -> None:
     from pfvarx.configuration.web import PREFLIGHT_STAGES
 
     _run_checks(PREFLIGHT_STAGES)
+
+
+@app.command("workflow-check")
+def workflow_check() -> None:
+    """Check the workflow plan without creating outputs (the GUI 'Check workflow' button)."""
+    dry_run()
+
+
+@app.command("workflow-run")
+def workflow_run() -> None:
+    """Check the workflow, then run it as a new analysis (the GUI 'Run workflow' button)."""
+    from pfvarx.execution.runner import dry_run as dr
+    from pfvarx.execution.runner import execute
+
+    root = _root()
+    check = guard(lambda: dr(root))
+    if check["status"] != "OK":
+        emit({"status": "NOT_STARTED", "reason": "workflow check failed; nothing was run", "workflow_check": check}, 1)
+    result = guard(lambda: execute(root, "NEW", None))
+    emit({**result, "workflow_check": {"status": "OK"}}, 0 if result["status"] == "COMPLETED" else 3)
 
 
 if __name__ == "__main__":

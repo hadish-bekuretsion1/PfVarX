@@ -166,22 +166,39 @@ the corresponding commands for the GUI stages.
 | GUI stage | CLI equivalent |
 | --- | --- |
 | Input directories | `./pfvarx input-directories` |
-| Input files | `./pfvarx input-files` lists destinations. Copy files there, use `fetch-input`, or register originals by path. |
+| Input files: upload from your computer | `./pfvarx add-input --file /path/to/file` (repeat `--file` for several) |
+| Input files: download from an HTTPS link | `./pfvarx fetch-input --url URL --name FILENAME` |
 | Input Files Validation | `./pfvarx validate-input-files` |
 | Reference Preparation | `./pfvarx prepare-reference` |
 | Workflow Readiness Checks | `./pfvarx workflow-readiness-checks` |
+| Workflow Check and Run: Check workflow | `./pfvarx workflow-check` |
+| Workflow Check and Run: Run workflow | `./pfvarx workflow-run` |
 
-For example, download a file from a direct HTTPS link:
+Each GUI stage and its command run the same code and apply the same rules, so
+you can switch between them at any stage. Both refuse to create input folders
+while `reference.release_label` is still the template placeholder.
+
+`add-input` and `fetch-input` place reads or alignments by default. Add
+`--role reference`, `--role targets`, `--role metadata` or `--role truth` for the
+other folders, as the GUI file categories do. `./pfvarx input-files` lists the
+folders. Both routes need the folder to exist, accept only the extensions below,
+and never overwrite a file. `add-input` copies the file and leaves the original
+unchanged; to use large files in place without copying, register them by path
+with `register-inputs`.
 
 ```bash
-./pfvarx fetch-input --role fastq --name sample_R1.fastq.gz --url 'https://example.org/sample_R1.fastq.gz'
+./pfvarx add-input --file /data/run1/sample_R1.fastq.gz --file /data/run1/sample_R2.fastq.gz
+./pfvarx add-input --role reference --file /data/ref/Pf3D7.fasta --file /data/ref/core_genome.bed
+./pfvarx fetch-input --name sample_R1.fastq.gz --url 'https://example.org/sample_R1.fastq.gz'
 ```
 
-Replace the example URL and filename with your actual input. Add `--sha256`
-when you have a trusted checksum. Register the sample inputs before validating.
-Use either the separate validation and preparation commands or the combined
-readiness command. Both stop on failure. Run `./pfvarx dry-run` to check the
-workflow DAG before launching an analysis.
+Replace the example paths, URL and filename with your actual inputs. Add
+`--sha256` to `fetch-input` when you have a trusted checksum. For FASTQ input,
+validation writes the sample sheet from the paired files in `inputs/fastq/`
+if none exists; review it before analysis. `workflow-run` repeats the workflow
+check and starts a new analysis only if it passes, exactly as the GUI **Run
+workflow** button does. `./pfvarx dry-run` and `./pfvarx pipeline --mode NEW`
+remain available as the separate steps.
 
 ### Supported input filenames
 

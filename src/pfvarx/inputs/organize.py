@@ -42,7 +42,9 @@ def discover(root: Path, directory: Path, target: Path | None = None) -> dict[st
         field = "fastq_" + match["mate"]
         if field in row:
             raise ValueError("Ambiguous duplicate mate: " + sample + " " + lane)
-        row[field] = str(path.resolve())
+        # Files inside the workspace are recorded relative to it, so the workspace can be moved.
+        base = root.resolve()
+        row[field] = str(path.relative_to(base)) if path.is_relative_to(base) else str(path.resolve())
     if not pairs:
         raise ValueError("No supported paired FASTQ names (expected _R1/_R2 or _1/_2); provide an explicit registration TSV")
     if any(not {"fastq_1", "fastq_2"} <= set(row) for row in pairs.values()):

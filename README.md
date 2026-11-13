@@ -102,6 +102,10 @@ reports `OK`, start the analysis:
 ./pfvarx pipeline --mode NEW
 ```
 
+`./pfvarx workflow-run` performs the dry run and the start in one step. In the GUI,
+the **Workflow Check and Run** tab does the same. Every GUI tab has an equivalent
+command; see the [terminal workflow](docs/configuration.md#terminal-workflow).
+
 ## 5. Review results
 
 Record the run ID and open `results/report/pfvarx_dashboard.html`. Check sample

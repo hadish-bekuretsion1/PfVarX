@@ -140,3 +140,73 @@ def test_validation_continues_after_missing_sample_read(workspace: Path) -> None
     assert report["status"] == "PARTIAL"
     assert report["samples"] == {"good": "PASS", "missing": "FAIL"}
     assert [row["sample_id"] for row in report["registry"]] == ["good"]
+
+
+def _saved_workspace(workspace: Path, input_type: str = "FASTQ") -> None:
+    state = editor_state(workspace, "analysis")
+    values = state["values"]
+    values["config"]["reference"]["release_label"] = "fixture"
+    values["config"]["input_type"] = input_type
+    if input_type != "FASTQ":
+        values["config"]["final_output"] = "FO002"
+    save(workspace, values, state["revision"], False)
+
+
+def test_gui_and_cli_share_transfer_rules(workspace: Path, tmp_path_factory: pytest.TempPathFactory) -> None:
+    """Upload/download in the GUI and add-input/fetch-input on the CLI use one rule set."""
+    from pfvarx.configuration import web
+    from pfvarx.inputs import transfer
+
+    assert web.raw_destination is transfer.destination_for
+    _saved_workspace(workspace)
+    outside = tmp_path_factory.mktemp("disk")
+    source = outside / "S1_R1.fastq.gz"
+    source.write_bytes(b"reads")
+    saved = transfer.import_file(workspace, source)  # default role: the reads folder
+    assert saved["path"] == "inputs/fastq/S1_R1.fastq.gz" and saved["bytes"] == 5
+    assert (workspace / saved["path"]).read_bytes() == b"reads" and source.exists()
+    with pytest.raises(ValueError, match="refusing overwrite"):
+        transfer.import_file(workspace, source)
+    wrong = outside / "notes.txt"
+    wrong.write_text("x")
+    with pytest.raises(ValueError, match="accepts"):
+        transfer.import_file(workspace, wrong)
+    with pytest.raises(ValueError, match="unavailable for the saved configuration"):
+        transfer.import_file(workspace, source, role="alignments")  # FASTQ study has no such folder
+    with pytest.raises(ValueError, match="unavailable for the saved configuration"):
+        transfer.download(workspace, "https://example.org/x.bam", None, "alignments", "x.bam")
+    reference = outside / "Pf3D7.fasta"
+    reference.write_text(">c\nACGT\n")
+    assert transfer.import_file(workspace, reference, role="reference")["path"] == "inputs/reference/Pf3D7.fasta"
+
+
+def test_alignment_extensions_follow_the_saved_input_type(workspace: Path, tmp_path_factory: pytest.TempPathFactory) -> None:
+    from pfvarx.inputs import transfer
+
+    _saved_workspace(workspace, "BAM")
+    assert transfer.folder_extensions(workspace)["alignments"] == (".bam", ".bai", ".csi")
+    cram = tmp_path_factory.mktemp("disk") / "S1.cram"
+    cram.write_bytes(b"x")
+    with pytest.raises(ValueError, match="accepts"):
+        transfer.import_file(workspace, cram)
+
+
+def test_cli_stage_commands_match_the_gui_stages(workspace: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    """Every GUI tab has a CLI command, and both refuse the placeholder release label."""
+    from typer.testing import CliRunner
+
+    from pfvarx.cli import app
+    from pfvarx.configuration import web
+
+    commands = {c.name or c.callback.__name__.replace("_", "-") for c in app.registered_commands}
+    assert {"input-directories", "input-files", "add-input", "fetch-input", "validate-input-files",
+            "prepare-reference", "workflow-readiness-checks", "workflow-check", "workflow-run"} <= commands
+    monkeypatch.chdir(workspace)
+    runner = CliRunner()
+    assert runner.invoke(app, ["config-init", "--purpose", "analysis"]).exit_code == 0
+    refused = runner.invoke(app, ["input-directories"])
+    assert refused.exit_code == 2 and "release label" in refused.stdout
+    assert not (workspace / "inputs").exists()
+    state = editor_state(workspace, "analysis")
+    with pytest.raises(ValueError, match="release label"):
+        web.check(workspace, state["values"])

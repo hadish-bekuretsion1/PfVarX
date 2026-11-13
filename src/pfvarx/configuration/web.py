@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import json
 import os
-import re
 import secrets
 import subprocess
 import sys
@@ -29,9 +28,8 @@ from pfvarx.configuration.loader import (
 )
 from pfvarx.configuration.models import Bundle
 from pfvarx.execution.retention import workspace_lock
-from pfvarx.initialization.layout import create_input_dirs, required_dirs
-from pfvarx.inputs.formats import FOLDER_FORMATS, check_extension
-from pfvarx.inputs.organize import fetch
+from pfvarx.initialization.layout import check_release_label, create_input_dirs, required_dirs
+from pfvarx.inputs.transfer import destination_for, download, folder_extensions
 from pfvarx.io import atomic_write_text, read_json, within
 
 
@@ -81,8 +79,7 @@ def editor_state(root: Path, purpose: str) -> dict[str, Any]:
 
 def check(root: Path, values: dict[str, Any]) -> list[str]:
     bundle = validate_bundle(root, values)
-    if bundle.config.reference.release_label.strip() in {"", "SET_REFERENCE_RELEASE"}:
-        raise ValueError("Enter the exact reference release label")
+    check_release_label(bundle.config)
     return required_dirs(bundle.config)
 
 
@@ -155,29 +152,48 @@ def run_preflight(root: Path, stages_to_run: tuple[str, ...] = PREFLIGHT_STAGES)
     return {"stages": stages, "passed": len(stages) == len(stages_to_run) and not stages[-1]["exit_code"]}
 
 
-def raw_destination(root: Path, name: str, role: str = "raw") -> Path:
-    if not re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9._-]*", name):
-        raise ValueError("Use a plain filename with letters, digits, dots, underscores or hyphens")
-    cfg = load_bundle(root).config
-    input_type = cfg.input_type.value
-    if role == "raw":
-        role = "fastq" if input_type == "FASTQ" else "alignments"
-    if f"inputs/{role}" not in required_dirs(cfg) or role == "partitions":
-        raise ValueError("Input folder is unavailable for the saved configuration")
-    suffixes = {
-        "FASTQ": (".fastq", ".fq", ".fastq.gz", ".fq.gz"),
-        "BAM": (".bam", ".bai", ".csi"),
-        "CRAM": (".cram", ".crai", ".csi"),
+raw_destination = destination_for  # one rule set for GUI uploads/downloads and the CLI
+
+
+WORKFLOW_RESULT = "metadata/workflow_run.json"
+WORKFLOW_LOG = "metadata/workflow_run.log"
+_workflow: dict[str, Any] = {"process": None}
+
+
+def start_workflow(root: Path) -> dict[str, Any]:
+    """Start './pfvarx workflow-run' in the background; the page polls workflow_status."""
+    running = _workflow["process"]
+    if running is not None and running.poll() is None:
+        raise ValueError("A workflow run started from this page is still in progress")
+    result = within(root, WORKFLOW_RESULT)
+    result.parent.mkdir(parents=True, exist_ok=True)
+    result.unlink(missing_ok=True)
+    env = os.environ.copy()
+    env["PFVARX_JSON_OUT"] = str(result)
+    with within(root, WORKFLOW_LOG).open("w") as log:
+        _workflow["process"] = subprocess.Popen(
+            [sys.executable, "-m", "pfvarx.cli", "workflow-run"], cwd=root, env=env,
+            stdout=subprocess.DEVNULL, stderr=log, start_new_session=True,
+        )
+    return {"started": True, "command": "./pfvarx workflow-run"}
+
+
+def workflow_status(root: Path) -> dict[str, Any]:
+    from pfvarx.runs.registry import latest
+
+    process = _workflow["process"]
+    running = process is not None and process.poll() is None
+    result = root / WORKFLOW_RESULT
+    run = latest(root) if (root / "runs").is_dir() else None
+    status = read_json(run / "status.json") if run and (run / "status.json").is_file() else None
+    return {
+        "running": running,
+        "exit_code": None if process is None or running else process.returncode,
+        "result": read_json(result) if result.is_file() and not running else None,
+        "latest_run": run.name if run else None,
+        "latest_status": status.get("status") if status else None,
+        "log": WORKFLOW_LOG,
     }
-    allowed = suffixes[input_type] if role == "alignments" else FOLDER_FORMATS[role]
-    check_extension(name, allowed, role)
-    folder = within(root, f"inputs/{role}")
-    if not folder.is_dir():
-        raise ValueError("Save the configuration and create input directories first")
-    destination = folder / name
-    if destination.exists() or destination.is_symlink():
-        raise ValueError("Destination exists; refusing overwrite")
-    return destination
 
 
 class Handler(BaseHTTPRequestHandler):
@@ -217,16 +233,13 @@ class Handler(BaseHTTPRequestHandler):
             elif name == "input-folders":
                 cfg = load_bundle(self.root).config
                 folders = [folder for folder in required_dirs(cfg) if (self.root / folder).is_dir()]
-                extensions = dict(FOLDER_FORMATS)
-                if cfg.input_type.value == "BAM":
-                    extensions["alignments"] = (".bam", ".bai", ".csi")
-                elif cfg.input_type.value == "CRAM":
-                    extensions["alignments"] = (".cram", ".crai", ".csi")
                 self.respond({
                     "folders": folders,
-                    "extensions": extensions,
+                    "extensions": folder_extensions(self.root),
                     "annotation": cfg.reference.gff is not None,
                 })
+            elif name == "workflow-status":
+                self.respond(workflow_status(self.root))
             elif name == "state":
                 self.respond(editor_state(self.root, query.get("purpose", ["analysis"])[0]))
             elif name == "browse":
@@ -266,15 +279,18 @@ class Handler(BaseHTTPRequestHandler):
             payload = json.loads(self.rfile.read(size))
             if name == "download-raw":
                 with workspace_lock(self.root):
-                    destination = raw_destination(self.root, payload["filename"], payload.get("role", "raw"))
-                    role = destination.parent.name
-                    result = fetch(self.root, payload["url"], (payload.get("sha256") or "").strip() or None, role, destination.name)
+                    result = download(self.root, payload["url"], (payload.get("sha256") or "").strip() or None,
+                                      payload.get("role", "raw"), payload["filename"])
                 self.respond(result)
+                return
+            if name == "workflow-run":
+                self.respond(start_workflow(self.root))
                 return
             checks = {
                 "preflight": PREFLIGHT_STAGES,
                 "validate-inputs": ("validate",),
                 "prepare-inputs": ("prepare", "verify-prepared", "ready"),
+                "workflow-check": ("dry-run",),
             }
             if name in checks:
                 self.respond(run_preflight(self.root, checks[name]))

@@ -66,6 +66,12 @@ def create_input_dirs(root: Path, directories: list[str]) -> list[str]:
     return created
 
 
+def check_release_label(cfg: ProjectConfig) -> None:
+    """The template placeholder must be replaced before input folders are created (GUI and CLI)."""
+    if cfg.reference.release_label.strip() in {"", "SET_REFERENCE_RELEASE"}:
+        raise ValueError("Enter the exact reference release label (reference.release_label in config/config.yaml)")
+
+
 def init_inputs(root: Path, cfg: ProjectConfig) -> dict[str, Any]:
     directories = required_dirs(cfg)
     created = create_input_dirs(root, directories)

@@ -403,7 +403,7 @@ saveButton.addEventListener("click", async () => {
         byId("result").textContent = "Input directories are successfully created\n\nInput folders:\n" + result.directories.map(path => path + "/").join("\n") +
             "\n\nSaved: " + (result.saved.join(", ") || "already current") +
             (result.backups.length ? "\nBackups: " + result.backups.join(", ") : "") +
-            "\n\nPlace and register inputs, then run ./pfvarx validate.";
+            "\n\nNext: add files on the Input files tab (or ./pfvarx add-input / fetch-input), then validate.";
     } catch (error) {
         status.textContent = error.message;
         const field = error.message.match(/config\/(config|quality|compute)\.yaml: ([\w.]+):/);
@@ -423,20 +423,22 @@ editor.addEventListener("submit", event => event.preventDefault());
 byId("purpose").addEventListener("change", load);
 load();
 
-for (const view of ["configuration", "inputs", "validation", "preparation", "preflight"]) {
+for (const view of ["configuration", "inputs", "validation", "preparation", "preflight", "workflow"]) {
     byId(view + "-tab").addEventListener("click", () => {
-        for (const panel of ["configuration", "inputs", "validation", "preparation", "preflight"]) {
+        for (const panel of ["configuration", "inputs", "validation", "preparation", "preflight", "workflow"]) {
             byId(panel + "-panel").hidden = panel !== view;
             byId(panel + "-tab").setAttribute("aria-pressed", String(panel === view));
         }
         if (view === "inputs") loadFileTabs();
+        if (view === "workflow") pollWorkflow();
     });
 }
 
 for (const [panel, endpoint, title] of [
     ["validation", "validate-inputs", "Input Files Validation"],
     ["preparation", "prepare-inputs", "Reference Preparation"],
-    ["preflight", "preflight", "Workflow Readiness Checks"]
+    ["preflight", "preflight", "Workflow Readiness Checks"],
+    ["workflow-check", "workflow-check", "Workflow check"]
 ]) {
     byId("run-" + panel).addEventListener("click", async () => {
         const button = byId("run-" + panel);
@@ -444,7 +446,7 @@ for (const [panel, endpoint, title] of [
         const output = byId(panel + "-results");
         button.disabled = true;
         output.textContent = "";
-        message.textContent = "Running preflight checks…";
+        message.textContent = "Running " + title + "…";
         try {
             const result = await request(endpoint, {});
             output.textContent = result.stages.map(stage =>
@@ -544,4 +546,44 @@ byId("download-raw").addEventListener("submit", event => {
         const result = await request("download-raw", {...values, role: transferRole});
         report(result.path + (result.status === "VERIFIED" ? " (checksum verified)" : " (no trusted checksum supplied)") + "\nSHA-256: " + result.sha256);
     });
+});
+
+let workflowTimer;
+async function pollWorkflow() {
+    clearTimeout(workflowTimer);
+    const message = byId("workflow-status");
+    const output = byId("workflow-results");
+    const button = byId("start-workflow");
+    try {
+        const state = await request("workflow-status");
+        button.disabled = state.running;
+        if (state.running) {
+            message.textContent = "Workflow is running" + (state.latest_run ? " (run " + state.latest_run + ", " + state.latest_status + ")" : "") + "…";
+            workflowTimer = setTimeout(pollWorkflow, 5000);
+        } else if (state.result) {
+            message.textContent = "Workflow finished: " + state.result.status + (state.result.run_id ? " (run " + state.result.run_id + ")" : "");
+            output.textContent = "./pfvarx workflow-run (exit " + state.exit_code + ")\n" + JSON.stringify(state.result, null, 2);
+        } else if (state.exit_code !== null) {
+            message.textContent = "Workflow stopped without a result (exit " + state.exit_code + "). See " + state.log + ".";
+        } else if (state.latest_run) {
+            message.textContent = "Latest run: " + state.latest_run + " (" + state.latest_status + ").";
+        }
+    } catch (error) {
+        message.textContent = error.message;
+        button.disabled = false;
+    }
+}
+
+byId("start-workflow").addEventListener("click", async () => {
+    byId("start-workflow").disabled = true;
+    byId("workflow-results").textContent = "";
+    byId("workflow-status").textContent = "Starting workflow…";
+    try {
+        await request("workflow-run", {});
+    } catch (error) {
+        byId("workflow-status").textContent = error.message;
+        byId("start-workflow").disabled = false;
+        return;
+    }
+    pollWorkflow();
 });
