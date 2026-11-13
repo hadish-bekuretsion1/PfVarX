@@ -110,7 +110,7 @@ class AnalysesConfig(Strict):
 
 
 class RetentionConfig(Strict):
-    intermediates: str = Field(default="successful", pattern=r"^(successful|keep)$")
+    intermediates: Literal["successful", "keep"] = "successful"
 
 
 class CallerConfig(Strict):
