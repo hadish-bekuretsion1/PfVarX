@@ -232,6 +232,12 @@ function changed(id) {
         render();
         return;
     }
+    const location = byId("raw-data-directory");
+    const fastq = config.input_type === "FASTQ";
+    location.value = fastq ? "inputs/fastq/" : "inputs/alignments/";
+    byId("raw-data-help").textContent = fastq
+        ? "After saving, place paired FASTQ files here or register reads from their existing location."
+        : "After saving, place your alignment and its index here or register them from their existing location.";
     const outputs = byId("config.final_output");
     for (const option of outputs.options) {
         option.disabled = option.value === "FO001" && config.input_type !== "FASTQ";
