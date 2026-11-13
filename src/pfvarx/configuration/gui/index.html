@@ -13,9 +13,9 @@
 <nav aria-label="Workspace views">
 <button type="button" id="configuration-tab" aria-controls="configuration-panel" aria-pressed="true">Input directories</button>
 <button type="button" id="inputs-tab" aria-controls="inputs-panel" aria-pressed="false">Input files</button>
-<button type="button" id="validation-tab" aria-controls="validation-panel" aria-pressed="false">Validation</button>
-<button type="button" id="preparation-tab" aria-controls="preparation-panel" aria-pressed="false">Preparation</button>
-<button type="button" id="preflight-tab" aria-controls="preflight-panel" aria-pressed="false">Preflight</button>
+<button type="button" id="validation-tab" aria-controls="validation-panel" aria-pressed="false">Input Files Validation</button>
+<button type="button" id="preparation-tab" aria-controls="preparation-panel" aria-pressed="false">Reference Preparation</button>
+<button type="button" id="preflight-tab" aria-controls="preflight-panel" aria-pressed="false">Workflow Readiness Checks</button>
 </nav>
 <section id="configuration-panel">
 <label>Template <select id="purpose"><option>analysis</option><option>benchmarking</option></select></label>
@@ -39,7 +39,7 @@
 <h2>Input files</h2>
 <nav id="file-tabs" aria-label="Input file categories"></nav>
 <p id="file-destination"></p>
-<p>Save the configuration and create input directories first. Transfers use the saved input type. Register the files before running Preflight.</p>
+<p>Save the configuration and create input directories first. Transfers use the saved input type. Register the files before running Workflow Readiness Checks.</p>
 <h3>Upload from your computer</h3>
 <label>Input files <input id="raw-files" type="file" multiple></label>
 <button type="button" id="upload-raw">Upload selected files</button>
@@ -53,22 +53,22 @@
 <pre id="transfer-status" role="status"></pre>
 </section>
 <section id="validation-panel" hidden>
-<h2>Validation</h2>
+<h2>Input Files Validation</h2>
 <p>Register your sample files before validating the saved configuration.</p>
 <button type="button" id="run-validation">Validate inputs</button>
 <p id="validation-status" role="status"></p><pre id="validation-results"></pre>
 </section>
 <section id="preparation-panel" hidden>
-<h2>Preparation</h2>
+<h2>Reference Preparation</h2>
 <p>Preparation rechecks input validity and writes derived reference files under <code>prepared/reference/</code>. It builds the FASTA indexes and sequence dictionary, and adds BWA-MEM2 indexes for FASTQ entry.</p>
 <button type="button" id="run-preparation">Prepare and verify inputs</button>
 <p id="preparation-status" role="status"></p><pre id="preparation-results"></pre>
 </section>
 <section id="preflight-panel" hidden>
-<h2>Preflight</h2>
+<h2>Workflow Readiness Checks</h2>
 <p>Save the configuration and register inputs first. These checks use saved YAML and can create prepared reference files.</p>
 <ol><li>Validate inputs</li><li>Prepare references</li><li>Verify prepared files</li><li>Check readiness</li></ol>
-<button type="button" id="run-preflight">Run preflight checks</button>
+<button type="button" id="run-preflight">Run readiness checks</button>
 <p id="preflight-status" role="status"></p>
 <pre id="preflight-results"></pre>
 </section>

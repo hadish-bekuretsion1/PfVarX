@@ -431,9 +431,9 @@ for (const view of ["configuration", "inputs", "validation", "preparation", "pre
 }
 
 for (const [panel, endpoint, title] of [
-    ["validation", "validate-inputs", "Validation"],
-    ["preparation", "prepare-inputs", "Preparation"],
-    ["preflight", "preflight", "Preflight"]
+    ["validation", "validate-inputs", "Input Files Validation"],
+    ["preparation", "prepare-inputs", "Reference Preparation"],
+    ["preflight", "preflight", "Workflow Readiness Checks"]
 ]) {
     byId("run-" + panel).addEventListener("click", async () => {
         const button = byId("run-" + panel);

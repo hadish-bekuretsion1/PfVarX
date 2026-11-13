@@ -114,9 +114,9 @@ with tempfile.TemporaryDirectory(prefix="pfvarx040-gui-") as directory:
             page.locator("#upload-raw").click()
             expect(page.locator("#transfer-status")).to_contain_text("inputs/fastq/sample_R1.fastq")
             assert (ws / "inputs/fastq/sample_R1.fastq").read_bytes() == b"fixture"
-            page.get_by_role("button", name="Preflight", exact=True).click()
-            page.get_by_role("button", name="Run preflight checks").click()
-            expect(page.locator("#preflight-status")).to_have_text("Preflight stopped at validate.")
+            page.get_by_role("button", name="Workflow Readiness Checks", exact=True).click()
+            page.get_by_role("button", name="Run readiness checks").click()
+            expect(page.locator("#preflight-status")).to_have_text("Workflow Readiness Checks stopped at validate.")
             expect(page.locator("#preflight-results")).not_to_contain_text("./pfvarx prepare")
             assert not errors, errors
             print("GUI passed validation, exclusive choices, conditional fields, search, save and idempotent rerun")
