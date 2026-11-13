@@ -67,6 +67,11 @@ with tempfile.TemporaryDirectory(prefix="pfvarx040-gui-") as directory:
             expect(page.locator('[id="config.assay.amplification_route"]')).to_have_value("AMPLICON")
             expect(save).to_be_disabled()
             page.locator('[id="config.assay.read_structure"]').fill("8M+T 8M+T")
+            for field, filename in (("targets_bed", "study.bed"), ("primers_tsv", "study.tsv")):
+                entry = page.locator(f'[id="config.assay.{field}"]')
+                expect(entry).to_have_value("")
+                expect(entry).to_have_attribute("placeholder", "inputs/targets/")
+                entry.fill("inputs/targets/" + filename)
             page.get_by_role("searchbox", name="Filter sequencing type choices").fill("TBS")
             page.locator('[id="config.assay.sequencing_type"]').select_option("TBS_UMI")
             page.locator('[id="config.final_output"]').select_option("FO004")

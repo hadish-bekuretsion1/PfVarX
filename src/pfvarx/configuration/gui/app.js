@@ -69,6 +69,8 @@ function selectPath(path, input) {
 }
 
 const filePlaceholders = {
+    "config.assay.targets_bed": "inputs/targets/",
+    "config.assay.primers_tsv": "inputs/targets/",
     "config.samples_tsv": "inputs/metadata/",
     "config.reference.fasta": "inputs/reference/",
     "config.reference.core_mask_bed": "inputs/reference/",
@@ -256,8 +258,8 @@ function changed(id) {
     if (id === "config.assay.design") {
         assay.sequencing_type = null;
         assay.amplification_route = targeted ? "AMPLICON" : "DIRECT";
-        assay.targets_bed = targeted ? assay.targets_bed || "inputs/targets/targets.bed" : null;
-        assay.primers_tsv = targeted ? assay.primers_tsv || "inputs/targets/primers.tsv" : null;
+        assay.targets_bed = targeted ? assay.targets_bed || null : null;
+        assay.primers_tsv = targeted ? assay.primers_tsv || null : null;
         if (assay.design !== "TARGETED_UMI") assay.read_structure = null;
         analyses.requested = (analyses.requested || []).filter(da => state.analyses[da].designs.includes(assay.design));
         analyses.scales = Object.fromEntries(Object.entries(analyses.scales || {}).filter(([da]) => analyses.requested.includes(da)));
@@ -349,6 +351,8 @@ async function load() {
         values = state.values;
         if (!state.input_folders_created) {
             const defaults = [
+                [values.config.assay, "targets_bed", "inputs/targets/targets.bed"],
+                [values.config.assay, "primers_tsv", "inputs/targets/primers.tsv"],
                 [values.config, "samples_tsv", "inputs/metadata/samples.tsv"],
                 [values.config.reference, "fasta", "inputs/reference/Pf3D7.fasta"],
                 [values.config.reference, "core_mask_bed", "inputs/reference/core_genome.bed"]
