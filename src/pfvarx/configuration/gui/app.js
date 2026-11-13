@@ -254,11 +254,9 @@ function changed(id) {
             analyses.requested = [];
             analyses.scales = {};
         }
-        if (full && analyses.selection === "explicit" && !config.reference.gff) {
-            config.reference.gff = filePlaceholders["config.reference.gff"];
-        }
-        if (analyses.selection === "auto" && config.reference.gff === filePlaceholders["config.reference.gff"]) {
-            config.reference.gff = null;
+        if (full && id === "config.final_output") {
+            config.reference.gff ??= filePlaceholders["config.reference.gff"];
+            analyses.resistance_catalog ??= filePlaceholders["config.analyses.resistance_catalog"];
         }
         if (config.caller.backend === "native") {
             config.caller.executable = null;
@@ -355,6 +353,10 @@ async function load() {
     try {
         state = await request("state?purpose=" + encodeURIComponent(byId("purpose").value));
         values = state.values;
+        if (values.config.final_output === "FO004") {
+            values.config.reference.gff ??= filePlaceholders["config.reference.gff"];
+            values.config.analyses.resistance_catalog ??= filePlaceholders["config.analyses.resistance_catalog"];
+        }
         if (!state.input_folders_created) {
             const defaults = [
                 [values.config.assay, "targets_bed", "inputs/targets/targets.bed"],
@@ -378,7 +380,7 @@ saveButton.addEventListener("click", async () => {
     clearTimeout(timer);
     for (const id of Object.keys(filePlaceholders)) {
         const input = byId(id);
-        if (input?.value.trim().endsWith("/") && (input.value !== filePlaceholders[id] || id === "config.analyses.resistance_catalog")) input.setCustomValidity("Add the filename after the folder path.");
+        if (input?.value.trim().endsWith("/") && input.value !== filePlaceholders[id]) input.setCustomValidity("Add the filename after the folder path.");
     }
     const release = byId("config.reference.release_label");
     if (release && ["", "SET_REFERENCE_RELEASE"].includes(release.value.trim())) {
