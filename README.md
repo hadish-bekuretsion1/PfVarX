@@ -58,7 +58,7 @@ Choose one configuration route:
   Configuration and Input Directories**.
 
 Either route creates the input folders after configuration. See the
-[HTML configuration guide](docs/configuration%20guide.html) for field examples.
+[configuration guide.html](https://github.com/hadish-bekuretsion1/PfVarX/blob/main/docs/configuration%20guide.html "configuration guide.html") for field examples.
 
 ## 3. Register inputs
 
