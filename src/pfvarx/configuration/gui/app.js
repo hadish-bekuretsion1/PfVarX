@@ -185,6 +185,27 @@ function toggle(id, visible) {
     for (const input of row.querySelectorAll("input,select,textarea,button")) input.disabled = !visible;
 }
 
+function showInputFolders(directories) {
+    const contents = {
+        "inputs/fastq": "Paired reads (.fastq or .fastq.gz), such as sample_R1.fastq.gz and sample_R2.fastq.gz.",
+        "inputs/alignments": "Coordinate-sorted BAM files and their indexes (.bai or .csi).",
+        "inputs/reference": "Reference FASTA and matching core-genome BED. Include matching GFF when annotation is needed.",
+        "inputs/metadata": "Sample registry TSV with input paths and study metadata. Optional verified marker catalogue TSV.",
+        "inputs/targets": "Target regions BED and primer definitions TSV matched to the reference.",
+        "inputs/truth": "truth.json, confident_regions.bed, and <MONOCLONAL_SAMPLE_ID>.truth.vcf for each scored monoclonal sample.",
+        "inputs/partitions": "partition.json, created by ./pfvarx benchmark-partition."
+    };
+    const preview = byId("input-folder-preview");
+    preview.replaceChildren();
+    for (const directory of directories) {
+        const item = document.createElement("li");
+        const path = document.createElement("code");
+        path.textContent = directory + "/";
+        item.append(path, " — " + contents[directory]);
+        preview.append(item);
+    }
+}
+
 function changed(id) {
     const config = values.config;
     const assay = config.assay;
@@ -289,6 +310,7 @@ function changed(id) {
     }
     byId("summary").textContent = JSON.stringify(summary, null, 2);
     saveButton.disabled = true;
+    byId("input-folder-preview").replaceChildren();
     const current = ++generation;
     clearTimeout(timer);
     timer = setTimeout(async () => {
@@ -297,7 +319,8 @@ function changed(id) {
             if (invalid) throw new Error(invalid.id + ": " + invalid.validationMessage);
             const result = await request("check", {values});
             if (current !== generation) return;
-            status.textContent = "Ready to save. Input folders: " + result.directories.map(path => path + "/").join(", ");
+            showInputFolders(result.directories);
+            status.textContent = "Ready to save.";
             saveButton.disabled = false;
         } catch (error) {
             if (current === generation) status.textContent = error.message;
@@ -341,7 +364,7 @@ saveButton.addEventListener("click", async () => {
     try {
         const result = await request("save", {values, revision: state.revision, replace: byId("replace").checked});
         state.revision = result.revision;
-        byId("result").textContent = "Input folders:\n" + result.directories.map(path => path + "/").join("\n") +
+        byId("result").textContent = "Input directories are successfully created\n\nInput folders:\n" + result.directories.map(path => path + "/").join("\n") +
             "\n\nSaved: " + (result.saved.join(", ") || "already current") +
             (result.backups.length ? "\nBackups: " + result.backups.join(", ") : "") +
             "\n\nPlace and register inputs, then run ./pfvarx validate.";
