@@ -50,6 +50,7 @@ function draw(parent, object, schema, path = "") {
         row.dataset.field = id;
         const label = document.createElement("label");
         const labels = {
+            "config.samples_tsv": "Study metadata and catalogue",
             "config.assay.design": "Assay design", "config.assay.sequencing_type": "Sequencing type",
             "config.assay.amplification_route": "Amplification route",
             "config.assay.targets_bed": "Target regions (BED)", "config.assay.primers_tsv": "Primer definitions (TSV)",
@@ -470,7 +471,7 @@ async function loadFileTabs() {
             fastq: [["FASTQ reads", "fastq"]],
             alignments: [["Alignments and indexes", "alignments"]],
             reference: [["Reference FASTA", "reference"], ["Core BED", "reference"], ["GFF annotation", "reference"]],
-            metadata: [["Sample registry", "metadata"], ["Study metadata and catalogue", "metadata"]],
+            metadata: [["Study metadata and catalogue", "metadata"]],
             targets: [["Target BED", "targets"], ["Primer TSV", "targets"]],
             truth: [["Truth files", "truth"]]
         };
