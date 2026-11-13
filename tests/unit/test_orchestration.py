@@ -140,6 +140,9 @@ def test_fetch_checks_hash_and_never_overwrites(tmp_path, monkeypatch):
     assert not (tmp_path / "inputs/reference/ref.fa").exists()
     assert not list((tmp_path / "inputs/reference").glob(".download-*"))
     fetch(tmp_path, "https://example.org/file", digest, "reference", "ref.fa")
+    unverified = fetch(tmp_path, "https://example.org/file", None, "reference", "unverified.fa")
+    assert unverified["status"] == "DOWNLOADED_UNVERIFIED"
+    assert unverified["sha256"] == digest
     with pytest.raises(ValueError, match="exists"):
         fetch(tmp_path, "https://example.org/file", digest, "reference", "ref.fa")
     with pytest.raises(ValueError, match="HTTPS"):

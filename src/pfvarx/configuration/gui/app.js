@@ -486,5 +486,8 @@ byId("upload-raw").addEventListener("click", () => transfer(async report => {
 byId("download-raw").addEventListener("submit", event => {
     event.preventDefault();
     const values = Object.fromEntries(new FormData(event.currentTarget));
-    transfer(async report => report((await request("download-raw", values)).path));
+    transfer(async report => {
+        const result = await request("download-raw", values);
+        report(result.path + (result.status === "VERIFIED" ? " (checksum verified)" : " (no trusted checksum supplied)") + "\nSHA-256: " + result.sha256);
+    });
 });

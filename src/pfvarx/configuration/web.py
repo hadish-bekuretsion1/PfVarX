@@ -250,7 +250,7 @@ class Handler(BaseHTTPRequestHandler):
                 with workspace_lock(self.root):
                     destination = raw_destination(self.root, payload["filename"])
                     role = "fastq" if load_bundle(self.root).config.input_type.value == "FASTQ" else "alignments"
-                    result = fetch(self.root, payload["url"], payload["sha256"], role, destination.name)
+                    result = fetch(self.root, payload["url"], (payload.get("sha256") or "").strip() or None, role, destination.name)
                 self.respond(result)
                 return
             if name == "preflight":

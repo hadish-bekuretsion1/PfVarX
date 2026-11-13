@@ -147,11 +147,11 @@ class HTTPSRedirect(urllib.request.HTTPRedirectHandler):
         return super().redirect_request(req, fp, code, msg, headers, newurl)
 
 
-def fetch(root: Path, url: str, expected: str, role: str, name: str) -> dict[str, Any]:
+def fetch(root: Path, url: str, expected: str | None, role: str, name: str) -> dict[str, Any]:
     parsed = urllib.parse.urlsplit(url)
     if parsed.scheme != "https" or parsed.username or parsed.password:
         raise ValueError("Use an HTTPS URL without embedded credentials")
-    if not re.fullmatch(r"[0-9a-fA-F]{64}", expected):
+    if expected is not None and not re.fullmatch(r"[0-9a-fA-F]{64}", expected):
         raise ValueError("A trusted SHA-256 checksum is required")
     if role not in {"fastq", "alignments", "reference", "metadata", "targets", "truth"}:
         raise ValueError("Unknown resource role")
@@ -176,7 +176,7 @@ def fetch(root: Path, url: str, expected: str, role: str, name: str) -> dict[str
                 handle.write(block)
                 digest.update(block)
                 size += len(block)
-        if digest.hexdigest() != expected.lower():
+        if expected is not None and digest.hexdigest() != expected.lower():
             raise ValueError("Download checksum mismatch; partial resource removed")
         # Atomic no-clobber publication: hard-link refuses a racing existing destination.
         import os
@@ -187,7 +187,7 @@ def fetch(root: Path, url: str, expected: str, role: str, name: str) -> dict[str
     finally:
         temp.unlink(missing_ok=True)
     report = {
-        "status": "VERIFIED",
+        "status": "VERIFIED" if expected is not None else "DOWNLOADED_UNVERIFIED",
         "path": str(destination.relative_to(root)),
         "bytes": size,
         "sha256": digest.hexdigest(),
