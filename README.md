@@ -29,13 +29,17 @@ cd ~/demo
 git clone --filter=blob:none --sparse https://github.com/hadish-bekuretsion1/PfVarX.git PfVarX-source
 python3 PfVarX-source/bootstrap.py --profile sample
 cd pfvarx-analysis
+./pfvarx configure --gui
 ```
 
-Bootstrap reads selected source blobs (also works from a full source extraction),
-exports a new workspace, installs its locked environment and initializes editable
-configuration templates. Saving in the GUI or running `./pfvarx init` after editing YAML creates input directories. Existing destinations are
-refused. The reviewed bootstrap must be available on the GitHub branch being cloned;
-local 0.0.0 changes are not published automatically by this update.
+Bootstrap installs the locked environment and writes editable configuration templates.
+The last command opens the configuration editor from the study workspace. If your
+browser does not open automatically, open the local URL printed in the terminal.
+Review the study settings and click **Create Configuration and Input Directories**.
+For help choosing values, open the [HTML configuration guide](docs/configuration%20guide.html).
+
+For headless setup, edit the YAML files in `config/` and run `./pfvarx init`.
+If the study workspace already exists, enter it directly and launch the editor.
 
 | Profile | Scope | Installation examples |
 | --- | --- | --- |
