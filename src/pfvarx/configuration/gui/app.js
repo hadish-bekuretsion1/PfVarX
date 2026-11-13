@@ -326,8 +326,11 @@ function changed(id) {
 }
 
 function render() {
+    const rawData = byId("raw-data-location");
     editor.replaceChildren();
     draw(editor, values, state.schema);
+    byId("config.input_type").closest("[data-field]").after(rawData);
+    rawData.hidden = false;
     changed();
 }
 
