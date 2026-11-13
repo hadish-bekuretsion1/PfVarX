@@ -47,7 +47,7 @@ The editor shows project settings from `config/config.yaml`, quality settings fr
 | `reference.fasta` | `inputs/reference/Pf3D7.fasta` | Use the exact parasite assembly underlying the reads or existing alignment. |
 | `reference.core_mask_bed` | `inputs/reference/core_genome.bed` | Supply the matching core-region BED. Check contig names and coordinates against the FASTA. |
 | `reference.release_label` | `Your actual reference release` | Record the verified release. Replace SET_REFERENCE_RELEASE before saving. |
-| `reference.gff` | `inputs/reference/Pf3D7.gff or null` | Use a matching GFF for explicit FO004 and to enable annotation and marker outcomes in automatic FO004. |
+| `reference.gff` | `inputs/reference/Pf3D7.gff or null` | The FO004 GUI defaults to inputs/reference/, which resolves to inputs/reference/Pf3D7.gff. Use a matching GFF for explicit FO004 and to enable annotation and marker outcomes in automatic FO004. |
 | `reference.snpeff_genome_id` | `null or Pf3D7_study` | Leave unset for the pipeline default. Set a reviewed identifier for the reference-matched SnpEff database when needed. |
 
 ## Downstream analyses and caller
@@ -58,7 +58,7 @@ The editor shows project settings from `config/config.yaml`, quality settings fr
 | `analyses.requested` | `[] or [DA001, DA003]` | Use an empty list for auto or FO001–FO003. DA001 is optional for explicit selection and runs internally when required. For explicit selection, add other installed methods as needed. DA001 COI, DA002 markers, DA003 diversity, DA004 relatedness, DA005 structure, DA006 phylogeny, DA007 spatial/temporal. |
 | `analyses.scales` | `{} or {"DA003":["POPULATION"]}` | Use {} for defaults or auto. For explicit selection specify only requested IDs and supported scales from the registry. |
 | `analyses.population_column` | `null or population` | Use the sample TSV column containing actual population assignments for group analyses. |
-| `analyses.resistance_catalog` | `null or inputs/metadata/verified_catalog.tsv` | Use a reference-matched, independently verified catalogue for real marker outcomes. Null selects the shipped catalogue, whose draft status blocks real marker analysis. |
+| `analyses.resistance_catalog` | `null or inputs/metadata/verified_catalog.tsv` | The FO004 GUI defaults to inputs/metadata/, which resolves to inputs/metadata/verified_catalog.tsv. Use a reference-matched, independently verified catalogue for real marker outcomes. Null selects the shipped catalogue, whose draft status blocks real marker analysis. |
 | `analyses.spatial_outcome_source` | `null or DA002` | For explicit DA007 choose DA002 and provide valid geographic and collection-date metadata. Auto resolves the source. |
 | `caller.backend` | `native or external` | Choose native for the bundled caller. External requires a qualified executable adapter implementing the Layer 2 artifact contract. |
 | `caller.executable` | `null or /absolute/path/to/adapter` | Required only for external. Use an absolute executable path. |
