@@ -29,17 +29,19 @@ cd ~/demo
 git clone --filter=blob:none --sparse https://github.com/hadish-bekuretsion1/PfVarX.git PfVarX-source
 python3 PfVarX-source/bootstrap.py --profile sample
 cd pfvarx-analysis
-./pfvarx configure --gui
 ```
 
 Bootstrap installs the locked environment and writes editable configuration templates.
-The last command opens the configuration editor from the study workspace. If your
-browser does not open automatically, open the local URL printed in the terminal.
-Review the study settings and click **Create Configuration and Input Directories**.
-For help choosing values, open the [HTML configuration guide](docs/configuration%20guide.html).
+Choose either configuration route from the study workspace:
 
-For headless setup, edit the YAML files in `config/` and run `./pfvarx init`.
-If the study workspace already exists, enter it directly and launch the editor.
+- **CLI:** Edit `config/config.yaml`, `config/quality.yaml`, and
+  `config/compute.yaml`, then run `./pfvarx init` to create the input folders.
+- **Optional GUI:** Run `./pfvarx configure --gui`. Open the local URL printed in
+  the terminal if needed. Review your settings and click **Create Configuration
+  and Input Directories**.
+
+The [HTML configuration guide](docs/configuration%20guide.html) explains the
+settings for both routes. If the study workspace already exists, enter it directly.
 
 | Profile | Scope | Installation examples |
 | --- | --- | --- |
