@@ -313,7 +313,10 @@ function changed(id) {
     }
     byId("summary").textContent = JSON.stringify(summary, null, 2);
     saveButton.disabled = false;
-    byId("input-folder-preview").replaceChildren();
+    const folders = ["inputs/reference", "inputs/metadata", fastq ? "inputs/fastq" : "inputs/alignments"];
+    if (targeted) folders.push("inputs/targets");
+    if (config.purpose === "benchmarking") folders.push("inputs/truth", "inputs/partitions");
+    showInputFolders(folders);
     const current = ++generation;
     clearTimeout(timer);
     timer = setTimeout(async () => {
@@ -385,6 +388,7 @@ saveButton.addEventListener("click", async () => {
     try {
         const result = await request("save", {values, revision: state.revision, replace: byId("replace").checked});
         state.revision = result.revision;
+        status.textContent = "Input directories are successfully created";
         byId("result").textContent = "Input directories are successfully created\n\nInput folders:\n" + result.directories.map(path => path + "/").join("\n") +
             "\n\nSaved: " + (result.saved.join(", ") || "already current") +
             (result.backups.length ? "\nBackups: " + result.backups.join(", ") : "") +
