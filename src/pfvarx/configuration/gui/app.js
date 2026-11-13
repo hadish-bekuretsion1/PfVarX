@@ -21,53 +21,6 @@ function resolveSchema(spec) {
     return base.$ref ? state.schema.$defs[base.$ref.split("/").pop()] : base;
 }
 
-function button(label, action) {
-    const element = document.createElement("button");
-    element.type = "button";
-    element.textContent = label;
-    element.addEventListener("click", action);
-    return element;
-}
-
-async function browse(path, input) {
-    const picker = byId("picker");
-    const list = byId("entries");
-    list.replaceChildren();
-    if (!picker.open) picker.showModal();
-    try {
-        const entries = await request("browse?path=" + encodeURIComponent(path));
-        if (path !== ".") {
-            list.append(button("Parent folder", () => browse(path.split("/").slice(0, -1).join("/") || ".", input)));
-            list.append(button("Use this directory", () => selectPath(path, input)));
-        }
-        const search = document.createElement("input");
-        search.type = "search";
-        search.placeholder = "Filter files and folders";
-        search.setAttribute("aria-label", "Filter files and folders");
-        list.append(search);
-        const choices = document.createElement("div");
-        list.append(choices);
-        search.addEventListener("input", () => {
-            for (const item of choices.children) {
-                item.hidden = !item.textContent.toLowerCase().includes(search.value.toLowerCase());
-            }
-        });
-        for (const entry of entries) {
-            choices.append(button(entry.path + (entry.directory ? "/" : ""), () =>
-                entry.directory ? browse(entry.path, input) : selectPath(entry.path, input)));
-        }
-        if (!entries.length) list.append("No entries in this directory.");
-    } catch (error) {
-        list.textContent = error.message;
-    }
-}
-
-function selectPath(path, input) {
-    input.value = "inputs/" + path;
-    input.dispatchEvent(new Event("input"));
-    byId("picker").close();
-}
-
 const filePlaceholders = {
     "config.assay.targets_bed": "inputs/targets/",
     "config.assay.primers_tsv": "inputs/targets/",
@@ -209,9 +162,6 @@ function draw(parent, object, schema, path = "") {
             row.append(filter);
         }
         if (filePlaceholders[id]) input.placeholder = filePlaceholders[id];
-        if (spec.format === "path" && input.type === "text") {
-            row.append(button("Browse", () => browse(".", input)));
-        }
         input.addEventListener("input", () => {
             input.setCustomValidity("");
             if (input.type === "checkbox") object[key] = input.checked;
@@ -384,5 +334,4 @@ saveButton.addEventListener("click", async () => {
 });
 editor.addEventListener("submit", event => event.preventDefault());
 byId("purpose").addEventListener("change", load);
-byId("close").addEventListener("click", () => byId("picker").close());
 load();

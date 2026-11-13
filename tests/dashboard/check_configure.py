@@ -86,11 +86,7 @@ with tempfile.TemporaryDirectory(prefix="pfvarx040-gui-") as directory:
             assert not (ws / "prepared").exists()
             save.click()
             expect(page.locator("#result")).to_contain_text("already current")
-            (ws / "inputs/reference/fixture.gff").write_text("fixture")
-            page.locator('[data-field="config.reference.gff"]').get_by_role("button", name="Browse").click()
-            page.get_by_role("button", name="reference/").click()
-            page.get_by_role("searchbox", name="Filter files and folders").fill("fixture")
-            page.get_by_role("button", name="reference/fixture.gff").click()
+            assert page.get_by_role("button", name="Browse", exact=True).count() == 0
             expect(page.locator('[id="config.reference.gff"]')).to_have_value("inputs/reference/fixture.gff")
             assert page.evaluate("document.documentElement.scrollWidth <= innerWidth")
             assert not errors, errors

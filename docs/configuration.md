@@ -23,8 +23,7 @@ where applicable. Choose an explicit analysis set or automatic selection for FO0
 The form validates the compute envelope, caller options and dependent fields using
 the Python backend. The summary shows the YAML-equivalent settings.
 
-The Browse control searches the workspace's `inputs/` folders. Type an absolute
-path for a resource outside that tree. The form checks path configuration syntax.
+Enter a workspace-relative or absolute file path. The form checks path configuration syntax.
 The `validate` command checks the actual files. Select **Create Configuration and
 Input Directories** when ready. Existing YAML with changes requires **Save with
 backup**. Backups are stored under `config/backups/REVISION/`. Refresh if someone
