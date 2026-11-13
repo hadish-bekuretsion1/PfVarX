@@ -26,7 +26,7 @@ def test_save_creates_only_input_directories_and_preserves_yaml(workspace: Path)
     assert "MY_PROJECT" in (workspace / changed["backups"][0]).read_text()
     with pytest.raises(ValueError, match="changed"):
         save(workspace, values, result["revision"], True)
-    with pytest.raises(ValueError, match="No supported R1/R2 FASTQ names"):
+    with pytest.raises(ValueError, match="No supported paired FASTQ names"):
         prepare_inputs(workspace)
     assert not (workspace / "prepared").exists()
 
@@ -107,13 +107,13 @@ def test_validation_discovers_fastq_sample_sheet(workspace: Path) -> None:
     state["values"]["config"]["reference"]["release_label"] = "fixture"
     save(workspace, state["values"], state["revision"], False)
     for mate in (1, 2):
-        (workspace / f"inputs/fastq/sample_R{mate}.fastq").write_text("@read\nACGT\n+\nIIII\n")
+        (workspace / f"inputs/fastq/sample_{mate}.fastq").write_text("@read\nACGT\n+\nIIII\n")
     validate_inputs(workspace)
     sheet = workspace / "inputs/metadata/samples.tsv"
     row, = read_tsv(sheet)
     assert row["sample_id"] == "sample"
-    assert row["fastq_1"].endswith("/sample_R1.fastq")
-    assert row["fastq_2"].endswith("/sample_R2.fastq")
+    assert row["fastq_1"].endswith("/sample_1.fastq")
+    assert row["fastq_2"].endswith("/sample_2.fastq")
     original = sheet.read_bytes()
     validate_inputs(workspace)
     assert sheet.read_bytes() == original
