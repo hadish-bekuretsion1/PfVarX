@@ -53,7 +53,7 @@ with tempfile.TemporaryDirectory(prefix="pfvarx040-gui-") as directory:
             expect(save).to_be_enabled()
             expect(page.locator('[data-field="config.reference.fasta"] [data-required-mark]')).to_be_visible()
             save.click()
-            assert page.evaluate("document.activeElement === document.querySelector('#editor :is(input,select,textarea):invalid')")
+            assert page.evaluate("document.activeElement.id === 'config.reference.release_label'")
             expect(page.locator("#status")).to_contain_text("Make sure all required fields are completed.")
             assert not (ws / "inputs").exists()
 

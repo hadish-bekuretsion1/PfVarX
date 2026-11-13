@@ -74,7 +74,7 @@ function draw(parent, object, schema, path = "") {
                 box.checked = (object[key] || []).includes(da);
                 box.addEventListener("change", () => {
                     object[key] = Array.from(row.querySelectorAll(":checked"), item => item.value);
-                    changed(id);
+                    render();
                 });
                 choice.append(box, da + " · " + contract.name);
                 row.append(choice);
@@ -258,6 +258,9 @@ function changed(id) {
         render();
         return;
     }
+    analyses.scales = Object.fromEntries(
+        Object.entries(analyses.scales || {}).filter(([da]) => (analyses.requested || []).includes(da))
+    );
     if (full && (analyses.requested || []).includes("DA007") && !analyses.spatial_outcome_source) {
         analyses.spatial_outcome_source = "DA002";
         const source = byId("config.analyses.spatial_outcome_source");
@@ -363,7 +366,7 @@ saveButton.addEventListener("click", async () => {
     clearTimeout(timer);
     for (const id of Object.keys(filePlaceholders)) {
         const input = byId(id);
-        if (input?.value.trim().endsWith("/")) input.setCustomValidity("Add the filename after the folder path.");
+        if (input?.value.trim().endsWith("/") && (input.value !== filePlaceholders[id] || id === "config.analyses.resistance_catalog")) input.setCustomValidity("Add the filename after the folder path.");
     }
     const release = byId("config.reference.release_label");
     if (release && ["", "SET_REFERENCE_RELEASE"].includes(release.value.trim())) {

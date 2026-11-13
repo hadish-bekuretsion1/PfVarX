@@ -65,9 +65,30 @@ def migrate_project(project: dict[str, Any]) -> dict[str, Any]:
     return {**project, "schema_version": "pfvarx.config/3", "analyses": analyses}
 
 
+def resolve_input_defaults(project: dict[str, Any]) -> dict[str, Any]:
+    """Expand standard folder shortcuts before validating file-valued settings."""
+    resolved = dict(project)
+    groups = (
+        (resolved, {"samples_tsv": "inputs/metadata/samples.tsv"}),
+        (dict(project["reference"]), {"fasta": "inputs/reference/Pf3D7.fasta",
+                                      "core_mask_bed": "inputs/reference/core_genome.bed",
+                                      "gff": "inputs/reference/Pf3D7.gff"}),
+        (dict(project["assay"]), {"targets_bed": "inputs/targets/targets.bed",
+                                  "primers_tsv": "inputs/targets/primers.tsv"}),
+    ) if isinstance(project.get("reference"), dict) and isinstance(project.get("assay"), dict) else ()
+    for group, defaults in groups:
+        for key, filename in defaults.items():
+            if group.get(key) == str(Path(filename).parent) + "/":
+                group[key] = filename
+    if groups:
+        resolved["reference"] = groups[1][0]
+        resolved["assay"] = groups[2][0]
+    return resolved
+
+
 def validate_bundle(root: Path, parsed: dict[str, Any]) -> Bundle:
     problems: list[str] = []
-    parsed = {**parsed, "config": migrate_project(parsed["config"])}
+    parsed = {**parsed, "config": resolve_input_defaults(migrate_project(parsed["config"]))}
     models: dict[str, type[BaseModel]] = {"config": ProjectConfig, "quality": QualityConfig, "compute": ComputeConfig}
     built: dict[str, Any] = {}
     for name, model in models.items():

@@ -136,3 +136,16 @@ def test_fo004_requires_annotation_path(workspace: Path) -> None:
     data["reference"]["gff"] = "inputs/reference/Pf3D7.gff"
     path.write_text(yaml.safe_dump(data))
     assert load_bundle(workspace).config.reference.gff == Path("inputs/reference/Pf3D7.gff")
+
+
+def test_standard_input_folders_resolve_to_template_files(workspace: Path) -> None:
+    _init(workspace)
+    path = workspace / "config/config.yaml"
+    config = yaml.safe_load(path.read_text())
+    config["reference"].update(fasta="inputs/reference/", core_mask_bed="inputs/reference/")
+    config["samples_tsv"] = "inputs/metadata/"
+    path.write_text(yaml.safe_dump(config))
+    resolved = load_bundle(workspace).config
+    assert resolved.reference.fasta == Path("inputs/reference/Pf3D7.fasta")
+    assert resolved.reference.core_mask_bed == Path("inputs/reference/core_genome.bed")
+    assert resolved.samples_tsv == Path("inputs/metadata/samples.tsv")

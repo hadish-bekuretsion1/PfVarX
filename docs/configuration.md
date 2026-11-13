@@ -134,3 +134,8 @@ sample-level values across lanes.
 | `age_group`, `study_arm` | Adult, Arm_A | Optional study records |
 
 Review the coordinates included in the dashboard before sharing it.
+
+The standard folder prefixes shown for the sample registry, reference FASTA,
+core BED, GFF, target BED and primer TSV are accepted in GUI and YAML. They
+resolve to the corresponding template filenames. Enter a complete path when
+your filename differs. Validation still checks that each required file exists.
