@@ -84,6 +84,9 @@ files in `inputs/reference/`. Register your reads or alignments before running
 
 ## 4. Check and run
 
+The [terminal workflow](docs/configuration.md#terminal-workflow) lists CLI
+equivalents for the GUI tabs.
+
 ```bash
 ./pfvarx validate &&
 ./pfvarx prepare &&

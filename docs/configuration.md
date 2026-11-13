@@ -157,3 +157,28 @@ use **Input Files Validation** followed by **Reference Preparation**. Preparatio
 generates FASTA indexes and the sequence dictionary under `prepared/reference/`,
 and builds BWA-MEM2 indexes for FASTQ entry. Assay-specific read processing and
 SnpEff annotation remain workflow stages. **Workflow Readiness Checks** runs the checks together.
+
+## Terminal workflow
+
+From your study workspace, edit the three configuration YAML files and run
+the corresponding commands for the GUI stages.
+
+| GUI stage | CLI equivalent |
+| --- | --- |
+| Input directories | `./pfvarx input-directories` |
+| Input files | `./pfvarx input-files` lists destinations. Copy files there, use `fetch-input`, or register originals by path. |
+| Input Files Validation | `./pfvarx validate-input-files` |
+| Reference Preparation | `./pfvarx prepare-reference` |
+| Workflow Readiness Checks | `./pfvarx workflow-readiness-checks` |
+
+For example, download a file from a direct HTTPS link:
+
+```bash
+./pfvarx fetch-input --role fastq --name sample_R1.fastq.gz --url 'https://example.org/sample_R1.fastq.gz'
+```
+
+Replace the example URL and filename with your actual input. Add `--sha256`
+when you have a trusted checksum. Register the sample inputs before validating.
+Use either the separate validation and preparation commands or the combined
+readiness command. Both stop on failure. Run `./pfvarx dry-run` to check the
+workflow DAG before launching an analysis.

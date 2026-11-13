@@ -285,9 +285,9 @@ def register_inputs(manifest: Path = typer.Option(..., "--manifest"),
 
 
 @app.command("fetch-input")
-def fetch_input(url: str = typer.Option(..., "--url"), sha256: str = typer.Option(..., "--sha256"),
+def fetch_input(url: str = typer.Option(..., "--url"), sha256: str | None = typer.Option(None, "--sha256"),
                 role: str = typer.Option(..., "--role"), name: str = typer.Option(..., "--name")) -> None:
-    """Download an explicitly requested HTTPS resource; require trusted SHA-256 and no overwrite."""
+    """Download an explicitly requested HTTPS resource; optionally verify SHA-256 and refuse overwrite."""
     from pfvarx.inputs.organize import fetch
     emit(guard(lambda: fetch(_root(), url, sha256, role, name)))
 
@@ -320,6 +320,50 @@ def cleanup_command(run_id: str = typer.Option(..., "--run-id"), apply: bool = t
         with workspace_lock(root):
             return cleanup_run(root, root / "runs" / run_id, apply)
     emit(guard(clean))
+
+
+@app.command("input-directories")
+def input_directories() -> None:
+    """Create input directories after editing the configuration YAML."""
+    init()
+
+
+@app.command("input-files")
+def input_files() -> None:
+    """List configured input folders for copying or registering files."""
+    from pfvarx.initialization.layout import required_dirs
+
+    root = _root()
+    bundle = guard(lambda: load_bundle(root))
+    emit({"directories": [{"path": path + "/", "exists": (root / path).is_dir()}
+                          for path in required_dirs(bundle.config)]})
+
+
+@app.command("validate-input-files")
+def validate_input_files() -> None:
+    """Validate files registered in the saved study configuration."""
+    validate()
+
+
+def _run_checks(stages: tuple[str, ...]) -> None:
+    from pfvarx.configuration.web import run_preflight
+
+    result = guard(lambda: run_preflight(_root(), stages))
+    emit(result, 0 if result["passed"] else 1)
+
+
+@app.command("prepare-reference")
+def prepare_reference() -> None:
+    """Prepare references, verify artifacts and check readiness."""
+    _run_checks(("prepare", "verify-prepared", "ready"))
+
+
+@app.command("workflow-readiness-checks")
+def workflow_readiness_checks() -> None:
+    """Validate, prepare, verify and check readiness in order."""
+    from pfvarx.configuration.web import PREFLIGHT_STAGES
+
+    _run_checks(PREFLIGHT_STAGES)
 
 
 if __name__ == "__main__":
