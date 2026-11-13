@@ -125,3 +125,13 @@ Bootstrap with `--profile downstream --auto-analyses` and the actual design. Sel
 Register inputs before validation. Inspect each result before proceeding to `./pfvarx pipeline --mode NEW`.
 
 [Quick start](README.html) · [Full SOP](sop/PfVarX_SOP_Manual.html#procedure-index) · [Deployment](deployment.md) · [External caller contract](caller.md)
+
+## Transfer raw data and run preflight
+
+After saving, open **Raw data** to upload reads or alignments, or download
+them using an HTTPS link and a destination filename. A trusted SHA-256 is
+optional. When provided, PfVarX checks it before saving. Otherwise, PfVarX
+records the computed checksum and marks the download unverified. Put reference
+files in `inputs/reference/`. Register your reads or alignments before running
+**Preflight → Run preflight checks**. The tab runs `validate`, `prepare`,
+`verify-prepared`, and `ready` in that order and stops on failure.

@@ -2469,8 +2469,7 @@ paths. The form shows targeted BED/primer fields and the UMI read structure only
 where applicable. Choose an explicit analysis set or automatic selection for FO004.
 The form validates the compute envelope, caller options and dependent fields using
 the Python backend. The summary shows the YAML-equivalent settings.</p>
-<p>The Browse control searches the workspace's <code>inputs/</code> folders. Type an absolute
-path for a resource outside that tree. The form checks path configuration syntax.
+<p>Enter a workspace-relative or absolute file path. The form checks path configuration syntax.
 The <code>validate</code> command checks the actual files. Select <strong>Create Configuration and
 Input Directories</strong> when ready. Existing YAML with changes requires <strong>Save with
 backup</strong>. Backups are stored under <code>config/backups/REVISION/</code>. Refresh if someone
@@ -2641,4 +2640,12 @@ run <code>./pfvarx dry-run</code> from that workspace.</p>
 <p>On RESUME, top-level Snakemake logs advance to the next
 <code>logs/snakemake.passN.log</code>. Method-level logs can still be reused on retry.
 Archive them before resuming if their original contents are needed.</p>
-</main></div></body></html>
+<section><h2>Transfer raw data and run preflight</h2><p>After saving, open <strong>Raw data</strong> to upload reads or alignments
+or download them using an HTTPS link and destination filename. Trusted SHA-256
+is optional. When provided, PfVarX checks it before saving. Otherwise, PfVarX
+records the computed checksum and marks the download unverified. Put reference
+files in <code>inputs/reference/</code>.</p>
+<p>Register the files before running <strong>Preflight → Run preflight checks</strong>.
+The tab runs <code>validate</code>, <code>prepare</code>, <code>verify-prepared</code>,
+and <code>ready</code> in that order and stops on failure.</p>
+</section></main></div></body></html>

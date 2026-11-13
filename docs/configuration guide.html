@@ -84,4 +84,12 @@ body{font:16px/1.55 system-ui;color:#173247;max-width:1000px;margin:auto;padding
 ./pfvarx verify-prepared
 ./pfvarx ready
 ./pfvarx dry-run</pre><p>Register inputs before validation. Inspect each result before proceeding to <code>./pfvarx pipeline --mode NEW</code>.</p>
-<p><a href="README.html" target="_blank" rel="noopener noreferrer">Quick start</a> · <a href="sop/PfVarX_SOP_Manual.html#procedure-index" target="_blank" rel="noopener noreferrer">Full SOP</a> · <a href="deployment.md">Deployment</a> · <a href="caller.md">External caller contract</a></p></section></main></body></html>
+<p><a href="README.html" target="_blank" rel="noopener noreferrer">Quick start</a> · <a href="sop/PfVarX_SOP_Manual.html#procedure-index" target="_blank" rel="noopener noreferrer">Full SOP</a> · <a href="deployment.md">Deployment</a> · <a href="caller.md">External caller contract</a></p></section><section><h2>Transfer raw data and run preflight</h2><p>After saving, open <strong>Raw data</strong> to upload reads or alignments
+or download them using an HTTPS link and destination filename. Trusted SHA-256
+is optional. When provided, PfVarX checks it before saving. Otherwise, PfVarX
+records the computed checksum and marks the download unverified. Put reference
+files in <code>inputs/reference/</code>.</p>
+<p>Register the files before running <strong>Preflight → Run preflight checks</strong>.
+The tab runs <code>validate</code>, <code>prepare</code>, <code>verify-prepared</code>,
+and <code>ready</code> in that order and stops on failure.</p>
+</section></main></body></html>

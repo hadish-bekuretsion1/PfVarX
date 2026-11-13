@@ -26,7 +26,16 @@ cd pfvarx-analysis
 <pre>./pfvarx configure --gui</pre>
 <p>Open the printed local URL if needed. Review the form and click <strong>Create Configuration and Input Directories</strong>.</p>
 <p><a href="configuration%20guide.html" target="_blank" rel="noopener noreferrer">Configuration guide for every setting</a></p>
-<h2>3. Register reads</h2>
+<h2>3. Transfer and register reads</h2>
+<p>After saving, open <strong>Raw data</strong> to upload reads or alignments
+or download them using an HTTPS link and destination filename. Trusted SHA-256
+is optional. When provided, PfVarX checks it before saving. Otherwise, PfVarX
+records the computed checksum and marks the download unverified. Put reference
+files in <code>inputs/reference/</code>.</p>
+<p>Register the files before running <strong>Preflight → Run preflight checks</strong>.
+The tab runs <code>validate</code>, <code>prepare</code>, <code>verify-prepared</code>,
+and <code>ready</code> in that order and stops on failure.</p>
+
 <p>Replace the example path with your FASTQ directory. Review sample identities, libraries and paired files before registration. Use a reviewed TSV manifest directly when the filenames do not match the discovery convention.</p>
 <pre>./pfvarx discover-inputs --directory /absolute/path/to/fastq
 nano metadata/discovered_samples.tsv
