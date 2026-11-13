@@ -167,7 +167,7 @@ def test_prepared_verification_rejects_corruption_and_dictionary_mismatch(worksp
     source = workspace / bundle.config.reference.fasta
     source.parent.mkdir(parents=True)
     source.write_text(">chr1\nACGTACGT\n")
-    prep = workspace / "prepared/reference"
+    prep = workspace / "inputs/reference/prepared"
     prep.mkdir(parents=True)
     for name in ["combined", "parasite"]:
         p = prep / (name + ".fasta")
@@ -183,12 +183,13 @@ def test_prepared_verification_rejects_corruption_and_dictionary_mismatch(worksp
         "artifacts": {str(p.relative_to(workspace)): sha256(p) for p in artifacts},
     }
     mp = workspace / "prepared/manifest.json"
+    mp.parent.mkdir(exist_ok=True)
     mp.write_text(json.dumps(manifest))
     assert verify_prepared(workspace, bundle)["status"] == "PASS"
     dictionary.write_text("@SQ\tSN:chr1\tLN:99\n")
     assert verify_prepared(workspace, bundle)["status"] == "FAIL"
     assert any(a["action"] == "picard_dict" for a in plan_preparation(workspace, bundle)["actions"])
-    manifest["artifacts"]["prepared/reference/combined.dict"] = sha256(dictionary)
+    manifest["artifacts"]["inputs/reference/prepared/combined.dict"] = sha256(dictionary)
     mp.write_text(json.dumps(manifest))
     result = verify_prepared(workspace, bundle)
     assert result["status"] == "FAIL" and any("disagree" in s for s in result["issues"])
