@@ -1,6 +1,6 @@
 """Conditional, idempotent derivation of reference indexes (L0.4).
 
-Raw inputs are never modified. Derivatives are written under ``prepared/`` and
+Raw inputs are never modified. Derivatives are written under ``inputs/reference/prepared/`` and
 built only when missing or when the source checksum changed.
 """
 
@@ -28,7 +28,7 @@ def _tool(name: str) -> str:
 def plan_preparation(root: Path, bundle: Bundle) -> dict[str, Any]:
     cfg = bundle.config
     src = root / cfg.reference.fasta
-    prep = root / "prepared" / "reference"
+    prep = root / "inputs/reference/prepared"
     manifest_path = root / "prepared" / "manifest.json"
     old = read_json(manifest_path) if manifest_path.is_file() else {}
     fingerprints = {str(src.resolve()): sha256(src)}
@@ -73,7 +73,7 @@ def prepare(root: Path, bundle: Bundle, dry_run: bool) -> dict[str, Any]:
     if dry_run or not plan["actions"]:
         return {"dry_run": dry_run, **plan}
     cfg = bundle.config
-    prep = root / "prepared" / "reference"
+    prep = root / "inputs/reference/prepared"
     prep.mkdir(parents=True, exist_ok=True)
     combined = prep / "combined.fasta"
     parasite = prep / "parasite.fasta"
@@ -113,7 +113,7 @@ def prepare(root: Path, bundle: Bundle, dry_run: bool) -> dict[str, Any]:
 
 
 def required_artifacts(root: Path, bundle: Bundle) -> list[Path]:
-    prep = root / "prepared/reference"
+    prep = root / "inputs/reference/prepared"
     paths = [prep / name for name in ("combined.fasta", "combined.fasta.fai", "combined.dict", "parasite.fasta", "parasite.fasta.fai")]
     if bundle.config.input_type == InputType.FASTQ:
         paths += [Path(str(prep / "combined.fasta") + suffix) for suffix in BWA_SUFFIXES]
@@ -141,16 +141,16 @@ def verify_prepared(root: Path, bundle: Bundle) -> dict[str, Any]:
             elif manifest.get("artifacts", {}).get(rel) != sha256(artifact):
                 issues.append("Artifact hash mismatch or not sealed: " + rel)
         if not issues:
-            with pysam.FastaFile(str(root / "prepared/reference/combined.fasta")) as combined:
+            with pysam.FastaFile(str(root / "inputs/reference/prepared/combined.fasta")) as combined:
                 expected = dict(zip(combined.references, combined.lengths))
                 dictionary = {}
-                for line in (root / "prepared/reference/combined.dict").read_text().splitlines():
+                for line in (root / "inputs/reference/prepared/combined.dict").read_text().splitlines():
                     if line.startswith("@SQ\t"):
                         fields = dict(f.split(":", 1) for f in line.split("\t")[1:] if ":" in f)
                         dictionary[fields["SN"]] = int(fields["LN"])
                 if dictionary != expected:
                     issues.append("Combined FASTA index and sequence dictionary disagree")
-            with pysam.FastaFile(str(root / "prepared/reference/parasite.fasta")) as parasite:
+            with pysam.FastaFile(str(root / "inputs/reference/prepared/parasite.fasta")) as parasite:
                 if not parasite.references:
                     issues.append("Empty parasite FASTA index")
     except (OSError, ValueError, KeyError, TypeError) as exc:
