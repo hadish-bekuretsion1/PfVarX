@@ -142,7 +142,8 @@ function draw(parent, object, schema, path = "") {
         label.append(input);
         const requiredMark = document.createElement("span");
         requiredMark.dataset.requiredMark = "";
-        requiredMark.textContent = " (required)";
+        requiredMark.textContent = " *";
+        requiredMark.setAttribute("aria-hidden", "true");
         requiredMark.hidden = true;
         label.insertBefore(requiredMark, input);
         input.dataset.schemaRequired = String(
@@ -298,7 +299,6 @@ function changed(id) {
     };
     for (const input of editor.querySelectorAll("[data-schema-required]")) {
         input.required = !input.disabled && (conditionalRequirements[input.id] ?? (input.dataset.schemaRequired === "true"));
-        if (filePlaceholders[input.id]) input.pattern = ".*[^/\\\\]";
         input.parentElement.querySelector("[data-required-mark]").hidden = !input.required;
     }
     const summary = structuredClone(values);
@@ -309,19 +309,18 @@ function changed(id) {
         summary.internal_prerequisites = [...new Set(prerequisites.filter(da => da && !requested.includes(da)))];
     }
     byId("summary").textContent = JSON.stringify(summary, null, 2);
-    saveButton.disabled = true;
+    saveButton.disabled = false;
     byId("input-folder-preview").replaceChildren();
     const current = ++generation;
     clearTimeout(timer);
     timer = setTimeout(async () => {
         try {
-            const invalid = editor.querySelector(":invalid:not(form)");
+            const invalid = editor.querySelector(":is(input,select,textarea):invalid");
             if (invalid) throw new Error(invalid.id + ": " + invalid.validationMessage);
             const result = await request("check", {values});
             if (current !== generation) return;
             showInputFolders(result.directories);
             status.textContent = "Ready to save.";
-            saveButton.disabled = false;
         } catch (error) {
             if (current === generation) status.textContent = error.message;
         }
@@ -360,6 +359,25 @@ async function load() {
 }
 
 saveButton.addEventListener("click", async () => {
+    ++generation;
+    clearTimeout(timer);
+    for (const id of Object.keys(filePlaceholders)) {
+        const input = byId(id);
+        if (input?.value.trim().endsWith("/")) input.setCustomValidity("Add the filename after the folder path.");
+    }
+    const release = byId("config.reference.release_label");
+    if (release && ["", "SET_REFERENCE_RELEASE"].includes(release.value.trim())) {
+        release.setCustomValidity("Enter the actual reference release label.");
+    }
+    const invalid = editor.querySelector(":is(input,select,textarea):invalid");
+    if (invalid) {
+        status.textContent = "Make sure all required fields are completed.";
+        invalid.focus();
+        invalid.reportValidity();
+        return;
+    }
+    ++generation;
+    clearTimeout(timer);
     saveButton.disabled = true;
     try {
         const result = await request("save", {values, revision: state.revision, replace: byId("replace").checked});
@@ -370,6 +388,15 @@ saveButton.addEventListener("click", async () => {
             "\n\nPlace and register inputs, then run ./pfvarx validate.";
     } catch (error) {
         status.textContent = error.message;
+        const field = error.message.match(/config\/(config|quality|compute)\.yaml: ([\w.]+):/);
+        if (field) {
+            const input = byId(field[1] + "." + field[2]);
+            if (input && !input.disabled) {
+                input.focus();
+                input.setCustomValidity(error.message);
+                input.reportValidity();
+            }
+        }
     } finally {
         saveButton.disabled = false;
     }

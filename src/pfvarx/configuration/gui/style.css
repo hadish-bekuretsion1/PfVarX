@@ -12,3 +12,5 @@ button:disabled{opacity:.45}pre{white-space:pre-wrap;overflow-wrap:anywhere}dial
 *,*::before,*::after{box-sizing:border-box}
 fieldset{min-width:0}label,button{overflow-wrap:anywhere}
 @media(max-width:600px){main{padding:1rem}fieldset{padding:.65rem}button{max-width:100%}}
+
+[data-required-mark] { color: #b42318; font-weight: 700; }

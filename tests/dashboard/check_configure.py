@@ -50,7 +50,13 @@ with tempfile.TemporaryDirectory(prefix="pfvarx040-gui-") as directory:
                 "(options) => options.map(option => option.value)"
             ) == ["local", "hpc", "server", "cloud"]
             save = page.locator("#save")
-            expect(save).to_be_disabled()
+            expect(save).to_be_enabled()
+            expect(page.locator('[data-field="config.reference.fasta"] [data-required-mark]')).to_be_visible()
+            save.click()
+            assert page.evaluate("document.activeElement === document.querySelector('#editor :is(input,select,textarea):invalid')")
+            expect(page.locator("#status")).to_contain_text("Make sure all required fields are completed.")
+            assert not (ws / "inputs").exists()
+
             page.locator('[id="config.reference.release_label"]').fill("fixture release")
             for field, folder, filename in (
                 ("samples_tsv", "inputs/metadata/", "study.tsv"),
@@ -65,7 +71,7 @@ with tempfile.TemporaryDirectory(prefix="pfvarx040-gui-") as directory:
             page.locator('[id="config.assay.design"]').select_option("TARGETED_UMI")
             expect(page.locator('[id="config.assay.read_structure"]')).to_be_visible()
             expect(page.locator('[id="config.assay.amplification_route"]')).to_have_value("AMPLICON")
-            expect(save).to_be_disabled()
+            expect(save).to_be_enabled()
             page.locator('[id="config.assay.read_structure"]').fill("8M+T 8M+T")
             for field, filename in (("targets_bed", "study.bed"), ("primers_tsv", "study.tsv")):
                 entry = page.locator(f'[id="config.assay.{field}"]')
