@@ -72,8 +72,8 @@
     "help": "Supply the matching core-region BED. Check contig names and coordinates against the FASTA. Enter the full file path, including the filename. Relative paths start at the study workspace."
   },
   "config.reference.release_label": {
-    "example": "Your actual reference release",
-    "help": "Enter the release of your FASTA as recorded in its download record or accompanying README. For example, enter PlasmoDB 68 only if your FASTA came from that release."
+    "help": "Choose a label that matches your FASTA. Check its download record or accompanying README. Use PlasmoDB 68 only if you verified that release.",
+    "example": "PlasmoDB 68; Pf3D7 - release unknown; Custom reference - study version 1; Reference source and release unknown"
   },
   "config.reference.gff": {
     "example": "inputs/reference/Pf3D7.gff or null",
