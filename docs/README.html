@@ -18,13 +18,13 @@ python3 PfVarX-source/bootstrap.py --profile sample
 cd pfvarx-analysis
 ./pfvarx version</pre>
 <h2>2. Configure your study</h2>
+<p>Choose one configuration route. Set the actual reference release, FASTA, matching core BED, assay and compute limits before creating the input folders. The sample profile defaults to FO002.</p>
 <h3>CLI configuration</h3>
 <pre>nano config/config.yaml config/quality.yaml config/compute.yaml
 ./pfvarx init</pre>
 <h3>Optional GUI configuration</h3>
 <pre>./pfvarx configure --gui</pre>
 <p>Open the printed local URL if needed. Review the form and click <strong>Create Configuration and Input Directories</strong>.</p>
-<p>With either route, set the actual reference release, FASTA, matching core BED, assay and compute limits. The sample profile defaults to FO002.</p>
 <p><a href="configuration%20guide.html">Configuration guide for every setting</a></p>
 <h2>3. Register reads</h2>
 <p>Replace the example path with your FASTQ directory. Review sample identities, libraries and paired files before registration. Use a reviewed TSV manifest directly when the filenames do not match the discovery convention.</p>
@@ -32,10 +32,10 @@ cd pfvarx-analysis
 nano metadata/discovered_samples.tsv
 ./pfvarx register-inputs --manifest metadata/discovered_samples.tsv --mode reference</pre>
 <h2>4. Validate and prepare</h2>
-<pre>./pfvarx validate
-./pfvarx prepare
-./pfvarx verify-prepared
-./pfvarx ready
+<pre>./pfvarx validate &amp;&amp;
+./pfvarx prepare &amp;&amp;
+./pfvarx verify-prepared &amp;&amp;
+./pfvarx ready &amp;&amp;
 ./pfvarx dry-run</pre>
 <p>Inspect the validation report under <code>metadata/</code> and resolve failures before running. Confirm that readiness is true and the dry run reports OK.</p>
 <h2>5. Execute and review</h2>
