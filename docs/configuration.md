@@ -72,7 +72,7 @@ nano metadata/discovered_samples.tsv
 
 ## Transfer raw data and run preflight
 
-After saving, open **Raw data** to upload reads or alignments, or download
+After saving, open **Input files** to upload reads or alignments, or download
 them using an HTTPS link and a destination filename. A trusted SHA-256 is
 optional. When provided, PfVarX checks it before saving. Otherwise, PfVarX
 records the computed checksum and marks the download unverified. Put reference
@@ -149,3 +149,11 @@ The standard folder prefixes shown for the sample registry, reference FASTA,
 core BED, GFF, target BED and primer TSV are accepted in GUI and YAML. They
 resolve to the corresponding template filenames. Enter a complete path when
 your filename differs. Validation still checks that each required file exists.
+
+The **Input directories** tab saves configuration and creates folders. In
+**Input files**, select a file category to upload or download into its folder.
+Use the filenames in your saved configuration. Register sample files, then
+use **Validation** followed by **Preparation**. Preparation revalidates inputs,
+generates FASTA indexes and the sequence dictionary under `prepared/reference/`,
+and builds BWA-MEM2 indexes for FASTQ entry. Assay-specific read processing and
+SnpEff annotation remain workflow stages. **Preflight** runs the checks together.

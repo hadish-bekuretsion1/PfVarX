@@ -106,7 +106,8 @@ with tempfile.TemporaryDirectory(prefix="pfvarx040-gui-") as directory:
             assert page.get_by_role("button", name="Browse", exact=True).count() == 0
             expect(page.locator('[id="config.reference.gff"]')).to_have_value("inputs/reference/fixture.gff")
             assert page.evaluate("document.documentElement.scrollWidth <= innerWidth")
-            page.get_by_role("button", name="Raw data", exact=True).click()
+            page.get_by_role("button", name="Input files", exact=True).click()
+            page.get_by_role("button", name="FASTQ reads", exact=True).click()
             page.locator("#raw-files").set_input_files(
                 {"name": "sample_R1.fastq", "mimeType": "application/octet-stream", "buffer": b"fixture"}
             )

@@ -3644,7 +3644,7 @@ Archive them before resuming if their original contents are needed.
 
 ## Transfer raw data and run preflight
 
-After saving, open **Raw data** to upload reads or alignments, or download
+After saving, open **Input files** to upload reads or alignments, or download
 them using an HTTPS link and a destination filename. A trusted SHA-256 is
 optional. When provided, PfVarX checks it before saving. Otherwise, PfVarX
 records the computed checksum and marks the download unverified. Put reference

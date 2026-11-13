@@ -420,36 +420,80 @@ editor.addEventListener("submit", event => event.preventDefault());
 byId("purpose").addEventListener("change", load);
 load();
 
-for (const view of ["configuration", "inputs", "preflight"]) {
+for (const view of ["configuration", "inputs", "validation", "preparation", "preflight"]) {
     byId(view + "-tab").addEventListener("click", () => {
-        for (const panel of ["configuration", "inputs", "preflight"]) {
+        for (const panel of ["configuration", "inputs", "validation", "preparation", "preflight"]) {
             byId(panel + "-panel").hidden = panel !== view;
             byId(panel + "-tab").setAttribute("aria-pressed", String(panel === view));
+        }
+        if (view === "inputs") loadFileTabs();
+    });
+}
+
+for (const [panel, endpoint, title] of [
+    ["validation", "validate-inputs", "Validation"],
+    ["preparation", "prepare-inputs", "Preparation"],
+    ["preflight", "preflight", "Preflight"]
+]) {
+    byId("run-" + panel).addEventListener("click", async () => {
+        const button = byId("run-" + panel);
+        const message = byId(panel + "-status");
+        const output = byId(panel + "-results");
+        button.disabled = true;
+        output.textContent = "";
+        message.textContent = "Running preflight checks…";
+        try {
+            const result = await request(endpoint, {});
+            output.textContent = result.stages.map(stage =>
+                "./pfvarx " + stage.command + " (exit " + stage.exit_code + ")\n" +
+                [stage.stdout, stage.stderr].filter(Boolean).join("\n")
+            ).join("\n");
+            message.textContent = result.passed ? title + " passed." :
+                title + " stopped at " + result.stages.at(-1).command + ".";
+        } catch (error) {
+            message.textContent = error.message;
+        } finally {
+            button.disabled = false;
         }
     });
 }
 
-byId("run-preflight").addEventListener("click", async () => {
-    const button = byId("run-preflight");
-    const message = byId("preflight-status");
-    const output = byId("preflight-results");
-    button.disabled = true;
-    output.textContent = "";
-    message.textContent = "Running preflight checks…";
+let transferRole;
+async function loadFileTabs() {
+    const tabs = byId("file-tabs");
+    const destination = byId("file-destination");
+    tabs.replaceChildren();
+    transferRole = undefined;
     try {
-        const result = await request("preflight", {});
-        output.textContent = result.stages.map(stage =>
-            "./pfvarx " + stage.command + " (exit " + stage.exit_code + ")\n" +
-            [stage.stdout, stage.stderr].filter(Boolean).join("\n")
-        ).join("\n");
-        message.textContent = result.passed ? "Preflight passed." :
-            "Preflight stopped at " + result.stages.at(-1).command + ".";
+        const folders = await request("input-folders");
+        const labels = {
+            fastq: [["FASTQ reads", "fastq"]],
+            alignments: [["Alignments and indexes", "alignments"]],
+            reference: [["Reference FASTA", "reference"], ["Core BED", "reference"], ["GFF annotation", "reference"]],
+            metadata: [["Sample registry", "metadata"], ["Study metadata and catalogue", "metadata"]],
+            targets: [["Target BED", "targets"], ["Primer TSV", "targets"]],
+            truth: [["Truth files", "truth"]]
+        };
+        for (const folder of folders) {
+            for (const [label, role] of labels[folder.split("/").at(-1)] || []) {
+                const button = document.createElement("button");
+                button.type = "button";
+                button.textContent = label;
+                button.setAttribute("aria-pressed", "false");
+                button.addEventListener("click", () => {
+                    transferRole = role;
+                    byId("raw-files").value = "";
+                    for (const tab of tabs.children) tab.setAttribute("aria-pressed", String(tab === button));
+                    destination.textContent = label + " → " + folder + "/";
+                });
+                tabs.append(button);
+            }
+        }
+        tabs.firstElementChild?.click();
     } catch (error) {
-        message.textContent = error.message;
-    } finally {
-        button.disabled = false;
+        destination.textContent = error.message;
     }
-});
+}
 
 async function transfer(action) {
     const controls = byId("inputs-panel").querySelectorAll("button");
@@ -458,6 +502,7 @@ async function transfer(action) {
     message.textContent = "Transferring files…";
     const saved = [];
     try {
+        if (!transferRole) throw new Error("Select an input file category first.");
         await action(path => {
             saved.push(path);
             message.textContent = "Saved:\n" + saved.join("\n");
@@ -473,7 +518,7 @@ byId("upload-raw").addEventListener("click", () => transfer(async report => {
     const files = byId("raw-files").files;
     if (!files.length) throw new Error("Choose at least one raw data file.");
     for (const file of files) {
-        const response = await fetch("upload-raw?filename=" + encodeURIComponent(file.name), {
+        const response = await fetch("upload-raw?filename=" + encodeURIComponent(file.name) + "&role=" + encodeURIComponent(transferRole), {
             method: "POST", headers: {"Content-Type": "application/octet-stream"}, body: file
         });
         const result = await response.json();
@@ -487,7 +532,7 @@ byId("download-raw").addEventListener("submit", event => {
     event.preventDefault();
     const values = Object.fromEntries(new FormData(event.currentTarget));
     transfer(async report => {
-        const result = await request("download-raw", values);
+        const result = await request("download-raw", {...values, role: transferRole});
         report(result.path + (result.status === "VERIFIED" ? " (checksum verified)" : " (no trusted checksum supplied)") + "\nSHA-256: " + result.sha256);
     });
 });

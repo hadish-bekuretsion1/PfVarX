@@ -136,11 +136,11 @@ def save(root: Path, values: dict[str, Any], expected: str, replace: bool) -> di
 PREFLIGHT_STAGES = ("validate", "prepare", "verify-prepared", "ready")
 
 
-def run_preflight(root: Path) -> dict[str, Any]:
+def run_preflight(root: Path, stages_to_run: tuple[str, ...] = PREFLIGHT_STAGES) -> dict[str, Any]:
     stages = []
     env = os.environ.copy()
     env.pop("PFVARX_JSON_OUT", None)
-    for stage in PREFLIGHT_STAGES:
+    for stage in stages_to_run:
         result = subprocess.run(
             [sys.executable, "-m", "pfvarx.cli", stage],
             cwd=root, env=env, capture_output=True, text=True, check=False,
@@ -151,20 +151,24 @@ def run_preflight(root: Path) -> dict[str, Any]:
         })
         if result.returncode:
             break
-    return {"stages": stages, "passed": len(stages) == len(PREFLIGHT_STAGES) and not stages[-1]["exit_code"]}
+    return {"stages": stages, "passed": len(stages) == len(stages_to_run) and not stages[-1]["exit_code"]}
 
 
-def raw_destination(root: Path, name: str) -> Path:
+def raw_destination(root: Path, name: str, role: str = "raw") -> Path:
     if not re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9._-]*", name):
         raise ValueError("Use a plain filename with letters, digits, dots, underscores or hyphens")
-    input_type = load_bundle(root).config.input_type.value
-    role = "fastq" if input_type == "FASTQ" else "alignments"
+    cfg = load_bundle(root).config
+    input_type = cfg.input_type.value
+    if role == "raw":
+        role = "fastq" if input_type == "FASTQ" else "alignments"
+    if f"inputs/{role}" not in required_dirs(cfg) or role == "partitions":
+        raise ValueError("Input folder is unavailable for the saved configuration")
     suffixes = {
         "FASTQ": (".fastq", ".fq", ".fastq.gz", ".fq.gz"),
         "BAM": (".bam", ".bai", ".csi"),
         "CRAM": (".cram", ".crai", ".csi"),
     }
-    if not name.lower().endswith(suffixes[input_type]):
+    if role in {"fastq", "alignments"} and not name.lower().endswith(suffixes[input_type]):
         raise ValueError(f"File extension does not match the saved {input_type} input type")
     folder = within(root, f"inputs/{role}")
     if not folder.is_dir():
@@ -209,6 +213,8 @@ class Handler(BaseHTTPRequestHandler):
             if name in assets:
                 filename, media = assets[name]
                 self.respond(Path(__file__).with_name("gui").joinpath(filename).read_bytes(), media=media)
+            elif name == "input-folders":
+                self.respond(required_dirs(load_bundle(self.root).config))
             elif name == "state":
                 self.respond(editor_state(self.root, query.get("purpose", ["analysis"])[0]))
             elif name == "browse":
@@ -229,7 +235,7 @@ class Handler(BaseHTTPRequestHandler):
                 if size <= 0 or self.headers.get_content_type() != "application/octet-stream":
                     raise ValueError("Choose a nonempty raw data file")
                 with workspace_lock(self.root):
-                    destination = raw_destination(self.root, query.get("filename", [""])[0])
+                    destination = raw_destination(self.root, query.get("filename", [""])[0], query.get("role", ["raw"])[0])
                     with tempfile.NamedTemporaryFile(dir=destination.parent, prefix=".upload-") as staged:
                         remaining = size
                         while remaining:
@@ -248,13 +254,18 @@ class Handler(BaseHTTPRequestHandler):
             payload = json.loads(self.rfile.read(size))
             if name == "download-raw":
                 with workspace_lock(self.root):
-                    destination = raw_destination(self.root, payload["filename"])
-                    role = "fastq" if load_bundle(self.root).config.input_type.value == "FASTQ" else "alignments"
+                    destination = raw_destination(self.root, payload["filename"], payload.get("role", "raw"))
+                    role = destination.parent.name
                     result = fetch(self.root, payload["url"], (payload.get("sha256") or "").strip() or None, role, destination.name)
                 self.respond(result)
                 return
-            if name == "preflight":
-                self.respond(run_preflight(self.root))
+            checks = {
+                "preflight": PREFLIGHT_STAGES,
+                "validate-inputs": ("validate",),
+                "prepare-inputs": ("prepare", "verify-prepared", "ready"),
+            }
+            if name in checks:
+                self.respond(run_preflight(self.root, checks[name]))
                 return
             values = payload["values"]
             if name == "check":

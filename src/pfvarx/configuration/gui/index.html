@@ -11,8 +11,10 @@
 <h1>PfVarX configuration</h1>
 <p>Save the project settings and create input folders. Register inputs, validate and prepare from the terminal.</p>
 <nav aria-label="Workspace views">
-<button type="button" id="configuration-tab" aria-controls="configuration-panel" aria-pressed="true">Configuration</button>
-<button type="button" id="inputs-tab" aria-controls="inputs-panel" aria-pressed="false">Raw data</button>
+<button type="button" id="configuration-tab" aria-controls="configuration-panel" aria-pressed="true">Input directories</button>
+<button type="button" id="inputs-tab" aria-controls="inputs-panel" aria-pressed="false">Input files</button>
+<button type="button" id="validation-tab" aria-controls="validation-panel" aria-pressed="false">Validation</button>
+<button type="button" id="preparation-tab" aria-controls="preparation-panel" aria-pressed="false">Preparation</button>
 <button type="button" id="preflight-tab" aria-controls="preflight-panel" aria-pressed="false">Preflight</button>
 </nav>
 <section id="configuration-panel">
@@ -34,10 +36,12 @@
 <pre id="result" aria-live="polite"></pre>
 </section>
 <section id="inputs-panel" hidden>
-<h2>Raw data</h2>
+<h2>Input files</h2>
+<nav id="file-tabs" aria-label="Input file categories"></nav>
+<p id="file-destination"></p>
 <p>Save the configuration and create input directories first. Transfers use the saved input type. Register the files before running Preflight.</p>
 <h3>Upload from your computer</h3>
-<label>Raw files <input id="raw-files" type="file" multiple></label>
+<label>Input files <input id="raw-files" type="file" multiple></label>
 <button type="button" id="upload-raw">Upload selected files</button>
 <h3>Download from an HTTPS link</h3>
 <form id="download-raw">
@@ -47,6 +51,18 @@
 <button>Download file</button>
 </form>
 <pre id="transfer-status" role="status"></pre>
+</section>
+<section id="validation-panel" hidden>
+<h2>Validation</h2>
+<p>Register your sample files before validating the saved configuration.</p>
+<button type="button" id="run-validation">Validate inputs</button>
+<p id="validation-status" role="status"></p><pre id="validation-results"></pre>
+</section>
+<section id="preparation-panel" hidden>
+<h2>Preparation</h2>
+<p>Preparation rechecks input validity and writes derived reference files under <code>prepared/reference/</code>. It builds the FASTA indexes and sequence dictionary, and adds BWA-MEM2 indexes for FASTQ entry.</p>
+<button type="button" id="run-preparation">Prepare and verify inputs</button>
+<p id="preparation-status" role="status"></p><pre id="preparation-results"></pre>
 </section>
 <section id="preflight-panel" hidden>
 <h2>Preflight</h2>
