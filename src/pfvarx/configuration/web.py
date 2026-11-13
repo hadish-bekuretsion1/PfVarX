@@ -23,7 +23,7 @@ from pfvarx.configuration.loader import (
 )
 from pfvarx.configuration.models import Bundle
 from pfvarx.execution.retention import workspace_lock
-from pfvarx.initialization.layout import required_dirs
+from pfvarx.initialization.layout import create_input_dirs, required_dirs
 from pfvarx.io import atomic_write_text, read_json, within
 
 
@@ -108,8 +108,7 @@ def save(root: Path, values: dict[str, Any], expected: str, replace: bool) -> di
             if not backup.exists():
                 atomic_write_text(backup, content)
             backups.append(str(backup.relative_to(root)))
-        for path in input_dirs:
-            path.mkdir(parents=True, exist_ok=True)
+        create_input_dirs(root, dirs)
         written = []
         try:
             for name, content in changes.items():

@@ -326,7 +326,7 @@ function changed(id) {
             if (invalid) throw new Error(invalid.id + ": " + invalid.validationMessage);
             const result = await request("check", {values});
             if (current !== generation) return;
-            status.textContent = "Ready to save. Input folders: " + result.directories.join(", ");
+            status.textContent = "Ready to save. Input folders: " + result.directories.map(path => path + "/").join(", ");
             saveButton.disabled = false;
         } catch (error) {
             if (current === generation) status.textContent = error.message;
@@ -368,7 +368,7 @@ saveButton.addEventListener("click", async () => {
     try {
         const result = await request("save", {values, revision: state.revision, replace: byId("replace").checked});
         state.revision = result.revision;
-        byId("result").textContent = "Input folders:\n" + result.directories.join("\n") +
+        byId("result").textContent = "Input folders:\n" + result.directories.map(path => path + "/").join("\n") +
             "\n\nSaved: " + (result.saved.join(", ") || "already current") +
             (result.backups.length ? "\nBackups: " + result.backups.join(", ") : "") +
             "\n\nPlace and register inputs, then run ./pfvarx validate.";

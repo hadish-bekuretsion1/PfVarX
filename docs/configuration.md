@@ -47,6 +47,10 @@ For headless configuration, use `./pfvarx config-init --purpose analysis`, edit
 `config/config.yaml`, `config/quality.yaml` and `config/compute.yaml`, then use
 `./pfvarx init` if you want a blank sample-sheet template. GUI saves create no sheet.
 
+Both GUI save and CLI initialization use the same workspace-relative input
+folder layout. The GUI preview and the CLI `init` report show directory paths
+with a trailing slash. File fields still require filenames.
+
 ## Place and register input data
 
 | Folder | Place or reference these files |
