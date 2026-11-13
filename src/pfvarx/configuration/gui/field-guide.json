@@ -65,11 +65,11 @@
   },
   "config.reference.fasta": {
     "example": "inputs/reference/Pf3D7.fasta",
-    "help": "Use the exact parasite assembly underlying the reads or existing alignment."
+    "help": "Use the exact parasite assembly underlying the reads or existing alignment. Enter the full file path, including the filename. Relative paths start at the study workspace."
   },
   "config.reference.core_mask_bed": {
     "example": "inputs/reference/core_genome.bed",
-    "help": "Supply the matching core-region BED. Check contig names and coordinates against the FASTA."
+    "help": "Supply the matching core-region BED. Check contig names and coordinates against the FASTA. Enter the full file path, including the filename. Relative paths start at the study workspace."
   },
   "config.reference.release_label": {
     "example": "Your actual reference release",
@@ -77,11 +77,11 @@
   },
   "config.reference.gff": {
     "example": "inputs/reference/Pf3D7.gff or null",
-    "help": "Use a matching GFF for explicit FO004 and to enable annotation and marker outcomes in automatic FO004."
+    "help": "Use a matching GFF for explicit FO004 and to enable annotation and marker outcomes in automatic FO004. Enter the full file path, including the filename. Relative paths start at the study workspace."
   },
   "config.reference.host_fasta": {
     "example": "null or inputs/reference/host.fasta",
-    "help": "Optional host decoy. Use a compatible resource with distinct contig names."
+    "help": "Optional host decoy. Use a compatible resource with distinct contig names. Enter the full file path, including the filename. Relative paths start at the study workspace."
   },
   "config.reference.snpeff_genome_id": {
     "example": "null or Pf3D7_study",

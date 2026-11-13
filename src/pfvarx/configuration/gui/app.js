@@ -71,7 +71,9 @@ function selectPath(path, input) {
 const filePlaceholders = {
     "config.samples_tsv": "inputs/metadata/",
     "config.reference.fasta": "inputs/reference/",
-    "config.reference.core_mask_bed": "inputs/reference/"
+    "config.reference.core_mask_bed": "inputs/reference/",
+    "config.reference.gff": "inputs/reference/",
+    "config.reference.host_fasta": "inputs/reference/"
 };
 
 function draw(parent, object, schema, path = "") {
@@ -243,8 +245,8 @@ function changed(id) {
     const fastq = config.input_type === "FASTQ";
     location.value = fastq ? "inputs/fastq/" : "inputs/alignments/";
     byId("raw-data-help").textContent = fastq
-        ? "After saving, place paired FASTQ files here or register reads from their existing location."
-        : "After saving, place your alignment and its index here or register them from their existing location.";
+        ? "Example pair: inputs/fastq/sample_R1.fastq.gz and inputs/fastq/sample_R2.fastq.gz. Place your files here after saving, or register their existing paths."
+        : "Example: inputs/alignments/sample.bam and inputs/alignments/sample.bam.bai. Place the BAM and its index here after saving, or register their existing paths.";
     const outputs = byId("config.final_output");
     for (const option of outputs.options) {
         option.disabled = option.value === "FO001" && config.input_type !== "FASTQ";
