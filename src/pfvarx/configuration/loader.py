@@ -127,11 +127,13 @@ def validate_bundle(root: Path, parsed: dict[str, Any]) -> Bundle:
             effective = bundle.config.analyses
             prerequisites = internal_prerequisites(effective.requested, load_registry(root), effective.spatial_outcome_source)
             unavailable = set(effective.requested + prerequisites) - set(available)
+            installed_input = metadata.get("input_type", "FASTQ")
+            supported_inputs = {"FASTQ", "BAM", "CRAM"} if installed_input == "FASTQ" else {installed_input}
             if (
                 unavailable
                 or bundle.config.final_output.value > metadata["max_final_output"]
                 or bundle.config.assay.design.value != metadata["design"]
-                or bundle.config.input_type.value != metadata.get("input_type", "FASTQ")
+                or bundle.config.input_type.value not in supported_inputs
             ):
                 raise ConfigError(
                     [

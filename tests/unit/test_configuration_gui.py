@@ -84,6 +84,11 @@ def test_prepare_refuses_when_all_registered_samples_fail(workspace: Path) -> No
 
 
 def test_bam_save_creates_alignment_folders(workspace: Path) -> None:
+    (workspace / "config/installation.json").write_text(
+        '{"schema":"pfvarx.installation/2","profile":"sample","purpose":"analysis",'
+        '"design":"WGS","input_type":"FASTQ","max_final_output":"FO002",'
+        '"analyses_requested":[],"analyses_available":[]}'
+    )
     state = editor_state(workspace, "analysis")
     values = state["values"]
     values["config"]["input_type"] = "BAM"

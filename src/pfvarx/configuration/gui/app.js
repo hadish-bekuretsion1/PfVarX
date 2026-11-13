@@ -121,11 +121,11 @@ function draw(parent, object, schema, path = "") {
             }
             input.value = object[key] ?? "";
             const installation = state.installation;
-            if (id === "config.input_type" && installation && installation.profile !== "development") {
+            if (id === "config.input_type" && installation && installation.profile !== "development" && installation.input_type !== "FASTQ") {
                 for (const option of input.options) option.disabled = option.value !== installation.input_type;
                 const note = document.createElement("small");
                 note.textContent = "This workspace was installed for " + installation.input_type +
-                    ". For BAM, bootstrap a new workspace with --input-type BAM.";
+                    ". This environment supports aligned input.";
                 row.append(note);
             }
         } else if (spec.type === "object" || spec.type === "array") {
