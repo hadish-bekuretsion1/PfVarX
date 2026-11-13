@@ -18,7 +18,7 @@ from pfvarx.io import read_tsv, write_json, write_tsv
 
 ID = re.compile(r"^[A-Za-z0-9][A-Za-z0-9_-]{0,63}$")
 PAIR = re.compile(
-    r"^(?P<sample>[A-Za-z0-9][A-Za-z0-9_-]*?)(?:_(?P<lane>L\d{3}))?_R(?P<mate>[12])(?:_001)?\.(?:fastq|fq)(?:\.gz)?$"
+    r"^(?P<sample>[A-Za-z0-9][A-Za-z0-9_-]*?)(?:_(?P<lane>L\d{3}))?_R?(?P<mate>[12])(?:_001)?\.(?:fastq|fq)(?:\.gz)?$"
 )
 
 
@@ -44,7 +44,7 @@ def discover(root: Path, directory: Path, target: Path | None = None) -> dict[st
             raise ValueError("Ambiguous duplicate mate: " + sample + " " + lane)
         row[field] = str(path.resolve())
     if not pairs:
-        raise ValueError("No supported R1/R2 FASTQ names; provide an explicit registration TSV")
+        raise ValueError("No supported paired FASTQ names (expected _R1/_R2 or _1/_2); provide an explicit registration TSV")
     if any(not {"fastq_1", "fastq_2"} <= set(row) for row in pairs.values()):
         raise ValueError("Unmatched FASTQ mate; no sheet written")
     target = target if target is not None else root / "metadata/discovered_samples.tsv"
