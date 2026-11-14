@@ -116,7 +116,7 @@ def validate() -> None:
 
     root = _root()
     rep = guard(lambda: validate_inputs(root))
-    brief = {"status": rep["status"], "samples": rep["samples"],
+    brief = {"status": rep["status"], "summary": rep["summary"], "samples": rep["samples"],
              "failures": [f for r in rep["reports"] for f in r["findings"] if f["level"] == "FAIL"],
              "warnings": [f for r in rep["reports"] for f in r["findings"] if f["level"] == "WARNING"],
              "report": "metadata/validation_report.json"}

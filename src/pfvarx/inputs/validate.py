@@ -171,10 +171,14 @@ def validate_bed(path: Path, contigs: dict[str, dict[str, Any]], kind: str = "BE
         return rep
     n = 0
     total = 0
+    names: list[str] = []
+    intervals: list[tuple[str, int, int]] = []
     for i, line in enumerate(path.read_text().splitlines(), start=1):
         if not line.strip() or line.startswith(("#", "track", "browser")):
             continue
         cells = line.split("\t")
+        if len(cells) > 3 and len(names) < 200:
+            names.append(cells[3])
         try:
             chrom, start, end = cells[0], int(cells[1]), int(cells[2])
         except (IndexError, ValueError):
@@ -186,10 +190,52 @@ def validate_bed(path: Path, contigs: dict[str, dict[str, Any]], kind: str = "BE
             rep.fail(Reason.BED_MALFORMED, "0-based half-open interval out of range", i)
         n += 1
         total += max(0, end - start)
+        intervals.append((chrom, start, end))
     if n == 0 and rep.status == "PASS":
         rep.fail(Reason.BED_MALFORMED, "no intervals")
     rep.facts = {"intervals": n, "bases": total}
+    if kind == "CORE_MASK" and n and rep.status != "FAIL":
+        concerns = core_mask_concerns(intervals, names, contigs)
+        if concerns:
+            rep.warn(Reason.CORE_MASK_SUSPECT, "; ".join(concerns))
     return rep
+
+
+GENE_LIKE = re.compile(r"(PF3D7_\d{7}|PF3D7_[A-Z]{3}\d+|exon_|-CDS|\.\d+-p\d|gene|mRNA)", re.IGNORECASE)
+
+
+def core_mask_concerns(intervals: list[tuple[str, int, int]], names: list[str],
+                       contigs: dict[str, dict[str, Any]]) -> list[str]:
+    """Signs that a 'core mask' is really a gene or feature list. A region mask is a few dozen
+    non-overlapping intervals covering most of the genome (about 89% of 3D7 for the standard
+    core of Miles et al. 2016); a gene BED has thousands of named, often overlapping intervals."""
+    concerns = []
+    if names and sum(bool(GENE_LIKE.search(x)) for x in names) >= max(1, len(names) // 2):
+        concerns.append(f"column 4 holds gene or feature names (for example {names[0]!r}): this looks like a gene "
+                        "BED, not a core-genome mask")
+    if len(intervals) > 1000:
+        concerns.append(f"{len(intervals)} intervals: a core-genome mask normally has fewer than 200")
+    last: dict[str, int] = {}
+    for chrom, start, end in sorted(intervals):
+        if start < last.get(chrom, -1):
+            concerns.append("intervals overlap: a region mask has non-overlapping intervals")
+            break
+        last[chrom] = max(last.get(chrom, -1), end)
+    genome = sum(int(c["length"]) for c in contigs.values())
+    covered = sum(end - start for chrom, start, end in merge_intervals(intervals))
+    if genome and not 0.70 <= covered / genome <= 0.97:
+        concerns.append(f"covers {covered / genome:.0%} of the reference; the standard 3D7 core covers about 89%")
+    return concerns
+
+
+def merge_intervals(intervals: list[tuple[str, int, int]]) -> list[tuple[str, int, int]]:
+    merged: list[tuple[str, int, int]] = []
+    for chrom, start, end in sorted(intervals):
+        if merged and merged[-1][0] == chrom and start <= merged[-1][2]:
+            merged[-1] = (chrom, merged[-1][1], max(merged[-1][2], end))
+        else:
+            merged.append((chrom, start, end))
+    return merged
 
 
 PRIMER_HEADER = ["chrom", "left_start", "left_end", "right_start", "right_end"]

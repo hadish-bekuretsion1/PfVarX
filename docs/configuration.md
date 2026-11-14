@@ -92,7 +92,16 @@ files in `inputs/reference/`. Register your reads or alignments before running
 ./pfvarx pipeline --mode NEW
 ```
 
-Inspect `metadata/validation_report.json` and the sample-level statuses. Repair
+`./pfvarx validate` (and the GUI Input Files Validation tab) prints a `summary`: one
+entry per problem or warning, naming the input, why it failed, why the input matters and
+numbered steps that fix it. For example, a missing core-genome mask reports the expected
+path, notes when `config/config.yaml` gives only a folder, lists files of the same type
+already in that folder, and explains how to build the mask from the standard core-genome
+regions. A core mask that looks like a gene list (gene names, thousands of or overlapping
+intervals, or coverage far from the usual 89% of 3D7) passes with a `CORE_MASK_SUSPECT`
+warning, because the format is valid but the content is probably wrong.
+The same fields (`file`, `used_for`, `why`, `actions`) are stored for every finding in
+`metadata/validation_report.json`, with the sample-level statuses. Repair
 mandatory failures before proceeding. Under the existing partial-admission policy,
 only validated samples enter execution. Prepare rechecks validation, builds the
 necessary reference derivatives under `prepared/reference/`, and records tool logs

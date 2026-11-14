@@ -5,6 +5,17 @@
 The release version was reset to 0.0.0 after 0.4.2, as the baseline for the first reviewed
 release. The sections below 0.0.0 are the earlier development numbering, kept as history.
 
+### Validation explains failures
+
+- Every failed or warned input check now says which input it is, what the pipeline uses it
+  for, why it failed and numbered steps that fix it. `./pfvarx validate` and the GUI print
+  this as a `summary`, and `metadata/validation_report.json` stores it per finding. A
+  missing file names its expected path, notes a folder-only setting in `config/config.yaml`
+  and lists files of the same type already present.
+- New `CORE_MASK_SUSPECT` warning: a core-genome mask that looks like a gene list (gene
+  names, more than 1 000 or overlapping intervals, or coverage outside 70-97% of the
+  reference) is flagged, with instructions to build the standard core mask.
+
 ### Provenance, parameters and portability audit fixes
 
 - Reports keep the pipeline version recorded when the run was made; the renderer version is

@@ -7,6 +7,7 @@ from typing import Any
 
 from pfvarx.configuration.loader import effective_config, load_bundle
 from pfvarx.initialization.layout import SAMPLE_COLUMNS
+from pfvarx.inputs.guidance import explain
 from pfvarx.inputs.organize import discover
 from pfvarx.inputs.registry import validate_all
 from pfvarx.io import write_json, write_tsv
@@ -17,6 +18,7 @@ VALIDATION_FIXES = {
     "REFERENCE_MISMATCH": "Use files that match the configured reference assembly and contig names.",
     "REFERENCE_MALFORMED": "Check the file format against the finding and replace malformed inputs.",
     "BED_MALFORMED": "Check tab-separated BED coordinates, contig names, and reference bounds.",
+    "CORE_MASK_SUSPECT": "Replace the file with the core-genome mask (Core regions of Miles et al. 2016).",
     "PRIMER_TABLE_MALFORMED": "Correct the primer TSV using the assay definitions and the reported field.",
     "METADATA_MISSING_FIELD": "Fill in the reported field in the sample sheet.",
     "METADATA_DUPLICATE_SAMPLE": "Review the sample sheet and correct duplicate sample/lane records.",
@@ -34,6 +36,37 @@ VALIDATION_FIXES = {
 }
 
 
+def _raw_config(root: Path) -> dict[str, Any]:
+    import yaml
+
+    try:
+        data = yaml.safe_load((root / "config/config.yaml").read_text())
+    except (OSError, yaml.YAMLError):
+        return {}
+    return data if isinstance(data, dict) else {}
+
+
+def summarise(report: dict[str, Any]) -> list[str]:
+    """Readable account of the validation result: what failed, why, and what to do."""
+    findings = [f for entry in report["reports"] for f in entry["findings"]]
+    failures = [f for f in findings if f["level"] == "FAIL"]
+    warnings = [f for f in findings if f["level"] == "WARNING"]
+    if not failures:
+        lines = [f"Validation {report['status']}: inputs are ready for ./pfvarx prepare." if not warnings else
+                 f"Validation {report['status']}, with {len(warnings)} warning(s) to review before ./pfvarx prepare."]
+        if report["status"] == "PARTIAL":
+            lines.append("Some samples failed and will be left out; see their entries below.")
+    else:
+        lines = [f"Validation {report['status']}: {len(failures)} problem(s) must be fixed before the pipeline can run."]
+    for number, f in enumerate(failures + warnings, start=1):
+        label = "Problem" if f["level"] == "FAIL" else "Warning"
+        lines.append(f"{label} {number}: {f['file']}. {f['why']}")
+        if f.get("used_for"):
+            lines.append(f"  Why it matters: {f['used_for']}")
+        lines += [f"  {step}. {action}" for step, action in enumerate(f["actions"], start=1)]
+    return lines
+
+
 def validate_inputs(root: Path) -> dict[str, Any]:
     bundle = load_bundle(root)
     cfg = bundle.config
@@ -41,11 +74,14 @@ def validate_inputs(root: Path) -> dict[str, Any]:
     if cfg.input_type.value == "FASTQ" and not sheet.exists() and not sheet.is_symlink():
         discover(root, root / "inputs/fastq", sheet)
     report = validate_all(root, bundle)
+    raw_config = _raw_config(root)
     for entry in report["reports"]:
         for finding in entry["findings"]:
             finding["solution"] = VALIDATION_FIXES.get(
                 finding["reason"], "Review the reported detail and correct the affected input or configuration."
             )
+            finding.update(explain(finding, entry["kind"], root, raw_config))
+    report["summary"] = summarise(report)
     write_json(root / "metadata/validation_report.json", report)
     matrix = []
     for entry in report["reports"]:
@@ -81,13 +117,7 @@ def prepare_inputs(root: Path, dry_run: bool = False) -> dict[str, Any]:
         raise ValueError(f"Created sample sheet template at {sheet}. Register or enter the samples, then rerun preparation.")
     validation = validate_inputs(root)
     if validation["status"] == "FAIL":
-        failures = [
-            f"{finding['path']}: {finding['detail']} Suggested fix: {finding['solution']}"
-            for entry in validation["reports"]
-            for finding in entry["findings"]
-            if finding["level"] == "FAIL"
-        ]
-        details = "\n".join(failures)
+        details = "\n".join(validation["summary"])
         raise ValueError(f"Input validation failed. See metadata/validation_report.json.\n{details}")
     result = prepare(root, bundle, False)
     verification = verify_prepared(root, bundle)
