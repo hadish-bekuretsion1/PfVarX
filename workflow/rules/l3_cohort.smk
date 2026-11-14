@@ -11,12 +11,37 @@ rule cohort_merge:
     log:
         str(LOGS / "cohort" / "merge.log"),
     run:
+        if not input.vcfs:
+            # final_targets never requests the cohort without an admitted sample; fail clearly
+            # rather than with a bcftools usage message if that contract is ever broken.
+            raise ValueError("cohort_merge needs at least one sample permitted into Layer 3")
         Path(output.samples).write_text("\n".join(Path(v).name.split(".")[0] for v in input.vcfs) + "\n")
         if len(input.vcfs) == 1:
             shell("(cp {input.vcfs[0]:q} {output.vcf:q} && bcftools index -t -f {output.vcf:q}) > {log:q} 2>&1")
         else:
             shell("(bcftools merge -m none -i - -Oz -o {output.vcf:q} {input.vcfs:q} "
                   "&& bcftools index -t {output.vcf:q}) > {log:q} 2>&1")
+
+
+def cohort_status_inputs(wc):
+    if passing("L3"):
+        return {"samples": str(R / "cohort" / "cohort_samples.txt")}
+    return {}
+
+
+rule cohort_status:
+    """Record whether a cohort was formed; with none, mark requested analyses as skipped."""
+    input:
+        unpack(cohort_status_inputs),
+        gates=lambda wc: [str(R / "qc" / "samples" / s / "qc_decision.json") for s in sorted(SAMPLES) if s not in EXCLUDED],
+    output:
+        str(R / "cohort" / "cohort_status.json"),
+    params:
+        empty=lambda wc: "--empty" if not passing("L3") else "",
+    log:
+        str(LOGS / "cohort" / "status.log"),
+    shell:
+        "python -m pfvarx.downstream.run --cohort-status {params.empty} --run-dir {RUN:q} --root {ROOT:q} > {log:q} 2>&1"
 
 
 rule cohort_evidence:

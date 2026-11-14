@@ -14,7 +14,7 @@ REPO = Path(__file__).resolve().parents[2]
 NEED = ("samtools", "bwa-mem2", "fastp", "snakemake", "picard")
 
 
-def _ws(tmp: Path, design: str, fo: str) -> Path:
+def _ws(tmp: Path, design: str, fo: str, depth: int = 15) -> Path:
     if any(shutil.which(t) is None for t in NEED):
         pytest.skip("bioinformatics tools not on PATH (run inside 'pixi run')")
     ws = tmp / "ws"
@@ -41,7 +41,7 @@ def _ws(tmp: Path, design: str, fo: str) -> Path:
         cfg["assay"]["read_structure"] = "8M+T 8M+T"
     (ws / "config/config.yaml").write_text(yaml.safe_dump(cfg))
     assert run("init").returncode == 0
-    assert run("fixture", "--design", design, "--depth", "15").returncode == 0
+    assert run("fixture", "--design", design, "--depth", str(depth)).returncode == 0
     assert run("validate").returncode == 0
     assert run("prepare").returncode == 0
     return ws
@@ -107,3 +107,55 @@ def test_umi_route_survives_fixed_read_structure_and_short_reads(tmp_path: Path)
     result = json.loads(r.stdout)
     assert result["status"] == "COMPLETED", result
     assert (ws / "runs" / result["run_id"] / "results/alignments/PF001.bam").is_file()
+
+
+def _umi_to_resistance(tmp_path: Path, depth: int) -> tuple[Path, dict]:
+    import json
+
+    if shutil.which("fgbio") is None or shutil.which("snpEff") is None:
+        pytest.skip("fgbio or snpEff not on PATH (targeted/annotation features not installed)")
+    ws = _ws(tmp_path, "TARGETED_UMI", "FO002", depth=depth)
+    cfg = yaml.safe_load((ws / "config/config.yaml").read_text())
+    cfg["final_output"] = "FO004"
+    cfg["reference"]["gff"] = "inputs/reference/Pf3D7.gff"
+    cfg["analyses"].update(requested=["DA002"], resistance_catalog="inputs/metadata/test_resistance_catalog.tsv")
+    (ws / "config/config.yaml").write_text(yaml.safe_dump(cfg))
+    sheet = ws / "inputs/metadata/samples.tsv"
+    sheet.write_text("\n".join(sheet.read_text().splitlines()[:4]) + "\n")
+    r = subprocess.run(["pfvarx", "pipeline"], cwd=ws, capture_output=True, text=True)
+    assert r.returncode == 0, r.stdout[-3000:] + r.stderr[-3000:]
+    result = json.loads(r.stdout)
+    return ws / "runs" / result["run_id"] / "results", result
+
+
+def test_no_sample_passing_qc_skips_cohort_instead_of_crashing(tmp_path: Path) -> None:
+    """Shallow UMI families fail the amplicon-dropout gate for every sample: the run must
+    finish with an explicit empty-cohort outcome, not a bcftools merge on no files."""
+    import json
+
+    res, result = _umi_to_resistance(tmp_path, depth=15)
+    assert result["status"] == "COMPLETED", result
+    for gate in (res / "qc/samples").glob("*/qc_decision.json"):
+        assert json.loads(gate.read_text())["verdict"] == "FAIL"
+    status = json.loads((res / "cohort/cohort_status.json").read_text())
+    assert status["status"] == "SKIPPED_NO_ELIGIBLE_SAMPLES" and status["cohort_samples"] == []
+    assert not (res / "cohort/cohort.vcf.gz").exists()
+    manifest = json.loads((res / "downstream/DA002/status_manifest.json").read_text())
+    assert manifest["terminal_state"] == "SKIPPED_INELIGIBLE"
+    assert "NO_ELIGIBLE_SAMPLES" in manifest["reason_codes"]
+    assert (res / "report/pfvarx_dashboard.html").is_file()
+
+
+def test_umi_route_reaches_resistance_analysis(tmp_path: Path) -> None:
+    """With deep enough UMI families the targeted UMI route runs through calling, cohort,
+    annotation and DA002 (the shallow fixture above never gets past QC)."""
+    import json
+
+    res, result = _umi_to_resistance(tmp_path, depth=60)
+    assert result["status"] == "COMPLETED", result
+    for gate in (res / "qc/samples").glob("*/qc_decision.json"):
+        assert json.loads(gate.read_text())["verdict"] != "FAIL"
+    assert json.loads((res / "cohort/cohort_status.json").read_text())["status"] == "COMPLETED"
+    assert (res / "cohort/cohort.vcf.gz.tbi").is_file() and (res / "annotation/cohort.ann.vcf.gz.tbi").is_file()
+    manifest = json.loads((res / "downstream/DA002/status_manifest.json").read_text())
+    assert manifest["terminal_state"].startswith("COMPLETED"), manifest

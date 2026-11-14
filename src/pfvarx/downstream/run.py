@@ -2,6 +2,7 @@
 
     python -m pfvarx.downstream.run --eligibility --run-dir RUN --root ROOT
     python -m pfvarx.downstream.run --da DA006 --run-dir RUN --root ROOT
+    python -m pfvarx.downstream.run --cohort-status [--empty] --run-dir RUN --root ROOT
 
 A scientific exclusion ends in a terminal status manifest, never in a non-zero exit;
 a non-zero exit is reserved for genuine execution failures.
@@ -15,10 +16,58 @@ import sys
 from pathlib import Path
 from typing import Any
 
-from pfvarx.constants import Terminal
+from pfvarx.constants import Reason, Terminal
 from pfvarx.downstream.common import Context, load_context, write_manifest
 from pfvarx.eligibility.engine import SampleState, apply_strict, assess, load_registry
 from pfvarx.io import read_tsv, write_json, write_tsv
+
+COHORT_STATUS_SCHEMA = "pfvarx.cohort_status/1"
+
+
+def write_cohort_status(ctx: Context, empty: bool) -> None:
+    """Record the Layer 3 outcome. Without an admitted sample, skip Layers 3-5 explicitly.
+
+    An empty cohort is a scientific outcome (every sample was blocked by input validation,
+    its QC gate or a run-time failure), not an execution failure: every requested analysis
+    receives a SKIPPED_INELIGIBLE manifest so reports and denominators stay complete.
+    """
+    registered = sorted({s["sample_id"] for s in ctx.plan["samples"]}
+                        | set(ctx.plan.get("samples_failed_validation", [])))
+    blocked: dict[str, str] = {}
+    for sid in registered:
+        if sid in ctx.plan.get("samples_failed_validation", []):
+            blocked[sid] = "INPUT_VALIDATION_FAILED"
+            continue
+        try:
+            gate = ctx.gate(sid)
+        except FileNotFoundError:
+            blocked[sid] = "QC_NOT_EVALUATED"
+            continue
+        if not gate.get("permitted", {}).get("L3"):
+            blocked[sid] = Reason.QC_GATE_FAIL.value if gate.get("verdict") == "FAIL" else Reason.QC_GATE_WARNING.value
+    members = [] if empty else ctx.samples
+    status = "SKIPPED_NO_ELIGIBLE_SAMPLES" if empty else "COMPLETED"
+    skipped: list[str] = []
+    layers = ctx.plan["layers"]
+    if empty and 5 in layers:
+        registry = load_registry(ctx.root)
+        das = list(dict.fromkeys([*ctx.plan.get("analyses_requested", []), *ctx.plan.get("analyses_internal", [])]))
+        for da in das:
+            write_manifest(ctx, da, Terminal.SKIPPED_INELIGIBLE.value,
+                           reason_codes=[Reason.NO_ELIGIBLE_SAMPLES.value, Reason.NO_COHORT.value],
+                           requested=[], eligible=[], excluded={}, analysed=[], outputs=[],
+                           caveats=["No sample passed input validation and QC into the cohort; "
+                                    "no scientific output was produced for this analysis."],
+                           method=registry["analyses"][da])
+            skipped.append(da)
+    write_json(ctx.results / "cohort" / "cohort_status.json", {
+        "schema": COHORT_STATUS_SCHEMA, "status": status, "run_id": ctx.run.name,
+        "cohort_samples": members, "blocked_samples": blocked,
+        "layers_skipped": [layer for layer in (3, 4, 5) if layer in layers] if empty else [],
+        "analyses_skipped": skipped,
+        "recommended_action": ("Review the per-sample QC decisions in results/qc/samples/; no sample "
+                               "qualified for cohort analysis." if empty else None),
+    })
 
 
 def clonality_map(ctx: Context) -> dict[str, str] | None:
@@ -136,10 +185,14 @@ def main(argv: list[str] | None = None) -> None:
     ap.add_argument("--root", required=True)
     ap.add_argument("--da")
     ap.add_argument("--eligibility", action="store_true")
+    ap.add_argument("--cohort-status", action="store_true")
+    ap.add_argument("--empty", action="store_true", help="with --cohort-status: no sample entered Layer 3")
     ap.add_argument("--threads", type=int, default=1)
     a = ap.parse_args(argv)
-    ctx = load_context(Path(a.root), Path(a.run_dir), with_matrix=not a.eligibility)
-    if a.eligibility:
+    ctx = load_context(Path(a.root), Path(a.run_dir), with_matrix=not (a.eligibility or a.cohort_status))
+    if a.cohort_status:
+        write_cohort_status(ctx, a.empty)
+    elif a.eligibility:
         run_eligibility(ctx)
     elif a.da:
         run_da(ctx, a.da, a.threads)
