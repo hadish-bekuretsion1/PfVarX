@@ -25,3 +25,23 @@ nav button[aria-pressed="true"] {
 nav button[aria-pressed="true"]::before {
     content: "✓ ";
 }
+
+/* Tab bars (workflow steps and input file categories) stay on one horizontal line.
+   Tabs share the width by label length; on narrow screens the bar scrolls sideways instead of wrapping. */
+nav {
+    display: flex;
+    flex-wrap: nowrap;
+    gap: .3rem;
+    overflow-x: auto;
+    margin: 1rem 0;
+    padding-bottom: .2rem;
+}
+
+nav button {
+    flex: 1 1 auto;
+    min-width: 6.5rem;
+    max-width: none;
+    margin: 0;
+    line-height: 1.25;
+    overflow-wrap: normal;
+}
