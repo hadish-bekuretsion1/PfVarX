@@ -81,7 +81,7 @@
   },
   "config.reference.snpeff_genome_id": {
     "example": "null or Pf3D7_study",
-    "help": "Leave unset for the pipeline default. Set a reviewed identifier for the reference-matched SnpEff database when needed."
+    "help": "Leave unset to derive the ID from the release label (other characters become underscores, for example pfvarx_Pf3D7_release_unknown). Set a reviewed identifier for the reference-matched SnpEff database when needed, using letters, digits, dots, underscores and hyphens only."
   },
   "config.analyses.selection": {
     "example": "explicit or auto",

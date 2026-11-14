@@ -149,3 +149,24 @@ def test_standard_input_folders_resolve_to_template_files(workspace: Path) -> No
     assert resolved.reference.fasta == Path("inputs/reference/Pf3D7.fasta")
     assert resolved.reference.core_mask_bed == Path("inputs/reference/core_genome.bed")
     assert resolved.samples_tsv == Path("inputs/metadata/samples.tsv")
+
+
+def test_snpeff_genome_id_is_safe_for_any_release_label() -> None:
+    """A release label with spaces ('Pf3D7 - release unknown') broke the SnpEff database build."""
+    import pytest
+    from pydantic import ValidationError
+
+    from pfvarx.annotation.snpeff_db import GENOME_ID_PATTERN, genome_id
+    from pfvarx.configuration.models import ReferenceConfig
+
+    assert genome_id(None, "Pf3D7 - release unknown") == "pfvarx_Pf3D7_release_unknown"
+    assert genome_id(None, "PlasmoDB 68") == "pfvarx_PlasmoDB_68"
+    assert genome_id(None, "synthetic") == "pfvarx_synthetic"
+    assert genome_id(None, " ¿? ") == "pfvarx_reference"
+    assert genome_id("Pf3D7_study", "anything at all") == "Pf3D7_study"
+    import re
+    assert all(re.match(GENOME_ID_PATTERN, genome_id(None, label)) for label in ("a b", "x/y", "release: 2020-09"))
+    base = {"fasta": "f.fasta", "core_mask_bed": "c.bed", "release_label": "r"}
+    assert ReferenceConfig(**base, snpeff_genome_id="Pf3D7_v3.1").snpeff_genome_id == "Pf3D7_v3.1"
+    with pytest.raises(ValidationError):
+        ReferenceConfig(**base, snpeff_genome_id="Pf3D7 v3")

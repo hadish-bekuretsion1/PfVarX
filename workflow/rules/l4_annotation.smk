@@ -1,6 +1,8 @@
 # Layer 4: SnpEff with a database built from the pinned reference and GFF; mismatch is FAIL.
 
-GENOME_ID = CFG["reference"].get("snpeff_genome_id") or f"pfvarx_{CFG['reference']['release_label']}"
+from pfvarx.annotation.snpeff_db import genome_id
+
+GENOME_ID = genome_id(CFG["reference"].get("snpeff_genome_id"), CFG["reference"]["release_label"])
 SNPEFF_DIR = ROOT / "prepared" / "snpeff"
 
 

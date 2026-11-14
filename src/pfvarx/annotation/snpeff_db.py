@@ -22,6 +22,20 @@ from pfvarx.io import sha256
 # Plasmodium mitochondrial genes (cox1, cox3, cytb) read TGA as Trp; the standard table would
 # report a premature stop there.
 MITOCHONDRIAL_TABLE = "Protozoan_Mitochondrial"
+GENOME_ID_PATTERN = r"^[A-Za-z0-9][A-Za-z0-9._-]*$"
+
+
+def genome_id(configured: str | None, release_label: str) -> str:
+    """SnpEff database ID: the configured one, or one derived from the reference release label.
+
+    SnpEff reads '<id>.genome' keys from its config file, so the ID may hold only letters,
+    digits, dots, underscores and hyphens. Each run of other characters, together with any
+    separators around it, becomes one underscore ('Pf3D7 - release unknown' ->
+    'pfvarx_Pf3D7_release_unknown')."""
+    if configured:
+        return configured
+    safe = re.sub(r"[^A-Za-z0-9.]+", "_", release_label).strip("_.")
+    return f"pfvarx_{safe or 'reference'}"
 MITOCHONDRIAL_CODONS = (
     "TTT/F, TTC/F, TTA/L+, TTG/L+, TCT/S, TCC/S, TCA/S, TCG/S, TAT/Y, TAC/Y, TAA/*, TAG/*, "
     "TGT/C, TGC/C, TGA/W, TGG/W, CTT/L, CTC/L, CTA/L, CTG/L+, CCT/P, CCC/P, CCA/P, CCG/P, "

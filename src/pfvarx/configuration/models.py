@@ -74,7 +74,10 @@ class ReferenceConfig(Strict):
     gff: Path | None = None
     core_mask_bed: Path
     release_label: str = Field(description="PlasmoDB release, e.g. '68'; recorded in provenance")
-    snpeff_genome_id: str | None = None
+    snpeff_genome_id: str | None = Field(
+        default=None, pattern=r"^[A-Za-z0-9][A-Za-z0-9._-]*$",
+        description="SnpEff database ID: letters, digits, dots, underscores and hyphens only",
+    )
 
 
 class AnalysesConfig(Strict):

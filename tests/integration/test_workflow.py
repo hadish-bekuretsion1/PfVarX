@@ -65,6 +65,8 @@ def test_end_to_end_annotated_run_writes_indexed_bgzf(tmp_path: Path) -> None:
     cfg = yaml.safe_load((ws / "config/config.yaml").read_text())
     cfg["final_output"] = "FO004"
     cfg["reference"]["gff"] = "inputs/reference/Pf3D7.gff"
+    # A release label with spaces once broke the SnpEff database ID; keep one here.
+    cfg["reference"]["release_label"] = "Pf3D7 - release unknown"
     cfg["analyses"].update(requested=["DA002"], resistance_catalog="inputs/metadata/test_resistance_catalog.tsv")
     (ws / "config/config.yaml").write_text(yaml.safe_dump(cfg))
     # Keep three samples: enough for a cohort, quick enough for continuous integration.

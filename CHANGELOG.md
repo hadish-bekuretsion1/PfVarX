@@ -5,6 +5,15 @@
 The release version was reset to 0.0.0 after 0.4.2, as the baseline for the first reviewed
 release. The sections below 0.0.0 are the earlier development numbering, kept as history.
 
+### SnpEff database ID safe for any release label
+
+- The SnpEff database ID derived from `reference.release_label` now keeps only letters,
+  digits, dots and underscores (`Pf3D7 - release unknown` becomes
+  `pfvarx_Pf3D7_release_unknown`). A label with spaces made SnpEff fail to read its own
+  configuration, so annotation and every FO004 analysis failed. A configured
+  `reference.snpeff_genome_id` must use letters, digits, dots, underscores and hyphens;
+  the GUI help says so. The annotated integration test now uses a label with spaces.
+
 ### Inputs recognised by content, not name
 
 - Every input file is identified from its bytes and structure (FASTA, FASTQ, BAM, CRAM,
