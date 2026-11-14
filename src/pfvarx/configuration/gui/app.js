@@ -470,7 +470,7 @@ async function loadFileTabs() {
     tabs.replaceChildren();
     transferRole = undefined;
     try {
-        const {folders, extensions, annotation} = await request("input-folders");
+        const {folders, contents, annotation} = await request("input-folders");
         const labels = {
             fastq: [["FASTQ reads", "fastq"]],
             alignments: [["Alignments and indexes", "alignments"]],
@@ -492,9 +492,9 @@ async function loadFileTabs() {
                     transferRole = role;
                     byId("raw-files").value = "";
                     for (const tab of tabs.children) tab.setAttribute("aria-pressed", String(tab === button));
-                    const allowed = extensions[role];
-                    byId("raw-files").accept = allowed.join(",");
-                    destination.textContent = label + " → " + folder + "/. Accepted extensions: " + allowed.join(", ");
+                    // Files are accepted by their content, checked after upload; names are not filtered.
+                    byId("raw-files").removeAttribute("accept");
+                    destination.textContent = label + " → " + folder + "/. Accepted content: " + contents[role].join("; ") + ".";
                 });
                 tabs.append(button);
             }

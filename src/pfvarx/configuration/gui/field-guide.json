@@ -21,7 +21,7 @@
   },
   "config.samples_tsv": {
     "example": "inputs/metadata/samples.tsv",
-    "help": "For FASTQ input, validation or preparation creates a missing sample sheet from paired reads. Review the inferred IDs. For BAM input, preparation creates a blank template if needed. Add study metadata to the sample sheet TSV by sample_id. Preserve read paths, lane and library IDs. Repeat consistent sample-level values across lanes. DA007 uses country, latitude and longitude in decimal degrees, and collection_date in YYYY-MM-DD. For grouped analyses use population or the configured grouping column. Extra columns such as age_group or study_arm can be retained for study records. Store any separate marker catalogue in the same folder."
+    "help": "For FASTQ input, validation or preparation creates a missing sample sheet from paired reads. Review the inferred IDs. For BAM input, preparation creates a blank template if needed. Add study metadata to the sample sheet TSV by sample_id. Preserve read paths, lane and library IDs. Repeat consistent sample-level values across lanes. DA007 uses country, latitude and longitude in decimal degrees, and collection_date in YYYY-MM-DD. For grouped analyses use population or the configured grouping column. Extra columns such as age_group or study_arm can be retained for study records. Store any separate marker catalogue in the same folder. If you give only a folder, PfVarX uses the one file in it whose content is a sample sheet; with none or several, validation asks for the full path."
   },
   "config.run_policy": {
     "example": "CONTINUE_INDEPENDENT or STRICT",
@@ -65,11 +65,11 @@
   },
   "config.reference.fasta": {
     "example": "inputs/reference/Pf3D7.fasta",
-    "help": "Use the exact parasite assembly underlying the reads or existing alignment. Enter the full file path, including the filename. Relative paths start at the study workspace."
+    "help": "Use the exact parasite assembly underlying the reads or existing alignment. Enter the full file path, including the filename. Relative paths start at the study workspace. If you give only a folder, PfVarX uses the one file in it whose content is a FASTA sequence; with none or several, validation asks for the full path."
   },
   "config.reference.core_mask_bed": {
     "example": "inputs/reference/core_genome.bed",
-    "help": "The accessible core of the genome: the Core regions of Miles et al. 2016, as used by MalariaGEN, not a gene list. Variants are called and depth QC is measured only inside it. Check contig names and coordinates against the FASTA. Enter the full file path, including the filename. Relative paths start at the study workspace."
+    "help": "The accessible core of the genome: the Core regions of Miles et al. 2016, as used by MalariaGEN, not a gene list. Variants are called and depth QC is measured only inside it. Check contig names and coordinates against the FASTA. Enter the full file path, including the filename. Relative paths start at the study workspace. If you give only a folder, PfVarX uses the one file in it whose content is BED intervals; with none or several, validation asks for the full path."
   },
   "config.reference.release_label": {
     "help": "Record the exact release of your FASTA and GFF, checked against its download record or accompanying README. Use PlasmoDB 68 only if you verified that release. The template placeholder SET_REFERENCE_RELEASE must be replaced before input directories are created.",
@@ -77,7 +77,7 @@
   },
   "config.reference.gff": {
     "example": "inputs/reference/Pf3D7.gff or null",
-    "help": "Use the GFF from the same release as the FASTA. It is needed for explicit FO004 and enables annotation and marker outcomes in automatic FO004. The folder inputs/reference/ resolves to inputs/reference/Pf3D7.gff. Enter the full file path, including the filename. Relative paths start at the study workspace."
+    "help": "Use the GFF from the same release as the FASTA. It is needed for explicit FO004 and enables annotation and marker outcomes in automatic FO004. If you give only a folder, PfVarX uses the one file in it whose content is a GFF3 annotation; with none or several, validation asks for the full path. Enter the full file path, including the filename. Relative paths start at the study workspace."
   },
   "config.reference.snpeff_genome_id": {
     "example": "null or Pf3D7_study",
@@ -101,7 +101,7 @@
   },
   "config.analyses.resistance_catalog": {
     "example": "null or inputs/metadata/verified_catalog.tsv",
-    "help": "Use a reference-matched, independently verified catalogue for real marker outcomes. Null selects the shipped catalogue, whose draft status blocks real marker analysis. The folder inputs/metadata/ resolves to inputs/metadata/verified_catalog.tsv."
+    "help": "Use a reference-matched, independently verified catalogue for real marker outcomes. Null selects the shipped catalogue, whose draft status blocks real marker analysis. If you give only a folder, PfVarX uses the one file in it whose content is a marker catalogue; with none or several, validation asks for the full path."
   },
   "config.analyses.spatial_outcome_source": {
     "example": "null or DA002",

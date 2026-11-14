@@ -15,6 +15,7 @@ from pathlib import Path
 from typing import IO, Any
 
 from pfvarx.constants import Design, InputType, Reason
+from pfvarx.inputs.content import content_problem, open_text
 from pfvarx.io import read_tsv
 
 PHRED33_MIN, PHRED33_MAX = 33, 33 + 93
@@ -52,9 +53,8 @@ class FileReport:
 
 
 def _open(path: Path) -> IO[str]:
-    if path.suffix == ".gz":
-        return gzip.open(path, "rt", encoding="ascii", errors="replace")
-    return path.open("rt", encoding="ascii", errors="replace")
+    """Text handle; gzip is recognised from the content, not from the file name."""
+    return open_text(path)  # type: ignore[no-any-return]
 
 
 def _fastq_records(handle: IO[str]) -> Iterator[tuple[str, str, str]]:
@@ -84,6 +84,8 @@ def validate_fastq_pair(r1: Path, r2: Path, encoding_records: int) -> FileReport
     for p in (r1, r2):
         if not p.is_file():
             rep.fail(Reason.FILE_MISSING, f"{p} does not exist")
+        elif problem := content_problem(p, ("FASTQ",)):
+            rep.fail(Reason.CONTENT_MISMATCH, problem)
     if rep.status == "FAIL":
         return rep
     n = 0
@@ -239,6 +241,73 @@ def merge_intervals(intervals: list[tuple[str, int, int]]) -> list[tuple[str, in
 
 
 PRIMER_HEADER = ["chrom", "left_start", "left_end", "right_start", "right_end"]
+
+
+def validate_gff(path: Path, contigs: dict[str, dict[str, Any]]) -> FileReport:
+    """GFF3 structure: nine tab-separated columns, reference contigs, coordinates inside them,
+    and the gene/CDS features that annotation and resistance codons need."""
+    rep = FileReport(path=str(path), kind="GFF")
+    if not path.is_file():
+        rep.fail(Reason.FILE_MISSING, "GFF not found")
+        return rep
+    features: dict[str, int] = {}
+    unknown: set[str] = set()
+    with _open(path) as handle:
+        for i, line in enumerate(handle, start=1):
+            if line.startswith("##FASTA"):
+                break
+            if not line.strip() or line.startswith("#"):
+                continue
+            cells = line.rstrip("\n").split("\t")
+            if len(cells) != 9 or not cells[3].isdigit() or not cells[4].isdigit():
+                rep.fail(Reason.GFF_MALFORMED, "need nine tab-separated columns with integer start and end", i)
+                break
+            seqid, start, end = cells[0], int(cells[3]), int(cells[4])
+            if seqid not in contigs:
+                unknown.add(seqid)
+            elif not 1 <= start <= end <= contigs[seqid]["length"]:
+                rep.fail(Reason.GFF_MALFORMED, f"{seqid}:{start}-{end} is outside the contig (GFF is one-based)", i)
+                break
+            features[cells[2]] = features.get(cells[2], 0) + 1
+    if unknown:
+        rep.fail(Reason.REFERENCE_MISMATCH, "contigs not in the reference FASTA: " + ", ".join(sorted(unknown)[:5]))
+    # PlasmoDB types genes as protein_coding_gene, ncRNA_gene or pseudogene; any *gene type counts.
+    has_genes = any(kind.lower().endswith("gene") for kind in features)
+    if rep.status != "FAIL" and not (has_genes and features.get("CDS")):
+        rep.fail(Reason.GFF_MALFORMED, "no gene and CDS features; annotation and resistance codons need both")
+    rep.facts = {"features": dict(sorted(features.items()))}
+    return rep
+
+
+CATALOG_COLUMNS = ("marker_id", "gene_id", "gene_name", "chrom", "codon", "codon_start", "strand", "ref_aa", "alt_aa")
+
+
+def validate_catalog(path: Path) -> FileReport:
+    """Resistance catalogue structure: '#key=value' metadata (with status) and the marker columns."""
+    rep = FileReport(path=str(path), kind="CATALOGUE")
+    if not path.is_file():
+        rep.fail(Reason.FILE_MISSING, "catalogue not found")
+        return rep
+    meta: dict[str, str] = {}
+    header: list[str] | None = None
+    markers = 0
+    for line in path.read_text(errors="replace").splitlines():
+        if line.startswith("#") and "=" in line:
+            key, value = line[1:].split("=", 1)
+            meta[key.strip()] = value.strip()
+        elif line.strip() and header is None:
+            header = line.split("\t")
+        elif line.strip():
+            markers += 1
+    missing = [c for c in CATALOG_COLUMNS if c not in (header or [])]
+    if missing:
+        rep.fail(Reason.CATALOG_MALFORMED, "missing columns: " + ", ".join(missing))
+    elif not markers:
+        rep.fail(Reason.CATALOG_MALFORMED, "no marker rows")
+    if "status" not in meta:
+        rep.warn(Reason.CATALOG_MALFORMED, "no '#status=' line; DA002 runs only for MAINTAINER_VERIFIED or TEST_FIXTURE")
+    rep.facts = {"markers": markers, "status": meta.get("status")}
+    return rep
 
 
 def validate_primers(path: Path, contigs: dict[str, dict[str, Any]]) -> FileReport:

@@ -110,7 +110,7 @@ truth, results or masks. Populate the input paths from your own verified resourc
 | GFF3 | Required for explicit FO004 and for annotation/marker outcomes in automatic FO004 |
 | Targets / primers | Required for targeted assays, matched to the reference |
 
-Reference and input paths may be absolute or relative to the workspace root. Original
+Reference and input paths may be absolute or relative to the workspace root. Files are recognised by their content, not their names: any name works as long as the content is right (a gzip-compressed FASTQ must still end in `.gz`, which fastp requires). If a setting names only a folder, PfVarX uses the one file in it with suitable content; see [supported input content](../configuration.md#supported-input-content). Original
 inputs are read only; derived indexes are created under `prepared/`, not beside the
 original FASTA. An unset GFF is valid for FO001–FO003. If a GFF path is configured,
 validation expects that file even when annotation is not requested. Record the actual

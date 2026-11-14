@@ -39,8 +39,11 @@ def test_registration_links_without_copy_and_refuses_overwrite(workspace, tmp_pa
     config_init(workspace, "analysis")
     r1 = tmp_path / "S_R1.fastq.gz"
     r2 = tmp_path / "S_R2.fastq.gz"
-    r1.write_bytes(b"original1")
-    r2.write_bytes(b"original2")
+    import gzip
+
+    r1.write_bytes(gzip.compress(b"@r1/1\nACGT\n+\nIIII\n"))
+    r2.write_bytes(gzip.compress(b"@r1/2\nACGT\n+\nIIII\n"))
+    original = r1.read_bytes()
     sheet = tmp_path / "register.tsv"
     sheet.write_text(f"sample_id\tlane\tlibrary_id\tfastq_1\tfastq_2\nS\tL1\tLIB\t{r1}\t{r2}\n")
     result = register(workspace, sheet, "link")
@@ -49,7 +52,7 @@ def test_registration_links_without_copy_and_refuses_overwrite(workspace, tmp_pa
     assert all(p.is_symlink() for p in (workspace / "inputs/fastq").iterdir())
     with pytest.raises(ValueError, match="exists"):
         register(workspace, sheet, "link")
-    assert r1.read_bytes() == b"original1"
+    assert r1.read_bytes() == original
 
 
 def test_registration_rejects_path_traversal_without_partial_sheet(workspace, tmp_path):
@@ -131,10 +134,10 @@ def test_fetch_checks_hash_and_never_overwrites(tmp_path, monkeypatch):
 
     class Opener:
         def open(self, *args, **kwargs):
-            return Response(b"verified bytes")
+            return Response(b">chr1\nACGT\n")
 
     monkeypatch.setattr("urllib.request.build_opener", lambda *args: Opener())
-    digest = hashlib.sha256(b"verified bytes").hexdigest()
+    digest = hashlib.sha256(b">chr1\nACGT\n").hexdigest()
     with pytest.raises(ValueError, match="checksum"):
         fetch(tmp_path, "https://example.org/file", "0" * 64, "reference", "ref.fa")
     assert not (tmp_path / "inputs/reference/ref.fa").exists()
@@ -147,6 +150,12 @@ def test_fetch_checks_hash_and_never_overwrites(tmp_path, monkeypatch):
         fetch(tmp_path, "https://example.org/file", digest, "reference", "ref.fa")
     with pytest.raises(ValueError, match="HTTPS"):
         fetch(tmp_path, "http://example.org/file", digest, "reference", "other.fa")
+    # A download is kept only if its content belongs in the folder; the name decides nothing.
+    monkeypatch.setattr("urllib.request.build_opener", lambda *args: type("O", (), {
+        "open": lambda self, *a, **k: Response(b"just some notes")})())
+    with pytest.raises(ValueError, match="contains unrecognised content"):
+        fetch(tmp_path, "https://example.org/file", None, "reference", "notes.fasta")
+    assert not (tmp_path / "inputs/reference/notes.fasta").exists()
 
 
 def test_prepared_verification_rejects_corruption_and_dictionary_mismatch(workspace):

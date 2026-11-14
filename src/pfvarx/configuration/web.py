@@ -29,7 +29,7 @@ from pfvarx.configuration.loader import (
 from pfvarx.configuration.models import Bundle
 from pfvarx.execution.retention import workspace_lock
 from pfvarx.initialization.layout import check_release_label, create_input_dirs, required_dirs
-from pfvarx.inputs.transfer import destination_for, download, folder_extensions
+from pfvarx.inputs.transfer import check_content, destination_for, download, folder_contents
 from pfvarx.io import atomic_write_text, read_json, within
 
 
@@ -235,7 +235,7 @@ class Handler(BaseHTTPRequestHandler):
                 folders = [folder for folder in required_dirs(cfg) if (self.root / folder).is_dir()]
                 self.respond({
                     "folders": folders,
-                    "extensions": folder_extensions(self.root),
+                    "contents": folder_contents(self.root),
                     "annotation": cfg.reference.gff is not None,
                 })
             elif name == "workflow-status":
@@ -270,6 +270,7 @@ class Handler(BaseHTTPRequestHandler):
                             staged.write(block)
                             remaining -= len(block)
                         staged.flush()
+                        check_content(self.root, Path(staged.name), destination)
                         os.link(staged.name, destination)
                 self.respond({"path": str(destination.relative_to(self.root)), "bytes": size})
                 return

@@ -1,8 +1,9 @@
 """Input-file transfer rules shared by the configuration GUI and the CLI.
 
 Both interfaces place a file in ``inputs/<role>/`` through the same checks: the folder must
-belong to the saved configuration and already exist, the filename must be plain and carry an
-extension accepted for that folder, and an existing destination is never overwritten.
+belong to the saved configuration and already exist, the filename must be plain, the file's
+*content* must be a kind that folder holds (the name and extension are not used to decide
+that), and an existing destination is never overwritten.
 """
 
 from __future__ import annotations
@@ -16,20 +17,28 @@ from typing import Any
 
 from pfvarx.configuration.loader import load_bundle
 from pfvarx.initialization.layout import required_dirs
-from pfvarx.inputs.formats import FOLDER_FORMATS, check_extension
+from pfvarx.inputs.content import ALIGNMENT_KINDS, FOLDER_KINDS, KINDS, require
 from pfvarx.inputs.organize import fetch
 from pfvarx.io import sha256, within
 
-ALIGNMENT_FORMATS = {"BAM": (".bam", ".bai", ".csi"), "CRAM": (".cram", ".crai", ".csi")}
 
-
-def folder_extensions(root: Path) -> dict[str, tuple[str, ...]]:
-    """Accepted extensions per input folder for the saved configuration."""
+def folder_kinds(root: Path) -> dict[str, tuple[str, ...]]:
+    """Content kinds each input folder accepts for the saved configuration."""
     cfg = load_bundle(root).config
-    extensions = dict(FOLDER_FORMATS)
-    if cfg.input_type.value in ALIGNMENT_FORMATS:
-        extensions["alignments"] = ALIGNMENT_FORMATS[cfg.input_type.value]
-    return extensions
+    kinds = dict(FOLDER_KINDS)
+    if cfg.input_type.value in ALIGNMENT_KINDS:
+        kinds["alignments"] = ALIGNMENT_KINDS[cfg.input_type.value]
+    return kinds
+
+
+def folder_contents(root: Path) -> dict[str, list[str]]:
+    """Plain-language description of what each input folder accepts (shown in the GUI)."""
+    return {role: [KINDS[k] for k in kinds] for role, kinds in folder_kinds(root).items()}
+
+
+def check_content(root: Path, staged: Path, destination: Path) -> None:
+    """Refuse a staged file whose content does not belong in its destination folder."""
+    require(staged, folder_kinds(root)[destination.parent.name], destination.name)
 
 
 def destination_for(root: Path, name: str, role: str = "raw") -> Path:
@@ -41,7 +50,6 @@ def destination_for(root: Path, name: str, role: str = "raw") -> Path:
         role = "fastq" if cfg.input_type.value == "FASTQ" else "alignments"
     if f"inputs/{role}" not in required_dirs(cfg) or role == "partitions":
         raise ValueError("Input folder is unavailable for the saved configuration")
-    check_extension(name, folder_extensions(root)[role], role)
     folder = within(root, f"inputs/{role}")
     if not folder.is_dir():
         raise ValueError("Save the configuration and create input directories first")
@@ -54,7 +62,8 @@ def destination_for(root: Path, name: str, role: str = "raw") -> Path:
 def download(root: Path, url: str, expected: str | None, role: str, name: str) -> dict[str, Any]:
     """Download one HTTPS resource to its checked destination."""
     destination = destination_for(root, name, role)
-    return fetch(root, url, expected, destination.parent.name, destination.name)
+    return fetch(root, url, expected, destination.parent.name, destination.name,
+                 check=lambda staged: check_content(root, staged, destination))
 
 
 def import_file(root: Path, source: Path, role: str = "raw", name: str | None = None) -> dict[str, Any]:
@@ -65,6 +74,7 @@ def import_file(root: Path, source: Path, role: str = "raw", name: str | None = 
     if source.stat().st_size == 0:
         raise ValueError(f"Input file is empty: {source}")
     destination = destination_for(root, name or source.name, role)
+    check_content(root, source, destination)
     with tempfile.NamedTemporaryFile(dir=destination.parent, prefix=".import-") as staged:
         with source.open("rb") as handle:
             shutil.copyfileobj(handle, staged, 1024 * 1024)

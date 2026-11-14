@@ -9,7 +9,7 @@ from pfvarx.configuration.loader import load_parameters, param
 from pfvarx.configuration.models import Bundle
 from pfvarx.constants import Design, InputType
 from pfvarx.inputs import validate as v
-from pfvarx.inputs.formats import FORMATS, check_extension
+from pfvarx.inputs.content import SETTING_KINDS, content_problem
 
 
 def required_metadata(bundle: Bundle) -> set[str]:
@@ -28,18 +28,18 @@ def validate_all(root: Path, bundle: Bundle) -> dict[str, Any]:
     cfg = bundle.config
     params = load_parameters(root)
     reports: list[v.FileReport] = []
-    for role, path in (
-        ("fasta", cfg.reference.fasta), ("bed", cfg.reference.core_mask_bed),
-        ("annotation", cfg.reference.gff), ("bed", cfg.assay.targets_bed),
-        ("metadata", cfg.assay.primers_tsv), ("metadata", cfg.samples_tsv),
-        ("metadata", cfg.analyses.resistance_catalog),
+    # Each configured file must contain what its setting needs; the file name is not checked.
+    for setting, path in (
+        ("reference.fasta", cfg.reference.fasta), ("reference.core_mask_bed", cfg.reference.core_mask_bed),
+        ("reference.gff", cfg.reference.gff), ("assay.targets_bed", cfg.assay.targets_bed),
+        ("assay.primers_tsv", cfg.assay.primers_tsv), ("samples_tsv", cfg.samples_tsv),
+        ("analyses.resistance_catalog", cfg.analyses.resistance_catalog),
     ):
-        if path is not None:
-            try:
-                check_extension(path.name, FORMATS[role], role)
-            except ValueError as exc:
-                report = v.FileReport(path=str(path), kind="INPUT_EXTENSION")
-                report.fail(v.Reason.REFERENCE_MALFORMED, str(exc))
+        if path is not None and (root / path).is_file():
+            problem = content_problem(root / path, SETTING_KINDS[setting])
+            if problem:
+                report = v.FileReport(path=str(path), kind="CONTENT:" + setting)
+                report.fail(v.Reason.CONTENT_MISMATCH, problem)
                 reports.append(report)
     fasta = v.validate_fasta(root / cfg.reference.fasta)
     reports.append(fasta)
@@ -50,10 +50,15 @@ def validate_all(root: Path, bundle: Bundle) -> dict[str, Any]:
             reports.append(v.validate_bed(root / cfg.assay.targets_bed, contigs, "TARGETS"))
         if cfg.assay.primers_tsv:
             reports.append(v.validate_primers(root / cfg.assay.primers_tsv, contigs))
-    if cfg.reference.gff and not (root / cfg.reference.gff).is_file():
-        gff = v.FileReport(path=str(cfg.reference.gff), kind="GFF")
-        gff.fail(v.Reason.FILE_MISSING, "GFF not found")
-        reports.append(gff)
+    if cfg.reference.gff:
+        if contigs:  # structure and contig checks need the reference contigs
+            reports.append(v.validate_gff(root / cfg.reference.gff, contigs))
+        elif not (root / cfg.reference.gff).is_file():
+            gff = v.FileReport(path=str(cfg.reference.gff), kind="GFF")
+            gff.fail(v.Reason.FILE_MISSING, "GFF not found")
+            reports.append(gff)
+    if cfg.analyses.resistance_catalog:
+        reports.append(v.validate_catalog(root / cfg.analyses.resistance_catalog))
     meta, rows = v.validate_samples(root / cfg.samples_tsv, root, cfg.input_type,
                                     cfg.assay.design, required_metadata(bundle))
     reports.append(meta)
@@ -96,13 +101,11 @@ def validate_all(root: Path, bundle: Bundle) -> dict[str, Any]:
             else:
                 rep = v.FileReport(path=row.get("vcf", ""), kind="VCF")
                 reports.append(rep)
-            names = [row["fastq_1"], row["fastq_2"]] if cfg.input_type == InputType.FASTQ else [row["bam"]]
-            role = cfg.input_type.value.lower()
-            for name in names:
-                try:
-                    check_extension(name, FORMATS[role], role)
-                except ValueError as exc:
-                    rep.fail(v.Reason.REFERENCE_MALFORMED, str(exc))
+            if cfg.input_type in (InputType.BAM, InputType.CRAM) and (root / row["bam"]).is_file():
+                # FASTQ content is checked inside the pair validation; alignments are checked here.
+                problem = content_problem(root / row["bam"], (cfg.input_type.value,))
+                if problem:
+                    rep.fail(v.Reason.CONTENT_MISMATCH, problem)
             prev = sample_status.get(sid, "PASS")
             sample_status[sid] = "FAIL" if "FAIL" in (prev, rep.status) else (
                 "WARNING" if "WARNING" in (prev, rep.status) else "PASS")

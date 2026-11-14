@@ -65,33 +65,52 @@ def migrate_project(project: dict[str, Any]) -> dict[str, Any]:
     return {**project, "schema_version": "pfvarx.config/3", "analyses": analyses}
 
 
-def resolve_input_defaults(project: dict[str, Any]) -> dict[str, Any]:
-    """Expand standard folder shortcuts before validating file-valued settings."""
-    resolved = dict(project)
-    groups = (
-        (resolved, {"samples_tsv": "inputs/metadata/samples.tsv"}),
-        (dict(project["reference"]), {"fasta": "inputs/reference/Pf3D7.fasta",
-                                      "core_mask_bed": "inputs/reference/core_genome.bed",
-                                      "gff": "inputs/reference/Pf3D7.gff"}),
-        (dict(project["assay"]), {"targets_bed": "inputs/targets/targets.bed",
-                                  "primers_tsv": "inputs/targets/primers.tsv"}),
-    ) if isinstance(project.get("reference"), dict) and isinstance(project.get("assay"), dict) else ()
-    for group, defaults in groups:
-        for key, filename in defaults.items():
-            if group.get(key) == str(Path(filename).parent) + "/":
-                group[key] = filename
-    if groups:
-        resolved["reference"] = groups[1][0]
-        resolved["assay"] = groups[2][0]
-    analyses = project.get("analyses")
-    if isinstance(analyses, dict) and analyses.get("resistance_catalog") == "inputs/metadata/":
-        resolved["analyses"] = {**analyses, "resistance_catalog": "inputs/metadata/verified_catalog.tsv"}
+# Folder shortcuts (a setting that names only a folder) and the file name used when the
+# folder holds no single file with the right content (validation then reports it).
+FOLDER_SETTINGS = {
+    "samples_tsv": "inputs/metadata/samples.tsv",
+    "reference.fasta": "inputs/reference/Pf3D7.fasta",
+    "reference.core_mask_bed": "inputs/reference/core_genome.bed",
+    "reference.gff": "inputs/reference/Pf3D7.gff",
+    "assay.targets_bed": "inputs/targets/targets.bed",
+    "assay.primers_tsv": "inputs/targets/primers.tsv",
+    "analyses.resistance_catalog": "inputs/metadata/verified_catalog.tsv",
+}
+
+
+def resolve_input_defaults(project: dict[str, Any], root: Path | None = None) -> dict[str, Any]:
+    """Expand a folder-only file setting to the file it means.
+
+    The file is chosen by *content*, not by name: if the folder holds exactly one file whose
+    content suits the setting (for example one BED for the core mask), that file is used.
+    Otherwise the conventional file name is used, so validation can report the missing or
+    ambiguous file with the candidates it found.
+    """
+    from pfvarx.inputs.content import SETTING_KINDS, find_in_folder
+
+    resolved = {k: dict(v) if isinstance(v, dict) else v for k, v in project.items()}
+    for setting, default in FOLDER_SETTINGS.items():
+        section, _, key = setting.rpartition(".")
+        group = resolved.get(section) if section else resolved
+        if not isinstance(group, dict) or not isinstance(group.get(key), str):
+            continue
+        value = group[key]
+        folder = Path(value)
+        is_folder = value.endswith("/") or (root is not None and (root / folder).is_dir())
+        if not is_folder:
+            continue
+        matches = find_in_folder(root / folder, SETTING_KINDS[setting]) if root is not None else []
+        if len(matches) == 1:
+            group[key] = str(matches[0].relative_to(root)) if root and matches[0].is_relative_to(root) \
+                else str(matches[0])
+        else:
+            group[key] = str(folder / Path(default).name)
     return resolved
 
 
 def validate_bundle(root: Path, parsed: dict[str, Any]) -> Bundle:
     problems: list[str] = []
-    parsed = {**parsed, "config": resolve_input_defaults(migrate_project(parsed["config"]))}
+    parsed = {**parsed, "config": resolve_input_defaults(migrate_project(parsed["config"]), root)}
     models: dict[str, type[BaseModel]] = {"config": ProjectConfig, "quality": QualityConfig, "compute": ComputeConfig}
     built: dict[str, Any] = {}
     for name, model in models.items():

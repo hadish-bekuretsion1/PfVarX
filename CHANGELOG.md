@@ -5,6 +5,25 @@
 The release version was reset to 0.0.0 after 0.4.2, as the baseline for the first reviewed
 release. The sections below 0.0.0 are the earlier development numbering, kept as history.
 
+### Inputs recognised by content, not name
+
+- Every input file is identified from its bytes and structure (FASTA, FASTQ, BAM, CRAM,
+  alignment index, BED, GFF3, VCF, sample sheet, primer table, marker catalogue, JSON) by
+  the new `src/pfvarx/inputs/content.py`. Validation, GUI upload and download, `add-input`,
+  `fetch-input` and registration by link all use it; file extensions no longer decide
+  anything, and `src/pfvarx/inputs/formats.py` is removed. A file with the wrong content is
+  refused with `CONTENT_MISMATCH`, naming what it contains and what was needed.
+- Two name rules stay because tools need them: a gzip-compressed FASTQ must end in `.gz`
+  (fastp otherwise reads zero records without an error), and reference, BED, GFF, primer,
+  sample-sheet and catalogue files must be uncompressed.
+- A configuration setting that names only a folder now uses the one file in it whose content
+  suits the setting; with none or several, validation lists the candidates.
+- New structure checks: GFF3 (nine columns, contigs in the FASTA, coordinates inside them,
+  gene-type and CDS features; PlasmoDB gene types are accepted) and the marker catalogue
+  (required columns, marker rows, status line). Text inputs are decompressed by content.
+- The GUI Input files tab shows the accepted content for each folder instead of filtering
+  the file picker by extension.
+
 ### Documentation brought up to date
 
 - README, HTML quick start, analysis, orchestration, testing, reporting, status, sequencing

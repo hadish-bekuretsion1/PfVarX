@@ -8,12 +8,13 @@ import tempfile
 import urllib.error
 import urllib.parse
 import urllib.request
+from collections.abc import Callable
 from pathlib import Path
 from typing import Any
 
 from pfvarx.configuration.loader import load_bundle
 from pfvarx.initialization.layout import SAMPLE_COLUMNS
-from pfvarx.inputs.formats import FOLDER_FORMATS, check_extension
+from pfvarx.inputs.content import FOLDER_KINDS, require
 from pfvarx.io import read_tsv, write_json, write_tsv
 
 ID = re.compile(r"^[A-Za-z0-9][A-Za-z0-9_-]{0,63}$")
@@ -98,7 +99,7 @@ def register(root: Path, manifest: Path, mode: str = "reference") -> dict[str, A
                 role = "fastq" if field.startswith("fastq") else "alignments"
                 suffix = "".join(path.suffixes)
                 name = f"{row['sample_id']}.{row['lane']}.{field}{suffix}"
-                check_extension(name, FOLDER_FORMATS[role], role)
+                require(path, FOLDER_KINDS[role], name)
                 destination = root / "inputs" / role / name
                 if destination.exists() or destination.is_symlink() or destination in destinations:
                     raise ValueError("Organized path exists or duplicated: " + str(destination))
@@ -151,17 +152,18 @@ class HTTPSRedirect(urllib.request.HTTPRedirectHandler):
         return super().redirect_request(req, fp, code, msg, headers, newurl)
 
 
-def fetch(root: Path, url: str, expected: str | None, role: str, name: str) -> dict[str, Any]:
+def fetch(root: Path, url: str, expected: str | None, role: str, name: str,
+          check: Callable[[Path], None] | None = None) -> dict[str, Any]:
+    """Download one HTTPS resource; *check* inspects the downloaded content before it is kept."""
     parsed = urllib.parse.urlsplit(url)
     if parsed.scheme != "https" or parsed.username or parsed.password:
         raise ValueError("Use an HTTPS URL without embedded credentials")
     if expected is not None and not re.fullmatch(r"[0-9a-fA-F]{64}", expected):
         raise ValueError("A trusted SHA-256 checksum is required")
-    if role not in FOLDER_FORMATS:
+    if role not in FOLDER_KINDS:
         raise ValueError("Unknown resource role")
     if Path(name).name != name or not re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9._-]*", name):
         raise ValueError("Use a plain safe filename")
-    check_extension(name, FOLDER_FORMATS[role], role)
     destination = root / "inputs" / role / name
     if not destination.parent.resolve().is_relative_to(root.resolve()):
         raise ValueError("Download path escapes workspace")
@@ -183,6 +185,7 @@ def fetch(root: Path, url: str, expected: str | None, role: str, name: str) -> d
                 size += len(block)
         if expected is not None and digest.hexdigest() != expected.lower():
             raise ValueError("Download checksum mismatch; partial resource removed")
+        (check or (lambda staged: require(staged, FOLDER_KINDS[role], name)))(temp)
         # Atomic no-clobber publication: hard-link refuses a racing existing destination.
         import os
 

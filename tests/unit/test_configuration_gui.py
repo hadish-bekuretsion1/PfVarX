@@ -159,18 +159,29 @@ def test_gui_and_cli_share_transfer_rules(workspace: Path, tmp_path_factory: pyt
 
     assert web.raw_destination is transfer.destination_for
     _saved_workspace(workspace)
+    import gzip
+
     outside = tmp_path_factory.mktemp("disk")
+    reads = gzip.compress(b"@r1\nACGT\n+\nIIII\n")
     source = outside / "S1_R1.fastq.gz"
-    source.write_bytes(b"reads")
+    source.write_bytes(reads)
     saved = transfer.import_file(workspace, source)  # default role: the reads folder
-    assert saved["path"] == "inputs/fastq/S1_R1.fastq.gz" and saved["bytes"] == 5
-    assert (workspace / saved["path"]).read_bytes() == b"reads" and source.exists()
+    assert saved["path"] == "inputs/fastq/S1_R1.fastq.gz" and saved["bytes"] == len(reads)
+    assert (workspace / saved["path"]).read_bytes() == reads and source.exists()
     with pytest.raises(ValueError, match="refusing overwrite"):
         transfer.import_file(workspace, source)
-    wrong = outside / "notes.txt"
-    wrong.write_text("x")
-    with pytest.raises(ValueError, match="accepts"):
+    # Content decides, not the name: reads under any name are accepted, notes named .fastq.gz are not.
+    renamed = outside / "anything.reads.gz"
+    renamed.write_bytes(reads)
+    assert transfer.import_file(workspace, renamed)["path"] == "inputs/fastq/anything.reads.gz"
+    wrong = outside / "notes.fastq.gz"
+    wrong.write_bytes(gzip.compress(b"meeting notes"))
+    with pytest.raises(ValueError, match="this input needs FASTQ reads"):
         transfer.import_file(workspace, wrong)
+    unnamed_gzip = outside / "S2_R1.fastq"
+    unnamed_gzip.write_bytes(reads)
+    with pytest.raises(ValueError, match="does not end in .gz"):
+        transfer.import_file(workspace, unnamed_gzip)
     with pytest.raises(ValueError, match="unavailable for the saved configuration"):
         transfer.import_file(workspace, source, role="alignments")  # FASTQ study has no such folder
     with pytest.raises(ValueError, match="unavailable for the saved configuration"):
@@ -180,14 +191,15 @@ def test_gui_and_cli_share_transfer_rules(workspace: Path, tmp_path_factory: pyt
     assert transfer.import_file(workspace, reference, role="reference")["path"] == "inputs/reference/Pf3D7.fasta"
 
 
-def test_alignment_extensions_follow_the_saved_input_type(workspace: Path, tmp_path_factory: pytest.TempPathFactory) -> None:
+def test_alignment_content_follows_the_saved_input_type(workspace: Path, tmp_path_factory: pytest.TempPathFactory) -> None:
     from pfvarx.inputs import transfer
 
     _saved_workspace(workspace, "BAM")
-    assert transfer.folder_extensions(workspace)["alignments"] == (".bam", ".bai", ".csi")
-    cram = tmp_path_factory.mktemp("disk") / "S1.cram"
-    cram.write_bytes(b"x")
-    with pytest.raises(ValueError, match="accepts"):
+    assert transfer.folder_kinds(workspace)["alignments"] == ("BAM", "ALIGNMENT_INDEX")
+    assert transfer.folder_contents(workspace)["alignments"][0] == "BAM alignment"
+    cram = tmp_path_factory.mktemp("disk") / "S1.bam"  # CRAM content under a .bam name
+    cram.write_bytes(b"CRAM\x03\x00" + b"\x00" * 20)
+    with pytest.raises(ValueError, match="contains CRAM alignment; this input needs BAM alignment"):
         transfer.import_file(workspace, cram)
 
 

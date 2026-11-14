@@ -10,32 +10,33 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Any
 
-# kind -> (input name, configuration key, what the pipeline uses it for, accepted extensions)
+# kind -> (input name, configuration key, what the pipeline uses it for, accepted content kinds)
 ROLES: dict[str, tuple[str, str, str, tuple[str, ...]]] = {
     "FASTA": ("Reference genome FASTA", "reference.fasta",
-              "Reads are aligned to it and every variant is described against it.", (".fasta", ".fa", ".fna")),
+              "Reads are aligned to it and every variant is described against it.", ("FASTA",)),
     "CORE_MASK": ("Core-genome mask BED", "reference.core_mask_bed",
                   "Variants are called, and depth and callability QC are measured, only inside these regions: the "
                   "accessible core of the genome, without the subtelomeric and internal hypervariable regions "
-                  "(var, rifin, stevor) where reads map unreliably.", (".bed",)),
+                  "(var, rifin, stevor) where reads map unreliably.", ("BED",)),
     "GFF": ("Gene annotation GFF", "reference.gff",
             "SnpEff builds its annotation database from it, and drug-resistance codons (DA002) are located with it.",
-            (".gff", ".gff3")),
+            ("GFF",)),
     "TARGETS": ("Target regions BED", "assay.targets_bed",
-                "Defines the amplicons of a targeted panel for on-target and dropout QC.", (".bed",)),
+                "Defines the amplicons of a targeted panel for on-target and dropout QC.", ("BED",)),
     "PRIMERS": ("Primer table", "assay.primers_tsv",
-                "Primer positions are clipped from targeted reads before calling.", (".tsv",)),
+                "Primer positions are clipped from targeted reads before calling.", ("PRIMERS",)),
     "SAMPLE_METADATA": ("Sample sheet", "samples_tsv",
-                        "Lists every sample and lane with its input files and study metadata.", (".tsv",)),
-    "FASTQ_PAIR": ("Paired FASTQ files", "samples.tsv fastq_1/fastq_2",
-                   "Raw reads for one sample and lane.", (".fastq.gz", ".fq.gz")),
-    "ALIGNMENT": ("Alignment (BAM/CRAM)", "samples.tsv bam",
-                  "Existing alignment used instead of FASTQ.", (".bam", ".cram")),
+                        "Lists every sample and lane with its input files and study metadata.", ("SAMPLE_SHEET",)),
+    "CATALOGUE": ("Resistance marker catalogue", "analyses.resistance_catalog",
+                  "DA002 genotypes these markers; its status line decides whether real marker analysis may run.",
+                  ("CATALOGUE",)),
+    "FASTQ_PAIR": ("Paired FASTQ files", "samples.tsv fastq_1/fastq_2", "Raw reads for one sample and lane.",
+                   ("FASTQ",)),
+    "ALIGNMENT": ("Alignment (BAM/CRAM)", "samples.tsv bam", "Existing alignment used instead of FASTQ.",
+                  ("BAM", "CRAM")),
     "UMI_READ_STRUCTURE": ("UMI read structure", "assay.read_structure",
                            "Tells fgbio where the UMI and template bases are in each read.", ()),
-    "INPUT_EXTENSION": ("Input file name", "config/config.yaml",
-                        "File types are recognised by their extension.", ()),
-    "VCF": ("VCF input", "input_type", "VCF entry is not supported; use FASTQ, BAM or CRAM.", (".vcf.gz",)),
+    "VCF": ("VCF input", "input_type", "VCF entry is not supported; use FASTQ, BAM or CRAM.", ("VCF",)),
 }
 
 GENERIC: dict[str, list[str]] = {
@@ -65,6 +66,20 @@ GENERIC: dict[str, list[str]] = {
     "UMI_READ_STRUCTURE": ["Set assay.read_structure from the library protocol, for example '8M+T 8M+T' "
                            "(8 UMI bases, then template)."],
     "VCF_INCOMPATIBLE": ["Use FASTQ, BAM or CRAM input instead."],
+    "CONTENT_MISMATCH": [
+        "PfVarX recognises files by their content, not their name or extension. Check that this is the file "
+        "you meant, and replace it with one that contains what the input needs.",
+        "To see what a file contains, look at its first lines (for a compressed file: zcat FILE | head).",
+    ],
+    "GFF_MALFORMED": [
+        "Use the GFF3 from the same PlasmoDB release as the FASTA: nine tab-separated columns, one-based "
+        "coordinates, with gene and CDS features.",
+    ],
+    "CATALOG_MALFORMED": [
+        "The catalogue needs '#key=value' lines including '#status=' and the columns marker_id, gene_id, "
+        "gene_name, chrom, codon, codon_start, strand, ref_aa and alt_aa (see the shipped catalogue in "
+        "config/registry/).",
+    ],
 }
 
 CORE_MASK_SOURCE = [
@@ -85,17 +100,20 @@ def _raw(config: dict[str, Any], key: str) -> Any:
     return value
 
 
-def _neighbours(root: Path, path: Path, extensions: tuple[str, ...]) -> list[str]:
+def _neighbours(root: Path, path: Path, kinds: tuple[str, ...]) -> list[str]:
+    """Files in the same folder whose content is the right kind, whatever they are called."""
+    from pfvarx.inputs.content import find_in_folder
+
     folder = (path if path.is_absolute() else root / path).parent
-    if not folder.is_dir() or not extensions:
-        return []
-    return sorted(p.name for p in folder.iterdir()
-                  if p.is_file() and p.name.lower().endswith(extensions) and p.name != path.name)[:10]
+    return [p.name for p in find_in_folder(folder, kinds) if p.name != path.name][:10] if kinds else []
 
 
 def explain(finding: dict[str, Any], kind: str, root: Path, raw_config: dict[str, Any]) -> dict[str, Any]:
     """Return ``file``, ``used_for``, ``why`` and ``actions`` for one failed or warned check."""
-    name, key, purpose, extensions = ROLES.get(kind, ("Input", "", "", ()))
+    if kind.startswith("CONTENT:"):  # a configured file whose content is the wrong kind
+        setting = kind.split(":", 1)[1]
+        kind = next((k for k, role in ROLES.items() if role[1] == setting), kind)
+    name, key, purpose, kinds = ROLES.get(kind, ("Input", "", "", ()))
     reason, detail, path = finding.get("reason", ""), finding.get("detail", ""), finding.get("path", "")
     actions: list[str] = []
     if reason == "FILE_MISSING":
@@ -111,10 +129,13 @@ def explain(finding: dict[str, Any], kind: str, root: Path, raw_config: dict[str
             actions.append(f"Put the file at {path}, or correct {key} in config/config.yaml to point to it.")
         else:
             actions.append(f"Put the file at {path}, or correct its path in the sample sheet.")
-        found = _neighbours(root, Path(path), extensions) if path and " | " not in path else []
-        if found:
-            actions.append(f"Files of this type already in that folder: {', '.join(found)}. Use one of them only if "
-                           f"it really is the {name}.")
+        found = _neighbours(root, Path(path), kinds) if path and " | " not in path else []
+        if len(found) == 1:
+            actions.append(f"{found[0]} in that folder has the right kind of content. Use it only if it really is "
+                           f"the {name}.")
+        elif found:
+            actions.append(f"Several files in that folder have the right kind of content: {', '.join(found)}. "
+                           f"Set {key} to the full path of the one you mean.")
         if kind == "CORE_MASK":
             actions += CORE_MASK_SOURCE
         elif kind == "FASTA":
@@ -127,8 +148,12 @@ def explain(finding: dict[str, Any], kind: str, root: Path, raw_config: dict[str
             actions.append("Register samples with ./pfvarx register-inputs (or the GUI Input files tab), or write "
                            "inputs/metadata/samples.tsv with sample_id, lane and library_id columns.")
     else:
-        why = (f"{name} may be the wrong file: {detail}." if reason == "CORE_MASK_SUSPECT"
-               else f"{name} failed the {reason.replace('_', ' ').lower()} check: {detail}.")
+        if reason == "CORE_MASK_SUSPECT":
+            why = f"{name} may be the wrong file: {detail}."
+        elif reason == "CONTENT_MISMATCH":
+            why = f"{name} has the wrong content: {detail}."
+        else:
+            why = f"{name} failed the {reason.replace('_', ' ').lower()} check: {detail}."
         if finding.get("record"):
             why += f" (line {finding['record']})"
         actions += GENERIC.get(reason, ["Correct the input as described in the detail."])
