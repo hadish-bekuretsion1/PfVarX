@@ -121,7 +121,9 @@ def run(ctx: Context, threads: int = 1) -> None:
     terminal = Terminal.COMPLETED_WITH_EXCLUSIONS if any(excluded.values()) else Terminal.COMPLETED
     write_manifest(ctx, "DA006", terminal.value, reason_codes=[], requested=ctx.samples, eligible=eligible,
                    excluded=excluded, analysed=sorted(kept), outputs=[aln, out / "tree.treefile", out / "runtime_gates.json"],
-                   caveats=["Branch support: UFBoot >= 95 and SH-aLRT >= 80 are the developers' interpretation guides.",
+                   caveats=[f"Branch support: UFBoot >= {p['da006_ufboot_support']} and SH-aLRT >= "
+                            f"{p['da006_alrt_support']} are the developers' interpretation guides.",
                             "Only MONOCLONAL samples are included; polyclonal and indeterminate samples are excluded."],
                    method={"tool": "IQ-TREE 2", "model_selection": "ModelFinder restricted to +ASC", "best_model": model,
-                           "ufboot": p["da006_ufboot"], "alrt": p["da006_alrt"]}, results_summary=gates)
+                           "ufboot": p["da006_ufboot"], "alrt": p["da006_alrt"],
+                           "ufboot_support": p["da006_ufboot_support"], "alrt_support": p["da006_alrt_support"]}, results_summary=gates)

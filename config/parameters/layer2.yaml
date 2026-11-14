@@ -3,12 +3,12 @@ parameters:
   min_mapping_quality: {value: 20, source: UNCALIBRATED_PROVISIONAL, note: "grid {1,10,20,30}; Experiment C"}
   min_base_quality: {value: 13, source: UNCALIBRATED_PROVISIONAL, note: "grid {10,13,20}; Experiment C"}
   window_size_bp: {value: 5000, source: UNCALIBRATED_PROVISIONAL, note: "grid {2,5,10} kb"}
-  min_usable_depth: {value: 10, source: UNCALIBRATED_PROVISIONAL, note: "per mode; Experiment D"}
+  min_usable_depth: {value: 5, source: LITERATURE_SUPPORTED, note: "MalariaGEN Pf7 2023: positions need >=5 reads to be callable and no allele fraction is computed below 5 reads"}
   screening_threshold_neglog10: {value: 6.0, source: UNCALIBRATED_PROVISIONAL, note: "lambda(m): largest value retaining >=99% truth SNPs and indels"}
   error_mean_default: {value: 0.005, source: UNCALIBRATED_PROVISIONAL, note: "used only until the per-mode error model is fitted"}
   overdispersion_phi_default: {value: 200.0, source: UNCALIBRATED_PROVISIONAL, note: "mode-level phi(m) until fitted"}
   known_ref_trim_fraction: {value: 0.025, source: UNCALIBRATED_PROVISIONAL, note: "grid {0.01,0.025,0.05}"}
-  pass_min_fragments: {value: 2, source: FRAMEWORK_POLICY}
+  pass_min_fragments: {value: 2, source: LITERATURE_SUPPORTED, note: "MalariaGEN Pf7 2023: an allele seen in fewer than 2 reads is treated as absent"}
   pass_min_neglog10: {value: 10.0, source: UNCALIBRATED_PROVISIONAL, note: "PASS operating point; Experiment C"}
   strand_bias_max_neglog10: {value: 8.0, source: UNCALIBRATED_PROVISIONAL, note: "Fisher exact strand test; Experiment C"}
   haplotypes_per_window_max: {value: 32, source: UNCALIBRATED_PROVISIONAL, note: "grid {16,32,64}"}

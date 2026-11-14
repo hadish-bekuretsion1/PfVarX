@@ -67,6 +67,10 @@ def target_metrics(regions_bed_gz_text: str, min_depth: int, on_target: int, map
     if means:
         out["amplicon_dropout_fraction"] = sum(m < min_depth for m in means) / len(means)
         out["amplicons"] = len(means)
+        ordered = sorted(means)
+        middle = len(ordered) // 2
+        out["median_amplicon_depth"] = (ordered[middle] if len(ordered) % 2
+                                        else (ordered[middle - 1] + ordered[middle]) / 2)
     if mapped:
         out["on_target_fraction"] = on_target / mapped
     return out

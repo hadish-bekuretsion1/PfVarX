@@ -162,12 +162,15 @@ def run(ctx: Context, threads: int = 1) -> None:
                               "evidence_class": m.get("evidence_class", "")})
     cols = list(calls[0]) if calls else ["sample_id", "marker_id", "state"]
     write_tsv(out / "marker_calls.tsv", calls, cols)
-    prev = prevalence(calls, markers, "population")
+    prev = prevalence(calls, markers, "population", float(p["da002_k13_prevalence_alert"]))
     write_tsv(out / "prevalence.tsv", prev, list(prev[0]) if prev else ["marker_id"])
     caveats = ["Molecular markers are not evidence of an individual patient's treatment outcome.",
                "An UNKNOWN marker is uncallable; it is never counted as wild type.",
                "Within-sample fractions are DNA fractions and UNCORRECTED for representation bias.",
-               "Reporting floor and MIXED threshold are UNCALIBRATED_PROVISIONAL."]
+               "Reporting floor (5%) and MIXED threshold (95%) follow the MalariaGEN Pf7 read-fraction rule; "
+               "they are not calibrated for this caller's detection limit.",
+               "who_k13_alert marks validated PfKelch13 markers above the WHO 5% level for follow-up; "
+               "confirmation needs delayed-clearance evidence from a therapeutic efficacy study."]
     if status == "TEST_FIXTURE":
         caveats.insert(0, "TEST FIXTURE CATALOGUE: results are for software testing, not for surveillance.")
     write_json(out / "catalog_provenance.json", {"path": str(cat_path), "meta": meta, "markers": len(markers)})
@@ -181,7 +184,14 @@ def run(ctx: Context, threads: int = 1) -> None:
                    results_summary={"marker_calls": len(calls), "unknown_calls": unknown})
 
 
-def prevalence(calls: list[dict[str, Any]], markers: list[dict[str, str]], group_key: str) -> list[dict[str, Any]]:
+def is_validated_k13(marker: dict[str, str]) -> bool:
+    gene = (marker.get("gene_name", "") + " " + marker.get("gene_id", "")).lower()
+    return ("k13" in gene or "kelch13" in gene or "pf3d7_1343700" in gene) and "valid" in marker.get("evidence_class", "").lower()
+
+
+def prevalence(calls: list[dict[str, Any]], markers: list[dict[str, str]], group_key: str,
+               k13_alert: float | None = None) -> list[dict[str, Any]]:
+    """Marker prevalence per group. ``k13_alert`` flags validated PfKelch13 markers above the WHO level."""
     rows = []
     groups = sorted({c[group_key] for c in calls}) + ["ALL"]
     for m in markers:
@@ -196,5 +206,9 @@ def prevalence(calls: list[dict[str, Any]], markers: list[dict[str, str]], group
                          "unknown": len(sel) - n, "mutant_or_mixed": k,
                          "prevalence_infections": "" if not n else f"{k / n:.4f}",
                          "wilson_lo": "" if lo is None else f"{lo:.4f}", "wilson_hi": "" if hi is None else f"{hi:.4f}",
-                         "prevalence_clones_dna_weighted": "" if not fr else f"{sum(fr) / len(fr):.4f}"})
+                         "prevalence_clones_dna_weighted": "" if not fr else f"{sum(fr) / len(fr):.4f}",
+                         # WHO molecular criterion for suspected artemisinin partial resistance; a flag
+                         # for follow-up (therapeutic efficacy study), never a resistance decision.
+                         "who_k13_alert": ("" if k13_alert is None or not n or not is_validated_k13(m)
+                                           else "ABOVE_5_PERCENT" if k / n > k13_alert else "NOT_ABOVE")})
     return rows

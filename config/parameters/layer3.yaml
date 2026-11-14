@@ -4,4 +4,4 @@ parameters:
   norm_check_ref: {value: "e", source: FRAMEWORK_POLICY}
   norm_multi_overlaps: {value: ".", source: FRAMEWORK_POLICY, note: "replaces version default 0 (reference)"}
   merge_missing_to_ref: {value: false, source: FRAMEWORK_POLICY, note: "-0 prohibited"}
-  dominant_allele_fraction: {value: 0.95, source: UNCALIBRATED_PROVISIONAL, note: "evidence-matrix state ALT_DOMINANT/REF_DOMINANT boundary (1 - value for REF)"}
+  dominant_allele_fraction: {value: 0.95, source: LITERATURE_SUPPORTED, note: "MalariaGEN Pf7 2023: an allele below 5% of reads is treated as absent, so >=0.95 is a single-allele call (1 - value for REF)"}

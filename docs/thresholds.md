@@ -1,0 +1,212 @@
+# Thresholds and their scientific basis
+
+Every numeric decision PfVarX makes is listed here with its three outcomes — accepted,
+accepted with warning, rejected or filtered out — and where the value comes from.
+The values live in `config/registry/qc_policy_pfvarx_qc_v1.yaml` (policy version 1.1.0) and
+`config/parameters/layer*.yaml`. Each entry there carries a source class:
+
+| Source class | Meaning |
+| --- | --- |
+| `LITERATURE_SUPPORTED` | A published standard or the tool authors' stated recommendation. The reference is given below. |
+| `SOFTWARE_DEFAULT` | The pinned tool's own default. |
+| `FRAMEWORK_POLICY` | A design decision of this pipeline, not an empirical claim. |
+| `UNCALIBRATED_PROVISIONAL` | No published standard exists for the metric. The value is a working value; outputs that depend on it are labelled uncalibrated. |
+| `UNSET_BLOCKING` | No defensible value exists. The metric is reported and the gate is `NOT_EVALUATED`, never `PASS`. |
+
+A literature value is a standard used by others on their data and their caller. It has not
+been calibrated against truth data for PfVarX-Call. The [benchmarking
+protocol](benchmarking/README.md) is still the route to calibrated values.
+
+## How the three outcomes work
+
+- **Accepted (PASS):** the sample continues to every stage.
+- **Accepted with warning (WARNING):** the sample continues only into the stages the gate
+  permits, and every affected result carries the warning.
+- **Rejected (FAIL):** the sample stops at that gate and stays in the denominators as an
+  exclusion. A gate marked "warning only" never rejects.
+
+## Stage 0 — inputs that must be supplied
+
+| Stage | Required information |
+| --- | --- |
+| All runs | Reference FASTA; core-genome BED for the same assembly; exact reference release label; sample sheet with `sample_id`, `lane`, `library_id`. |
+| FASTQ entry | Paired `fastq_1`/`fastq_2`, Phred+33. For WGS, `flowcell_type` (`patterned` or `unpatterned`) sets the optical-duplicate distance. |
+| BAM/CRAM entry | Coordinate-sorted, indexed, `@RG` with ID, SM, LB, PL; contigs matching the reference. Targeted alignments must record primer clipping. |
+| Targeted designs | Target BED and primer table (1-based, inclusive). UMI designs also need the read structure. |
+| Annotation and DA002 | GFF matching the FASTA; a marker catalogue with status `MAINTAINER_VERIFIED`. |
+| DA003, DA005 by population | Population column in the sample sheet. |
+| DA007 | `latitude`, `longitude`, `collection_date`, `country`. |
+
+The core genome should follow the accessible-genome definition of Miles et al. 2016,
+which excludes subtelomeric and internal hypervariable regions.
+
+## Stage 1 — read QC, alignment and coverage
+
+| Gate | Metric | Accepted | Accepted with warning | Rejected | Source |
+| --- | --- | --- | --- | --- | --- |
+| G1.read_retention | Fraction of reads kept by fastp | ≥ 0.70 | 0.50–0.70 | < 0.50 | Provisional. No published standard. |
+| G1.mean_length | Mean read length after trimming | ≥ 70 bp | < 70 bp | never (warning only) | Li 2013: BWA-MEM is designed for reads of 70 bp and longer. |
+| G1.q30 | Fraction of bases ≥ Q30 | reported | — | — | Not gated: instrument specifications differ by platform and read length. |
+| G2.mapped | Fraction of reads mapped | ≥ 0.80 | 0.50–0.80 | < 0.50 | Provisional. Host DNA content varies with sample type (Oyola 2016). |
+| G2.properly_paired | Fraction properly paired | reported | — | — | Unset. No published standard. |
+| G2.duplicates (WGS) | Duplicate fraction | ≤ 0.30 | 0.30–0.60 | > 0.60 | Provisional. Selective whole-genome amplification raises duplication. |
+| G2.depth (WGS) | Median depth over the core genome | ≥ 20 | 5–20 | < 5 | Rejection level: MalariaGEN Pf7. Warning level: framework policy. |
+| G2.callable (WGS) | Fraction of the core genome with ≥ 5 reads | ≥ 0.80 | 0.50–0.80 | < 0.50 | Rejection level: MalariaGEN Pf7. Warning level: framework policy. |
+| G3.on_target (targeted) | Fraction of mapped reads on target | ≥ 0.70 | 0.50–0.70 | < 0.50 | Provisional. Panel specific. |
+| G3.dropout (targeted) | Fraction of amplicons below usable depth | ≤ 0.20 | 0.20–0.50 | > 0.50 | Provisional. Panel specific. |
+| G3.amplicon_depth (targeted, no UMI) | Median depth per amplicon | ≥ 100 | < 100 | never (warning only) | Early 2019; MAD4HatTeR guidance. |
+| G3.umi_singletons (UMI) | Fraction of single-read UMI families | reported | — | — | Unset. No published standard. |
+
+Basis for the literature-supported rows:
+
+- **Callability and depth.** MalariaGEN Pf7 computed callability "with a minimum depth
+  of 5" and removed samples "with callability <50%". A median core depth below 5 means
+  fewer than half the positions reach 5 reads, so the depth and callability rejection
+  levels are the same criterion seen two ways. Oyola 2016 used the same yardstick
+  (">5× coverage for 50% of the genome") for dried blood spots.
+- **Amplicon depth.** Early 2019 found reduced sensitivity and precision in samples with
+  "low read count (< 100 reads per amplicon)" and 46% accuracy at "< 25 reads per
+  amplicon". The MAD4HatTeR documentation recommends 100 reads or more per amplicon.
+  The rule is stated for raw reads, so it is not applied to UMI consensus reads.
+
+Fixed read-processing settings:
+
+| Setting | Value | Source |
+| --- | --- | --- |
+| fastp base quality counted as qualified | Q15 | fastp default (Chen 2018). |
+| fastp unqualified bases allowed per read | 40% | fastp default. |
+| fastp N bases allowed per read | 5 | fastp default. |
+| fastp minimum read length | 50 bp | Provisional. |
+| Optical duplicate distance | 100 unpatterned, 2500 patterned | Picard documentation. |
+| UMI grouping | directed adjacency, 1 edit | Smith 2017; fgbio best-practice pipeline. |
+| UMI consensus: minimum input base quality | 20 | fgbio best-practice pipeline. |
+| UMI consensus filter: minimum reads per molecule | 3 | fgbio best-practice pipeline. |
+| UMI consensus filter: minimum consensus base quality | 45 | fgbio best-practice pipeline. |
+| UMI consensus filter: maximum base error rate | 0.2 | fgbio best-practice pipeline. |
+
+The fgbio authors state that their filter values "aim for a balance between generating
+high quality consensus reads and yield" and need tuning for the library preparation.
+Molecules seen fewer than three times are filtered out; a library with small UMI
+families will lose depth at this step.
+
+## Stage 2 — variant calling
+
+| Decision | Accepted | Filtered out | Source |
+| --- | --- | --- | --- |
+| Usable depth at a position | ≥ 5 reads | < 5 reads: `INSUFFICIENT_DEPTH`, position not callable | MalariaGEN Pf7. |
+| Reads supporting an allele | ≥ 2 | < 2: allele treated as absent | MalariaGEN Pf7. |
+| Mapping quality | ≥ 20 | < 20: read not used | Provisional. |
+| Base quality | ≥ 13 | < 13: base not used | Provisional. |
+
+MalariaGEN Pf7 sets the allele fraction "to 0 if there are < 2 or <5% alternative
+allele reads" and does not compute it "when there were less than 5 reads in total".
+
+The remaining caller settings — screening and PASS operating points, strand-bias limit,
+error-model defaults, pair-HMM gap penalties, mixture-model limits — are specific to
+PfVarX-Call. No external publication can supply them. They stay
+`UNCALIBRATED_PROVISIONAL` until the benchmarking experiments named in
+`config/parameters/layer2.yaml` are run.
+
+## Stage 3 — cohort evidence
+
+| State at a cohort site | Rule | Source |
+| --- | --- | --- |
+| `ALT_DOMINANT` | alternative allele ≥ 95% of reads | MalariaGEN Pf7 (the other allele is below 5%). |
+| `MIXED` | between 5% and 95% | MalariaGEN Pf7. |
+| `REF_DOMINANT` | alternative allele ≤ 5% of reads | MalariaGEN Pf7. |
+| `MISSING_LOW_DEPTH` | fewer than 5 usable reads | MalariaGEN Pf7. |
+| `UNCALLABLE` | outside the sample's callable intervals | Framework policy. |
+
+A missing record is never counted as a reference call.
+
+## Stage 5 — downstream analyses
+
+| Analysis | Decision | Value | Source |
+| --- | --- | --- | --- |
+| DA001 COI | Allele counted as present | ≥ 5% of reads | MalariaGEN Pf7. |
+| DA001 COI | Polyclonal / monoclonal call | P(COI > 1) ≥ 0.95 / ≤ 0.05; otherwise indeterminate | Provisional. |
+| DA001 COI | Minimum informative loci | 10; below: indeterminate | Provisional. |
+| DA001 COI | MOIRE burn-in / samples per chain | 10 000 / 1 000 | MOIRE defaults (Murphy and Greenhouse 2024). |
+| DA001 COI | Fws comparison line | Fws ≥ 0.95 read as clonal | Manske 2012; Auburn 2012; MalariaGEN Pf7. Descriptive only. |
+| DA002 resistance | Marker callable | ≥ 5 reads spanning the codon; fewer: `UNKNOWN` | MalariaGEN Pf7. |
+| DA002 resistance | `MUTANT` | mutant fraction ≥ 95% | MalariaGEN Pf7. |
+| DA002 resistance | `MIXED` | 5% to 95% | MalariaGEN Pf7. |
+| DA002 resistance | `BELOW_REPORTING_FLOOR` | mutant reads present but under 5% | MalariaGEN Pf7. |
+| DA002 resistance | `who_k13_alert` in `prevalence.tsv` | validated PfKelch13 marker in more than 5% of callable infections | WHO (see below). |
+| DA003 diversity | Minimum group size | 3 | Provisional. |
+| DA004 relatedness | Markers needed for an estimate | ≥ 200 biallelic; fewer: `EXCLUDED_FEW_MARKERS` | Taylor 2019. |
+| DA004 relatedness | `CLOSELY_RELATED` / `NEAR_IDENTICAL` labels | IBD ≥ 0.5 / ≥ 0.9 | Reporting convention (e.g. Pereus 2026). |
+| DA004 relatedness | Dcifer significance level | 0.05 | Dcifer usage (Gerlovina 2022). |
+| DA005 structure | LD pruning window / step / r² | 100 / 20 / 0.1 | scikit-allel defaults. |
+| DA005 structure | Minimum group size | 3 | Provisional. |
+| DA006 phylogeny | Minimum monoclonal samples | 4 | Mathematical floor for an informative unrooted tree. |
+| DA006 phylogeny | Sample / site missingness allowed | ≤ 20% | Provisional. |
+| DA006 phylogeny | Bootstrap replicates | UFBoot 1 000, SH-aLRT 1 000 | IQ-TREE. |
+| DA006 phylogeny | Branch considered supported | UFBoot ≥ 95 and SH-aLRT ≥ 80 | IQ-TREE guidance (Hoang 2018; Guindon 2010). |
+| DA007 spatial | Minimum samples per unit | 3 | Provisional. |
+
+Notes on interpretation:
+
+- **Low-frequency alleles.** The 5% floor is the whole-genome convention. Amplicon panels
+  report lower limits under validated conditions: MAD4HatTeR detected minor alleles at
+  within-sample frequencies "as low as 1%" in high-density samples (Aranda-Díaz 2025), and
+  Katairo 2025 reported 100% sensitivity at 2% for samples of 1 000 parasites/µL or more.
+  Those limits belong to those assays; PfVarX keeps 5% for every design until its own
+  detection limit is measured.
+- **Relatedness labels.** Taylor 2019 recommends "∼100 polyallelic or 200 biallelic
+  markers" to keep the error of a relatedness estimate below 0.1. The 0.5 and 0.9 labels
+  are a reporting convention, not tests; relatedness is continuous, and Mehra 2025 shows
+  that estimates are biased downwards on sparse data while high thresholds stay robust.
+- **Branch support.** IQ-TREE: "you should only start to rely on a branch if its support
+  is >= 95%" for UFBoot, and "one would be more confident if a clade has its SH-aLRT >=
+  80% and UFboot >= 95%". The developers state this for single-gene trees.
+
+## Public-health reference levels
+
+These are not pipeline parameters, except the first, which sets a flag. PfVarX reports
+marker prevalence; it never declares resistance.
+
+| Reference level | Value | Source |
+| --- | --- | --- |
+| Validated PfKelch13 marker prevalence that prompts follow-up | more than 5% of patients | WHO Malaria Policy Advisory Group background document, March 2024. |
+| Evidence needed to confirm artemisinin partial resistance | the marker level above, plus delayed parasite clearance in a therapeutic efficacy study | WHO. |
+| Criteria for a PfKelch13 marker to be "validated" | association with clearance half-life > 5 hours, and > 1% survival in the ring-stage survival assay in at least five isolates | WHO. |
+| Validated PfKelch13 markers | F446I, N458Y, C469Y, M476I, Y493H, R539T, I543T, P553L, R561H, P574L, C580Y, R622I, A675V | WHO. These are the 13 kelch13 entries in the shipped catalogue. |
+
+The shipped catalogue remains `DRAFT_REQUIRES_VERIFICATION`. Check it against the current
+WHO list before use; the list changes.
+
+## What still has no published basis
+
+These values stay provisional because no standard exists, not because they were
+overlooked: read retention, mapped fraction, duplicate fraction, on-target fraction,
+amplicon dropout, the warning levels for depth and callability, minimum mapping and base
+quality, minimum group sizes, phylogeny missingness limits, the clonality credibility
+level, and every PfVarX-Call model setting. Properly-paired fraction and UMI singleton
+fraction have no value at all and are reported only.
+
+## References
+
+- Aranda-Díaz A, et al. Sensitive and modular amplicon sequencing of *Plasmodium falciparum* diversity and resistance for research and public health. *Scientific Reports* 2025.
+- Auburn S, et al. Characterization of within-host *Plasmodium falciparum* diversity using next-generation sequence data. *PLoS ONE* 2012.
+- Chen S, et al. fastp: an ultra-fast all-in-one FASTQ preprocessor. *Bioinformatics* 2018.
+- Early AM, et al. Detection of low-density *Plasmodium falciparum* infections using amplicon deep sequencing. *Malaria Journal* 2019.
+- Fulcrum Genomics. fgbio best practice consensus pipeline. <https://github.com/fulcrumgenomics/fgbio/blob/main/docs/best-practice-consensus-pipeline.md>
+- Gerlovina I, et al. Dcifer: an IBD-based method to calculate genetic distance between polyclonal infections. *Genetics* 2022.
+- Guindon S, et al. New algorithms and methods to estimate maximum-likelihood phylogenies. *Systematic Biology* 2010.
+- Hoang DT, et al. UFBoot2: improving the ultrafast bootstrap approximation. *Molecular Biology and Evolution* 2018.
+- IQ-TREE. Frequently asked questions. <https://iqtree.github.io/doc/Frequently-Asked-Questions>
+- Katairo T, et al. Performance of molecular inversion probe DR23K and Paragon MAD4HatTeR amplicon sequencing panels. *Malaria Journal* 2025.
+- Li H. Aligning sequence reads, clone sequences and assembly contigs with BWA-MEM. arXiv:1303.3997, 2013.
+- MalariaGEN, et al. Pf7: an open dataset of *Plasmodium falciparum* genome variation in 20,000 worldwide samples. *Wellcome Open Research* 2023. Methods: <https://www.malariagen.net/wp-content/uploads/2023/11/Pf7-Details-of-bioinformatics-methods.pdf>
+- MAD4HatTeR pipeline documentation. <https://eppicenter.github.io/mad4hatter/>
+- Manske M, et al. Analysis of *Plasmodium falciparum* diversity in natural infections by deep sequencing. *Nature* 2012.
+- Mehra S, et al. Systematic bias in malaria parasite relatedness estimation. *G3* 2025.
+- Miles A, et al. Indels, structural variation, and recombination drive genomic diversity in *Plasmodium falciparum*. *Genome Research* 2016.
+- Murphy M, Greenhouse B. MOIRE: a software package for the estimation of allele frequencies and effective multiplicity of infection from polyallelic data. *Bioinformatics* 2024.
+- Oyola SO, et al. Whole genome sequencing of *Plasmodium falciparum* from dried blood spots using selective whole genome amplification. *Malaria Journal* 2016.
+- Pereus D, et al. Genetic metrics decode *Plasmodium falciparum* diversity: complexity of infection, parasite connectivity, and transmission intensity in Mainland Tanzania's diverse regions. *Frontiers in Genetics* 2026.
+- Smith T, Heger A, Sudbery I. UMI-tools: modeling sequencing errors in unique molecular identifiers to improve quantification accuracy. *Genome Research* 2017.
+- Taylor AR, et al. Estimating relatedness between malaria parasites. *Genetics* 2019.
+- World Health Organization. Malaria: artemisinin partial resistance (questions and answers). <https://www.who.int/news-room/questions-and-answers/item/artemisinin-resistance>
+- World Health Organization Malaria Policy Advisory Group. Antimalarial drug resistance in Africa, background document, March 2024. <https://cdn.who.int/media/docs/default-source/malaria/mpac-documentation/mpag-march2024-session5-antimalarial-drug-resistance-africa.pdf>

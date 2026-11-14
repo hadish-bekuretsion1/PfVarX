@@ -28,6 +28,15 @@ def run(ctx: Context, threads: int = 1) -> None:
     clon = {r["sample_id"]: r for r in read_tsv(ctx.results / "downstream" / "DA001" / "clonality.tsv")}
     mono = [s for s in eligible if clon.get(s, {}).get("clonality") == "MONOCLONAL"]
     min_markers = int(ctx.params["da004_min_informative_markers"])
+    floor = float(ctx.params["da001_allele_presence_floor"])
+    related, clonal = float(ctx.params["da004_related_ibd"]), float(ctx.params["da004_clonal_ibd"])
+
+    def label(estimate: str, status: str) -> str:
+        """Reporting convention only; relatedness is continuous and the labels are not tests."""
+        if status != "ESTIMATED" or estimate in ("", "NA"):
+            return ""
+        value = float(estimate)
+        return "NEAR_IDENTICAL" if value >= clonal else "CLOSELY_RELATED" if value >= related else "BELOW_RELATED_LEVEL"
     pairs_out = []
     # hmmIBD on monoclonal samples
     if len(mono) >= 2 and shutil.which("hmmIBD"):
@@ -62,9 +71,9 @@ def run(ctx: Context, threads: int = 1) -> None:
                 c = ctx.matrix[s["site_id"]].get(sid)
                 if not c or c["wsaf"] is None:
                     continue
-                if c["wsaf"] <= 0.95:
+                if c["wsaf"] <= 1 - floor:
                     rows.append({"sample_id": sid, "locus": s["site_id"], "allele": "R"})
-                if c["wsaf"] >= 0.05:
+                if c["wsaf"] >= floor:
                     rows.append({"sample_id": sid, "locus": s["site_id"], "allele": "A"})
         lf = out / "dcifer_input.tsv"
         write_tsv(lf, rows, ["sample_id", "locus", "allele"])
@@ -81,7 +90,10 @@ def run(ctx: Context, threads: int = 1) -> None:
                 pairs_out.append({"sample_1": row["sample_1"], "sample_2": row["sample_2"], "method": "Dcifer",
                                   "estimate": row["estimate"], "ci_lower": row["ci_lower"], "ci_upper": row["ci_upper"],
                                   "informative_markers": len(sites), "status": "ESTIMATED"})
-    cols = ["sample_1", "sample_2", "method", "estimate", "ci_lower", "ci_upper", "informative_markers", "status"]
+    for pair in pairs_out:
+        pair["relatedness_label"] = label(str(pair["estimate"]), str(pair["status"]))
+    cols = ["sample_1", "sample_2", "method", "estimate", "ci_lower", "ci_upper", "informative_markers", "status",
+            "relatedness_label"]
     write_tsv(out / "pairwise_relatedness.tsv", pairs_out, cols)
     if not pairs_out:
         write_manifest(ctx, "DA004", Terminal.SKIPPED_INELIGIBLE.value, reason_codes=[Reason.NO_ELIGIBLE_PAIR.value],
@@ -93,5 +105,6 @@ def run(ctx: Context, threads: int = 1) -> None:
                    outputs=[out / "pairwise_relatedness.tsv"],
                    caveats=["hmmIBD estimates for monoclonal pairs have no interval in this release.",
                             "Dcifer assumes approximately unlinked loci; distance thinning is a proxy."],
-                   method={"monoclonal": "hmmIBD", "polyclonal": "Dcifer", "min_markers": min_markers},
+                   method={"monoclonal": "hmmIBD", "polyclonal": "Dcifer", "min_markers": min_markers,
+                           "closely_related_ibd": related, "near_identical_ibd": clonal},
                    results_summary={"pairs": len(pairs_out)})

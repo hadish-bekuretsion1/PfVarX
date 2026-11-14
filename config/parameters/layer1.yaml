@@ -1,7 +1,7 @@
 version: "1.0.0"
 parameters:
   fastp_detect_adapter_for_pe: {value: true, source: FRAMEWORK_POLICY, note: "short inserts from DBS DNA"}
-  fastp_qualified_quality_phred: {value: 15, source: SOFTWARE_DEFAULT, note: "verified in the pinned fastp 1.1.0 --help"}
+  fastp_qualified_quality_phred: {value: 15, source: SOFTWARE_DEFAULT, note: "fastp default (Chen 2018); verified in the pinned fastp 1.1.0 --help"}
   fastp_unqualified_percent_limit: {value: 40, source: SOFTWARE_DEFAULT}
   fastp_n_base_limit: {value: 5, source: SOFTWARE_DEFAULT}
   fastp_length_required: {value: 50, source: UNCALIBRATED_PROVISIONAL, note: "grid {30,50,70}; Experiment C"}
@@ -14,15 +14,15 @@ parameters:
   picard_optical_pixel_distance_patterned: {value: 2500, source: SOFTWARE_DEFAULT, note: "Picard documentation for patterned flow cells"}
   mosdepth_exclude_flag: {value: 1796, source: SOFTWARE_DEFAULT}
   fgbio_trimprimers_slop: {value: 5, source: SOFTWARE_DEFAULT}
-  fgbio_group_strategy: {value: Adjacency, source: LITERATURE_SUPPORTED, note: "directed adjacency (UMI-tools)"}
+  fgbio_group_strategy: {value: Adjacency, source: LITERATURE_SUPPORTED, note: "directed adjacency (Smith 2017, UMI-tools); fgbio best-practice pipeline"}
   fgbio_group_edits: {value: 1, source: SOFTWARE_DEFAULT}
   fgbio_group_min_map_q: {value: 1, source: SOFTWARE_DEFAULT}
   fgbio_consensus_min_reads: {value: 1, source: FRAMEWORK_POLICY, note: "call with 1, filter later"}
   fgbio_consensus_error_pre_umi: {value: 45, source: SOFTWARE_DEFAULT}
   fgbio_consensus_error_post_umi: {value: 40, source: SOFTWARE_DEFAULT}
-  fgbio_consensus_min_input_base_quality: {value: 10, source: SOFTWARE_DEFAULT}
-  fgbio_filter_min_reads: {value: 2, source: UNCALIBRATED_PROVISIONAL, note: "grid {1,2,3}; Experiment I"}
-  fgbio_filter_min_base_quality: {value: 30, source: UNCALIBRATED_PROVISIONAL, note: "grid {20,30,40}; Experiment I"}
+  fgbio_consensus_min_input_base_quality: {value: 20, source: LITERATURE_SUPPORTED, note: "fgbio best-practice consensus pipeline"}
+  fgbio_filter_min_reads: {value: 3, source: LITERATURE_SUPPORTED, note: "fgbio best-practice consensus pipeline"}
+  fgbio_filter_min_base_quality: {value: 45, source: LITERATURE_SUPPORTED, note: "fgbio best-practice consensus pipeline"}
   fgbio_filter_max_read_error_rate: {value: 0.025, source: SOFTWARE_DEFAULT}
-  fgbio_filter_max_base_error_rate: {value: 0.1, source: SOFTWARE_DEFAULT}
+  fgbio_filter_max_base_error_rate: {value: 0.2, source: LITERATURE_SUPPORTED, note: "fgbio best-practice consensus pipeline"}
   fgbio_filter_max_no_call_fraction: {value: 0.2, source: SOFTWARE_DEFAULT}

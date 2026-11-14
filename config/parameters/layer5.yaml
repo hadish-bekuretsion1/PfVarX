@@ -2,24 +2,29 @@ version: "1.0.0"
 parameters:
   da001_credibility: {value: 0.95, source: UNCALIBRATED_PROVISIONAL, note: "candidate {0.90,0.95}"}
   da001_min_informative_loci: {value: 10, source: UNCALIBRATED_PROVISIONAL}
-  da001_fws_reference_cutoff: {value: 0.95, source: LITERATURE_SUPPORTED, note: "reported for comparison only"}
+  da001_fws_reference_cutoff: {value: 0.95, source: LITERATURE_SUPPORTED, note: "Fws >= 0.95 as the conventional proxy for a clonal infection (Manske 2012; Auburn 2012; MalariaGEN Pf7 2023); reported for comparison only"}
   da006_min_monoclonal: {value: 4, source: FRAMEWORK_POLICY, note: "mathematical floor for an informative unrooted topology"}
   da006_min_informative_sites: {value: 10, source: UNCALIBRATED_PROVISIONAL}
   da006_max_sample_missing: {value: 0.2, source: UNCALIBRATED_PROVISIONAL}
   da006_max_site_missing: {value: 0.2, source: UNCALIBRATED_PROVISIONAL}
-  da006_ufboot: {value: 1000, source: LITERATURE_SUPPORTED}
+  da006_ufboot: {value: 1000, source: LITERATURE_SUPPORTED, note: "IQ-TREE; rely on a branch only at UFBoot >= 95 and SH-aLRT >= 80 (Hoang 2018; Guindon 2010)"}
   da006_alrt: {value: 1000, source: LITERATURE_SUPPORTED}
-  da004_min_informative_markers: {value: 20, source: UNCALIBRATED_PROVISIONAL}
+  da004_min_informative_markers: {value: 200, source: LITERATURE_SUPPORTED, note: "Taylor 2019: about 200 biallelic markers keep relatedness error below 0.1; pairs with fewer are reported as EXCLUDED_FEW_MARKERS"}
   da005_ld_window: {value: 100, source: SOFTWARE_DEFAULT, note: "scikit-allel locate_unlinked"}
   da005_ld_step: {value: 20, source: SOFTWARE_DEFAULT}
   da005_ld_threshold: {value: 0.1, source: SOFTWARE_DEFAULT}
   da005_min_group_size: {value: 3, source: UNCALIBRATED_PROVISIONAL}
   da003_min_group_size: {value: 3, source: UNCALIBRATED_PROVISIONAL}
   da002_min_callable_per_group: {value: 3, source: UNCALIBRATED_PROVISIONAL}
-  da002_reporting_floor: {value: 0.05, source: UNCALIBRATED_PROVISIONAL, note: "Experiment D detection curve"}
-  da002_mixed_threshold: {value: 0.95, source: UNCALIBRATED_PROVISIONAL, note: "WSAF above which a call is MUTANT rather than MIXED"}
+  da002_reporting_floor: {value: 0.05, source: LITERATURE_SUPPORTED, note: "MalariaGEN Pf7 2023: an allele below 5% of reads is treated as absent"}
+  da002_mixed_threshold: {value: 0.95, source: LITERATURE_SUPPORTED, note: "MalariaGEN Pf7 2023: the other allele below 5% of reads is treated as absent, so >=0.95 is MUTANT rather than MIXED"}
   da007_min_samples_per_unit: {value: 3, source: UNCALIBRATED_PROVISIONAL}
-  da001_moire_burnin: {value: 2000, source: UNCALIBRATED_PROVISIONAL, note: "MOIRE run_mcmc burnin; convergence to be assessed in Phase 3"}
-  da001_moire_samples: {value: 2000, source: UNCALIBRATED_PROVISIONAL}
-  da001_allele_presence_floor: {value: 0.05, source: UNCALIBRATED_PROVISIONAL, note: "WSAF above which an allele is called present for MOIRE input"}
+  da001_moire_burnin: {value: 10000, source: SOFTWARE_DEFAULT, note: "moire run_mcmc default (Murphy and Greenhouse 2024); convergence still to be assessed per data set"}
+  da001_moire_samples: {value: 1000, source: SOFTWARE_DEFAULT, note: "moire run_mcmc default samples_per_chain"}
+  da001_allele_presence_floor: {value: 0.05, source: LITERATURE_SUPPORTED, note: "MalariaGEN Pf7 2023: an allele below 5% of reads is treated as absent"}
   da001_thin_bp: {value: 500, source: FRAMEWORK_POLICY, note: "distance thinning as a linkage proxy for MOIRE's independent-loci assumption"}
+  da002_k13_prevalence_alert: {value: 0.05, source: LITERATURE_SUPPORTED, note: "WHO: more than 5% of patients carrying a validated PfKelch13 marker is the molecular criterion for suspected artemisinin partial resistance; used to flag prevalence rows, never to decide resistance"}
+  da004_related_ibd: {value: 0.5, source: LITERATURE_SUPPORTED, note: "IBD >= 0.5 as the reporting convention for closely related pairs; display label only"}
+  da004_clonal_ibd: {value: 0.9, source: LITERATURE_SUPPORTED, note: "IBD >= 0.9 as the reporting convention for near-identical (clonal) pairs; display label only"}
+  da006_ufboot_support: {value: 95, source: LITERATURE_SUPPORTED, note: "IQ-TREE guidance: rely on a branch only at UFBoot >= 95 (Hoang 2018)"}
+  da006_alrt_support: {value: 80, source: LITERATURE_SUPPORTED, note: "IQ-TREE guidance: SH-aLRT >= 80 (Guindon 2010)"}

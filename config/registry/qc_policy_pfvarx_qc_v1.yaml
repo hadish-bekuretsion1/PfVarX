@@ -1,44 +1,67 @@
 # Maintainer-owned QC policy. Users select it by id in config/quality.yaml.
 # direction: 'min' means FAIL below fail / WARNING below warn; 'max' the reverse.
+# Three outcomes per gate: PASS (accepted), WARNING (accepted with warning; the sample
+# continues only into the stages listed in warning_permitted_for) and FAIL (rejected).
+# A FAIL on a gate with mandatory: false is reported as a WARNING, never as a rejection.
+# threshold_source LITERATURE_SUPPORTED => the value is a published standard; 'reference'
+#   names the source and docs/thresholds.md gives the full citation and the exact wording.
+# threshold_source UNCALIBRATED_PROVISIONAL => no published standard exists for the metric;
+#   the gate is evaluated and every decision is labelled calibrated=false until measured.
 # threshold_source UNSET_BLOCKING => gate reports NOT_EVALUATED (never PASS).
-# threshold_source UNCALIBRATED_PROVISIONAL => gate is evaluated, and every
-# decision is labelled calibrated=false until Phase 3 replaces the values.
 policy_id: pfvarx_qc_v1
-version: "1.0.0"
+version: "1.1.0"
 gates:
   - {id: G1.read_retention, gate: G1, stage: L1.fastq_qc, metric: reads_retained_fraction, unit: fraction,
      direction: min, fail: 0.5, warn: 0.7, threshold_source: UNCALIBRATED_PROVISIONAL,
+     reference: "no published standard; depends on library and adapter content",
      designs: [WGS, TARGETED_NON_UMI, TARGETED_UMI], mandatory: true, warning_permitted_for: [L1, L2, L3, L4]}
   - {id: G1.mean_length, gate: G1, stage: L1.fastq_qc, metric: mean_read_length_after, unit: bp,
-     direction: min, fail: null, warn: null, threshold_source: UNSET_BLOCKING,
-     designs: [WGS, TARGETED_NON_UMI, TARGETED_UMI], mandatory: false, warning_permitted_for: [L1, L2, L3, L4]}
+     direction: min, fail: 70, warn: null, threshold_source: LITERATURE_SUPPORTED,
+     reference: "Li 2013 (BWA-MEM is designed for reads of 70 bp and longer); reported as a warning",
+     designs: [WGS, TARGETED_NON_UMI, TARGETED_UMI], mandatory: false,
+     warning_permitted_for: [L1, L2, L3, L4, DA001, DA002, DA003, DA004, DA005, DA006, DA007]}
   - {id: G1.q30, gate: G1, stage: L1.fastq_qc, metric: q30_fraction_after, unit: fraction,
      direction: descriptive, fail: null, warn: null, threshold_source: FRAMEWORK_POLICY,
+     reference: "instrument specifications differ by platform and read length; reported, not gated",
      designs: [WGS, TARGETED_NON_UMI, TARGETED_UMI], mandatory: false, warning_permitted_for: []}
   - {id: G2.mapped, gate: G2, stage: L1.alignment, metric: mapped_fraction, unit: fraction,
      direction: min, fail: 0.5, warn: 0.8, threshold_source: UNCALIBRATED_PROVISIONAL,
+     reference: "no published standard; host DNA content varies by sample type (Oyola 2016)",
      designs: [WGS, TARGETED_NON_UMI, TARGETED_UMI], mandatory: true, warning_permitted_for: [L2, L3, L4]}
   - {id: G2.properly_paired, gate: G2, stage: L1.alignment, metric: properly_paired_fraction, unit: fraction,
      direction: min, fail: null, warn: null, threshold_source: UNSET_BLOCKING,
+     reference: "no published standard; reported only",
      designs: [WGS, TARGETED_NON_UMI, TARGETED_UMI], mandatory: false, warning_permitted_for: [L2, L3, L4]}
   - {id: G2.duplicates, gate: G2, stage: L1.alignment, metric: duplicate_fraction, unit: fraction,
      direction: max, fail: 0.6, warn: 0.3, threshold_source: UNCALIBRATED_PROVISIONAL,
+     reference: "no published standard; selective whole-genome amplification raises duplication",
      designs: [WGS], mandatory: true, warning_permitted_for: [L2, L3, L4, DA002]}
   - {id: G2.depth, gate: G2, stage: L1.coverage, metric: median_depth_core, unit: reads,
-     direction: min, fail: 10, warn: 20, threshold_source: UNCALIBRATED_PROVISIONAL,
+     direction: min, fail: 5, warn: 20, threshold_source: LITERATURE_SUPPORTED,
+     reference: "MalariaGEN Pf7 2023 (positions need >=5 reads to be callable; a median below 5 means under half the core is callable). The warning level is framework policy",
      designs: [WGS], mandatory: true, warning_permitted_for: [L2, L3, L4, DA002]}
   - {id: G2.callable, gate: G2, stage: L1.coverage, metric: callable_fraction_core, unit: fraction,
-     direction: min, fail: 0.5, warn: 0.8, threshold_source: UNCALIBRATED_PROVISIONAL,
+     direction: min, fail: 0.5, warn: 0.8, threshold_source: LITERATURE_SUPPORTED,
+     reference: "MalariaGEN Pf7 2023 (samples with callability <50% at >=5 reads were removed). The warning level is framework policy",
      designs: [WGS], mandatory: true, warning_permitted_for: [L2, L3, L4, DA002]}
   - {id: G3.on_target, gate: G3, stage: L1.targets, metric: on_target_fraction, unit: fraction,
      direction: min, fail: 0.5, warn: 0.7, threshold_source: UNCALIBRATED_PROVISIONAL,
+     reference: "no published standard; panel specific",
      designs: [TARGETED_NON_UMI, TARGETED_UMI], mandatory: true, warning_permitted_for: [L2, L3, L4]}
   - {id: G3.dropout, gate: G3, stage: L1.targets, metric: amplicon_dropout_fraction, unit: fraction,
      direction: max, fail: 0.5, warn: 0.2, threshold_source: UNCALIBRATED_PROVISIONAL,
+     reference: "no published standard; panel specific",
      designs: [TARGETED_NON_UMI, TARGETED_UMI], mandatory: true, warning_permitted_for: [L2, L3, L4, DA002]}
+  - {id: G3.amplicon_depth, gate: G3, stage: L1.targets, metric: median_amplicon_depth, unit: reads,
+     direction: min, fail: 100, warn: null, threshold_source: LITERATURE_SUPPORTED,
+     reference: "Early 2019 (sensitivity and precision fall below 100 reads per amplicon); MAD4HatTeR guidance (>=100 reads per amplicon). Raw reads only, so not applied to UMI consensus reads; reported as a warning",
+     designs: [TARGETED_NON_UMI], mandatory: false,
+     warning_permitted_for: [L1, L2, L3, L4, DA001, DA002, DA003, DA004, DA005, DA006, DA007]}
   - {id: G3.umi_singletons, gate: G3, stage: L1.umi, metric: umi_singleton_fraction, unit: fraction,
      direction: max, fail: null, warn: null, threshold_source: UNSET_BLOCKING,
+     reference: "no published standard; reported only",
      designs: [TARGETED_UMI], mandatory: false, warning_permitted_for: [L2, L3, L4]}
   - {id: G4.mixture_converged, gate: G4, stage: L2.mixture, metric: mixture_converged, unit: boolean,
      direction: min, fail: 1, warn: null, threshold_source: FRAMEWORK_POLICY,
+     reference: "numerical convergence of the mixture model",
      designs: [WGS, TARGETED_NON_UMI, TARGETED_UMI], mandatory: false, warning_permitted_for: [L3, DA002, DA003]}
