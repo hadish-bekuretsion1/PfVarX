@@ -5,6 +5,21 @@
 The release version was reset to 0.0.0 after 0.4.2, as the baseline for the first reviewed
 release. The sections below 0.0.0 are the earlier development numbering, kept as history.
 
+### Documentation brought up to date
+
+- README, HTML quick start, analysis, orchestration, testing, reporting, status, sequencing
+  and SOP manual (Markdown and HTML) describe the current behaviour: validation summaries and
+  the `CORE_MASK_SUSPECT` warning, the empty-cohort outcome and `cohort_status.json`, the
+  design-specific DA004 marker rule, the flow-cell rule, `compute.tmp_dir`, report and package
+  provenance, current parameter values (usable depth 5, DA004 200/20, MOIRE settings), and
+  platform support (Linux x86-64; WSL2 on Windows).
+- The orchestration guide documents every CLI command, with a table pairing each GUI tab with
+  its command; `tests/unit/test_cli_gui_parity.py` now fails if a command is undocumented.
+- The testing guide lists what the automated suite covers; `docs/thresholds.md` is linked
+  from the README.
+- Corrected stale statements: the default compute budget is 6,500 MiB (not 8,000 MB), and
+  DA001 runs for FO004 only when requested or needed by another analysis.
+
 ### CLI and GUI parity
 
 - The CLI and the configuration GUI now change together: `tests/unit/test_cli_gui_parity.py`

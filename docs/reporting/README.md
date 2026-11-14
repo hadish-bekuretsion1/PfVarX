@@ -29,8 +29,13 @@ configuration untouched. Archive a previous report first if you need its exact b
 New reporting assets must be installed in that workspace's software package before
 refreshing. Selected workspaces use `./pfvarx`; full-source operation remains supported.
 Refreshing a report does not silently upgrade a frozen scientific snapshot;
-the report records the current renderer's SHA-256 separately under
-`software.report_renderer`, alongside the original run provenance.
+the report records the current renderer's version and SHA-256 separately under
+`software.report_renderer`, alongside the original run provenance. The pipeline version
+shown is the one recorded in the run's `snapshot.json` when the run was made, not the
+version installed when the report is rebuilt. The software section lists the probed
+command-line tools and the exact version and build of every scientific package in the
+run's environment (fgbio, Picard, SnpEff, IQ-TREE, hmmIBD, MOIRE, Dcifer, mgcv and
+others), marked "(package)".
 
 For an in-progress run, missing final artifacts display an unfinished state. These are
 artifact-derived states, not a live scheduler subscription: reload a freshly regenerated

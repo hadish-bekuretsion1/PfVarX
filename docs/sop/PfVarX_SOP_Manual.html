@@ -277,7 +277,7 @@ scientific ineligibility must be reviewed independently of process completion.</
 <td>CE</td>
 <td>CE</td>
 <td>CE</td>
-<td>Require assessed clonality, at least one eligible pair and adequate shared informative markers. hmmIBD is used for monoclonal pairs. Dcifer uses COI for mixed-infection pairs. Shallow or sparse panel data can fail the shared-marker gate.</td>
+<td>Require assessed clonality, at least one eligible pair and adequate shared informative markers. hmmIBD is used for monoclonal pairs. Dcifer uses COI for mixed-infection pairs. Shallow or sparse panel data can fail the shared-marker gate: WGS pairs need 200 informative markers, targeted pairs 20, and pairs below 200 are reported as low precision without a relatedness label.</td>
 <td><code>pairwise_relatedness.tsv</code></td>
 <td>TSV</td>
 <td>R/downstream/DA004/</td>
@@ -424,10 +424,13 @@ sed -n '1,240p' src/pfvarx/configuration/models.py
 cat config/templates/analysis.yaml config/templates/compute.yaml
 cat config/parameters/layer2.yaml
 </code></pre>
-<p><strong>Step 2. Edit schema and canonical template together</strong></p>
-<pre><code class="language-bash">nano src/pfvarx/configuration/models.py config/templates/analysis.yaml
+<p><strong>Step 2. Edit schema, templates and GUI help together</strong></p>
+<p>The CLI (YAML templates) and the configuration GUI configure the same settings, so a setting change touches both in the same commit (see “CLI and GUI parity” in <code>docs/architecture.md</code>). Setting help lives only in <code>gui/field-guide.json</code>; regenerate the configuration guide from it.</p>
+<pre><code class="language-bash">nano src/pfvarx/configuration/models.py config/templates/analysis.yaml config/templates/benchmarking.yaml
+nano src/pfvarx/configuration/gui/field-guide.json
+python scripts/configuration_guide.py
 nano tests/unit/test_configuration.py
-pixi run pytest -q tests/unit/test_configuration.py
+pixi run pytest -q tests/unit/test_configuration.py tests/unit/test_cli_gui_parity.py
 pixi run lint
 pixi run typecheck
 </code></pre>
@@ -821,7 +824,7 @@ git diff --check
 git add src workflow config tests docs scripts .github bootstrap.py pfvarx README.md CHANGELOG.md pixi.toml pixi.lock pyproject.toml .gitignore LICENSE
 git diff --cached --stat
 </code></pre>
-<p>Publication/commit/tag actions require the repository owner’s release decision. Keep version declarations consistent; regenerate/review the lock only when appropriate. Do not retag a published release to conceal changes. Run hosted CI before a new tag.</p>
+<p>Publication/commit/tag actions require the repository owner’s release decision. The release version is set only in <code>src/pfvarx/__init__.py</code>; <code>tests/unit/test_version.py</code> checks every current-release reference against it; regenerate/review the lock only when appropriate. Do not retag a published release to conceal changes. Run hosted CI before a new tag.</p>
 <h3>4. Expected outputs</h3>
 <p>Source ZIP and SHA-256 sidecar containing no generated datasets/reports/environments, with maintained manuals and tests. Full test outputs remain outside source.</p>
 <h3>5. Verification and quality control</h3>
@@ -910,7 +913,7 @@ for r in csv.DictReader(open(&quot;inputs/metadata/samples.tsv&quot;), delimiter
         p=Path(r[k]); print(r[&quot;sample_id&quot;],r[&quot;lane&quot;],k,p,p.is_file())
 PYCODE
 </code></pre>
-<p>If <code>column</code> is unavailable, use <code>cat</code> instead. All path existence checks must be true before validation. IDs use schema-permitted letters/digits/underscore/hyphen; sample/lane pairs must be unique. Multiple lanes share a sample ID and retain accurate library IDs.</p>
+<p>If <code>column</code> is unavailable, use <code>cat</code> instead. All path existence checks must be true before validation. IDs use schema-permitted letters/digits/underscore/hyphen; sample/lane pairs must be unique. Multiple lanes share a sample ID and retain accurate library IDs. For WGS, all lanes of one sample must share one <code>flowcell_type</code> (duplicates are marked once per sample with one optical distance); validation rejects a sample that mixes patterned and unpatterned lanes.</p>
 <h3>4. Expected outputs</h3>
 <p><code>inputs/metadata/samples.tsv</code>, containing required sample/lane/library fields and branch-specific file columns. Blank unused fields are preserved.</p>
 <h3>5. Verification and quality control</h3>
@@ -924,7 +927,7 @@ PYCODE
 <p><strong>Module:</strong> reference configuration and references/. <strong>Workflow:</strong> routine analysis.</p>
 <p><strong>Purpose and scope:</strong> Supply matching FASTA, core mask and annotation, derive indexes without modifying original resources.</p>
 <h3>2. Prerequisites and requirements</h3>
-<p>R01–R02; independently justified reference FASTA and core BED; matching GFF for explicit FO004 or automatic FO004 marker outcomes. BED is zero-based half-open; GFF/VCF positions are one-based.</p>
+<p>R01–R02; independently justified reference FASTA and core-genome mask BED (the accessible core: Core regions of Miles et al. 2016, as used by MalariaGEN; not a gene or feature BED); matching GFF for explicit FO004 or automatic FO004 marker outcomes. BED is zero-based half-open; GFF/VCF positions are one-based.</p>
 <h3>3. Detailed operational procedure</h3>
 <p><strong>Step 1. Set the actual reference and initial analysis mode</strong></p>
 <pre><code class="language-bash">cd &quot;$ANALYSIS&quot;
@@ -958,7 +961,7 @@ find prepared -maxdepth 3 -type f | sort
 <h3>4. Expected outputs</h3>
 <p><code>prepared/reference/parasite.fasta</code>, combined reference and their applicable indexes; <code>prepared/manifest.json</code>. Required source files stay read-only.</p>
 <h3>5. Verification and quality control</h3>
-<p>The second dry preparation plan should have no actions for unchanged resources. All contig names, lengths and intervals must match; inspect <code>metadata/validation_report.json</code> for source facts and failures.</p>
+<p>The second dry preparation plan should have no actions for unchanged resources. All contig names, lengths and intervals must match; inspect <code>metadata/validation_report.json</code> for source facts and failures. A <code>CORE_MASK_SUSPECT</code> warning means the core BED looks like a gene list (gene names, more than 1 000 or overlapping intervals, or coverage outside 70–97% of the reference); replace it with the real core mask before preparation.</p>
 <h3>6. Error handling and troubleshooting</h3>
 <p>Mismatched FASTA/GFF/BED: stop. Obtain consistent resources; do not silently rename contigs or regenerate a whole-genome mask to remove errors. Automatic FO004 can leave GFF unset. Layer 4 and its dependent marker/spatial outputs then remain unavailable.</p>
 <h3>7. Completion criteria</h3>
@@ -992,7 +995,7 @@ cat &quot;$RECORDS/analysis/dry-run.json&quot;
 <h3>4. Expected outputs</h3>
 <p>Validation report, current preparation, <code>ready: true</code> and <code>dry-run</code> status <code>OK</code>. On a new workspace the dry run does not create <code>runs/</code> or <code>results</code>.</p>
 <h3>5. Verification and quality control</h3>
-<p>Review every failed sample, warning and deferred gate. PARTIAL permits only individually valid samples under continue-independent policy; record exclusions explicitly. Reference/global validation failure must be resolved.</p>
+<p>Review every failed sample, warning and deferred gate. The validation <code>summary</code> states for each problem or warning the input, why it failed, why the input matters and numbered steps to fix it. PARTIAL permits only individually valid samples under continue-independent policy; record exclusions explicitly. Reference/global validation failure must be resolved.</p>
 <h3>6. Error handling and troubleshooting</h3>
 <p>False readiness: inspect JSON resources and prep status. Parameter UNSET_BLOCKING/unsupported metadata: correct the owning requirement, not a generated plan. A dry-run pass does not guarantee later QC/clonality eligibility.</p>
 <h3>7. Completion criteria</h3>
@@ -1286,7 +1289,7 @@ analyses:
   resistance_catalog: null
   spatial_outcome_source: null
 </code></pre>
-<p>Also set the real matching <code>reference.gff</code>. For resistance/spatial work use <code>[DA002, DA007]</code>, a verified <code>resistance_catalog</code>, <code>spatial_outcome_source: DA002</code> and verified country/date/latitude/longitude metadata. On targeted data omit DA005/DA006. DA001 can be inserted automatically as an internal prerequisite.</p>
+<p>Also set the real matching <code>reference.gff</code>. For resistance/spatial work use <code>[DA002, DA007]</code>, a verified <code>resistance_catalog</code>, <code>spatial_outcome_source: DA002</code> and verified country/date/latitude/longitude metadata. On targeted data omit DA005/DA006. DA001 is optional for explicit selection; it is inserted automatically as an internal prerequisite when another selected method needs it.</p>
 <p><strong>Step 3. Validate selections; launch only in the chosen entry SOP</strong></p>
 <pre><code class="language-bash">./pfvarx validate
 ./pfvarx prepare
@@ -1299,7 +1302,7 @@ analyses:
 <h3>4. Expected outputs</h3>
 <p>Section 4 lists outputs and their interpretation. Each requested method records a terminal manifest.</p>
 <h3>5. Verification and quality control</h3>
-<p>Check current registry/scales and parameter thresholds rather than inventing acceptance values. DA006 currently requires at least four eligible monoclonal samples and ten informative sites, subject to further missingness gates; these software floors do not establish a scientifically adequate study size.</p>
+<p>Check current registry/scales and parameter thresholds rather than inventing acceptance values. DA006 currently requires at least four eligible monoclonal samples and ten informative sites, subject to further missingness gates; these software floors do not establish a scientifically adequate study size. DA004 needs 200 informative markers per WGS pair (Taylor 2019) and 20 per targeted pair; pairs with fewer than 200 are <code>ESTIMATED_LOW_PRECISION</code> and carry no relatedness label, and DA004 reports SKIPPED_INELIGIBLE with <code>INSUFFICIENT_INFORMATIVE_SITES</code> when no pair can be estimated. If no sample passes QC into the cohort, every requested method reports SKIPPED_INELIGIBLE with <code>NO_ELIGIBLE_SAMPLES</code> and <code>NO_COHORT</code>.</p>
 <h3>6. Error handling and troubleshooting</h3>
 <p>BLOCKED_MISSING_PREREQUISITE: supply the real required resource or change the study request before a new run. SKIPPED_INELIGIBLE: report it; do not reduce gates merely to force a tree or comparison.</p>
 <h3>7. Completion criteria</h3>
@@ -1333,6 +1336,7 @@ head &quot;$RES/variants/samples/$SAMPLE.evidence.tsv&quot;
 </code></pre>
 <p><strong>Step 3. Review cohort/annotation layers only when selected</strong></p>
 <pre><code class="language-bash"># FO003/FO004 only:
+cat &quot;$RES/cohort/cohort_status.json&quot;   # COMPLETED, or SKIPPED_NO_ELIGIBLE_SAMPLES with reasons
 ./pfvarx tool bcftools query -l &quot;$RES/cohort/cohort.vcf.gz&quot;
 gzip -t &quot;$RES/cohort/evidence_matrix.tsv.gz&quot;
 head &quot;$RES/cohort/missingness.tsv&quot;
@@ -2105,6 +2109,7 @@ inventory of that run. Snakemake temporary intermediates may disappear after suc
 │       │   ├── &lt;SAMPLE&gt;.callable.bed
 │       │   └── &lt;SAMPLE&gt;.focal_loss.bed
 │       ├── cohort/                         FO003+
+│       │   ├── cohort_status.json          cohort formed, or SKIPPED_NO_ELIGIBLE_SAMPLES
 │       │   ├── cohort.vcf.gz
 │       │   ├── cohort_samples.txt
 │       │   ├── sites.tsv
@@ -2155,7 +2160,7 @@ values, not universal recommendations or evidence of scientific validity.</p>
 <tbody>
 <tr>
 <td><code>layer1.yaml</code></td>
-<td>fastp quality threshold 15, maximum unqualified percentage 40, N-base limit 5, minimum length 50; cut-right false</td>
+<td>fastp quality threshold 15, maximum unqualified percentage 40, N-base limit 5, minimum length 50; cut-right false (window 4, mean quality 20 when enabled); fgbio consensus filter: minimum reads 3, base quality 45, maximum base error 0.2</td>
 </tr>
 <tr>
 <td><code>layer1.yaml</code></td>
@@ -2163,7 +2168,7 @@ values, not universal recommendations or evidence of scientific validity.</p>
 </tr>
 <tr>
 <td><code>layer2.yaml</code></td>
-<td>min MAPQ 20, base quality 13, usable depth 10; these remain source-class-labelled</td>
+<td>min MAPQ 20, base quality 13, usable depth 5 (MalariaGEN Pf7/Pf8); candidates need 2 reads; pair-HMM caps 200 reads with 60 bp flanks; these remain source-class-labelled</td>
 </tr>
 <tr>
 <td><code>layer2.yaml</code></td>
@@ -2171,7 +2176,7 @@ values, not universal recommendations or evidence of scientific validity.</p>
 </tr>
 <tr>
 <td><code>layer5.yaml</code></td>
-<td>DA001 minimum informative loci 10; DA004 minimum markers 20</td>
+<td>DA001 minimum informative loci 10, MOIRE burn-in 10000 and 1000 samples, loci thinned to 500 bp; DA004 minimum markers 200 for WGS and 20 for targeted panels (pairs below 200 are low precision, unlabelled); Dcifer level 0.05</td>
 </tr>
 <tr>
 <td><code>layer5.yaml</code></td>
@@ -2179,7 +2184,7 @@ values, not universal recommendations or evidence of scientific validity.</p>
 </tr>
 <tr>
 <td><code>layer5.yaml</code></td>
-<td>DA003/DA005 population minimum 3; DA002 minimum callable/group 3 and reporting floor 0.05; provisional settings require scientific review</td>
+<td>DA003/DA005 population minimum 3; DA003 bootstrap 200; DA002 minimum callable/group 3, reporting floor 0.05 and MIXED below 0.95; DA007 GAM after 10 samples; provisional settings require scientific review</td>
 </tr>
 <tr>
 <td><code>layer6.yaml</code></td>
@@ -2187,11 +2192,11 @@ values, not universal recommendations or evidence of scientific validity.</p>
 </tr>
 <tr>
 <td><code>compute.yaml</code></td>
-<td>example total cores 4, RAM 6500 MiB, jobs 1, temp disk 20000 MB, per-job runtime estimate/ceiling field 720 minutes</td>
+<td>example total cores 4, RAM 6500 MiB, jobs 1, temp disk 20000 MB, per-job runtime estimate/ceiling field 720 minutes; <code>tmp_dir</code> null (system temporary directory)</td>
 </tr>
 </tbody>
 </table>
-<p>Confirm the actual release/configuration values with:</p>
+<p>Every value, its source and its reference is listed in <code>docs/thresholds.md</code>. Confirm the actual release/configuration values with:</p>
 <pre><code class="language-bash">cd &quot;$ANALYSIS&quot;
 cat config/parameters/layer1.yaml config/parameters/layer2.yaml
 cat config/parameters/layer5.yaml config/parameters/layer6.yaml
@@ -2222,8 +2227,18 @@ experiment. Do not relabel provisional values as calibrated merely because tests
 </tr>
 <tr>
 <td>Global reference/GFF/BED failure</td>
-<td>validation_report.json, source identities</td>
-<td>Stop; obtain mutually matching resources</td>
+<td>validation <code>summary</code>, validation_report.json, source identities</td>
+<td>Stop; follow the numbered steps in the summary; obtain mutually matching resources</td>
+</tr>
+<tr>
+<td><code>CORE_MASK_SUSPECT</code> warning</td>
+<td>the core BED’s column 4, interval count and coverage</td>
+<td>Replace a gene/feature BED with the real core-genome mask; record the reason if a custom mask is intended</td>
+</tr>
+<tr>
+<td>Mixed flow-cell types for one sample</td>
+<td>sample sheet <code>flowcell_type</code> per lane</td>
+<td>Register lanes from different flow-cell types as separate samples</td>
 </tr>
 <tr>
 <td>FASTQ mismatch/truncated gzip</td>
@@ -2259,6 +2274,11 @@ experiment. Do not relabel provisional values as calibrated merely because tests
 <td>Method skipped</td>
 <td>eligibility/status_manifest/runtime_gates</td>
 <td>Report the actual reason and denominator; do not create a placeholder result</td>
+</tr>
+<tr>
+<td><code>cohort_status.json</code> is SKIPPED_NO_ELIGIBLE_SAMPLES</td>
+<td>per-sample <code>qc_decision.json</code>, blocked-sample reasons</td>
+<td>No sample passed QC into the cohort; analyses report NO_ELIGIBLE_SAMPLES. Review QC; never relax gates to force a cohort</td>
 </tr>
 <tr>
 <td>Resistance blocked</td>
@@ -2534,7 +2554,16 @@ nano metadata/discovered_samples.tsv
 ./pfvarx dry-run
 ./pfvarx pipeline --mode NEW
 </code></pre>
-<p>Inspect <code>metadata/validation_report.json</code> and the sample-level statuses. Repair
+<p><code>./pfvarx validate</code> (and the GUI Input Files Validation tab) prints a <code>summary</code>: one
+entry per problem or warning, naming the input, why it failed, why the input matters and
+numbered steps that fix it. For example, a missing core-genome mask reports the expected
+path, notes when <code>config/config.yaml</code> gives only a folder, lists files of the same type
+already in that folder, and explains how to build the mask from the standard core-genome
+regions. A core mask that looks like a gene list (gene names, thousands of or overlapping
+intervals, or coverage far from the usual 89% of 3D7) passes with a <code>CORE_MASK_SUSPECT</code>
+warning, because the format is valid but the content is probably wrong.
+The same fields (<code>file</code>, <code>used_for</code>, <code>why</code>, <code>actions</code>) are stored for every finding in
+<code>metadata/validation_report.json</code>, with the sample-level statuses. Repair
 mandatory failures before proceeding. Under the existing partial-admission policy,
 only validated samples enter execution. Prepare rechecks validation, builds the
 necessary reference derivatives under <code>prepared/reference/</code>, and records tool logs

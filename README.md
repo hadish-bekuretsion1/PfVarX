@@ -12,7 +12,8 @@ See [scientific status](docs/status.md) before interpreting results.
 ## 1. Install
 
 You need Linux x86-64, Git, Python 3.11+, Pixi on PATH, and access to the private
-GitHub repository. This example installs the paired-end WGS sample profile.
+GitHub repository. On Windows, use WSL2 with a Linux distribution; macOS and Linux ARM64
+are not supported. This example installs the paired-end WGS sample profile.
 Run each step in order and resolve any errors before continuing.
 
 ```bash
@@ -48,7 +49,9 @@ reads, add `--design TARGETED_NON_UMI` or `--design TARGETED_UMI`.
 ## 2. Configure
 
 Run the remaining commands from the study workspace. Set the actual assay,
-reference FASTA, matching core BED, reference release and compute budget.
+reference FASTA, core-genome mask BED, reference release and compute budget. The core
+mask is the accessible core of the genome (the Core regions of Miles et al. 2016, as used
+by MalariaGEN), not a gene list.
 Choose one configuration route:
 
 - **CLI:** Edit `config/config.yaml`, `config/quality.yaml`, and
@@ -95,8 +98,9 @@ equivalents for the GUI tabs.
 ./pfvarx dry-run
 ```
 
-Review validation under `metadata/`. When readiness is true and the dry run
-reports `OK`, start the analysis:
+If validation fails, its `summary` names each problem, why it failed and the numbered
+steps that fix it; the full record is in `metadata/validation_report.json`. When
+readiness is true and the dry run reports `OK`, start the analysis:
 
 ```bash
 ./pfvarx pipeline --mode NEW
@@ -109,7 +113,9 @@ command; see the [terminal workflow](docs/configuration.md#terminal-workflow).
 ## 5. Review results
 
 Record the run ID and open `results/report/pfvarx_dashboard.html`. Check sample
-QC and exclusion reasons before interpreting calls. Each run retains its
+QC and exclusion reasons before interpreting calls. If no sample passes QC, the run
+still completes and `results/cohort/cohort_status.json` explains which samples were
+blocked and why. Each run retains its
 outputs, logs and frozen configuration under `runs/<RUN_ID>/`.
 
 | Mode | Final products |
@@ -117,7 +123,7 @@ outputs, logs and frozen configuration under `runs/<RUN_ID>/`.
 | FO001 | FASTQ entry only. Processed BAM/BAI, QC and dashboard |
 | FO002 | Per-sample VCF/TBI, evidence, callability, caller QC and dashboard |
 | FO003 | Above plus variant-only cohort VCF/evidence/missingness |
-| FO004 | Cohort outputs and eligible downstream analyses, including DA001 COI. Annotation depends on the configured GFF. |
+| FO004 | Cohort outputs, SnpEff annotation from the configured GFF, and the requested downstream analyses that are eligible. DA001 (COI) runs when requested or when another analysis needs it. |
 
 ## Guides
 
@@ -126,5 +132,8 @@ outputs, logs and frozen configuration under `runs/<RUN_ID>/`.
 - [Complete orchestration/command guide](docs/orchestration.md)
 - [Sample analysis](docs/analysis/README.md) and [benchmarking](docs/benchmarking/README.md)
 - [Reporting](docs/reporting/README.md), [deployment](docs/deployment.md), [testing](docs/testing.md)
-- [Architecture](docs/architecture.md) and [scientific/operational limits](docs/status.md)
+- [Configuration guide](docs/configuration%20guide.md) and [thresholds and their sources](docs/thresholds.md)
+- [Caller contract](docs/caller.md) and [sequencing and downstream eligibility](docs/sequencing.md)
+- [Architecture](docs/architecture.md), including the CLI and GUI parity rule for contributors,
+  and [scientific/operational limits](docs/status.md)
 

@@ -14,6 +14,36 @@ preflight. Integration tests copy current source and do not require a Git commit
 Tests use temporary workspaces; no study dataset is bundled. A normal local install
 may create caches/environments; those are never exported by the packager.
 
+## What the automated suite covers
+
+`pixi run pytest -q tests` takes about 13 minutes on four cores. Besides unit and
+scientific tests, it runs real pipelines on the synthetic fixture:
+
+| Integration test | What it proves |
+| --- | --- |
+| Dry runs (WGS, targeted non-UMI, targeted UMI) | Each design builds its workflow and creates no run or results |
+| Annotated WGS cohort to DA002 | Alignment, calling, cohort merge, BGZF annotation and one analysis |
+| Every downstream analysis | An 11-sample WGS cohort runs DA001–DA007 to completion, and clonality calls never contradict the simulated truth |
+| Targeted UMI to DA002 (depth 60) | The UMI route reaches cohort, annotation and resistance analysis |
+| No sample passing QC (UMI, depth 15) | The run completes with an explicit empty-cohort outcome instead of a crash |
+| UMI with short reads | Fixed read structures and adapter dimers do not stop fgbio |
+
+Consistency checks that fail when one part changes without another:
+
+| Test | Fails when |
+| --- | --- |
+| `tests/unit/test_version.py` | A current-release reference disagrees with `__version__` in `src/pfvarx/__init__.py` |
+| `tests/unit/test_cli_gui_parity.py` | A setting lacks GUI help, a template entry or a guide row; guide text differs from the GUI; or a GUI tab or stage has no CLI command |
+| `tests/unit/test_validation_guidance.py` | A validation failure stops explaining its cause and fix, or a gene list passes as a core mask |
+
+After changing setting help in `src/pfvarx/configuration/gui/field-guide.json`, run
+`python scripts/configuration_guide.py` to regenerate the configuration guide
+(`--check` only reports whether it is out of date).
+
+The fixture command takes `--variant-scale N` to multiply the simulated variant sites
+(default 1). The all-analyses test uses 4, so relatedness, structure and phylogeny have
+enough informative sites on the 48 kb synthetic genome.
+
 ## End-to-end software verification
 
 ```bash

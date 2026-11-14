@@ -106,3 +106,10 @@ def test_every_command_the_gui_runs_is_a_cli_command() -> None:
     stage_lists = re.findall(r'"[a-z-]+": \(([^)]*)\)', checks)
     stages = set(web.PREFLIGHT_STAGES) | {s for group in stage_lists for s in re.findall(r'"([a-z-]+)"', group)}
     assert stage_lists and stages <= _cli_commands(), f"GUI runs commands the CLI lacks: {stages - _cli_commands()}"
+
+
+def test_orchestration_guide_documents_every_cli_command() -> None:
+    """The command reference must list every CLI command, including the GUI-matching ones."""
+    guide = (REPO / "docs/orchestration.md").read_text()
+    missing = sorted(c for c in _cli_commands() if f"`{c}" not in guide)
+    assert not missing, f"docs/orchestration.md does not document {missing}"

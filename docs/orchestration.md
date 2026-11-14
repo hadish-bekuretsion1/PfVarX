@@ -54,7 +54,7 @@ Pixi/tool diagnostics go to stderr. `PFVARX_JSON_OUT` can save command JSON atom
 | `register-inputs --manifest FILE --mode reference|link` | Reviewed TSV and valid config | Registered sample sheet, optional organized symlinks, metadata/registration.json; refuses nonempty sheet overwrite |
 | `fetch-input --url URL --sha256 HASH --role ROLE --name NAME` | Explicit HTTPS source/trusted checksum | Only requested inputs/ROLE/NAME plus acquisition metadata; atomic checksum gate and no overwrite |
 | `check-layout` | Config and supplied files | Read-only layout report; PASS required |
-| `validate` | Registered inputs/resources | Detailed validation JSON, input quality facts TSV and effective configuration/parameter summary; PASS or reviewed PARTIAL |
+| `validate` | Registered inputs/resources | Detailed validation JSON, input quality facts TSV and effective configuration/parameter summary; PASS or reviewed PARTIAL. The printed `summary` explains each problem or warning and the steps that fix it |
 | `prepare --dry-run` | Config/resources | Read-only list of missing/stale/damaged derived artifacts |
 | `prepare` | Accepted input validation | Only necessary reference derivatives, artifact hashes/seal and preparation report; verification PASS |
 | `verify-prepared` | Prepared resources and current registry | Input validation plus source/derived checksums, FASTA/FAI/dictionary compatibility; mandatory failures stop execution |
@@ -68,6 +68,25 @@ Pixi/tool diagnostics go to stderr. `PFVARX_JSON_OUT` can save command JSON atom
 | `run-verify --run-id ID` | Existing frozen run | Frozen-file integrity and workspace-drift report |
 | `cleanup --run-id ID [--apply]` | COMPLETED, inactive run | Preview or audited deletion of safe regular files under that run's results/work only |
 | `benchmark-partition`, `benchmark-evaluate`, `benchmark-resources` | Appropriate benchmark configuration/truth/run | Separate benchmarking procedures in its manual |
+| `status` | Any workspace | Effective configuration hash and the latest run's status |
+| `version` | Any installation | The pipeline release version |
+| `fixture` | Disposable empty workspace | Synthetic software-test reads, reference, GFF, sample sheet and test catalogue (`--design`, `--depth`, `--n-mono`, `--n-poly`, `--variant-scale`); never biological data |
+
+### Commands that match the configuration GUI
+
+Each GUI tab runs the same code as one of these commands, so you can switch between the
+GUI and the terminal at any stage. `tests/unit/test_cli_gui_parity.py` keeps them matched.
+
+| GUI tab or button | Command | What it does |
+| --- | --- | --- |
+| (open the GUI) | `configure --gui` | Local configuration form at 127.0.0.1 with a session token; the YAML files stay usable |
+| Input directories | `input-directories` | Create the input folders for the saved configuration (after editing the YAML) |
+| Input files | `input-files`, `add-input --file PATH`, `fetch-input --url URL --name NAME` | List input folders; copy files from disk or download over HTTPS into them, with the same checks as the GUI |
+| Input Files Validation | `validate-input-files` | Run `validate` on the saved configuration |
+| Reference Preparation | `prepare-reference` | Run `prepare`, `verify-prepared` and `ready` |
+| Workflow Readiness Checks | `workflow-readiness-checks` | Run `validate`, `prepare`, `verify-prepared` and `ready` in order |
+| Workflow Check and Run: Check workflow | `workflow-check` | Run `dry-run`; no outputs are created |
+| Workflow Check and Run: Run workflow | `workflow-run` | Check the workflow, then run it as a new analysis |
 
 Initialization creates no placeholder runs, fake logs or empty output trees. Run
 creation establishes run execution/log/result roots before processing; individual
@@ -147,7 +166,8 @@ Workspace locking rejects overlapping runs/cleanup; do not remove a live lock ma
 
 ## Recovery rules
 
-Inspect printed JSON problems, `metadata/validation_report.json`, preparation reports,
+Start from the validation `summary`, which says what failed, why and how to fix it. Then
+inspect `metadata/validation_report.json`, preparation reports,
 `runs/ID/status.json`, `logs/snakemake.pass*.log`, events and per-tool logs. A locked
 workspace means work is active, not permission to start a duplicate. Fix mandatory
 input/reference/index/resource failures before execution. Use unchanged RESUME only

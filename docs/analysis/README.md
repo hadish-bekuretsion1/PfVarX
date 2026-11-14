@@ -106,7 +106,7 @@ truth, results or masks. Populate the input paths from your own verified resourc
 | Resource | Requirements |
 |---|---|
 | FASTA | Exact parasite assembly with stable contig IDs and lengths |
-| Core BED | Independently justified callable/core regions matched to that assembly |
+| Core BED | The accessible core of that assembly: the Core regions of Miles et al. 2016, as used by MalariaGEN, in zero-based BED. A gene or feature BED is not a core mask; validation warns (`CORE_MASK_SUSPECT`) when the file looks like one |
 | GFF3 | Required for explicit FO004 and for annotation/marker outcomes in automatic FO004 |
 | Targets / primers | Required for targeted assays, matched to the reference |
 
@@ -141,7 +141,9 @@ separator and column-order mistakes. `sample_id`, `lane`, and `library_id` are r
 must be unique. IDs accept letters, digits, `_` and `-` within the documented schema
 lengths. Multiple lanes for one sample use the same sample ID and appropriate library
 IDs. Declare `patterned` or `unpatterned` from real instrument metadata when known;
-this selects Picard's optical-distance setting. Do not invent population/location data.
+this selects Picard's optical-distance setting. Duplicates are marked once per WGS sample,
+so all lanes of one sample must share a flow-cell type; validation rejects a sample that
+mixes them (register those lanes as separate samples). Do not invent population/location data.
 
 ### BAM/CRAM entry
 
@@ -157,10 +159,13 @@ validated alignments for a benchmark-ready workflow.
 
 Review `config/compute.yaml` against the local machine. Keep per-job threads/memory
 within total limits; leave enough memory for the operating system. The default is four
-cores and 8,000 MB. If physical RAM is below that, lower both total and per-job memory
-or use a larger machine. Jobs exceeding the declared envelope are blocked in planning.
-SLURM is explicitly unsupported. Temporary-disk requirements are heuristic estimates;
-check actual free space too.
+cores, one job at a time and 6,500 MiB. If physical RAM is below that, lower both total and
+per-job memory or use a larger machine. Jobs exceeding the declared envelope are blocked in
+planning. Every `executor` value runs the same single-host executor; on HPC, submit the run
+inside one node allocation (see the [deployment guide](../deployment.md)). Temporary-disk
+requirements are heuristic estimates; check actual free space too. Set `tmp_dir` to an
+absolute directory (for example node-local scratch) to send Snakemake, Picard and fgbio
+temporary files there instead of the system temporary directory.
 
 The custom caller uses one worker per sample and can be much slower on a full genome
 than on synthetic fixtures. It performs read evidence extraction, fitting, indel
@@ -186,6 +191,8 @@ Expected outcomes:
 1. `check-layout` reports required directories/files and misplaced runtime paths.
 2. `validate` writes `metadata/validation_report.json`, checks complete FASTQ mate
    structure/counts/names, samples quality encoding, and validates configured resources.
+   Its `summary` names each problem or warning, why it failed, why the input matters and
+   numbered steps that fix it.
 3. `prepare --dry-run` lists missing/stale indexes without performing preparation.
 4. `prepare` derives the combined/parasite FASTAs and required indexes under `prepared/`.
 5. A second preparation plan has no actions if the inputs are unchanged.
@@ -240,12 +247,20 @@ results -> runs/<RUN_ID>/results
 | `variants/samples/<sample>.evidence.tsv` | Counts, uncertainty and caller status per candidate |
 | `variants/samples/<sample>.callable.bed` | Caller-defined usable intervals |
 | `variants/samples/<sample>.focal_loss.bed` | Focal coverage losses |
+| `cohort/cohort_status.json` | Whether a cohort was formed, its samples, and blocked samples with reasons |
 | `cohort/cohort.vcf.gz` | FO003/FO004 variant-only cohort merge |
 | `cohort/evidence_matrix.tsv.gz` | Site-forced per-sample evidence; missing is not imputed reference |
-| `cohort/missingness.tsv` | Cohort missingness summary |
-| `annotation/cohort.ann.vcf.gz` | FO004 SnpEff consequences |
+| `cohort/sites.tsv`, `cohort/missingness.tsv` | Cohort sites and missingness summary |
+| `annotation/cohort.ann.vcf.gz`, `annotation_qc.json` | FO004 SnpEff consequences and annotation checks |
 | `eligibility/` | Per-sample/cohort scientific eligibility decisions |
-| `downstream/DAxxx/status_manifest.json` | Requested method's terminal state and exclusions |
+| `downstream/DAxxx/status_manifest.json` | Requested method's terminal state, denominators, exclusions and caveats |
+| `downstream/DA001/clonality.tsv` | Clonality, COI median and interval, Fws |
+| `downstream/DA002/marker_calls.tsv`, `prevalence.tsv` | Marker states and prevalence with intervals and the WHO kelch13 flag |
+| `downstream/DA003/population_diversity.tsv` | Diversity per group with bootstrap intervals |
+| `downstream/DA004/pairwise_relatedness.tsv` | Relatedness per pair: method, markers, status and label |
+| `downstream/DA005/pca.tsv`, `fst.tsv` | PCA coordinates and Hudson FST |
+| `downstream/DA006/tree.treefile` | Maximum-likelihood tree (with `tree.contree`, `tree.iqtree`) |
+| `downstream/DA007/country_month_summary.tsv` | Prevalence by place and month; GAM fit when supported |
 | `report/pfvarx_dashboard.html` | Offline report; open after the run finalizes |
 | `report/dashboard_data.json` | Report data backing the HTML |
 | `qc/centralized_quality_matrix.json` | Aggregated quality records |
@@ -288,7 +303,7 @@ That is an edit fragment, not a replacement for the entire generated configurati
 | DA001 | MOIRE clonality; caller technical K shown only as context |
 | DA002 | Codon-level resistance markers; independently verified matching catalogue required |
 | DA003 | Within-host FWS and population diversity; group sizes/callability apply |
-| DA004 | hmmIBD / Dcifer relatedness; DA001 and pair eligibility apply |
+| DA004 | hmmIBD / Dcifer relatedness; DA001 and pair eligibility apply. WGS pairs need 200 informative markers; targeted pairs need 20, and pairs below 200 are `ESTIMATED_LOW_PRECISION` without a relatedness label |
 | DA005 | Haploid PCA and Hudson FST; WGS, declared populations and eligible samples |
 | DA006 | IQ-TREE phylogenetics; WGS, at least four eligible monoclonal samples and sufficient sites |
 | DA007 | Spatial/temporal summaries; declared source outcome and country/date/coordinate metadata |
@@ -301,7 +316,11 @@ The shipped draft catalogue intentionally blocks real DA002 execution.
 
 Terminal states include COMPLETED, COMPLETED_WITH_EXCLUSIONS, SKIPPED_INELIGIBLE,
 BLOCKED_MISSING_PREREQUISITE and FAILED_EXECUTION. A skipped tree is not a placeholder
-result; no tree is produced when requirements are unmet.
+result; no tree is produced when requirements are unmet. If no sample passes QC into the
+cohort, the run still completes: `cohort/cohort_status.json` reports
+`SKIPPED_NO_ELIGIBLE_SAMPLES`, no cohort or annotation files are written, and every
+requested analysis ends as SKIPPED_INELIGIBLE with `NO_ELIGIBLE_SAMPLES` and `NO_COHORT`.
+Threshold values and their sources are listed in [thresholds](../thresholds.md).
 
 ## 9. Resume, extend and troubleshoot
 
@@ -324,7 +343,8 @@ scientific ineligibility. Readiness can fail because memory/disk requests exceed
 machine. The caller may remain CPU-active for a long time without intermediate log
 messages; there is no reliable percentage-complete estimate. Do not silently change
 parameters or restart a still-running job. To regenerate a final dashboard, use `report`;
-this does not rerun calling or downstream methods.
+this does not rerun calling or downstream methods, and the dashboard keeps the pipeline
+version recorded when the run was made.
 
 ## 10. Registration, full orchestration and retention
 

@@ -5,7 +5,7 @@
 <style>body{font:16px/1.6 system-ui;color:#193247;max-width:780px;margin:2rem auto;padding:0 1rem}pre{background:#edf3f7;padding:1rem;overflow:auto}a{color:#17658c}</style>
 <main>
 <h1>Run PfVarX 0.0.0</h1>
-<p>This example uses paired-end WGS FASTQ and the sample profile for per-sample variant calls. Use a Linux x86-64 host with Python 3.11+ and Pixi on PATH.</p>
+<p>This example uses paired-end WGS FASTQ and the sample profile for per-sample variant calls. Use a Linux x86-64 host with Python 3.11+ and Pixi on PATH. On Windows, use WSL2 with a Linux distribution; macOS and Linux ARM64 are not supported.</p>
 <h2>1. Download and install</h2>
 <p>Sign in to GitHub with access to the private repository. Run these commands from the parent directory. The clone creates <code>PfVarX-source/</code>, and bootstrap creates <code>pfvarx-analysis/</code> beside it.</p>
 <pre>~/demo/
@@ -18,7 +18,7 @@ python3 PfVarX-source/bootstrap.py --profile sample
 cd pfvarx-analysis
 ./pfvarx version</pre>
 <h2>2. Configure your study</h2>
-<p>Choose one configuration route. Set the actual reference release, FASTA, matching core BED, assay and compute limits before creating the input folders. The sample profile defaults to FO002.</p>
+<p>Choose one configuration route. Set the actual reference release, FASTA, core-genome mask BED, assay and compute limits before creating the input folders. The core mask is the accessible core of the genome (the Core regions of Miles et al. 2016, as used by MalariaGEN), not a gene list. The sample profile defaults to FO002.</p>
 <h3>CLI configuration</h3>
 <pre>nano config/config.yaml config/quality.yaml config/compute.yaml
 ./pfvarx init</pre>
@@ -46,10 +46,10 @@ nano metadata/discovered_samples.tsv
 ./pfvarx verify-prepared &amp;&amp;
 ./pfvarx ready &amp;&amp;
 ./pfvarx dry-run</pre>
-<p>Inspect the validation report under <code>metadata/</code> and resolve failures before running. Confirm that readiness is true and the dry run reports OK.</p>
+<p>If validation fails, its <code>summary</code> names each problem, why it failed and the numbered steps that fix it; the full record is in <code>metadata/validation_report.json</code>. Resolve failures and review warnings before running. Confirm that readiness is true and the dry run reports OK.</p>
 <h2>5. Execute and review</h2>
 <pre>./pfvarx pipeline --mode NEW</pre>
-<p>Record the returned run ID. Open <code>results/report/pfvarx_dashboard.html</code> and review sample QC before interpreting calls. FO002 results include sample VCFs under <code>results/variants/samples/</code>. Run logs and frozen configuration are under <code>runs/RUN_ID/</code>.</p>
+<p>Record the returned run ID. Open <code>results/report/pfvarx_dashboard.html</code> and review sample QC before interpreting calls. FO002 results include sample VCFs under <code>results/variants/samples/</code>. Run logs and frozen configuration are under <code>runs/RUN_ID/</code>. If no sample passes QC, the run still completes and <code>results/cohort/cohort_status.json</code> explains which samples were blocked and why.</p>
 <h2>6. Continue with the full procedures</h2>
 <p>Use the <a href="sop/PfVarX_SOP_Manual.html#procedure-index" target="_blank" rel="noopener noreferrer">Operational SOP procedure index</a> for targeted sequencing, BAM/CRAM, cohort and downstream runs, benchmarking, and troubleshooting. See the <a href="deployment.md">deployment guide</a> for server, cloud VM and single-node SLURM setup.</p>
 </main></html>

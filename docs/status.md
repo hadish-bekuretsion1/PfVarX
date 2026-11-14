@@ -15,21 +15,25 @@ verified; no automatic cluster/container deployment claim is made.
 - Explicit post-clone selective bootstrap, locked analysis/input-specific environments,
   minimal source exports, reviewed discovery/zero-copy registration, checksum-gated
   HTTPS acquisition, integrity-enforced reference verification and safe retention.
-- Typed YAML and optional local HTML configuration, automatic assay candidate selection,
-  sample/reference validation, conditional preparation, QC policy,
-  resource planning, scientific eligibility, frozen runs, diagnostics and orchestration.
+- Typed YAML and optional local HTML configuration, kept in step by a parity test;
+  automatic assay candidate selection, sample/reference validation that explains each
+  failure and its fix, conditional preparation, QC policy with cited thresholds
+  ([thresholds](thresholds.md)), resource planning, scientific eligibility, frozen runs,
+  diagnostics and orchestration.
 - WGS, targeted non-UMI and targeted UMI branches, plus existing BAM/CRAM entry contracts.
 - PfVarX-Call read evidence, reduced per-sample beta-binomial error models, candidate
   screening, local pair-HMM indel rescoring, read-backed linkage, technical mixture/K
   selection, WSAF intervals, callability and six site-status classes.
 - Variant-only cohort merge and forced per-sample cohort-site evidence, with explicit
-  missing/uncallable states; reference-matched SnpEff annotation.
+  missing/uncallable states and an explicit outcome when no sample enters the cohort;
+  reference-matched SnpEff annotation.
 - DA001 MOIRE; DA002 codon marker genotyping; DA003 diversity; DA004 hmmIBD/Dcifer;
   DA005 haploid PCA/Hudson FST; DA006 IQ-TREE; DA007 descriptive/GAM spatial-temporal work.
 - Offline dashboard, exports, benchmark partitions, exact-normalized accuracy/mixture
   evaluation, wild-cluster uncertainty and resource-profile generation.
-- Typed-source checks, unit/scientific/integration tests, isolated synthetic end-to-end
-  verification, browser checks, and clean-distribution tests.
+- Typed-source checks, unit/scientific/integration tests (including a synthetic cohort
+  that runs all seven analyses), version and CLI/GUI consistency tests, isolated synthetic
+  end-to-end verification, browser checks, and clean-distribution tests.
 
 ## Limits that matter before scientific benchmarking
 
@@ -42,14 +46,14 @@ verified; no automatic cluster/container deployment claim is made.
 | Mixture K | Technical DNA-mixture count, not biological COI. Analysis fallback bootstrap count is provisional; precomputed critical-value surface is not implemented. |
 | WSAF | Profile-likelihood intervals; representation-bias correction remains unimplemented. |
 | Clonality | MOIRE implemented, descriptive FWS retained; THE REAL McCOIL and DEploid remain unimplemented alternatives. MCMC settings/convergence require scientific review. |
-| Relatedness | hmmIBD/Dcifer implemented; isoRelate is not included. |
+| Relatedness | hmmIBD/Dcifer implemented; isoRelate is not included. WGS pairs need 200 informative markers (Taylor 2019); the targeted minimum of 20 is provisional, and pairs below 200 are reported as low precision without a label. |
 | Annotation | SnpEff implemented; VEP cross-check and BCFtools/csq consequences are not included. |
 | Exact benchmark matcher | Normalized allele identity, not haplotype-aware equivalence. RTG availability is reported but vcfeval is manual; hap.py/baseline pipelines are not installed/run automatically. |
 | Confidence/callability | Shared confidence BED; compare documented metric denominators carefully. Truth validation is partly an external experiment responsibility. |
 | Held-out protection | Partition hash and refusal of repeated attempts in one evaluation directory; no global access-control/experiment lock or family-aware splitting. |
 | Resampling intervals | Unrestricted wild cluster bootstrap of the linearized ratio estimator; not restricted wild cluster bootstrap-t. |
-| Execution | Linux local executor, including inside a single SLURM node allocation. CRAM and targeted existing-alignment entry have less validation than WGS BAM. VCF entry is explicitly rejected; use FASTQ/BAM/CRAM. |
-| Resources/performance | Resource requests/heuristic estimates are not OS limits. Caller is single-worker per sample and can take substantial full-genome time without intermediate logs. Measured profiles need manual basis review. |
+| Execution | Linux x86-64 local executor, including inside a single SLURM node allocation; the `executor` setting is recorded but every value runs on one host. Per-rule cluster or cloud scheduling and object storage are not implemented. `tmp_dir` can point job temporary files at node-local scratch. CRAM and targeted existing-alignment entry have less validation than WGS BAM. VCF entry is explicitly rejected; use FASTQ/BAM/CRAM. |
+| Resources/performance | Resource requests/heuristic estimates are not OS limits. Caller is single-worker per sample and can take substantial full-genome time without intermediate logs: about 30 s for the 48 kb synthetic core at 40×, which extrapolates to hours per sample for the ~21 Mb 3D7 core (not yet measured on real data). Measured profiles need manual basis review. |
 | Reuse/provenance | Frozen software/configuration integrity is checked; not all external reads, masks or truth files are frozen or covered by reuse keys. Maintain checksum manifests; use NEW for changed scientific inputs. |
 | Reporting | Artifact-derived progress requires report regeneration; use finalized runs for interpretation. Missing upstream distributions/timestamps stay unavailable. Historical control charts are not implemented. PDF uses browser printing and visible table pages. |
 | Spatial interpretation | Descriptive aggregation/GAM only; preferential sampling is not modelled. |

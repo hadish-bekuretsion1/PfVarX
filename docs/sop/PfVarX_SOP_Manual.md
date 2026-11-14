@@ -160,7 +160,7 @@ The table abbreviates `runs/RUN_ID/results/` as **R**. The cohort evidence input
 | DA001 | COI and clonal status | Estimate infection multiplicity and assign a supported clonal category | M, S, C, Q | Sample ID | TSV.gz, TSV, text, JSON | E | E | CE | CE | CE | CE | MOIRE uses observed alleles at thinned informative SNP loci. Depth or panel informativeness can leave too few qualifying loci. sWGS uses the WGS gate. UMI evidence must first pass the consensus route. Previous clonality is not required. | `clonality.tsv`, `moire_coi.tsv`, `moire_allele_freqs.tsv` | TSV | R/downstream/DA001/ | Posterior summaries and clonal categories. Convergence is not assessed by this wrapper. Technical caller K and WSAF cannot establish clone count or clone proportions. |
 | DA002 | Drug-resistance markers | Summarize callable codon states and marker prevalence | `R/annotation/cohort.ann.vcf.gz`, reference FASTA/GFF, versioned catalogue, `R/alignments/SAMPLE.bam`, Q | Sample ID; population for grouped summaries | VCF.gz, FASTA, GFF3, TSV, BAM, JSON | E | E | CE | CE | CE | CE | Require a verified matching catalogue and read-backed callable codons. Shallow depth increases UNKNOWN states. Targeted panels must cover each codon, with qualified UMI consensus evidence where applicable. | `marker_calls.tsv`, `prevalence.tsv`, `catalog_provenance.json` | TSV, JSON | R/downstream/DA002/ | Callable denominator and marker states, including mixed states. UNKNOWN does not mean wild type. This is a molecular marker outcome. |
 | DA003 | Genetic diversity | Describe FWS and diversity over the analysed callable scope | M, S, C, Q, `R/variants/samples/SAMPLE.callable.bed` | Sample ID; group labels for group analyses | TSV.gz, TSV, text, JSON, BED | E | E | E | CE | CE | CE | Baseline callable coverage and sufficient variation are required. sWGS must retain interpretable callable denominators. Targeted results describe the panel and require panel-specific interpretation. Group sizes constrain group analyses. | `within_host_fws.tsv`, `population_diversity.tsv` | TSV | R/downstream/DA003/ | Descriptive FWS, heterozygosity and diversity. FWS does not assign COI. |
-| DA004 | Relatedness and IBD | Estimate genetic relatedness for eligible pairs | M, S, C, Q, L, `R/eligibility/cohort_decisions.json` | Sample ID | TSV.gz, TSV, text, JSON | CE | CE | CE | CE | CE | CE | Require assessed clonality, at least one eligible pair and adequate shared informative markers. hmmIBD is used for monoclonal pairs. Dcifer uses COI for mixed-infection pairs. Shallow or sparse panel data can fail the shared-marker gate. | `pairwise_relatedness.tsv` | TSV | R/downstream/DA004/ | Pair estimates, method and support. Tool estimands differ. Genetic relatedness does not prove direct transmission. |
+| DA004 | Relatedness and IBD | Estimate genetic relatedness for eligible pairs | M, S, C, Q, L, `R/eligibility/cohort_decisions.json` | Sample ID | TSV.gz, TSV, text, JSON | CE | CE | CE | CE | CE | CE | Require assessed clonality, at least one eligible pair and adequate shared informative markers. hmmIBD is used for monoclonal pairs. Dcifer uses COI for mixed-infection pairs. Shallow or sparse panel data can fail the shared-marker gate: WGS pairs need 200 informative markers, targeted pairs 20, and pairs below 200 are reported as low precision without a relatedness label. | `pairwise_relatedness.tsv` | TSV | R/downstream/DA004/ | Pair estimates, method and support. Tool estimands differ. Genetic relatedness does not prove direct transmission. |
 | DA005 | Population structure | Describe haploid PCA and Hudson FST across qualifying groups | M, S, C, Q, L, `R/eligibility/cohort_decisions.json` | Population labels and sample ID | TSV.gz, TSV, text, JSON | CE | CE | CE | CE | NE | NE | Registry restricts this method to the WGS branch. Require assessed clonality, enough complete variable SNPs and qualifying samples or groups. sWGS must meet the same completeness gate. Mixed samples use dominant alleles and can shift group summaries. | `pca.tsv`, `pca_model.json`, `fst.tsv` | TSV, JSON | R/downstream/DA005/ | PCA positions and eligible FST estimates. Dominant alleles represent one approximation for mixed infections. |
 | DA006 | Single-lineage phylogeny | Infer a tree from qualifying single-lineage samples | M, S, C, Q, L, `R/eligibility/cohort_decisions.json`, callable BEDs | Sample ID | TSV.gz, TSV, text, JSON, BED | CE | NE | CE | CE | NE | NE | Requires DA001 monoclonal status, WGS branch, adequate sample count, low missingness and informative SNPs. The alignment represents one lineage per sample. Mixed infections and targeted panels are excluded by the implemented method. | `alignment.fasta`, `tree.treefile`, `runtime_gates.json` | FASTA, Newick, JSON | R/downstream/DA006/ | Ascertainment-corrected tree and support when the gates pass. Branches do not establish transmission history. |
 | DA007 | Spatial and temporal surveillance | Describe marker outcomes over supplied places and dates | `R/downstream/DA002/status_manifest.json`, `R/downstream/DA002/marker_calls.tsv`, sample sheet, Q | Country, latitude, longitude, collection date | JSON, TSV | E | E | CE | CE | CE | CE | Require completed DA002 outcomes and valid geography/date. Every sequencing branch inherits DA002 callable denominators. GAM fitting additionally depends on support in the supplied data. | `country_month_summary.tsv`, `grid_summary.json`, conditional `gam_fit.tsv` | TSV, JSON | R/downstream/DA007/ | Descriptive summaries and optional model output. Review ascertainment and geographic sampling bias. |
@@ -311,12 +311,19 @@ cat config/templates/analysis.yaml config/templates/compute.yaml
 cat config/parameters/layer2.yaml
 ```
 
-**Step 2. Edit schema and canonical template together**
+**Step 2. Edit schema, templates and GUI help together**
+
+The CLI (YAML templates) and the configuration GUI configure the same settings, so a
+setting change touches both in the same commit (see "CLI and GUI parity" in
+`docs/architecture.md`). Setting help lives only in `gui/field-guide.json`; regenerate the
+configuration guide from it.
 
 ```bash
-nano src/pfvarx/configuration/models.py config/templates/analysis.yaml
+nano src/pfvarx/configuration/models.py config/templates/analysis.yaml config/templates/benchmarking.yaml
+nano src/pfvarx/configuration/gui/field-guide.json
+python scripts/configuration_guide.py
 nano tests/unit/test_configuration.py
-pixi run pytest -q tests/unit/test_configuration.py
+pixi run pytest -q tests/unit/test_configuration.py tests/unit/test_cli_gui_parity.py
 pixi run lint
 pixi run typecheck
 ```
@@ -1049,7 +1056,7 @@ git add src workflow config tests docs scripts .github bootstrap.py pfvarx READM
 git diff --cached --stat
 ```
 
-Publication/commit/tag actions require the repository owner’s release decision. Keep version declarations consistent; regenerate/review the lock only when appropriate. Do not retag a published release to conceal changes. Run hosted CI before a new tag.
+Publication/commit/tag actions require the repository owner’s release decision. The release version is set only in `src/pfvarx/__init__.py`; `tests/unit/test_version.py` checks every current-release reference against it; regenerate/review the lock only when appropriate. Do not retag a published release to conceal changes. Run hosted CI before a new tag.
 
 ### 4. Expected outputs
 
@@ -1195,7 +1202,7 @@ for r in csv.DictReader(open("inputs/metadata/samples.tsv"), delimiter="\t"):
 PYCODE
 ```
 
-If `column` is unavailable, use `cat` instead. All path existence checks must be true before validation. IDs use schema-permitted letters/digits/underscore/hyphen; sample/lane pairs must be unique. Multiple lanes share a sample ID and retain accurate library IDs.
+If `column` is unavailable, use `cat` instead. All path existence checks must be true before validation. IDs use schema-permitted letters/digits/underscore/hyphen; sample/lane pairs must be unique. Multiple lanes share a sample ID and retain accurate library IDs. For WGS, all lanes of one sample must share one `flowcell_type` (duplicates are marked once per sample with one optical distance); validation rejects a sample that mixes patterned and unpatterned lanes.
 
 ### 4. Expected outputs
 
@@ -1226,7 +1233,7 @@ Operator signs off sample identities, paths, library design, optional metadata a
 
 ### 2. Prerequisites and requirements
 
-R01–R02; independently justified reference FASTA and core BED; matching GFF for explicit FO004 or automatic FO004 marker outcomes. BED is zero-based half-open; GFF/VCF positions are one-based.
+R01–R02; independently justified reference FASTA and core-genome mask BED (the accessible core: Core regions of Miles et al. 2016, as used by MalariaGEN; not a gene or feature BED); matching GFF for explicit FO004 or automatic FO004 marker outcomes. BED is zero-based half-open; GFF/VCF positions are one-based.
 
 ### 3. Detailed operational procedure
 
@@ -1279,7 +1286,7 @@ Add the actual GFF, optional host, targets/primers and verified catalogue to thi
 
 ### 5. Verification and quality control
 
-The second dry preparation plan should have no actions for unchanged resources. All contig names, lengths and intervals must match; inspect `metadata/validation_report.json` for source facts and failures.
+The second dry preparation plan should have no actions for unchanged resources. All contig names, lengths and intervals must match; inspect `metadata/validation_report.json` for source facts and failures. A `CORE_MASK_SUSPECT` warning means the core BED looks like a gene list (gene names, more than 1 000 or overlapping intervals, or coverage outside 70–97% of the reference); replace it with the real core mask before preparation.
 
 ### 6. Error handling and troubleshooting
 
@@ -1338,7 +1345,7 @@ Validation report, current preparation, `ready: true` and `dry-run` status `OK`.
 
 ### 5. Verification and quality control
 
-Review every failed sample, warning and deferred gate. PARTIAL permits only individually valid samples under continue-independent policy; record exclusions explicitly. Reference/global validation failure must be resolved.
+Review every failed sample, warning and deferred gate. The validation `summary` states for each problem or warning the input, why it failed, why the input matters and numbered steps to fix it. PARTIAL permits only individually valid samples under continue-independent policy; record exclusions explicitly. Reference/global validation failure must be resolved.
 
 ### 6. Error handling and troubleshooting
 
@@ -1830,7 +1837,7 @@ analyses:
   spatial_outcome_source: null
 ```
 
-Also set the real matching `reference.gff`. For resistance/spatial work use `[DA002, DA007]`, a verified `resistance_catalog`, `spatial_outcome_source: DA002` and verified country/date/latitude/longitude metadata. On targeted data omit DA005/DA006. DA001 can be inserted automatically as an internal prerequisite.
+Also set the real matching `reference.gff`. For resistance/spatial work use `[DA002, DA007]`, a verified `resistance_catalog`, `spatial_outcome_source: DA002` and verified country/date/latitude/longitude metadata. On targeted data omit DA005/DA006. DA001 is optional for explicit selection; it is inserted automatically as an internal prerequisite when another selected method needs it.
 
 **Step 3. Validate selections; launch only in the chosen entry SOP**
 
@@ -1852,7 +1859,7 @@ Section 4 lists outputs and their interpretation. Each requested method records 
 
 ### 5. Verification and quality control
 
-Check current registry/scales and parameter thresholds rather than inventing acceptance values. DA006 currently requires at least four eligible monoclonal samples and ten informative sites, subject to further missingness gates; these software floors do not establish a scientifically adequate study size.
+Check current registry/scales and parameter thresholds rather than inventing acceptance values. DA006 currently requires at least four eligible monoclonal samples and ten informative sites, subject to further missingness gates; these software floors do not establish a scientifically adequate study size. DA004 needs 200 informative markers per WGS pair (Taylor 2019) and 20 per targeted pair; pairs with fewer than 200 are `ESTIMATED_LOW_PRECISION` and carry no relatedness label, and DA004 reports SKIPPED_INELIGIBLE with `INSUFFICIENT_INFORMATIVE_SITES` when no pair can be estimated. If no sample passes QC into the cohort, every requested method reports SKIPPED_INELIGIBLE with `NO_ELIGIBLE_SAMPLES` and `NO_COHORT`.
 
 ### 6. Error handling and troubleshooting
 
@@ -1910,6 +1917,7 @@ head "$RES/variants/samples/$SAMPLE.evidence.tsv"
 
 ```bash
 # FO003/FO004 only:
+cat "$RES/cohort/cohort_status.json"   # COMPLETED, or SKIPPED_NO_ELIGIBLE_SAMPLES with reasons
 ./pfvarx tool bcftools query -l "$RES/cohort/cohort.vcf.gz"
 gzip -t "$RES/cohort/evidence_matrix.tsv.gz"
 head "$RES/cohort/missingness.tsv"
@@ -3233,6 +3241,7 @@ WORKSPACE/
 │       │   ├── <SAMPLE>.callable.bed
 │       │   └── <SAMPLE>.focal_loss.bed
 │       ├── cohort/                         FO003+
+│       │   ├── cohort_status.json          cohort formed, or SKIPPED_NO_ELIGIBLE_SAMPLES
 │       │   ├── cohort.vcf.gz
 │       │   ├── cohort_samples.txt
 │       │   ├── sites.tsv
@@ -3279,17 +3288,17 @@ values, not universal recommendations or evidence of scientific validity.
 
 | Owner | Current value / operational interpretation |
 | --- | --- |
-| `layer1.yaml` | fastp quality threshold 15, maximum unqualified percentage 40, N-base limit 5, minimum length 50; cut-right false |
+| `layer1.yaml` | fastp quality threshold 15, maximum unqualified percentage 40, N-base limit 5, minimum length 50; cut-right false (window 4, mean quality 20 when enabled); fgbio consensus filter: minimum reads 3, base quality 45, maximum base error 0.2 |
 | `layer1.yaml` | low-complexity filter false because indiscriminate filtering can bias AT-rich sequence; UMI branch preserves tag extraction order |
-| `layer2.yaml` | min MAPQ 20, base quality 13, usable depth 10; these remain source-class-labelled |
+| `layer2.yaml` | min MAPQ 20, base quality 13, usable depth 5 (MalariaGEN Pf7/Pf8); candidates need 2 reads; pair-HMM caps 200 reads with 60 bp flanks; these remain source-class-labelled |
 | `layer2.yaml` | screening -log10 threshold 6, PASS minimum fragments 2 and minimum score 10; not a calibrated detection guarantee |
-| `layer5.yaml` | DA001 minimum informative loci 10; DA004 minimum markers 20 |
+| `layer5.yaml` | DA001 minimum informative loci 10, MOIRE burn-in 10000 and 1000 samples, loci thinned to 500 bp; DA004 minimum markers 200 for WGS and 20 for targeted panels (pairs below 200 are low precision, unlabelled); Dcifer level 0.05 |
 | `layer5.yaml` | DA006 minimum monoclonal samples 4 and informative sites 10; sample/site missingness ceilings 0.2; UFBoot/SH-aLRT 1000 each |
-| `layer5.yaml` | DA003/DA005 population minimum 3; DA002 minimum callable/group 3 and reporting floor 0.05; provisional settings require scientific review |
+| `layer5.yaml` | DA003/DA005 population minimum 3; DA003 bootstrap 200; DA002 minimum callable/group 3, reporting floor 0.05 and MIXED below 0.95; DA007 GAM after 10 samples; provisional settings require scientific review |
 | `layer6.yaml` | detailed variant embedding cap 200000; full totals remain distinguished from embedded details |
-| `compute.yaml` | example total cores 4, RAM 6500 MiB, jobs 1, temp disk 20000 MB, per-job runtime estimate/ceiling field 720 minutes |
+| `compute.yaml` | example total cores 4, RAM 6500 MiB, jobs 1, temp disk 20000 MB, per-job runtime estimate/ceiling field 720 minutes; `tmp_dir` null (system temporary directory) |
 
-Confirm the actual release/configuration values with:
+Every value, its source and its reference is listed in `docs/thresholds.md`. Confirm the actual release/configuration values with:
 
 ```bash
 cd "$ANALYSIS"
@@ -3308,7 +3317,9 @@ experiment. Do not relabel provisional values as calibrated merely because tests
 | --- | --- | --- |
 | Must run from workspace root | `pwd`, pixi.toml, workflow/Snakefile | Change to the intended installed workspace; do not run from a submodule |
 | CONFIG_ERROR / unknown field | printed problems, generated schema/templates | Fix the actual typo/assay combination; do not remove validation |
-| Global reference/GFF/BED failure | validation_report.json, source identities | Stop; obtain mutually matching resources |
+| Global reference/GFF/BED failure | validation `summary`, validation_report.json, source identities | Stop; follow the numbered steps in the summary; obtain mutually matching resources |
+| `CORE_MASK_SUSPECT` warning | the core BED's column 4, interval count and coverage | Replace a gene/feature BED with the real core-genome mask; record the reason if a custom mask is intended |
+| Mixed flow-cell types for one sample | sample sheet `flowcell_type` per lane | Register lanes from different flow-cell types as separate samples |
 | FASTQ mismatch/truncated gzip | pair validation and original delivery checksums | Obtain correct original pairs; do not trim records to make counts match |
 | PARTIAL validation | failed sample IDs and continue-independent policy | Explicitly review/record exclusions; fix global failures before launch |
 | Missing BAM index / wrong sort / wrong SM | @HD/@SQ/@RG, index, registry | Use a documented derived repair or correct producer file; never fake provenance |
@@ -3316,6 +3327,7 @@ experiment. Do not relabel provisional values as calibrated merely because tests
 | Resource infeasible/OOM/quota | ready JSON, free/df, job log | Correct actual resources/envelope; preserve failed attempt; do not alter scientific gates |
 | Silent long caller stage | job/process CPU, memory/disk and log timestamps | Allow active work; no reliable percentage estimate; avoid duplicate launches |
 | Method skipped | eligibility/status_manifest/runtime_gates | Report the actual reason and denominator; do not create a placeholder result |
+| `cohort_status.json` is SKIPPED_NO_ELIGIBLE_SAMPLES | per-sample `qc_decision.json`, blocked-sample reasons | No sample passed QC into the cohort; analyses report NO_ELIGIBLE_SAMPLES. Review QC; never relax gates to force a cohort |
 | Resistance blocked | catalogue provenance and matching reference | Obtain independent verified catalogue; no status-only bypass |
 | Frozen integrity failed | run-verify/snapshot/source identity | Stop reuse; restore correct software or run a documented NEW experiment |
 | NO_CALLS in scoring | sample QC, run/mode, missing VCF | Report exclusion/missing result; never call it perfect reference prediction |
@@ -3535,7 +3547,16 @@ nano metadata/discovered_samples.tsv
 ./pfvarx pipeline --mode NEW
 ```
 
-Inspect `metadata/validation_report.json` and the sample-level statuses. Repair
+`./pfvarx validate` (and the GUI Input Files Validation tab) prints a `summary`: one
+entry per problem or warning, naming the input, why it failed, why the input matters and
+numbered steps that fix it. For example, a missing core-genome mask reports the expected
+path, notes when `config/config.yaml` gives only a folder, lists files of the same type
+already in that folder, and explains how to build the mask from the standard core-genome
+regions. A core mask that looks like a gene list (gene names, thousands of or overlapping
+intervals, or coverage far from the usual 89% of 3D7) passes with a `CORE_MASK_SUSPECT`
+warning, because the format is valid but the content is probably wrong.
+The same fields (`file`, `used_for`, `why`, `actions`) are stored for every finding in
+`metadata/validation_report.json`, with the sample-level statuses. Repair
 mandatory failures before proceeding. Under the existing partial-admission policy,
 only validated samples enter execution. Prepare rechecks validation, builds the
 necessary reference derivatives under `prepared/reference/`, and records tool logs
