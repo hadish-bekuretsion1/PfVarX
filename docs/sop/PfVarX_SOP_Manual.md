@@ -1032,8 +1032,8 @@ pixi run verify --output "$LAB/verification-D16"
 ```bash
 pixi run package --output "$LAB/release"
 cd "$LAB/release"
-sha256sum -c pfvarx-0.0.0-source.zip.sha256
-python3 -m zipfile -e pfvarx-0.0.0-source.zip extracted
+sha256sum -c pfvarx-*-source.zip.sha256
+python3 -m zipfile -e pfvarx-*-source.zip extracted
 python3 extracted/pfvarx/scripts/package.py --check
 ```
 

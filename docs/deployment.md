@@ -1,4 +1,4 @@
-# Installation, deployment and maintenance — 0.0.0
+# Installation, deployment and maintenance
 
 ## Supported native installation
 
@@ -74,14 +74,22 @@ reproducibility before qualification. See the single-node SLURM procedure below.
 Publish the contents of this pristine source folder as the repository root, not an
 outer study workspace. `.gitignore` excludes runtime paths, mutable study config,
 installation metadata, workspace locks, caches/environments and build artifacts.
-The CLI/schema/package/Pixi version is 0.4.3. Do not modify a published 0.2.0 tag;
-review and commit these changes as a new version and run hosted CI before tagging.
-This local update does not push, publish, recreate the repository or claim hosted CI ran.
+### Versioning
+
+The pipeline release version has one source: `__version__` in `src/pfvarx/__init__.py`.
+The package metadata reads it from there (`[tool.hatch.version]` in `pyproject.toml`);
+`./pfvarx version`, VCF headers, run snapshots, reports and the source archive name all
+take it from the same place. `pixi.toml` deliberately has no version. To release, change
+`__version__`, add a changelog section with that version, run the tests
+(`tests/unit/test_version.py` fails on any disagreeing current-release reference) and tag
+the reviewed commit `v<version>`. Schema, parameter-file, QC-policy, registry and
+catalogue versions are independent and are not changed by a release.
 
 Before publication run [testing](testing.md), isolated workflow checks, source package
 checks and checksum/extraction validation. The CI pins an explicit Ubuntu runner and
-validates the 0.0.0 software-only archive. Attach the final source ZIP/checksum to the
-reviewed release. Never attach a study workspace or a guessed scientific-validation claim.
+validates the software-only archive for the current version. Attach the final source
+ZIP/checksum to the reviewed release. Never attach a study workspace or a guessed
+scientific-validation claim.
 
 Keep the previous source/lock for rollback. Use NEW workspaces for capability/assay/input
 changes and independent input checksums for changed external resources. Old frozen

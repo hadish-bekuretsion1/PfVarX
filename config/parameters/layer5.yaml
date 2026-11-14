@@ -9,7 +9,8 @@ parameters:
   da006_max_site_missing: {value: 0.2, source: UNCALIBRATED_PROVISIONAL}
   da006_ufboot: {value: 1000, source: LITERATURE_SUPPORTED, note: "IQ-TREE; rely on a branch only at UFBoot >= 95 and SH-aLRT >= 80 (Hoang 2018; Guindon 2010)"}
   da006_alrt: {value: 1000, source: LITERATURE_SUPPORTED}
-  da004_min_informative_markers: {value: 200, source: LITERATURE_SUPPORTED, note: "Taylor 2019: about 200 biallelic markers keep relatedness error below 0.1; pairs with fewer are reported as EXCLUDED_FEW_MARKERS"}
+  da004_min_informative_markers: {value: 200, source: LITERATURE_SUPPORTED, note: "Taylor 2019: about 200 biallelic markers keep relatedness error below 0.1. Minimum for WGS; for every design, pairs below it are ESTIMATED_LOW_PRECISION and get no relatedness label"}
+  da004_min_informative_markers_targeted: {value: 20, source: UNCALIBRATED_PROVISIONAL, note: "minimum for targeted panels, whose SNPs are few and linked within amplicons; no published standard exists. Pairs below it are EXCLUDED_FEW_MARKERS"}
   da005_ld_window: {value: 100, source: SOFTWARE_DEFAULT, note: "scikit-allel locate_unlinked"}
   da005_ld_step: {value: 20, source: SOFTWARE_DEFAULT}
   da005_ld_threshold: {value: 0.1, source: SOFTWARE_DEFAULT}

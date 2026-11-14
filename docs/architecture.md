@@ -1,4 +1,4 @@
-# Architecture and ownership — 0.0.0
+# Architecture and ownership
 
 Layer 2 exposes a versioned sample artifact contract. The workflow can load the native
 caller or invoke a separately installed adapter. The same downstream consumers read

@@ -3,11 +3,14 @@ requires = ["hatchling>=1.25,<2"]
 build-backend = "hatchling.build"
 [project]
 name = "pfvarx"
-version = "0.0.0"
+dynamic = ["version"]
 requires-python = ">=3.12"
 dependencies = []
 [project.scripts]
 pfvarx = "pfvarx.cli:app"
+[tool.hatch.version]
+path = "src/pfvarx/__init__.py"
+
 [tool.hatch.build.targets.wheel]
 packages = ["src/pfvarx"]
 

@@ -52,13 +52,19 @@ def check_pristine(root: Path) -> dict:
     return {"status": "PASS", "software_files": len(selected), "runtime_files": 0}
 
 
+def pipeline_version(root: Path) -> str:
+    """The authoritative release version, read from the package without importing it."""
+    match = re.search(r'^__version__\s*=\s*"([^"]+)"', (root / "src/pfvarx/__init__.py").read_text(), re.MULTILINE)
+    if match is None:
+        raise ValueError("Missing __version__ in src/pfvarx/__init__.py")
+    return match[1]
+
+
 def build_archive(root: Path, output: Path) -> dict:
     files = source_files(root)
-    version = re.search(r'^version\s*=\s*"([^"]+)"', (root / "pyproject.toml").read_text(), re.MULTILINE)
-    if version is None:
-        raise ValueError("Missing package version")
+    version = pipeline_version(root)
     output.mkdir(parents=True, exist_ok=True)
-    archive = output / f"pfvarx-{version[1]}-source.zip"
+    archive = output / f"pfvarx-{version}-source.zip"
     temporary = archive.with_suffix(".zip.tmp")
     with zipfile.ZipFile(temporary, "w", compression=zipfile.ZIP_DEFLATED, compresslevel=9) as bundle:
         for path in files:

@@ -1,4 +1,4 @@
-# Orchestration and command reference — 0.0.0
+# Orchestration and command reference
 
 Run commands from the selected workspace root. The Git/source directory is the export
 source; the workspace is the installation and execution location. Plain Git cannot

@@ -808,8 +808,8 @@ pixi run verify --output &quot;$LAB/verification-D16&quot;
 <p><strong>Step 2. Build and inspect the software-only archive</strong></p>
 <pre><code class="language-bash">pixi run package --output &quot;$LAB/release&quot;
 cd &quot;$LAB/release&quot;
-sha256sum -c pfvarx-0.0.0-source.zip.sha256
-python3 -m zipfile -e pfvarx-0.0.0-source.zip extracted
+sha256sum -c pfvarx-*-source.zip.sha256
+python3 -m zipfile -e pfvarx-*-source.zip extracted
 python3 extracted/pfvarx/scripts/package.py --check
 </code></pre>
 <p><strong>Step 3. Prepare publication after review</strong></p>

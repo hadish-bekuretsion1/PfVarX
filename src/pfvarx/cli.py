@@ -216,7 +216,9 @@ def status() -> None:
 def fixture(design: str = typer.Option("WGS", "--design"), purpose: str = typer.Option("analysis", "--purpose"),
             depth: int = typer.Option(40, "--depth"), seed: int = typer.Option(7, "--seed"),
             n_mono: int = typer.Option(6, "--n-mono"), n_poly: int = typer.Option(3, "--n-poly"),
-            low_depth_sample: bool = typer.Option(False, "--low-depth-sample")) -> None:
+            low_depth_sample: bool = typer.Option(False, "--low-depth-sample"),
+            variant_scale: int = typer.Option(1, "--variant-scale", min=1,
+                                              help="multiply simulated variant sites per contig")) -> None:
     """Write a synthetic SOFTWARE-TEST dataset into inputs/ (not biological data)."""
     from pfvarx.fixtures.synthetic import build
 
@@ -224,7 +226,7 @@ def fixture(design: str = typer.Option("WGS", "--design"), purpose: str = typer.
     if any((root / "inputs" / "fastq").glob("*.fastq.gz")):
         emit({"status": "ERROR", "error": "inputs/fastq already contains FASTQ; refusing to overwrite"}, 2)
     emit(build(root, design=design, purpose=purpose, depth=depth, seed=seed, n_mono=n_mono, n_poly=n_poly,
-               low_depth_sample=low_depth_sample))
+               low_depth_sample=low_depth_sample, variant_scale=variant_scale))
 
 
 @app.command("benchmark-partition")

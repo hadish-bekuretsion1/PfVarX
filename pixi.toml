@@ -1,6 +1,5 @@
 [workspace]
 name = "pfvarx"
-version = "0.0.0"
 description = "PfVarX: assay-aware SNP and small-indel analysis of Plasmodium falciparum short-read data"
 channels = ["conda-forge", "bioconda"]
 channel-priority = "strict"

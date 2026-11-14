@@ -28,8 +28,9 @@ jobs:
       - name: Validate software-only source archive
         shell: bash
         run: |
+          version="$(pixi run --locked pfvarx version)"
           pixi run python scripts/package.py --output "$RUNNER_TEMP/pfvarx-release"
           cd "$RUNNER_TEMP/pfvarx-release"
-          sha256sum -c pfvarx-0.0.0-source.zip.sha256
-          python -m zipfile -e pfvarx-0.0.0-source.zip unpacked
+          sha256sum -c "pfvarx-${version}-source.zip.sha256"
+          python -m zipfile -e "pfvarx-${version}-source.zip" unpacked
           python unpacked/pfvarx/scripts/package.py --check

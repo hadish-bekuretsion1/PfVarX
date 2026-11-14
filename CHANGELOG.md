@@ -1,6 +1,30 @@
 # Changelog
 
-## 0.0.0 — GUI and CLI parity
+## 0.0.0 (unreleased)
+
+The release version was reset to 0.0.0 after 0.4.2, as the baseline for the first reviewed
+release. The sections below 0.0.0 are the earlier development numbering, kept as history.
+
+### Version, cohort and analysis audit fixes
+
+- One pipeline version: `__version__` in `src/pfvarx/__init__.py` is the only declaration.
+  `pyproject.toml` reads it (`[tool.hatch.version]`), `pixi.toml` no longer declares one, and
+  the archive name in CI and the SOP is derived. `docs/deployment.md` no longer states a
+  conflicting 0.4.3 version. `tests/unit/test_version.py` checks every current-release
+  reference.
+- No sample passing QC no longer crashes the run: the cohort, annotation and analyses are
+  skipped with `results/cohort/cohort_status.json` and `SKIPPED_INELIGIBLE` manifests
+  (`NO_ELIGIBLE_SAMPLES`, `NO_COHORT`).
+- DA004 marker rule depends on the assay: WGS needs 200 informative markers (Taylor 2019);
+  targeted panels need `da004_min_informative_markers_targeted` (20, provisional), and pairs
+  below 200 are `ESTIMATED_LOW_PRECISION` without a relatedness label. Dcifer pairs follow the
+  same rule. DA004 reports `SKIPPED_INELIGIBLE` when no pair can be estimated.
+- QC and analysis thresholds cite published standards where they exist (`docs/thresholds.md`).
+- Fixture `--variant-scale` adds variant sites. New integration tests run all seven
+  analyses on a WGS cohort, the targeted UMI route through DA002, and a run where every
+  sample fails QC.
+
+### GUI and CLI parity
 
 - One rule set for placing input files: GUI upload/download and the CLI now share it. New
   `add-input` copies files from disk like a GUI upload; `fetch-input` gained the GUI's checks
@@ -10,7 +34,7 @@
 - `init`/`input-directories` refuse the placeholder reference release label, as the GUI does.
 - Sample sheets discovered inside the workspace record workspace-relative paths.
 
-## 0.0.0 — End-to-end execution audit
+### End-to-end execution audit
 
 Found by running real pipelines on the synthetic fixture for every design and entry route.
 
@@ -29,7 +53,7 @@ Found by running real pipelines on the synthetic fixture for every design and en
 - Tests: two real end-to-end runs (annotated WGS cohort, UMI with short reads) join the dry runs.
 - Lint: restore import order in `execution/preflight.py`, which had been failing CI.
 
-## 0.0.0 — CPU deployment budgets
+### CPU deployment budgets
 
 - Default to one job and a 6500 MiB scheduling budget.
 - Check Linux CPU affinity, cgroup v2 and SLURM per-node limits during planning.

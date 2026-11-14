@@ -134,7 +134,8 @@ A missing record is never counted as a reference call.
 | DA002 resistance | `BELOW_REPORTING_FLOOR` | mutant reads present but under 5% | MalariaGEN Pf7. |
 | DA002 resistance | `who_k13_alert` in `prevalence.tsv` | validated PfKelch13 marker in more than 5% of callable infections | WHO (see below). |
 | DA003 diversity | Minimum group size | 3 | Provisional. |
-| DA004 relatedness | Markers needed for an estimate | ≥ 200 biallelic; fewer: `EXCLUDED_FEW_MARKERS` | Taylor 2019. |
+| DA004 relatedness (WGS) | Markers needed for an estimate | ≥ 200 biallelic; fewer: `EXCLUDED_FEW_MARKERS` | Taylor 2019 (about 200 biallelic markers keep the error below 0.1). |
+| DA004 relatedness (targeted) | Markers needed for an estimate | ≥ 20; 20–199: `ESTIMATED_LOW_PRECISION`, reported without a label; fewer: `EXCLUDED_FEW_MARKERS` | Provisional. No published minimum exists for SNPs that are few and linked within amplicons; the 200-marker precision level is Taylor 2019. |
 | DA004 relatedness | `CLOSELY_RELATED` / `NEAR_IDENTICAL` labels | IBD ≥ 0.5 / ≥ 0.9 | Reporting convention (e.g. Pereus 2026). |
 | DA004 relatedness | Dcifer significance level | 0.05 | Dcifer usage (Gerlovina 2022). |
 | DA005 structure | LD pruning window / step / r² | 100 / 20 / 0.1 | scikit-allel defaults. |

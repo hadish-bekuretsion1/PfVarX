@@ -78,7 +78,7 @@ passes, terminal manifests and denominators; a partial workflow is not a clean r
 pixi run package --output /absolute/path/to/distribution
 ```
 
-This writes `pfvarx-0.0.0-source.zip` and its `.sha256` sidecar. Run `sha256sum -c` from
+This writes `pfvarx-<version>-source.zip` (the version printed by `./pfvarx version`) and its `.sha256` sidecar. Run `sha256sum -c` from
 the output directory to verify the archive. Export uses explicit software roots and
 file types, never raw workspace copying. Active config YAML, input/reference/truth
 data, profiles measured on a study, runs, results, environments, caches and symlinks

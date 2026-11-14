@@ -74,9 +74,13 @@ def marker_positions() -> list[dict[str, Any]]:
     return out
 
 
-def make_clones(rng: random.Random, ref: dict[str, list[str]], n_clones: int, core: dict[str, tuple[int, int]]
-                ) -> tuple[list[dict[str, list[str]]], list[list[Variant]]]:
-    """Clones from two populations: population-specific and shared SNPs, plus indels."""
+def make_clones(rng: random.Random, ref: dict[str, list[str]], n_clones: int, core: dict[str, tuple[int, int]],
+                variant_scale: int = 1) -> tuple[list[dict[str, list[str]]], list[list[Variant]]]:
+    """Clones from two populations: population-specific and shared SNPs, plus indels.
+
+    ``variant_scale`` multiplies the number of simulated sites per contig (1 keeps the
+    original fixture exactly); larger values give enough informative markers for the
+    relatedness, structure and phylogeny analyses."""
     pop_sites: dict[int, list[Variant]] = {0: [], 1: []}
     shared: list[Variant] = []
     taken: set[tuple[str, int]] = set()
@@ -107,12 +111,12 @@ def make_clones(rng: random.Random, ref: dict[str, list[str]], n_clones: int, co
         return Variant(chrom, p, anchor, anchor + ins)
 
     for chrom in ref:
-        for _ in range(25):
+        for _ in range(25 * variant_scale):
             shared.append(snv(chrom))
         for pop in (0, 1):
-            for _ in range(35):
+            for _ in range(35 * variant_scale):
                 pop_sites[pop].append(snv(chrom))
-            for _ in range(4):
+            for _ in range(4 * variant_scale):
                 pop_sites[pop].append(indel(chrom))
     clones_seq, clones_var = [], []
     markers = marker_positions()
@@ -201,12 +205,15 @@ def write_fasta(path: Path, seqs: dict[str, list[str]]) -> None:
 
 
 def build(dest: Path, design: str = "WGS", seed: int = 7, depth: int = 40, n_mono: int = 6,
-          n_poly: int = 3, purpose: str = "analysis", low_depth_sample: bool = False) -> dict[str, Any]:
+          n_poly: int = 3, purpose: str = "analysis", low_depth_sample: bool = False,
+          variant_scale: int = 1) -> dict[str, Any]:
+    if variant_scale < 1:
+        raise ValueError("variant_scale must be at least 1")
     rng = random.Random(seed)
     lengths = {"ctg1": 30000, "ctg2": 24000}
     ref = make_reference(rng, lengths)
     core = {c: (1500, L - 1500) for c, L in lengths.items()}  # 'subtelomeric' ends masked
-    clones, cvars = make_clones(rng, ref, n_mono + 2, core)
+    clones, cvars = make_clones(rng, ref, n_mono + 2, core, variant_scale)
     (dest / "inputs/reference").mkdir(parents=True, exist_ok=True)
     (dest / "inputs/metadata").mkdir(parents=True, exist_ok=True)
     (dest / "inputs/fastq").mkdir(parents=True, exist_ok=True)
