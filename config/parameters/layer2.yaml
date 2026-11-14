@@ -3,7 +3,7 @@ parameters:
   min_mapping_quality: {value: 20, source: UNCALIBRATED_PROVISIONAL, note: "grid {1,10,20,30}; Experiment C"}
   min_base_quality: {value: 13, source: UNCALIBRATED_PROVISIONAL, note: "grid {10,13,20}; Experiment C"}
   window_size_bp: {value: 5000, source: UNCALIBRATED_PROVISIONAL, note: "grid {2,5,10} kb"}
-  min_usable_depth: {value: 5, source: LITERATURE_SUPPORTED, note: "MalariaGEN Pf7 2023: positions need >=5 reads to be callable and no allele fraction is computed below 5 reads"}
+  min_usable_depth: {value: 5, source: LITERATURE_SUPPORTED, note: "MalariaGEN Pf7 2023 and Pf8 2025: positions need >=5 reads to be callable and no allele fraction is computed below 5 reads"}
   screening_threshold_neglog10: {value: 6.0, source: UNCALIBRATED_PROVISIONAL, note: "lambda(m): largest value retaining >=99% truth SNPs and indels"}
   error_mean_default: {value: 0.005, source: UNCALIBRATED_PROVISIONAL, note: "used only until the per-mode error model is fitted"}
   overdispersion_phi_default: {value: 200.0, source: UNCALIBRATED_PROVISIONAL, note: "mode-level phi(m) until fitted"}
@@ -25,3 +25,7 @@ parameters:
   mixture_min_component_weight: {value: 0.02, source: UNCALIBRATED_PROVISIONAL, note: "components below this DNA proportion are treated as unidentified; Experiments F and M"}
   mixture_informative_min_sites: {value: 20, source: UNCALIBRATED_PROVISIONAL}
   wsaf_interval_level: {value: 0.95, source: FRAMEWORK_POLICY}
+  candidate_min_alt_reads: {value: 2, source: FRAMEWORK_POLICY, note: "reads carrying an allele before it is screened; PASS separately needs pass_min_fragments"}
+  pairhmm_max_reads: {value: 200, source: FRAMEWORK_POLICY, note: "runtime cap on reads re-scored per indel candidate"}
+  pairhmm_flank_bp: {value: 60, source: FRAMEWORK_POLICY, note: "reference flank on each side of the indel haplotypes"}
+  focal_loss_min_length_bp: {value: 50, source: UNCALIBRATED_PROVISIONAL, note: "shortest low-depth run reported as focal callability loss"}

@@ -116,7 +116,7 @@ def test_spatial_manifest_only_claims_a_fit_with_rows(
     monkeypatch.setattr(spatial.shutil, "which", lambda name: "/test/Rscript")
 
     def fake_r(command: list[str], **kwargs: object) -> SimpleNamespace:
-        Path(command[-1]).write_text(fit_text)
+        Path(command[3]).write_text(fit_text)  # Rscript script input OUTPUT [settings...]
         return SimpleNamespace(returncode=0, stdout="", stderr="")
 
     monkeypatch.setattr(spatial.subprocess, "run", fake_r)

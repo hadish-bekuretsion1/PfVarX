@@ -113,7 +113,7 @@ def run(ctx: Context, threads: int = 1) -> None:
     write_json(out / "grid_summary.json", grid)
     model_status = "NOT_FITTED_DESCRIPTIVE_ONLY"
     outputs = [out / "country_month_summary.tsv", out / "grid_summary.json"]
-    if len(valid) >= 10 and shutil.which("Rscript"):
+    if len(valid) >= int(ctx.params.get("da007_gam_min_samples", 10)) and shutil.which("Rscript"):
         fit_output = out / "gam_fit.tsv"
         fit_output.unlink(missing_ok=True)
         flat = out / "gam_input.tsv"
@@ -123,7 +123,8 @@ def run(ctx: Context, threads: int = 1) -> None:
                 for c in calls if c["sample_id"] in valid and c["state"] != "UNKNOWN"]
         write_tsv(flat, recs, ["sample_id", "marker_id", "y", "t"])
         r = subprocess.run(["Rscript", str(ctx.root / "workflow" / "scripts" / "da007_gam.R"), str(flat),
-                            str(fit_output)], capture_output=True, text=True)
+                            str(fit_output), str(ctx.params.get("da007_gam_max_basis", 4)),
+                            str(ctx.params.get("da007_gam_interval_level", 0.95))], capture_output=True, text=True)
         (out / "gam.log").write_text(r.stdout + r.stderr)
         if r.returncode != 0 or not fit_output.is_file():
             model_status = "FIT_FAILED"

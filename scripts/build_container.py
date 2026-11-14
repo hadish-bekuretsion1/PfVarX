@@ -16,7 +16,13 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 
 
-def context(destination: Path, profile: str, design: str, analyses: list[str], rtg: bool = False) -> dict:
+DEFAULT_BASE = "ubuntu:24.04"
+
+
+def context(destination: Path, profile: str, design: str, analyses: list[str], rtg: bool = False,
+            base: str = DEFAULT_BASE) -> dict:
+    if "\n" in base or not base.strip():
+        raise ValueError("Invalid base image reference")
     if destination.exists():
         raise ValueError("Build context already exists")
     pixi = shutil.which("pixi")
@@ -28,7 +34,7 @@ def context(destination: Path, profile: str, design: str, analyses: list[str], r
     shutil.copy2(pixi, destination / "pixi")
     env = metadata["environment"]
     recipe = f"""Bootstrap: docker
-From: ubuntu:24.04
+From: {base}
 
 %files
     {destination / "pixi"} /usr/local/bin/pixi
@@ -60,9 +66,11 @@ From: ubuntu:24.04
         "installation": metadata,
         "pixi_sha256": hashlib.sha256(Path(pixi).read_bytes()).hexdigest(),
         "lock_sha256": hashlib.sha256((ROOT / "pixi.lock").read_bytes()).hexdigest(),
-        "base_image": "ubuntu:24.04",
+        "base_image": base,
+        "base_image_pinned": "@sha256:" in base,
         "status": "CONTEXT_ONLY_NOT_IMAGE_VALIDATION",
-        "base_image_note": "Pin/record the resolved OCI digest before strict reproducibility qualification",
+        "base_image_note": ("Pinned by digest" if "@sha256:" in base else
+                            "Not pinned: pass --base ubuntu:24.04@sha256:<digest> for a reproducible image"),
     }
     (destination / "build_manifest.json").write_text(json.dumps(report, indent=2) + "\n")
     return report
@@ -77,9 +85,11 @@ def main():
     p.add_argument("--design", choices=["WGS", "TARGETED_NON_UMI", "TARGETED_UMI"], default="WGS")
     p.add_argument("--analyses", nargs="*", default=[])
     p.add_argument("--rtg", action="store_true")
+    p.add_argument("--base", default=DEFAULT_BASE,
+                   help="base image; pin it by digest (ubuntu:24.04@sha256:...) for a reproducible build")
     a = p.parse_args()
     if a.emit_context:
-        print(json.dumps(context(a.emit_context.resolve(), a.profile, a.design, a.analyses, a.rtg), indent=2))
+        print(json.dumps(context(a.emit_context.resolve(), a.profile, a.design, a.analyses, a.rtg, a.base), indent=2))
         return
     if a.image.exists():
         p.error("Image already exists; no overwrite")
@@ -87,7 +97,7 @@ def main():
         p.error("Apptainer is not installed; --emit-context is available for review")
     with tempfile.TemporaryDirectory(prefix="pfvarx-image-") as tmp:
         build = Path(tmp) / "context"
-        report = context(build, a.profile, a.design, a.analyses, a.rtg)
+        report = context(build, a.profile, a.design, a.analyses, a.rtg, a.base)
         subprocess.run(["apptainer", "build", str(a.image.resolve()), str(build / "Apptainer.def")], check=True)
         report["status"] = "BUILT_REQUIRES_E2E_QUALIFICATION"
         report["image_sha256"] = hashlib.sha256(a.image.read_bytes()).hexdigest()

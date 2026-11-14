@@ -4,6 +4,8 @@ parameters:
   fastp_qualified_quality_phred: {value: 15, source: SOFTWARE_DEFAULT, note: "fastp default (Chen 2018); verified in the pinned fastp 1.1.0 --help"}
   fastp_unqualified_percent_limit: {value: 40, source: SOFTWARE_DEFAULT}
   fastp_n_base_limit: {value: 5, source: SOFTWARE_DEFAULT}
+  fastp_cut_window_size: {value: 4, source: SOFTWARE_DEFAULT, note: "sliding window for --cut_right"}
+  fastp_cut_mean_quality: {value: 20, source: SOFTWARE_DEFAULT, note: "mean quality threshold for --cut_right"}
   fastp_length_required: {value: 50, source: UNCALIBRATED_PROVISIONAL, note: "grid {30,50,70}; Experiment C"}
   fastp_cut_right: {value: false, source: UNCALIBRATED_PROVISIONAL, note: "grid {off, w4 Q15, w4 Q20, w4 Q25}; Experiment C"}
   fastp_low_complexity_filter: {value: false, source: FRAMEWORK_POLICY, note: "would bias against AT-rich reads"}

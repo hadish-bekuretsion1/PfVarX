@@ -159,6 +159,10 @@
     "example": "20000",
     "help": "Temporary disk budget in MiB, at least 256. Allow room for actual study size."
   },
+  "compute.tmp_dir": {
+    "example": "null, /local/scratch",
+    "help": "Absolute directory for temporary files of each job, such as node-local scratch on HPC. Java tools (Picard, fgbio) and Snakemake use it. Leave null to use the system temporary directory."
+  },
   "compute.per_job.max_threads": {
     "example": "4",
     "help": "At least 1 and no greater than max_cores."

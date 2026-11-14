@@ -3,9 +3,11 @@
 from __future__ import annotations
 
 import datetime as dt
+import json
 import platform
 import shutil
 import subprocess
+import sys
 from pathlib import Path
 from typing import Any
 
@@ -63,6 +65,31 @@ def tool_versions() -> dict[str, str]:
     return out
 
 
+# Conda packages whose versions decide scientific results. Read from the environment's own
+# package records, so a tool that is never probed on the command line is still recorded.
+SCIENTIFIC_PACKAGES = (
+    "samtools", "bcftools", "htslib", "pysam", "fastp", "bwa-mem2", "mosdepth", "picard", "fgbio",
+    "snpeff", "snakemake-minimal", "iqtree", "hmmibd", "rtg-tools", "scikit-allel", "numpy", "scipy",
+    "r-base", "r-moire", "r-dcifer", "r-mgcv",
+)
+
+
+def package_versions(prefix: Path | None = None) -> dict[str, str]:
+    """Exact version and build of each installed scientific package (empty outside a conda env)."""
+    meta = (prefix or Path(sys.prefix)) / "conda-meta"
+    out: dict[str, str] = {}
+    if not meta.is_dir():
+        return out
+    for record in meta.glob("*.json"):
+        try:
+            info = json.loads(record.read_text())
+        except (OSError, ValueError):
+            continue
+        if info.get("name") in SCIENTIFIC_PACKAGES:
+            out[info["name"]] = f"{info.get('version')} ({info.get('build')})"
+    return dict(sorted(out.items()))
+
+
 def build(root: Path) -> dict[str, Any]:
     manifest = {f.relative_to(root).as_posix(): sha256(f) for f in run_defining_files(root)}
     prepared = root / "prepared" / "manifest.json"
@@ -78,7 +105,7 @@ def build(root: Path) -> dict[str, Any]:
             "pfvarx_version": __version__, "python": platform.python_version(),
             "platform": platform.platform(), "git": gid, "files": manifest,
             "prepared": read_json(prepared) if prepared.is_file() else None,
-            "tools_installed": tool_versions(), "warnings": warnings}
+            "tools_installed": tool_versions(), "packages": package_versions(), "warnings": warnings}
 
 
 def drift(root: Path, snapshot: dict[str, Any]) -> list[dict[str, str]]:

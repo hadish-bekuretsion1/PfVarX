@@ -85,6 +85,7 @@ def snakemake_cmd(root: Path, run: Path, eff: dict[str, Any], dry: bool) -> list
            "--jobs", str(comp["max_jobs"]), "--resources", f"mem_mb={comp['max_mem_mb']}",
            "--default-resources", f"mem_mb={min(1000, comp['per_job']['max_mem_mb'])}",
            f"runtime={comp['per_job']['max_runtime_min']}",
+           *([f"tmpdir={comp['tmp_dir']}"] if comp.get("tmp_dir") else []),
            "--rerun-incomplete", "--printshellcmds", "--show-failed-logs"]
     if eff["config"].get("retention", {}).get("intermediates") == "keep":
         cmd += ["--notemp"]

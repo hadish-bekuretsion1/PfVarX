@@ -2,7 +2,7 @@ version: "1.0.0"
 parameters:
   da001_credibility: {value: 0.95, source: UNCALIBRATED_PROVISIONAL, note: "candidate {0.90,0.95}"}
   da001_min_informative_loci: {value: 10, source: UNCALIBRATED_PROVISIONAL}
-  da001_fws_reference_cutoff: {value: 0.95, source: LITERATURE_SUPPORTED, note: "Fws >= 0.95 as the conventional proxy for a clonal infection (Manske 2012; Auburn 2012; MalariaGEN Pf7 2023); reported for comparison only"}
+  da001_fws_reference_cutoff: {value: 0.95, source: LITERATURE_SUPPORTED, note: "Fws >= 0.95 as the conventional proxy for a clonal infection (Manske 2012; Auburn 2012; MalariaGEN Pf7 2023, Pf8 2025); reported for comparison only"}
   da006_min_monoclonal: {value: 4, source: FRAMEWORK_POLICY, note: "mathematical floor for an informative unrooted topology"}
   da006_min_informative_sites: {value: 10, source: UNCALIBRATED_PROVISIONAL}
   da006_max_sample_missing: {value: 0.2, source: UNCALIBRATED_PROVISIONAL}
@@ -16,10 +16,16 @@ parameters:
   da005_ld_threshold: {value: 0.1, source: SOFTWARE_DEFAULT}
   da005_min_group_size: {value: 3, source: UNCALIBRATED_PROVISIONAL}
   da003_min_group_size: {value: 3, source: UNCALIBRATED_PROVISIONAL}
+  da003_bootstrap_replicates: {value: 200, source: FRAMEWORK_POLICY, note: "bootstrap over samples for diversity intervals"}
+  da004_dcifer_alpha: {value: 0.05, source: LITERATURE_SUPPORTED, note: "Dcifer significance level for the relatedness confidence interval (Gerlovina 2022)"}
+  da004_dcifer_null_grid: {value: 1000, source: SOFTWARE_DEFAULT, note: "Dcifer ibdDat nr: grid resolution for relatedness estimates"}
   da002_min_callable_per_group: {value: 3, source: UNCALIBRATED_PROVISIONAL}
   da002_reporting_floor: {value: 0.05, source: LITERATURE_SUPPORTED, note: "MalariaGEN Pf7 2023: an allele below 5% of reads is treated as absent"}
   da002_mixed_threshold: {value: 0.95, source: LITERATURE_SUPPORTED, note: "MalariaGEN Pf7 2023: the other allele below 5% of reads is treated as absent, so >=0.95 is MUTANT rather than MIXED"}
   da007_min_samples_per_unit: {value: 3, source: UNCALIBRATED_PROVISIONAL}
+  da007_gam_min_samples: {value: 10, source: UNCALIBRATED_PROVISIONAL, note: "samples with valid place and date needed before a GAM is fitted"}
+  da007_gam_max_basis: {value: 4, source: FRAMEWORK_POLICY, note: "largest basis dimension k for the time smooth"}
+  da007_gam_interval_level: {value: 0.95, source: FRAMEWORK_POLICY}
   da001_moire_burnin: {value: 10000, source: SOFTWARE_DEFAULT, note: "moire run_mcmc default (Murphy and Greenhouse 2024); convergence still to be assessed per data set"}
   da001_moire_samples: {value: 1000, source: SOFTWARE_DEFAULT, note: "moire run_mcmc default samples_per_chain"}
   da001_allele_presence_floor: {value: 0.05, source: LITERATURE_SUPPORTED, note: "MalariaGEN Pf7 2023: an allele below 5% of reads is treated as absent"}

@@ -94,7 +94,9 @@ def run(ctx: Context, threads: int = 1) -> None:
         coi_rows = [{"sample_id": s, "coi": clon[s]["coi_median"] or 1} for s in eligible]
         write_tsv(out / "dcifer_coi.tsv", coi_rows, ["sample_id", "coi"])
         r = subprocess.run(["Rscript", str(ctx.root / "workflow" / "scripts" / "da004_dcifer.R"), str(lf),
-                            str(out / "dcifer_coi.tsv"), str(out / "dcifer_pairs.tsv")], capture_output=True, text=True)
+                            str(out / "dcifer_coi.tsv"), str(out / "dcifer_pairs.tsv"),
+                            str(ctx.params.get("da004_dcifer_alpha", 0.05)),
+                            str(ctx.params.get("da004_dcifer_null_grid", 1000))], capture_output=True, text=True)
         (out / "dcifer.log").write_text(r.stdout + r.stderr)
         if r.returncode != 0:
             raise SystemExit(f"Dcifer failed with exit code {r.returncode}")

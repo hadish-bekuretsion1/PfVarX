@@ -61,6 +61,7 @@ body{font:16px/1.55 system-ui;color:#173247;max-width:1000px;margin:auto;padding
 <tr><th scope="row"><code>compute.max_mem_mb</code></th><td><code>6500</code></td><td>Total scheduling memory in MiB, at least 512. Leave room for the OS.</td></tr>
 <tr><th scope="row"><code>compute.max_jobs</code></th><td><code>1</code></td><td>Maximum concurrent jobs, at least 1. Keep 1 for a small PC.</td></tr>
 <tr><th scope="row"><code>compute.tmp_disk_mb</code></th><td><code>20000</code></td><td>Temporary disk budget in MiB, at least 256. Allow room for actual study size.</td></tr>
+<tr><th scope="row"><code>compute.tmp_dir</code></th><td><code>null</code></td><td>Absolute directory for temporary files of each job, such as node-local scratch on HPC. Java tools (Picard, fgbio) and Snakemake use it. Leave null to use the system temporary directory.</td></tr>
 <tr><th scope="row"><code>compute.per_job.max_threads</code></th><td><code>4</code></td><td>At least 1 and no greater than max_cores.</td></tr>
 <tr><th scope="row"><code>compute.per_job.max_mem_mb</code></th><td><code>6500</code></td><td>At least 256 and no greater than max_mem_mb. Raise only when your allocation can fit the requested jobs.</td></tr>
 <tr><th scope="row"><code>compute.per_job.max_runtime_min</code></th><td><code>720</code></td><td>Positive minutes for planning and rule resource requests. Set the actual HPC wall time separately.</td></tr>

@@ -382,3 +382,24 @@ def test_cleanup_protects_registered_metadata_even_inside_work(tmp_path):
     (run / "frozen_plan.json").write_text(json.dumps({"samples": []}))
     result = cleanup_run(tmp_path, run, True)
     assert original.read_text() == "original metadata" and not result["deleted"]
+
+
+def test_tmp_dir_reaches_snakemake_and_must_be_absolute(tmp_path):
+    """Job temporary files (Snakemake TMPDIR, Java tmpdir, Picard TMP_DIR) follow compute.tmp_dir."""
+    import pytest
+    from pydantic import ValidationError
+
+    from pfvarx.configuration.models import ComputeConfig
+    from pfvarx.execution.runner import snakemake_cmd
+
+    base = {"schema_version": "pfvarx.compute/2", "executor": "hpc", "max_cores": 4, "max_mem_mb": 8000,
+            "max_jobs": 2, "tmp_disk_mb": 1000, "per_job": {"max_threads": 4, "max_mem_mb": 8000, "max_runtime_min": 60}}
+    assert ComputeConfig(**base).tmp_dir is None
+    assert ComputeConfig(**base, tmp_dir="/local/scratch").tmp_dir == "/local/scratch"
+    with pytest.raises(ValidationError, match="absolute"):
+        ComputeConfig(**base, tmp_dir="scratch")
+    eff = {"config": {}, "compute": {**base, "tmp_dir": "/local/scratch"}}
+    cmd = snakemake_cmd(tmp_path, tmp_path / "run", eff, dry=True)
+    assert "tmpdir=/local/scratch" in cmd[cmd.index("--default-resources"):]
+    eff["compute"]["tmp_dir"] = None
+    assert not any(a.startswith("tmpdir=") for a in snakemake_cmd(tmp_path, tmp_path / "run", eff, dry=True))

@@ -45,10 +45,16 @@ rule mosdepth_targets:
         prefix=lambda wc: str(R / "qc" / "samples" / wc.sample / "targets"),
         bed=TARGETS,
         flag=P["layer1.mosdepth_exclude_flag"],
+    threads: threads(2)
+    resources:
+        mem_mb=mem(1000),
+        runtime=RUNTIME,
     log:
         str(LOGS / "mosdepth" / "{sample}.targets.log"),
+    benchmark:
+        str(BENCH / "mosdepth" / "{sample}.targets.tsv")
     shell:
-        "(mosdepth -n -F {params.flag} -b {params.bed:q} {params.prefix:q} {input:q} "
+        "(mosdepth -n -t {threads} -F {params.flag} -b {params.bed:q} {params.prefix:q} {input:q} "
         "&& samtools view -c -F {params.flag} -L {params.bed:q} {input:q} > {output.ontarget:q}) > {log:q} 2>&1"
 
 

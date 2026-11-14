@@ -107,7 +107,8 @@ def run(ctx: Context, threads: int = 1) -> None:
                              "status": "GROUP_TOO_SMALL"})
                 continue
             st = group_stats(ctx, members, indels)
-            lo, hi = bootstrap(ctx, members, indels, 200, int(ctx.eff["config"]["random_seed"]))
+            lo, hi = bootstrap(ctx, members, indels, int(ctx.params.get("da003_bootstrap_replicates", 200)),
+                               int(ctx.eff["config"]["random_seed"]))
             rows.append({"group": g, "variant_set": "SNP+indel" if indels else "SNP", "status": "COMPUTED", **st,
                          "he_boot_lo": lo, "he_boot_hi": hi})
     cols = ["group", "variant_set", "status", "samples", "sites_used", "callable_bases_intersection",

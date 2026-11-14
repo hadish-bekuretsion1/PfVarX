@@ -238,7 +238,7 @@ def main() -> None:
         if not a.no_install:
             subprocess.run(["pixi", "install", "--locked", "-e", meta["environment"]], cwd=destination, check=True)
             subprocess.run(
-                ["pixi", "run", "-e", meta["environment"], "pfvarx", "workspace-init", "--config-only"], cwd=destination, check=True
+                ["pixi", "run", "--locked", "-e", meta["environment"], "pfvarx", "workspace-init", "--config-only"], cwd=destination, check=True
             )
         print(
             json.dumps(

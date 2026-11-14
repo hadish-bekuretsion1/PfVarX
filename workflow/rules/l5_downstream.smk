@@ -22,6 +22,9 @@ rule da001_clonality:
     output:
         manifest=str(DOWN / "DA001" / "status_manifest.json"),
         clonality=str(DOWN / "DA001" / "clonality.tsv"),
+    params:
+        run=str(RUN),
+        root=str(ROOT),
     resources:
         mem_mb=mem(2000),
         runtime=RUNTIME,
@@ -30,7 +33,7 @@ rule da001_clonality:
     benchmark:
         str(BENCH / "downstream" / "DA001.tsv")
     shell:
-        "python -m pfvarx.downstream.run --da DA001 --run-dir {RUN:q} --root {ROOT:q} > {log:q} 2>&1"
+        "python -m pfvarx.downstream.run --da DA001 --run-dir {params.run:q} --root {params.root:q} > {log:q} 2>&1"
 
 
 def eligibility_inputs(wc):
@@ -47,10 +50,13 @@ checkpoint da_eligibility:
     output:
         decisions=str(ELIG / "cohort_decisions.json"),
         matrix=str(ELIG / "sample_analysis_eligibility.tsv"),
+    params:
+        run=str(RUN),
+        root=str(ROOT),
     log:
         str(LOGS / "downstream" / "eligibility.log"),
     shell:
-        "python -m pfvarx.downstream.run --eligibility --run-dir {RUN:q} --root {ROOT:q} > {log:q} 2>&1"
+        "python -m pfvarx.downstream.run --eligibility --run-dir {params.run:q} --root {params.root:q} > {log:q} 2>&1"
 
 
 def source_manifest(wc):
@@ -65,6 +71,9 @@ rule da_execute:
         source=source_manifest,
     output:
         manifest=str(DOWN / "{da}" / "status_manifest.json"),
+    params:
+        run=str(RUN),
+        root=str(ROOT),
     wildcard_constraints:
         da="DA00[234567]",
     threads: threads(2)
@@ -76,7 +85,7 @@ rule da_execute:
     benchmark:
         str(BENCH / "downstream" / "{da}.tsv")
     shell:
-        "python -m pfvarx.downstream.run --da {wildcards.da} --run-dir {RUN:q} --root {ROOT:q} "
+        "python -m pfvarx.downstream.run --da {wildcards.da} --run-dir {params.run:q} --root {params.root:q} "
         "--threads {threads} > {log:q} 2>&1"
 
 

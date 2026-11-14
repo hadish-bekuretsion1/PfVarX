@@ -66,3 +66,23 @@ def test_fixed_length_read_structure_is_accepted_and_relaxed_for_trimmed_reads()
     assert v.runtime_read_structures("3S8M+T +T") == (["3S8M+T", "+T"], 12, True)
     # A fixed non-template segment at the 3' end forbids trimming and keeps the exact length.
     assert v.runtime_read_structures("8M135T8M 8M135T8M") == (["8M135T8M", "8M135T8M"], 151, False)
+
+
+def test_wgs_sample_must_not_mix_flowcell_types(tmp_path: Path) -> None:
+    """Duplicates are marked on the merged sample with one optical distance (PFX-12)."""
+    from pfvarx.constants import Design, InputType
+
+    for name in ("a1", "a2", "b1", "b2"):
+        (tmp_path / f"{name}.fq.gz").touch()
+    sheet = tmp_path / "samples.tsv"
+    sheet.write_text(
+        "sample_id\tlane\tfastq_1\tfastq_2\tlibrary_id\tflowcell_type\n"
+        "S1\tL1\ta1.fq.gz\ta2.fq.gz\tlib\tpatterned\n"
+        "S1\tL2\ta1.fq.gz\ta2.fq.gz\tlib\tunpatterned\n"
+        "S2\tL1\tb1.fq.gz\tb2.fq.gz\tlib\tpatterned\n"
+        "S2\tL2\tb1.fq.gz\tb2.fq.gz\tlib\tpatterned\n")
+    rep, _ = v.validate_samples(sheet, tmp_path, InputType.FASTQ, Design.WGS, set())
+    failures = [f for f in rep.findings if f.level == "FAIL"]
+    assert len(failures) == 1 and failures[0].record == 3 and "mixes flowcell_type" in failures[0].detail
+    targeted, _ = v.validate_samples(sheet, tmp_path, InputType.FASTQ, Design.TARGETED_NON_UMI, set())
+    assert not [f for f in targeted.findings if f.level == "FAIL"]

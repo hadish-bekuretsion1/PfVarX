@@ -52,6 +52,17 @@ def fws(ctx: Context, sites: list[dict[str, str]], samples: list[str]) -> dict[s
     return out
 
 
+def _coi(row: dict[str, str] | None, key: str) -> str:
+    """MOIRE COI summaries are posterior quantiles that R may interpolate (2.02499999999998);
+    report them to two decimals, without trailing zeros (2.02, 1)."""
+    if not row or row.get(key) in (None, "", "NA"):
+        return ""
+    try:
+        return f"{float(row[key]):.2f}".rstrip("0").rstrip(".")
+    except ValueError:
+        return row[key]
+
+
 def run(ctx: Context, threads: int = 1) -> None:
     out = ctx.out("DA001")
     floor = float(ctx.params["da001_allele_presence_floor"])
@@ -124,8 +135,8 @@ def run(ctx: Context, threads: int = 1) -> None:
         out_rows.append({
             "sample_id": sid, "clonality": clon.value, "reason": reason,
             "prob_polyclonal": "" if ppoly is None else f"{ppoly:.4f}",
-            "coi_median": srow["post_coi_med"] if srow else "", "coi_lower": srow["post_coi_lower"] if srow else "",
-            "coi_upper": srow["post_coi_upper"] if srow else "", "informative_loci": loci_per_sample[sid],
+            "coi_median": _coi(srow, "post_coi_med"), "coi_lower": _coi(srow, "post_coi_lower"),
+            "coi_upper": _coi(srow, "post_coi_upper"), "informative_loci": loci_per_sample[sid],
             "fws": "" if sample_fws is None else f"{sample_fws:.4f}",
             "fws_ge_0_95_reference_only": "" if sample_fws is None else str(sample_fws >= float(ctx.params["da001_fws_reference_cutoff"])),
             "caller_technical_k_context_only": "" if caller_k.get(sid) is None else caller_k[sid]})

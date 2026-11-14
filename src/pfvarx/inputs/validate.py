@@ -364,6 +364,7 @@ def validate_samples(path: Path, root: Path, input_type: InputType, design: Desi
     for col in sorted(need - cols):
         rep.fail(Reason.METADATA_MISSING_FIELD, f"column {col} missing")
     seen: set[tuple[str, str]] = set()
+    flowcells: dict[str, str] = {}
     for i, row in enumerate(rows, start=2):
         key = (row.get("sample_id", ""), row.get("lane", ""))
         if not re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9_-]{0,63}", key[0]):
@@ -380,6 +381,14 @@ def validate_samples(path: Path, root: Path, input_type: InputType, design: Desi
         for col in sorted(required_metadata):
             if not row.get(col):
                 rep.warn(Reason.METADATA_MISSING_FIELD, f"{col} empty for {key[0]} (affects analyses needing it)")
+        if input_type == InputType.FASTQ and design == Design.WGS:
+            # Duplicates are marked once on the merged sample with one optical-duplicate
+            # distance, so every lane of a sample must come from the same flow-cell type.
+            first = flowcells.setdefault(key[0], row.get("flowcell_type", ""))
+            if row.get("flowcell_type", "") != first:
+                rep.fail(Reason.METADATA_MISSING_FIELD,
+                         f"sample {key[0]} mixes flowcell_type {first!r} and {row.get('flowcell_type', '')!r}; "
+                         "register lanes from different flow-cell types as separate samples", i)
     rep.facts = {"samples": len({r['sample_id'] for r in rows}), "lanes": len(rows),
                  "design": design.value}
     return rep, rows

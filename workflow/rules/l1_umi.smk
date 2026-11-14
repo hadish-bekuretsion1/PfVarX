@@ -25,7 +25,7 @@ if DESIGN == "TARGETED_UMI" and PLAN["input_type"] == "FASTQ":
         log:
             str(LOGS / "umi" / "{sample}.{lane}.fastqtobam.log"),
         shell:
-            "fgbio -Xmx{resources.mem_mb}m FastqToBam -i {input.r1:q} {input.r2:q} -r {params.rs:q} "
+            "fgbio -Djava.io.tmpdir={resources.tmpdir:q} -Xmx{resources.mem_mb}m FastqToBam -i {input.r1:q} {input.r2:q} -r {params.rs:q} "
             "-o {output:q} --sample {wildcards.sample} --library {params.lib:q} "
             "--read-group-id {wildcards.sample}.{wildcards.lane} --sort=true > {log:q} 2>&1"
 
@@ -37,6 +37,8 @@ if DESIGN == "TARGETED_UMI" and PLAN["input_type"] == "FASTQ":
         params:
             ref=REF,
             K=P["layer1.bwa_mem2_fixed_batch_K"],
+            # ZipperBams shares the job with bwa-mem2: a third of the (retry-scaled) allowance.
+            zipper_mb=lambda wc, resources: max(1000, resources.mem_mb // 3),
         threads: threads(4)
         resources:
             mem_mb=mem(6000),
@@ -45,7 +47,7 @@ if DESIGN == "TARGETED_UMI" and PLAN["input_type"] == "FASTQ":
             str(LOGS / "umi" / "{sample}.{lane}.align.log"),
         shell:
             "(samtools fastq {input:q} | bwa-mem2 mem -p -t {threads} -K {params.K} -Y {params.ref:q} - "
-            "| fgbio -Xmx2g --compression 0 ZipperBams -i /dev/stdin --unmapped {input:q} --ref {params.ref:q} "
+            "| fgbio -Djava.io.tmpdir={resources.tmpdir:q} -Xmx{params.zipper_mb}m --compression 0 ZipperBams -i /dev/stdin --unmapped {input:q} --ref {params.ref:q} "
             "--output {output:q}) 2> {log:q}"
 
     rule umi_group:
@@ -67,7 +69,7 @@ if DESIGN == "TARGETED_UMI" and PLAN["input_type"] == "FASTQ":
             str(LOGS / "umi" / "{sample}.group.log"),
         shell:
             "(samtools merge -f -u -o - {input:q} | samtools sort --template-coordinate -@ {threads} -o {output.bam:q}.tc.bam - "
-            "&& fgbio -Xmx{resources.mem_mb}m GroupReadsByUmi -i {output.bam:q}.tc.bam -o {output.bam:q} "
+            "&& fgbio -Djava.io.tmpdir={resources.tmpdir:q} -Xmx{resources.mem_mb}m GroupReadsByUmi -i {output.bam:q}.tc.bam -o {output.bam:q} "
             "-s {params.strategy} -e {params.edits} -m {params.mapq} -f {output.hist:q} -g {output.metrics:q} "
             "&& rm {output.bam:q}.tc.bam) > {log:q} 2>&1"
 
@@ -94,10 +96,10 @@ if DESIGN == "TARGETED_UMI" and PLAN["input_type"] == "FASTQ":
         log:
             str(LOGS / "umi" / "{sample}.consensus.log"),
         shell:
-            "(fgbio -Xmx{resources.mem_mb}m CallMolecularConsensusReads -i {input:q} -o {output:q}.raw.bam "
+            "(fgbio -Djava.io.tmpdir={resources.tmpdir:q} -Xmx{resources.mem_mb}m CallMolecularConsensusReads -i {input:q} -o {output:q}.raw.bam "
             "-M {params.minr} --error-rate-pre-umi={params.pre} --error-rate-post-umi={params.post} "
             "-m {params.minq} --threads={threads} "
-            "&& fgbio -Xmx{resources.mem_mb}m FilterConsensusReads -i {output:q}.raw.bam -o {output:q} -r {params.ref:q} "
+            "&& fgbio -Djava.io.tmpdir={resources.tmpdir:q} -Xmx{resources.mem_mb}m FilterConsensusReads -i {output:q}.raw.bam -o {output:q} -r {params.ref:q} "
             "-M {params.fminr} -N {params.fminq} -E {params.E} -e {params.e} -n {params.nc} "
             "&& rm {output:q}.raw.bam) > {log:q} 2>&1"
 
@@ -109,6 +111,8 @@ if DESIGN == "TARGETED_UMI" and PLAN["input_type"] == "FASTQ":
         params:
             ref=REF,
             K=P["layer1.bwa_mem2_fixed_batch_K"],
+            # ZipperBams shares the job with bwa-mem2: a third of the (retry-scaled) allowance.
+            zipper_mb=lambda wc, resources: max(1000, resources.mem_mb // 3),
         threads: threads(4)
         resources:
             mem_mb=mem(6000),
@@ -118,7 +122,7 @@ if DESIGN == "TARGETED_UMI" and PLAN["input_type"] == "FASTQ":
         shell:
             "(samtools sort -n -u -o {output:q}.qn.bam {input:q} && samtools fastq {output:q}.qn.bam "
             "| bwa-mem2 mem -p -t {threads} -K {params.K} -Y {params.ref:q} - "
-            "| fgbio -Xmx2g --compression 0 ZipperBams -i /dev/stdin --unmapped {output:q}.qn.bam --ref {params.ref:q} "
+            "| fgbio -Djava.io.tmpdir={resources.tmpdir:q} -Xmx{params.zipper_mb}m --compression 0 ZipperBams -i /dev/stdin --unmapped {output:q}.qn.bam --ref {params.ref:q} "
             "--tags-to-reverse Consensus --tags-to-revcomp Consensus "
             "| samtools sort -@ {threads} -o {output:q} - && rm {output:q}.qn.bam) 2> {log:q}"
 
@@ -138,6 +142,6 @@ if DESIGN == "TARGETED_UMI" and PLAN["input_type"] == "FASTQ":
         log:
             str(LOGS / "umi" / "{sample}.trim.log"),
         shell:
-            "(samtools stats {input:q} > {output.stats:q} && fgbio -Xmx{resources.mem_mb}m TrimPrimers -i {input:q} "
+            "(samtools stats {input:q} > {output.stats:q} && fgbio -Djava.io.tmpdir={resources.tmpdir:q} -Xmx{resources.mem_mb}m TrimPrimers -i {input:q} "
             "-o {output.bam:q} -p {params.primers:q} -S {params.slop} -r {params.ref:q} --first-of-pair=false "
             "&& samtools index {output.bam:q}) > {log:q} 2>&1"

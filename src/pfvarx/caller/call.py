@@ -105,6 +105,10 @@ class Params:
     level: float
     seed: int
     min_weight: float
+    candidate_min_alt_reads: int = 2
+    pairhmm_max_reads: int = 200
+    pairhmm_flank_bp: int = 60
+    focal_min_length_bp: int = 50
 
     @classmethod
     def from_frozen(cls, eff: dict[str, Any]) -> Params:
@@ -121,7 +125,12 @@ class Params:
                    em_tol=float(p["em_tolerance"]), em_iter=int(p["em_max_iterations"]),
                    min_mix_sites=int(p["mixture_informative_min_sites"]),
                    level=float(p["wsaf_interval_level"]), seed=int(eff["config"]["random_seed"]),
-                   min_weight=float(p["mixture_min_component_weight"]))
+                   min_weight=float(p["mixture_min_component_weight"]),
+                   # .get keeps runs frozen before these became parameters reproducible.
+                   candidate_min_alt_reads=int(p.get("candidate_min_alt_reads", 2)),
+                   pairhmm_max_reads=int(p.get("pairhmm_max_reads", 200)),
+                   pairhmm_flank_bp=int(p.get("pairhmm_flank_bp", 60)),
+                   focal_min_length_bp=int(p.get("focal_loss_min_length_bp", 50)))
 
 
 def homopolymer_after(seq: str, i: int) -> int:
@@ -227,7 +236,7 @@ def extract(bam: pysam.AlignmentFile, fasta: pysam.FastaFile, chrom: str,
             ev.n[pos] = n
             ev.nonref[pos] = nonref
             ev.indel[pos] = indel_n
-            keep = {k: v for k, v in local.items() if v[0] >= 2}
+            keep = {k: v for k, v in local.items() if v[0] >= p.candidate_min_alt_reads}
             if keep:
                 tallies.update(keep)
                 ev.alleles[pos] = tallies
@@ -305,8 +314,10 @@ def screen(evs: dict[str, Evidence], seqs: dict[str, str], model: dict[str, Any]
 
 
 def rescore_indels(bam: pysam.AlignmentFile, seqs: dict[str, str], cands: list[Candidate],
-                   p: Params, max_reads: int = 200, flank: int = 60) -> None:
+                   p: Params, max_reads: int | None = None, flank: int | None = None) -> None:
     """Replace CIGAR counts of indel candidates with pair-HMM read support counts."""
+    max_reads = p.pairhmm_max_reads if max_reads is None else max_reads
+    flank = p.pairhmm_flank_bp if flank is None else flank
     for c in cands:
         if c.kind == "SNV" or c.status == CallStatus.INSUFFICIENT_DEPTH:
             continue
@@ -524,7 +535,7 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
     rescore_indels(bam, seqs, cands, p)
     depth_all = np.concatenate([ev.n[ev.in_core] for ev in evs.values()]) if evs else np.array([0])
     median = float(np.median(depth_all)) if depth_all.size else 0.0
-    focal = focal_losses(evs, p.min_depth, median)
+    focal = focal_losses(evs, p.min_depth, median, p.focal_min_length_bp)
     decide(cands, model, p, unreliable, focal)
     linkage_blocks(bam, cands, p)
     callable_iv = callable_intervals(evs, p.min_depth)

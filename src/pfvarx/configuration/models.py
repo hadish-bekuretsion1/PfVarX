@@ -191,12 +191,17 @@ class JobLimits(Strict):
 class ComputeConfig(Strict):
     schema_version: str
     executor: Literal["local", "hpc", "server", "cloud", "slurm"] = Field(
-        description="Deployment target. HPC uses one allocated node; server and cloud use the local executor on the host."
+        description=("Deployment target, recorded with the run. Every target runs the same single-host "
+                     "executor: HPC uses one allocated node; server and cloud use the host.")
     )
     max_cores: int = Field(ge=1)
     max_mem_mb: int = Field(ge=512)
     max_jobs: int = Field(ge=1)
     tmp_disk_mb: int = Field(ge=256)
+    tmp_dir: str | None = Field(
+        default=None,
+        description="Absolute directory for job temporary files (e.g. node-local scratch); null uses the system default.",
+    )
     per_job: JobLimits
     max_retries: int = Field(default=2, ge=0, le=2)
     retry_memory_factor: float = Field(default=1.5, ge=1.0, le=2.0)
@@ -217,6 +222,8 @@ class ComputeConfig(Strict):
             raise ValueError("per_job.max_threads exceeds max_cores")
         if self.per_job.max_mem_mb > self.max_mem_mb:
             raise ValueError("per_job.max_mem_mb exceeds max_mem_mb")
+        if self.tmp_dir is not None and not self.tmp_dir.startswith("/"):
+            raise ValueError("tmp_dir must be an absolute path, or null for the system temporary directory")
         if self.executor == "slurm" and not self.slurm_partition:
             raise ValueError("executor slurm requires slurm_partition")
         if self.executor == "slurm":

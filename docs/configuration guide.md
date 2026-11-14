@@ -83,6 +83,7 @@ The editor shows project settings from `config/config.yaml`, quality settings fr
 | `compute.max_mem_mb` | `6500` | Total scheduling memory in MiB, at least 512. Leave room for the OS. |
 | `compute.max_jobs` | `1` | Maximum concurrent jobs, at least 1. Keep 1 for a small PC. |
 | `compute.tmp_disk_mb` | `20000` | Temporary disk budget in MiB, at least 256. Allow room for actual study size. |
+| `compute.tmp_dir` | `null` | Absolute directory for temporary files of each job, such as node-local scratch on HPC. Java tools (Picard, fgbio) and Snakemake use it. Leave null to use the system temporary directory. |
 | `compute.per_job.max_threads` | `4` | At least 1 and no greater than max_cores. |
 | `compute.per_job.max_mem_mb` | `6500` | At least 256 and no greater than max_mem_mb. Raise only when your allocation can fit the requested jobs. |
 | `compute.per_job.max_runtime_min` | `720` | Positive minutes for planning and rule resource requests. Set the actual HPC wall time separately. |

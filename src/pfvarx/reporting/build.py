@@ -372,7 +372,12 @@ def harvest(root: Path, run: Path) -> dict[str, Any]:
     executed_rules = sorted({b["rule"] for b in resources_["measured"]})
     for row in resources_["measured"]:
         row["average_cpu_cores"] = row["cpu_time_s"] / row["wall_s"] if row["cpu_time_s"] is not None and row["wall_s"] else None
-    software = {"pfvarx_version": __version__, "tools_installed": snap.get("tools_installed", {}),
+    # The pipeline version is the one that produced the run (recorded in its snapshot), not the
+    # version installed when the report is rebuilt; the renderer version is kept separately.
+    tools = {**snap.get("tools_installed", {}),
+             **{f"{name} (package)": version for name, version in snap.get("packages", {}).items()}}
+    software = {"pfvarx_version": snap.get("pfvarx_version", __version__),
+                "tools_installed": tools,
                 "rules_with_measured_execution": executed_rules, "git": snap.get("git"),
                 "pixi_lock_sha256": snap["files"].get("pixi.lock"), "effective_config_hash": eff["hash"],
                 "reference_sha256": plan["reference"].get("reference_sha256"),
@@ -436,6 +441,7 @@ def build_report(root: Path, run: Path) -> dict[str, Any]:
     data["software"]["report_renderer"] = {
         "sha256": hashlib.sha256(b"".join(resources.files("pfvarx.reporting").joinpath(name).read_bytes()
                                          for name in asset_names)).hexdigest(),
+        "version": __version__,
         "scope": "Current reporting package; frozen upstream scientific provenance is preserved",
     }
     res = run / "results"

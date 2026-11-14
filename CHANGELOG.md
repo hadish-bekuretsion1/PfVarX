@@ -5,6 +5,28 @@
 The release version was reset to 0.0.0 after 0.4.2, as the baseline for the first reviewed
 release. The sections below 0.0.0 are the earlier development numbering, kept as history.
 
+### Provenance, parameters and portability audit fixes
+
+- Reports keep the pipeline version recorded when the run was made; the renderer version is
+  listed separately under `report_renderer`. Run snapshots record the exact version and
+  build of every scientific package (fgbio, Picard, SnpEff, IQ-TREE, hmmIBD, MOIRE, Dcifer,
+  mgcv and others) from the environment's package records.
+- Constants that were written into code are now parameters with a source class, at the same
+  values: fastp sliding-window trim, caller candidate admission, pair-HMM read cap and flank,
+  focal callability length, DA003 bootstrap replicates, Dcifer level and grid, and the DA007
+  GAM sample minimum, basis size and interval level.
+- New optional `compute.tmp_dir` sends Snakemake, Picard and fgbio temporary files to a chosen
+  directory such as node-local scratch. The ZipperBams heap follows the job's memory instead
+  of a fixed 2 GB.
+- Validation rejects a WGS sample whose lanes mix patterned and unpatterned flow cells, since
+  duplicates are marked once per sample with one optical distance.
+- Workflow: cohort evidence declares its BAMs and callability files as inputs; target
+  coverage has threads, memory and a benchmark; shell commands no longer read globals.
+- `bootstrap.py` runs workspace initialisation with `--locked`; the container builder takes
+  `--base` to pin the base image by digest and records whether it was pinned.
+- MOIRE COI summaries are written to two decimals. Platform support (Linux x86-64; WSL2 on
+  Windows) is documented, and confirmed MalariaGEN Pf8 citations are added.
+
 ### Version, cohort and analysis audit fixes
 
 - One pipeline version: `__version__` in `src/pfvarx/__init__.py` is the only declaration.

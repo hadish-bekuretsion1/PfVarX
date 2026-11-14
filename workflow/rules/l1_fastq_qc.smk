@@ -14,7 +14,8 @@ def fastp_args():
           f"--n_base_limit {P['layer1.fastp_n_base_limit']}",
           f"--length_required {P['layer1.fastp_length_required']}"]
     if P["layer1.fastp_cut_right"]:
-        a.append("--cut_right --cut_window_size 4 --cut_mean_quality 20")
+        a.append(f"--cut_right --cut_window_size {P.get('layer1.fastp_cut_window_size', 4)} "
+                 f"--cut_mean_quality {P.get('layer1.fastp_cut_mean_quality', 20)}")
     if CFG["assay"]["two_colour_chemistry"]:
         a.append("--trim_poly_g")
     else:

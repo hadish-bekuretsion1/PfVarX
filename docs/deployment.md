@@ -3,7 +3,9 @@
 ## Supported native installation
 
 Linux x86-64 / local executor is supported. Git/source access, Python 3.11+ for bootstrap
-and Pixi are prerequisites. Private GitHub repositories require authorized login. Clone
+and Pixi are prerequisites. The lockfile covers only `linux-64`: on Windows use WSL2 with a
+Linux distribution; macOS (Intel or Apple silicon) and Linux ARM64 are not supported, because
+several Bioconda tools have no builds there and none are locked. Private GitHub repositories require authorized login. Clone
 alone cannot run setup; use an explicit post-clone command:
 
 ```bash
@@ -123,6 +125,8 @@ sbatch --nodes=1 --ntasks=1 --cpus-per-task=4 --mem=8G --time=12:00:00 \
   --wrap='./pfvarx ready && ./pfvarx dry-run && ./pfvarx pipeline --mode NEW'
 ```
 
-Match the batch request and compute YAML to the study. This uses one node
-per workflow run. Per-rule distributed scheduling and managed cloud batch
+Match the batch request and compute YAML to the study. Set `tmp_dir` in
+`config/compute.yaml` to node-local scratch (an absolute path such as `/local/scratch/alice`,
+created before the job; YAML does not expand `$USER`) so Snakemake, Picard and fgbio temporary files do not fill a small `/tmp`.
+This uses one node per workflow run. Per-rule distributed scheduling and managed cloud batch
 services require separate executor integration and qualification.

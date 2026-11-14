@@ -38,23 +38,26 @@ rule cohort_status:
         str(R / "cohort" / "cohort_status.json"),
     params:
         empty=lambda wc: "--empty" if not passing("L3") else "",
+        run=str(RUN),
+        root=str(ROOT),
     log:
         str(LOGS / "cohort" / "status.log"),
     shell:
-        "python -m pfvarx.downstream.run --cohort-status {params.empty} --run-dir {RUN:q} --root {ROOT:q} > {log:q} 2>&1"
+        "python -m pfvarx.downstream.run --cohort-status {params.empty} --run-dir {params.run:q} "
+        "--root {params.root:q} > {log:q} 2>&1"
 
 
 rule cohort_evidence:
     input:
         vcf=str(R / "cohort" / "cohort.vcf.gz"),
         samples=str(R / "cohort" / "cohort_samples.txt"),
+        bams=lambda wc: [str(R / "alignments" / f"{s}.bam") for s in passing("L3")],
+        callable=lambda wc: [str(R / "variants" / "samples" / f"{s}.callable.bed") for s in passing("L3")],
     output:
         matrix=str(R / "cohort" / "evidence_matrix.tsv.gz"),
         missing=str(R / "cohort" / "missingness.tsv"),
         sites=str(R / "cohort" / "sites.tsv"),
     params:
-        bams=lambda wc: [str(R / "alignments" / f"{s}.bam") for s in passing("L3")],
-        callable=lambda wc: [str(R / "variants" / "samples" / f"{s}.callable.bed") for s in passing("L3")],
         frozen=FROZEN,
         ref=PREF,
     resources:
@@ -63,6 +66,6 @@ rule cohort_evidence:
     log:
         str(LOGS / "cohort" / "evidence.log"),
     shell:
-        "python -m pfvarx.cohort.evidence --vcf {input.vcf:q} --samples {input.samples:q} --bams {params.bams:q} "
-        "--callable {params.callable:q} --reference {params.ref:q} --frozen-config {params.frozen:q} "
+        "python -m pfvarx.cohort.evidence --vcf {input.vcf:q} --samples {input.samples:q} --bams {input.bams:q} "
+        "--callable {input.callable:q} --reference {params.ref:q} --frozen-config {params.frozen:q} "
         "--out-matrix {output.matrix:q} --out-missing {output.missing:q} --out-sites {output.sites:q} > {log:q} 2>&1"

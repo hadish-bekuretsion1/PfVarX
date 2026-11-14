@@ -11,14 +11,17 @@ rule snpeff_build:
     output:
         db=str(SNPEFF_DIR / "data" / GENOME_ID / "snpEffectPredictor.bin"),
         check=str(SNPEFF_DIR / f"{GENOME_ID}.build_check.json"),
+    params:
+        genome=GENOME_ID,
+        data=str(SNPEFF_DIR),
     resources:
         mem_mb=mem(4000),
         runtime=RUNTIME,
     log:
         str(LOGS / "snpeff" / "build.log"),
     shell:
-        "python -m pfvarx.annotation.snpeff_db --fasta {input.fasta:q} --gff {input.gff:q} --genome {GENOME_ID:q} "
-        "--data-dir {SNPEFF_DIR:q} --check {output.check:q} > {log:q} 2>&1"
+        "python -m pfvarx.annotation.snpeff_db --fasta {input.fasta:q} --gff {input.gff:q} --genome {params.genome:q} "
+        "--data-dir {params.data:q} --check {output.check:q} > {log:q} 2>&1"
 
 
 rule snpeff_annotate:
@@ -32,12 +35,14 @@ rule snpeff_annotate:
         qc=str(R / "annotation" / "annotation_qc.json"),
     params:
         ud=P["layer4.snpeff_upstream_downstream_len"],
+        genome=GENOME_ID,
+        data=str(SNPEFF_DIR),
     resources:
         mem_mb=mem(4000),
         runtime=RUNTIME,
     log:
         str(LOGS / "snpeff" / "annotate.log"),
     shell:
-        "python -m pfvarx.annotation.snpeff_db --annotate --vcf {input.vcf:q} --genome {GENOME_ID:q} "
-        "--data-dir {SNPEFF_DIR:q} --check {input.check:q} --ud {params.ud} --out-vcf {output.vcf:q} "
+        "python -m pfvarx.annotation.snpeff_db --annotate --vcf {input.vcf:q} --genome {params.genome:q} "
+        "--data-dir {params.data:q} --check {input.check:q} --ud {params.ud} --out-vcf {output.vcf:q} "
         "--out-qc {output.qc:q} > {log:q} 2>&1"

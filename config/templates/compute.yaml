@@ -1,16 +1,17 @@
 # PfVarX computational envelope. Jobs that cannot fit are blocked before launch.
 schema_version: "pfvarx.compute/2"   # FIXED
-executor: local                      # REVIEW: local | hpc | server | cloud (single-host execution)
+executor: local                      # REVIEW: local | hpc | server | cloud; recorded only, all use one host
 max_cores: 4                         # EDIT: total cores PfVarX may use
 max_mem_mb: 6500                     # EDIT: total RAM PfVarX may use
 max_jobs: 1                          # EDIT: maximum concurrent jobs
 tmp_disk_mb: 20000                   # EDIT: temporary disk available
+tmp_dir: null                        # OPTIONAL: absolute path for job temporary files (e.g. node-local scratch)
 per_job:
   max_threads: 4                     # EDIT
   max_mem_mb: 6500                   # EDIT
   max_runtime_min: 720               # EDIT
 max_retries: 2                       # REVIEW: 0-2; only transient failures are retried
 retry_memory_factor: 1.5             # REVIEW: memory multiplier per out-of-memory retry (within ceiling)
-log_level: INFO                      # OPTIONAL
+log_level: INFO                      # OPTIONAL: recorded with the run; tool logs keep their own levels
 keep_attempt_logs: true              # FIXED
-slurm_partition: null                # OPTIONAL
+slurm_partition: null                # OPTIONAL: recorded only; set the partition in sbatch

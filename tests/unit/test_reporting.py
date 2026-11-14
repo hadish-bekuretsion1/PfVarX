@@ -114,3 +114,27 @@ def test_full_variant_summary_precedes_embedding_cap(tmp_path):
     assert data['variant_summary']['types'] == {'SNV':1, 'INS':1}
     assert data['variants'][0]['screen'] == 'inf'
     assert data['variants'][0]['quality'] is None
+
+
+def test_report_keeps_the_pipeline_version_that_produced_the_run(tmp_path):
+    """Rebuilding an old run's report after an upgrade must not relabel the run."""
+    from pfvarx import __version__
+    from pfvarx.reporting.build import harvest
+    run = _minimal_run(tmp_path, mode='FO001')
+    (run / 'snapshot.json').write_text(json.dumps({'files': {}, 'pfvarx_version': '9.8.7',
+                                                   'tools_installed': {'samtools': 'samtools 1.24'},
+                                                   'packages': {'fgbio': '4.1.1 (hdfd78af_0)'}}))
+    software = harvest(tmp_path, run)['software']
+    assert software['pfvarx_version'] == '9.8.7' != __version__
+    assert software['tools_installed'] == {'samtools': 'samtools 1.24', 'fgbio (package)': '4.1.1 (hdfd78af_0)'}
+
+
+def test_snapshot_records_scientific_package_versions(tmp_path):
+    from pfvarx.provenance.snapshot import package_versions
+    meta = tmp_path / 'conda-meta'
+    meta.mkdir()
+    for name, version, build in (('fgbio', '4.1.1', 'hdfd78af_0'), ('r-moire', '3.7.0', 'r45h_0'), ('zlib', '1.3', 'x')):
+        (meta / f'{name}-{version}-{build}.json').write_text(json.dumps({'name': name, 'version': version, 'build': build}))
+    (meta / 'broken.json').write_text('{not json')
+    assert package_versions(tmp_path) == {'fgbio': '4.1.1 (hdfd78af_0)', 'r-moire': '3.7.0 (r45h_0)'}
+    assert package_versions(tmp_path / 'absent') == {}

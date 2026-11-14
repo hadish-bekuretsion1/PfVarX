@@ -69,7 +69,7 @@ if DESIGN == "WGS" and PLAN["input_type"] == "FASTQ":
         benchmark:
             str(BENCH / "markdup" / "{sample}.tsv")
         shell:
-            "picard -Xmx{resources.mem_mb}m MarkDuplicates -I {input:q} -O {output.bam:q} -M {output.metrics:q} "
+            "picard -Djava.io.tmpdir={resources.tmpdir:q} -Xmx{resources.mem_mb}m MarkDuplicates --TMP_DIR {resources.tmpdir:q} -I {input:q} -O {output.bam:q} -M {output.metrics:q} "
             "--OPTICAL_DUPLICATE_PIXEL_DISTANCE {params.pixel} --VALIDATION_STRINGENCY LENIENT > {log:q} 2>&1 "
             "&& samtools index {output.bam:q} 2>> {log:q}"
 
@@ -104,7 +104,7 @@ if DESIGN == "TARGETED_NON_UMI" and PLAN["input_type"] == "FASTQ":
         benchmark:
             str(BENCH / "trim_primers" / "{sample}.tsv")
         shell:
-            "fgbio -Xmx{resources.mem_mb}m TrimPrimers -i {input.bam:q} -o {output:q} -p {params.primers:q} "
+            "fgbio -Djava.io.tmpdir={resources.tmpdir:q} -Xmx{resources.mem_mb}m TrimPrimers -i {input.bam:q} -o {output:q} -p {params.primers:q} "
             "-S {params.slop} -r {params.ref:q} --first-of-pair=false > {log:q} 2>&1 "
             "&& samtools index {output:q} 2>> {log:q}"
 
