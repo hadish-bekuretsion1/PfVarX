@@ -75,3 +75,21 @@ and interval conventions live outside the native caller package.
 
 See the [configuration editor and input procedure](configuration.md) and the
 [sequencing and downstream eligibility matrix](sequencing.md).
+
+## CLI and GUI parity
+
+The terminal commands and the local configuration GUI are two front ends for the same
+workspace: the same YAML files, the same validation and the same pipeline stages. A change
+to one must be made to the other in the same commit.
+
+| When you change | Also change |
+| --- | --- |
+| A setting in `configuration/models.py` | Its entry in `gui/field-guide.json`, both project templates (`config/templates/analysis.yaml`, `benchmarking.yaml`) or the quality/compute template, then run `python scripts/configuration_guide.py` to refresh `docs/configuration guide.md` and `.html` |
+| The help text of a setting | `gui/field-guide.json` only (it is the single source), then run `python scripts/configuration_guide.py` |
+| A GUI tab or button | Its CLI command in `cli.py` and the "Terminal equivalent" line in `gui/index.html` |
+| A CLI configuration or preflight command | The GUI tab or stage that runs it (`configuration/web.py`, `gui/app.js`) |
+| Shared rules (paths, transfers, validation) | Put them in one Python module both use, never in the GUI JavaScript alone |
+
+`tests/unit/test_cli_gui_parity.py` fails when the two sides drift: a setting missing from
+the GUI help, the templates or the guide; guide text that differs from the GUI; a GUI tab
+naming a command that does not exist; or a GUI stage the CLI lacks.

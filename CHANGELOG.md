@@ -5,6 +5,19 @@
 The release version was reset to 0.0.0 after 0.4.2, as the baseline for the first reviewed
 release. The sections below 0.0.0 are the earlier development numbering, kept as history.
 
+### CLI and GUI parity
+
+- The CLI and the configuration GUI now change together: `tests/unit/test_cli_gui_parity.py`
+  fails when a setting lacks GUI help, a template entry or a configuration-guide row, when the
+  guide text differs from the GUI help, or when a GUI tab or stage has no CLI command. The rule
+  is written in `docs/architecture.md` and `CLAUDE.md`.
+- `gui/field-guide.json` is the single source of setting help; `scripts/configuration_guide.py`
+  regenerates the setting tables of `docs/configuration guide.md` and `.html` from it.
+- Fixed help that disagreed between the two: DA001 is not forced for FO004 (it runs internally
+  when another analysis needs it), and the sample-sheet path is not read-only in the GUI.
+- The project templates now list `assay.sequencing_type`, `caller.executable` and
+  `caller.sha256`, which only the GUI showed before.
+
 ### Validation explains failures
 
 - Every failed or warned input check now says which input it is, what the pipeline uses it

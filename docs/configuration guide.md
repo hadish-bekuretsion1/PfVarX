@@ -23,7 +23,7 @@ The editor shows project settings from `config/config.yaml`, quality settings fr
 | `project_id` | `Grace_WGS_01` | Use 1–64 letters, digits, underscores or hyphens. Start with a letter or digit. |
 | `input_type` | `FASTQ, BAM, CRAM` | Use FASTQ for paired .fastq or .fastq.gz reads. Use BAM or CRAM for compatible coordinate-sorted indexed alignments. Bootstrap a matching input profile. |
 | `final_output` | `FO001, FO002, FO003, FO004` | FO001 stops at alignment/QC and is FASTQ-only. FO002 adds per-sample calls. FO003 adds cohort integration. FO004 adds eligible downstream methods. Install the corresponding profile. |
-| `samples_tsv` | `inputs/metadata/samples.tsv` | Shown as Study metadata and catalogue in Input directories. The GUI shows this path as read-only. For FASTQ input, validation or preparation creates a missing sample sheet here from paired reads. Review the inferred IDs. For BAM input, preparation creates a blank template if needed. Prepared reference files are stored in inputs/reference/prepared/ Store any separate marker catalogue in the metadata directory. |
+| `samples_tsv` | `inputs/metadata/samples.tsv` | For FASTQ input, validation or preparation creates a missing sample sheet from paired reads. Review the inferred IDs. For BAM input, preparation creates a blank template if needed. Add study metadata to the sample sheet TSV by sample_id. Preserve read paths, lane and library IDs. Repeat consistent sample-level values across lanes. DA007 uses country, latitude and longitude in decimal degrees, and collection_date in YYYY-MM-DD. For grouped analyses use population or the configured grouping column. Extra columns such as age_group or study_arm can be retained for study records. Store any separate marker catalogue in the same folder. |
 | `run_policy` | `CONTINUE_INDEPENDENT or STRICT` | Use the default to let eligible independent methods continue. Use STRICT when exclusions should stop dependent execution under the strict policy. |
 | `random_seed` | `20261106` | Nonnegative integer. Record and reuse it when repeating a study setup. |
 
@@ -44,10 +44,10 @@ The editor shows project settings from `config/config.yaml`, quality settings fr
 
 | Setting | Accepted values or example | When to use it |
 | --- | --- | --- |
-| `reference.fasta` | `inputs/reference/Pf3D7.fasta` | Use the exact parasite assembly underlying the reads or existing alignment. |
-| `reference.core_mask_bed` | `inputs/reference/core_genome.bed` | Supply the matching core-region BED. Check contig names and coordinates against the FASTA. |
-| `reference.release_label` | `Your actual reference release` | Record the verified release. Replace SET_REFERENCE_RELEASE before saving. |
-| `reference.gff` | `inputs/reference/Pf3D7.gff or null` | The FO004 GUI defaults to inputs/reference/, which resolves to inputs/reference/Pf3D7.gff. Use a matching GFF for explicit FO004 and to enable annotation and marker outcomes in automatic FO004. |
+| `reference.fasta` | `inputs/reference/Pf3D7.fasta` | Use the exact parasite assembly underlying the reads or existing alignment. Enter the full file path, including the filename. Relative paths start at the study workspace. |
+| `reference.core_mask_bed` | `inputs/reference/core_genome.bed` | The accessible core of the genome: the Core regions of Miles et al. 2016, as used by MalariaGEN, not a gene list. Variants are called and depth QC is measured only inside it. Check contig names and coordinates against the FASTA. Enter the full file path, including the filename. Relative paths start at the study workspace. |
+| `reference.release_label` | `PlasmoDB 68; Pf3D7 - release unknown; Custom reference - study version 1; Reference source and release unknown` | Record the exact release of your FASTA and GFF, checked against its download record or accompanying README. Use PlasmoDB 68 only if you verified that release. The template placeholder SET_REFERENCE_RELEASE must be replaced before input directories are created. |
+| `reference.gff` | `inputs/reference/Pf3D7.gff or null` | Use the GFF from the same release as the FASTA. It is needed for explicit FO004 and enables annotation and marker outcomes in automatic FO004. The folder inputs/reference/ resolves to inputs/reference/Pf3D7.gff. Enter the full file path, including the filename. Relative paths start at the study workspace. |
 | `reference.snpeff_genome_id` | `null or Pf3D7_study` | Leave unset for the pipeline default. Set a reviewed identifier for the reference-matched SnpEff database when needed. |
 
 ## Downstream analyses and caller
@@ -55,10 +55,10 @@ The editor shows project settings from `config/config.yaml`, quality settings fr
 | Setting | Accepted values or example | When to use it |
 | --- | --- | --- |
 | `analyses.selection` | `explicit or auto` | Explicit runs selected methods. Auto is for FO004 and selects design-compatible candidates subject to QC and evidence gates. |
-| `analyses.requested` | `[] or [DA001, DA003]` | Use an empty list for auto or FO001–FO003. DA001 is optional for explicit selection and runs internally when required. For explicit selection, add other installed methods as needed. DA001 COI, DA002 markers, DA003 diversity, DA004 relatedness, DA005 structure, DA006 phylogeny, DA007 spatial/temporal. |
+| `analyses.requested` | `[] or [DA001, DA003]` | Use an empty list for auto or FO001–FO003. DA001 is optional for explicit selection and runs internally when another selected analysis needs it. For explicit selection, add other installed methods as needed. DA001 COI, DA002 markers, DA003 diversity, DA004 relatedness, DA005 structure, DA006 phylogeny, DA007 spatial/temporal. |
 | `analyses.scales` | `{} or {"DA003":["POPULATION"]}` | Use {} for defaults or auto. For explicit selection specify only requested IDs and supported scales from the registry. |
 | `analyses.population_column` | `null or population` | Use the sample TSV column containing actual population assignments for group analyses. |
-| `analyses.resistance_catalog` | `null or inputs/metadata/verified_catalog.tsv` | The FO004 GUI defaults to inputs/metadata/, which resolves to inputs/metadata/verified_catalog.tsv. Use a reference-matched, independently verified catalogue for real marker outcomes. Null selects the shipped catalogue, whose draft status blocks real marker analysis. |
+| `analyses.resistance_catalog` | `null or inputs/metadata/verified_catalog.tsv` | Use a reference-matched, independently verified catalogue for real marker outcomes. Null selects the shipped catalogue, whose draft status blocks real marker analysis. The folder inputs/metadata/ resolves to inputs/metadata/verified_catalog.tsv. |
 | `analyses.spatial_outcome_source` | `null or DA002` | For explicit DA007 choose DA002 and provide valid geographic and collection-date metadata. Auto resolves the source. |
 | `caller.backend` | `native or external` | Choose native for the bundled caller. External requires a qualified executable adapter implementing the Layer 2 artifact contract. |
 | `caller.executable` | `null or /absolute/path/to/adapter` | Required only for external. Use an absolute executable path. |
@@ -83,7 +83,7 @@ The editor shows project settings from `config/config.yaml`, quality settings fr
 | `compute.max_mem_mb` | `6500` | Total scheduling memory in MiB, at least 512. Leave room for the OS. |
 | `compute.max_jobs` | `1` | Maximum concurrent jobs, at least 1. Keep 1 for a small PC. |
 | `compute.tmp_disk_mb` | `20000` | Temporary disk budget in MiB, at least 256. Allow room for actual study size. |
-| `compute.tmp_dir` | `null` | Absolute directory for temporary files of each job, such as node-local scratch on HPC. Java tools (Picard, fgbio) and Snakemake use it. Leave null to use the system temporary directory. |
+| `compute.tmp_dir` | `null, /local/scratch` | Absolute directory for temporary files of each job, such as node-local scratch on HPC. Java tools (Picard, fgbio) and Snakemake use it. Leave null to use the system temporary directory. |
 | `compute.per_job.max_threads` | `4` | At least 1 and no greater than max_cores. |
 | `compute.per_job.max_mem_mb` | `6500` | At least 256 and no greater than max_mem_mb. Raise only when your allocation can fit the requested jobs. |
 | `compute.per_job.max_runtime_min` | `720` | Positive minutes for planning and rule resource requests. Set the actual HPC wall time separately. |
