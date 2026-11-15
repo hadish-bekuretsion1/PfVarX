@@ -11,6 +11,7 @@ from __future__ import annotations
 
 import itertools
 import math
+from concurrent.futures import Executor
 from dataclasses import dataclass, field
 from typing import Any
 
@@ -100,17 +101,28 @@ def _em(y: np.ndarray, n: np.ndarray, k: int, eps: float, phi: float, rng: np.ra
     return w, new_prior, ll, converged, it
 
 
+def _em_seeded(args: tuple[np.ndarray, np.ndarray, int, float, float, int, float, int]
+               ) -> tuple[np.ndarray, np.ndarray, float, bool, int]:
+    y, n, k, eps, phi, s, tol, max_iter = args
+    return _em(y, n, k, eps, phi, np.random.default_rng(s), tol, max_iter)
+
+
 def fit(y: np.ndarray, n: np.ndarray, k: int, eps: float, phi: float, seed: int, restarts: int,
-        agreement: float, tol: float, max_iter: int, _doubled: bool = False) -> MixtureFit:
+        agreement: float, tol: float, max_iter: int, _doubled: bool = False,
+        executor: Executor | None = None) -> MixtureFit:
     """Best of *restarts* EM runs; accepted as stable when >= 2 starts agree within *agreement*.
 
     If unstable, the number of starts is doubled once; remaining instability is reported.
+    With an *executor*, the restarts (each with its own seed) run in parallel; the best fit
+    is chosen in the same order, so the result is identical.
     """
     best = None
     lls = []
     seeds = [seed + i for i in range(restarts)]
-    for s in seeds:
-        w, prior, ll, conv, it = _em(y, n, k, eps, phi, np.random.default_rng(s), tol, max_iter)
+    jobs = [(y, n, k, eps, phi, s, tol, max_iter) for s in seeds]
+    runs = list(executor.map(_em_seeded, jobs)) if executor is not None and restarts > 1 \
+        else [_em_seeded(job) for job in jobs]
+    for w, prior, ll, conv, it in runs:
         lls.append(ll)
         if best is None or ll > best[2]:
             best = (w, prior, ll, conv, it)
@@ -118,7 +130,7 @@ def fit(y: np.ndarray, n: np.ndarray, k: int, eps: float, phi: float, seed: int,
     agree = sum(1 for v in lls if best[2] - v <= agreement)
     stable = agree >= 2 or k == 1 or restarts == 1
     if not stable and not _doubled:
-        return fit(y, n, k, eps, phi, seed + 10_000, restarts * 2, agreement, tol, max_iter, True)
+        return fit(y, n, k, eps, phi, seed + 10_000, restarts * 2, agreement, tol, max_iter, True, executor)
     return MixtureFit(k, [float(v) for v in best[0]], [float(v) for v in best[1]], float(best[2]),
                       bool(best[3]), int(best[4]), agree, stable, seeds)
 
@@ -132,13 +144,27 @@ def simulate(n: np.ndarray, f: MixtureFit, eps: float, phi: float, rng: np.rando
     return rng.binomial(n.astype(int), p)
 
 
+def _replicate_lr(args: tuple[np.ndarray, np.ndarray, int, float, float, int, int, float, float, int]) -> float:
+    """Bootstrap likelihood-ratio statistic of one simulated replicate (K versus K+1)."""
+    yb, n, k, eps, phi, s, boot_restarts, agreement, tol, boot_iter = args
+    l0 = fit(yb, n, k, eps, phi, s, boot_restarts, agreement, tol, boot_iter).log_lik
+    l1 = fit(yb, n, k + 1, eps, phi, s + 7, boot_restarts, agreement, tol, boot_iter).log_lik
+    return 2 * (l1 - l0)
+
+
 def select_k(y: np.ndarray, n: np.ndarray, eps: float, phi: float, k_max: int, alpha: float,
              replicates: int, seed: int, restarts: int, agreement: float, tol: float,
-             max_iter: int, min_weight: float = 0.0) -> dict[str, Any]:
+             max_iter: int, min_weight: float = 0.0, executor: Executor | None = None,
+             batch: int = 1) -> dict[str, Any]:
     """Sequential parametric-bootstrap LRT (Equations 3.24-3.26).
 
     Smallest K whose test of K versus K+1 is not rejected at alpha. Replicate fits use
     fewer restarts (max(3, restarts//4)); both counts are recorded.
+
+    With an *executor*, replicate fits run *batch* at a time in parallel. Results are
+    identical to the serial run: replicates are simulated in the same order from the same
+    random stream, the stopping rule is applied in that order, and when it stops inside a
+    batch the stream is rewound to exactly where the serial run would have stopped.
     """
     rng = np.random.default_rng(seed)
     fits = {1: fit(y, n, 1, eps, phi, seed, 1, agreement, tol, max_iter)}
@@ -149,7 +175,8 @@ def select_k(y: np.ndarray, n: np.ndarray, eps: float, phi: float, k_max: int, a
             chosen = k
             tests.append({"k": k, "p_value": None, "note": "K_MAX reached; larger K not tested"})
             break
-        fits[k + 1] = fit(y, n, k + 1, eps, phi, seed + 100 * k, restarts, agreement, tol, max_iter)
+        fits[k + 1] = fit(y, n, k + 1, eps, phi, seed + 100 * k, restarts, agreement, tol, max_iter,
+                          executor=executor)
         lr = 2 * (fits[k + 1].log_lik - fits[k].log_lik)
         boot_restarts = max(2, restarts // 10)
         boot_iter = min(max_iter, 200)
@@ -158,17 +185,32 @@ def select_k(y: np.ndarray, n: np.ndarray, eps: float, phi: float, k_max: int, a
         h = math.ceil(alpha * (replicates + 1))
         exceed = 0
         done = 0
-        for b in range(replicates):
-            yb = simulate(n, fits[k], eps, phi, rng)
-            s = seed + 1_000_000 + 1000 * k + b
-            l0 = fit(yb, n, k, eps, phi, s, boot_restarts, agreement, tol, boot_iter).log_lik
-            l1 = fit(yb, n, k + 1, eps, phi, s + 7, boot_restarts, agreement, tol, boot_iter).log_lik
-            exceed += int(2 * (l1 - l0) >= lr)
-            done += 1
-            if exceed >= h:
-                break
+        step = max(1, batch) if executor is not None else 1
+        stopped = False
+        b = 0
+        while b < replicates and not stopped:
+            jobs, states = [], []
+            for j in range(b, min(b + step, replicates)):
+                yb = simulate(n, fits[k], eps, phi, rng)
+                states.append(rng.bit_generator.state)  # stream position after replicate j
+                jobs.append((yb, n, k, eps, phi, seed + 1_000_000 + 1000 * k + j, boot_restarts, agreement,
+                             tol, boot_iter))
+            stats = list(executor.map(_replicate_lr, jobs)) if executor is not None and len(jobs) > 1 \
+                else [_replicate_lr(job) for job in jobs]
+            for offset, value in enumerate(stats):
+                exceed += int(value >= lr)
+                done += 1
+                if exceed >= h:
+                    rng.bit_generator.state = states[offset]  # as if the serial loop stopped here
+                    stopped = True
+                    break
+            b += len(jobs)
         sequential_stop = done < replicates
         p = (1 + exceed) / (replicates + 1) if not sequential_stop else max(alpha, (1 + exceed) / (done + 1))
+        import sys
+        import time
+        print(f"[pfvarx-call mixture] K={k} vs {k + 1}: {done} replicate(s), p={p:.3g} ({time.strftime('%H:%M:%S')})",
+              file=sys.stderr, flush=True)
         tests.append({"k": k, "lr": lr, "p_value": p, "replicates_planned": replicates,
                       "replicates_run": done, "sequential_stop": sequential_stop,
                       "replicate_restarts": boot_restarts, "replicate_max_iter": boot_iter})

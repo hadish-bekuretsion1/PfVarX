@@ -66,3 +66,23 @@ def test_linkage_handles_missing_sequence(reads: Path, params: Params) -> None:
         linkage_blocks(bam, candidates, params)
     assert candidates[0].lhid == candidates[1].lhid
     assert candidates[0].lhid != "."
+
+
+def test_parallel_rescoring_keeps_deletions_sharing_an_anchor_apart() -> None:
+    """TTA>T and TTATA>T share chrom, pos, kind and ALT; matching back by allele content
+    once made one replace the other (found on a real sample, Pf3D7_09_v3:742334)."""
+    import dataclasses
+
+    from pfvarx.caller import call
+
+    a = Candidate("chr9", 742333, "TTA", "T", "DEL", 2, 4)
+    b = Candidate("chr9", 742333, "TTATA", "T", "DEL", 2, 4)
+    other = Candidate("chr1", 10, "A", "AT", "INS", 3, 9)
+
+    class Pool:  # stands in for the process pool: "rescores" each candidate by tagging its ref
+        def map(self, fn, jobs):
+            return [[dataclasses.replace(c, lhid="rescored:" + c.ref) for c in cands] for _, _, cands in jobs]
+
+    out = call.rescore_parallel(Pool(), {"chr9": "", "chr1": ""}, [a, other, b])  # type: ignore[arg-type]
+    assert [c.ref for c in out] == ["TTA", "A", "TTATA"]
+    assert [c.lhid for c in out] == ["rescored:TTA", "rescored:A", "rescored:TTATA"]

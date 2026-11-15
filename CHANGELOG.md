@@ -5,6 +5,21 @@
 The release version was reset to 0.0.0 after 0.4.2, as the baseline for the first reviewed
 release. The sections below 0.0.0 are the earlier development numbering, kept as history.
 
+### Faster caller with identical results
+
+- Profiling a real 29× sample showed the mixture bootstrap (58%), read evidence (22%), indel
+  rescoring (10%) and error-model fit dominated a 66-minute caller run. PfVarX-Call now runs
+  read evidence in 250 kb pieces, indel rescoring per contig, and bootstrap replicates and EM
+  restarts in worker processes (`--threads`, set from the rule's threads), and evaluates the
+  error-model likelihood once per distinct (errors, depth) pair. The same sample takes 9.7
+  minutes with 24 workers, and its evidence table, BED files, caller QC and VCF are
+  byte-identical to the serial run. Bootstrap randomness is drawn in the original order, and
+  the stream is rewound where the serial stopping rule would stop.
+- The caller log reports the time of each stage.
+- Fixed while testing: parallel indel rescoring matched candidates back by allele, so two
+  deletions sharing an anchor base (TTA>T and TTATA>T) collided; candidates are now matched by
+  index, with a regression test.
+
 ### Shipped resistance catalogue repaired
 
 - `config/registry/resistance_catalog_pfvarx_v1.tsv` had 12 fields per marker row under an

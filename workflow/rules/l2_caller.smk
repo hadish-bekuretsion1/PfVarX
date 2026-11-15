@@ -15,9 +15,11 @@ rule pfvarx_call:
         core=CORE,
         frozen=FROZEN,
         unreliable=str(ROOT / "config" / "registry" / "context_unreliable.bed"),
-    threads: 1
+    # Chromosomes, indel rescoring and bootstrap replicates run in parallel; results do not
+    # depend on the thread count.
+    threads: threads(24)
     resources:
-        mem_mb=mem(2000),
+        mem_mb=mem(4000),
         runtime=RUNTIME,
     retries: COMPUTE["max_retries"]
     log:
@@ -28,7 +30,7 @@ rule pfvarx_call:
         "python -m pfvarx.caller_adapter --bam {input.bam:q} --reference {params.ref:q} --core-mask {params.core:q} "
         "--frozen-config {params.frozen:q} --sample {wildcards.sample} --context-unreliable {params.unreliable:q} "
         "--out-vcf {output.vcf:q} --out-evidence {output.evidence:q} --out-callable {output.callable:q} "
-        "--out-focal {output.focal:q} --out-qc {output.qc:q} > {log:q} 2>&1"
+        "--out-focal {output.focal:q} --out-qc {output.qc:q} --threads {threads} > {log:q} 2>&1"
 
 
 rule normalise_sample:

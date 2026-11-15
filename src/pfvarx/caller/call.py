@@ -23,7 +23,9 @@ import json
 import math
 import os
 import sys
+import time
 from collections import defaultdict
+from concurrent.futures import ProcessPoolExecutor
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
@@ -506,6 +508,62 @@ def write_vcf(path: Path, sample: str, cands: list[Candidate], fasta: pysam.Fast
     path.write_text("\n".join(lines) + "\n")
 
 
+_WORKER: dict[str, Any] = {}
+_T0 = [0.0]
+
+
+def _progress(message: str) -> None:
+    """Stage progress on stderr (the job log); never written to the result files."""
+    print(f"[pfvarx-call {time.monotonic() - _T0[0]:8.1f} s] {message}", file=sys.stderr, flush=True)
+
+
+def _init_worker(bam_path: str, ref_path: str, p: Params) -> None:
+    _WORKER.update(bam=pysam.AlignmentFile(bam_path), fasta=pysam.FastaFile(ref_path), p=p)
+
+
+EXTRACT_CHUNK_BP = 250_000  # work unit for parallel evidence collection; results do not depend on it
+
+
+def _extract_task(job: tuple[str, int, int]) -> tuple[str, int, int, dict[str, Any]]:
+    """Evidence for one core interval piece: each position's evidence depends only on the
+    reads covering it, so pieces can be collected independently and joined exactly."""
+    chrom, start, end = job
+    ev, _ = extract(_WORKER["bam"], _WORKER["fasta"], chrom, [(start, end)], _WORKER["p"])
+    part = {"n": ev.n[start:end].copy(), "nonref": ev.nonref[start:end].copy(), "indel": ev.indel[start:end].copy(),
+            "alleles": {pos: a for pos, a in ev.alleles.items() if a},
+            "refstrand": dict(ev.refstrand)}
+    return chrom, start, end, part
+
+
+def _pieces(intervals: list[tuple[int, int]]) -> list[tuple[int, int]]:
+    out = []
+    for start, end in intervals:
+        for s in range(start, end, EXTRACT_CHUNK_BP):
+            out.append((s, min(end, s + EXTRACT_CHUNK_BP)))
+    return out
+
+
+def _rescore_task(job: tuple[str, str, list[Candidate]]) -> list[Candidate]:
+    chrom, seq, cands = job
+    rescore_indels(_WORKER["bam"], {chrom: seq}, cands, _WORKER["p"])
+    return cands
+
+
+def rescore_parallel(pool: ProcessPoolExecutor, seqs: dict[str, str], cands: list[Candidate]) -> list[Candidate]:
+    """Indel rescoring by contig in worker processes. Candidates are matched back by their
+    index in *cands*, never by allele content: two deletions sharing an anchor base (TTA>T
+    and TTATA>T) have the same ALT and would otherwise collide."""
+    groups: dict[str, list[int]] = defaultdict(list)
+    for i, c in enumerate(cands):
+        groups[c.chrom].append(i)
+    out = list(cands)
+    jobs = [(contig, seqs[contig], [cands[i] for i in idx]) for contig, idx in groups.items()]
+    for (contig, _, _), rescored in zip(jobs, pool.map(_rescore_task, jobs), strict=True):
+        for i, c in zip(groups[contig], rescored, strict=True):
+            out[i] = c
+    return out
+
+
 def run(args: argparse.Namespace) -> dict[str, Any]:
     # Fault injection for failure-isolation tests only (documented in docs/testing.md).
     if os.environ.get("PFVARX_FAULT_INJECT") == f"pfvarx_call:{args.sample}":
@@ -521,10 +579,34 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
     md5 = {k: v["md5"] for k, v in fasta_contigs(Path(args.reference)).items()}
     evs: dict[str, Evidence] = {}
     seqs: dict[str, str] = {}
-    for chrom in fasta.references:
-        if chrom not in core:
-            continue
-        evs[chrom], seqs[chrom] = extract(bam, fasta, chrom, core[chrom], p)
+    threads = max(1, int(getattr(args, "threads", 1) or 1))
+    _T0[0] = time.monotonic()
+    _progress(f"sample {args.sample}: {threads} worker(s)")
+    chroms = [c for c in fasta.references if c in core]
+    # Chromosomes, indel candidates and bootstrap replicates are independent: with several
+    # threads they run in worker processes, with results identical to the serial run.
+    pool = ProcessPoolExecutor(threads, initializer=_init_worker, initargs=(args.bam, args.reference, p)) \
+        if threads > 1 else None
+    if pool is not None:
+        for contig in chroms:
+            seqs[contig] = fasta.fetch(contig).upper()
+            evs[contig] = Evidence(len(seqs[contig]))
+        jobs = [(contig, s, e) for contig in chroms for s, e in _pieces(core[contig])]
+        parts: dict[tuple[str, int], dict[str, Any]] = {}
+        for chrom, start, end, part in pool.map(_extract_task, jobs, chunksize=1):
+            ev = evs[chrom]
+            ev.n[start:end], ev.nonref[start:end], ev.indel[start:end] = part["n"], part["nonref"], part["indel"]
+            ev.in_core[start:end] = True
+            parts[(chrom, start)] = part
+        for chrom, start, _ in jobs:  # same insertion order as a serial pass over the intervals
+            part = parts[(chrom, start)]
+            for pos, alleles in sorted(part["alleles"].items()):
+                evs[chrom].alleles[pos] = alleles
+                evs[chrom].refstrand[pos] = part["refstrand"][pos]
+    else:
+        for chrom in chroms:
+            evs[chrom], seqs[chrom] = extract(bam, fasta, chrom, core[chrom], p)
+    _progress(f"read evidence collected for {len(evs)} contig(s)")
     model = fit_error_model(evs, seqs, p)
     cands = screen(evs, seqs, model, p)
     # one re-estimation after removing screened candidate positions (field samples)
@@ -532,7 +614,12 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
     model = fit_error_model(evs, seqs, p, exclude=excl)
     model["iterations"] = 2
     cands = screen(evs, seqs, model, p)
-    rescore_indels(bam, seqs, cands, p)
+    _progress(f"error model fitted twice; {len(cands)} candidates screened")
+    if pool is not None:
+        cands = rescore_parallel(pool, seqs, cands)
+    else:
+        rescore_indels(bam, seqs, cands, p)
+    _progress("indel candidates rescored with the pair-HMM")
     depth_all = np.concatenate([ev.n[ev.in_core] for ev in evs.values()]) if evs else np.array([0])
     median = float(np.median(depth_all)) if depth_all.size else 0.0
     focal = focal_losses(evs, p.min_depth, median, p.focal_min_length_bp)
@@ -552,12 +639,13 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         if not thinned or thinned[-1].chrom != c.chrom or c.pos - thinned[-1].pos >= 500:
             thinned.append(c)
     mix: dict[str, Any]
+    _progress(f"decisions and linkage done; mixture model on {len(thinned)} sites")
     if len(thinned) >= p.min_mix_sites:
         y = np.array([c.y for c in thinned])
         n = np.array([c.n for c in thinned])
         mix = mixture.select_k(y, n, model["snv_any"]["mu"] / 3.0, model["snv_any"]["phi"],
                                p.k_max, p.alpha, p.replicates, p.seed, p.restarts, p.agreement,
-                               p.em_tol, p.em_iter, p.min_weight)
+                               p.em_tol, p.em_iter, p.min_weight, executor=pool, batch=threads)
         mix["status"] = "ESTIMATED"
         mix["informative_sites"] = len(thinned)
         mix["bootstrap_basis"] = (f"{p.replicates} replicates (UNCALIBRATED_PROVISIONAL; "
@@ -565,6 +653,9 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
     else:
         mix = {"status": "INSUFFICIENT_INFORMATIVE_SITES", "informative_sites": len(thinned),
                "required": p.min_mix_sites, "label": "technical mixture components; NOT biological COI"}
+    _progress("mixture model selected")
+    if pool is not None:
+        pool.shutdown()
     calibration = "UNCALIBRATED"
     out_vcf = Path(args.out_vcf)
     write_vcf(out_vcf, args.sample, cands, fasta, md5, model, calibration)
@@ -605,6 +696,7 @@ def main(argv: list[str] | None = None) -> None:
     ap.add_argument("--out-callable", required=True)
     ap.add_argument("--out-focal", required=True)
     ap.add_argument("--out-qc", required=True)
+    ap.add_argument("--threads", type=int, default=1, help="worker processes; results do not depend on it")
     run(ap.parse_args(argv))
 
 

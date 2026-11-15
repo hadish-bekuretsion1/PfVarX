@@ -35,6 +35,25 @@ def betabinom_logpmf(y: np.ndarray, n: np.ndarray, mu: np.ndarray | float, phi: 
             + special.betaln(y + a, n - y + b) - special.betaln(a, b))
 
 
+def _sum_logpmf(y: np.ndarray, n: np.ndarray, mu: float, phi: float,
+                index: tuple[np.ndarray, np.ndarray, np.ndarray] | None = None) -> float:
+    """Sum of beta-binomial log-probabilities over sites.
+
+    With *index* (unique y, unique n, inverse map from ``np.unique``), the log-probability is
+    computed once per distinct (y, n) pair and expanded back to every site in the original
+    order before summing: the same numbers are summed in the same order, so the result is
+    identical to the direct computation, at the cost of only the distinct pairs."""
+    if index is None:
+        return float(np.sum(betabinom_logpmf(y, n, mu, phi)))
+    uy, un, inverse = index
+    return float(np.sum(betabinom_logpmf(uy, un, mu, phi)[inverse]))
+
+
+def _unique_pairs(y: np.ndarray, n: np.ndarray) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
+    pairs, inverse = np.unique(np.stack([y, n], axis=1), axis=0, return_inverse=True)
+    return pairs[:, 0], pairs[:, 1], inverse.reshape(-1)
+
+
 def betabinom_sf_log10(y: int, n: int, mu: float, phi: float) -> float:
     """-log10 P(Y >= y | n, mu, phi) (Equation 3.10). Exact summation of the upper tail."""
     if y <= 0:
@@ -71,12 +90,13 @@ def fit_betabinom(y: np.ndarray, n: np.ndarray, trim_fraction: float,
         order = nz[np.argsort(-(y[nz] / n[nz]), kind="stable")]
         sel[order[:drop]] = False
     y, n = y[sel], n[sel]
+    index = _unique_pairs(y, n)
 
     if len(nz) - drop < min_nonzero_for_phi:
         # Too few error events to identify overdispersion: shrink phi fully to the mode
         # default and estimate mu only (proposal: shrinkage toward phi(m)).
         res1 = optimize.minimize_scalar(
-            lambda t: -float(np.sum(betabinom_logpmf(y, n, special.expit(t), init_phi))),
+            lambda t: -_sum_logpmf(y, n, special.expit(t), init_phi, index),
             bounds=(-18.0, 0.0), method="bounded")
         return {"mu": float(special.expit(res1.x)), "phi": float(init_phi), "n_sites": int(len(y)),
                 "fitted": True, "trimmed": int(drop), "phi_source": "MODE_DEFAULT_SHRINKAGE",
@@ -85,7 +105,7 @@ def fit_betabinom(y: np.ndarray, n: np.ndarray, trim_fraction: float,
     def nll(theta: np.ndarray) -> float:
         mu = special.expit(theta[0])
         phi = math.exp(theta[1])
-        return -float(np.sum(betabinom_logpmf(y, n, mu, phi)))
+        return -_sum_logpmf(y, n, mu, phi, index)
 
     start = np.array([special.logit(max(min(init_mu, 0.5), 1e-6)),
                       math.log(min(max(init_phi, phi_bounds[0]), phi_bounds[1]))])

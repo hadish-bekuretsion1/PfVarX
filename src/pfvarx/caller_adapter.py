@@ -110,6 +110,8 @@ def main() -> None:
         parser.add_argument("--" + name, required=True)
     for name in OUTPUTS:
         parser.add_argument("--out-" + name, required=True, type=Path)
+    # Worker processes for the native caller only; the external contract is unchanged.
+    parser.add_argument("--threads", type=int, default=1)
     args = parser.parse_args()
     config = CallerConfig.model_validate(read_json(Path(args.frozen_config))["config"].get("caller", {}))
     check_backend(config)
