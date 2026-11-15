@@ -2,6 +2,7 @@ version: "1.0.0"
 parameters:
   da001_credibility: {value: 0.95, source: UNCALIBRATED_PROVISIONAL, note: "candidate {0.90,0.95}"}
   da001_min_informative_loci: {value: 10, source: UNCALIBRATED_PROVISIONAL}
+  population_frequency_min_samples: {value: 10, source: UNCALIBRATED_PROVISIONAL, note: "FWS and the MOIRE COI count use allele frequencies estimated from the analysed samples; each sample is 1/n of its own reference frequency (n=1 gives FWS 0 exactly), so both are withheld below this many samples. P(COI>1) and the clonality call are kept"}
   da001_fws_reference_cutoff: {value: 0.95, source: LITERATURE_SUPPORTED, note: "Fws >= 0.95 as the conventional proxy for a clonal infection (Manske 2012; Auburn 2012; MalariaGEN Pf7 2023, Pf8 2025); reported for comparison only"}
   da006_min_monoclonal: {value: 4, source: FRAMEWORK_POLICY, note: "mathematical floor for an informative unrooted topology"}
   da006_min_informative_sites: {value: 10, source: UNCALIBRATED_PROVISIONAL}

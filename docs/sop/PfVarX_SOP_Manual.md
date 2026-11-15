@@ -406,7 +406,7 @@ All affected validator tests pass and the supported route matrix is updated if a
 
 ### 1. Procedure identification
 
-**Module:** workflow/rules/l1_fastq_qc.smk and layer1.yaml. **Workflow:** development.
+**Module:** workflow/rules/l1_fastq_qc.smk, the fastp options in `fastp_args` (workflow/rules/common.smk) and layer1.yaml. **Workflow:** development.
 
 **Purpose and scope:** Maintain fastp behavior without erasing AT-rich sequence or inline UMIs.
 
@@ -420,7 +420,7 @@ D02; original paired reads represented by synthetic branch fixtures; existing fa
 
 ```bash
 cd "$DEV"
-cat workflow/rules/l1_fastq_qc.smk
+cat workflow/rules/l1_fastq_qc.smk workflow/rules/common.smk
 cat config/parameters/layer1.yaml
 ```
 
@@ -853,7 +853,7 @@ All requested methods have truthful terminal manifests and reproducible outputs 
 
 ### 1. Procedure identification
 
-**Module:** workflow/Snakefile, workflow/rules/, execution/runner.py. **Workflow:** development.
+**Module:** workflow/Snakefile, workflow/rules/ (rules; helper functions in common.smk), execution/runner.py. **Workflow:** development.
 
 **Purpose and scope:** Modify scheduling without bypassing Layer 0 plans, QC checkpoints or failure isolation.
 
@@ -3294,7 +3294,7 @@ values, not universal recommendations or evidence of scientific validity.
 | `layer1.yaml` | low-complexity filter false because indiscriminate filtering can bias AT-rich sequence; UMI branch preserves tag extraction order |
 | `layer2.yaml` | min MAPQ 20, base quality 13, usable depth 5 (MalariaGEN Pf7/Pf8); candidates need 2 reads; pair-HMM caps 200 reads with 60 bp flanks; these remain source-class-labelled |
 | `layer2.yaml` | screening -log10 threshold 6, PASS minimum fragments 2 and minimum score 10; not a calibrated detection guarantee; the mixture model skips SNVs within 10 bp of a called indel |
-| `layer5.yaml` | DA001 minimum informative loci 10, MOIRE burn-in 10000 and 1000 samples, loci thinned to 500 bp; DA004 minimum markers 200 for WGS and 20 for targeted panels (pairs below 200 are low precision, unlabelled); Dcifer level 0.05 |
+| `layer5.yaml` | DA001 minimum informative loci 10, MOIRE only with at least 10 informative samples (fewer: caller mixture test, no COI count or Fws), burn-in 10000 and 1000 samples, loci thinned to 500 bp; DA004 minimum markers 200 for WGS and 20 for targeted panels (pairs below 200 are low precision, unlabelled); Dcifer level 0.05 |
 | `layer5.yaml` | DA006 minimum monoclonal samples 4 and informative sites 10; sample/site missingness ceilings 0.2; UFBoot/SH-aLRT 1000 each |
 | `layer5.yaml` | DA003/DA005 population minimum 3; DA003 bootstrap 200; DA002 minimum callable/group 3, reporting floor 0.05 and MIXED below 0.95; DA007 GAM after 10 samples; provisional settings require scientific review |
 | `layer6.yaml` | detailed variant embedding cap 200000; full totals remain distinguished from embedded details |

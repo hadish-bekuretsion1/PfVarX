@@ -147,11 +147,14 @@ A missing record is never counted as a reference call.
 | DA001 COI | Minimum informative loci | 10; below: indeterminate | Provisional. |
 | DA001 COI | MOIRE burn-in / samples per chain | 10 000 / 1 000 | MOIRE defaults (Murphy and Greenhouse 2024). |
 | DA001 COI | Fws comparison line | Fws ≥ 0.95 read as clonal | Manske 2012; Auburn 2012; MalariaGEN Pf7 and Pf8. Descriptive only. |
+| DA001 / DA003 | Samples needed for MOIRE and Fws | ≥ 10 samples with enough informative loci (`population_frequency_min_samples`). Fewer: MOIRE is not run; the monoclonal/polyclonal call comes from the caller's per-sample mixture test (`basis` = `CALLER_MIXTURE_LRT`); COI count and Fws are left blank | Provisional. MOIRE estimates allele frequencies and COI jointly: on a 9-sample synthetic cohort, P(COI > 1) of truly single-clone samples ranged from 0.00 to 1.00 across five random seeds (mixtures stayed at 1.00). Fws uses frequencies in which each sample is 1/n of its own reference (one sample: Fws 0 by construction). |
+| DA004 relatedness | COI given to Dcifer | DA001's MOIRE count; monoclonal samples 1; otherwise Dcifer's naive estimate (`getCOI`, `lrank = 2`) | Gerlovina 2022. |
 | DA002 resistance | Marker callable | ≥ 5 reads spanning the codon; fewer: `UNKNOWN` | MalariaGEN Pf7. |
 | DA002 resistance | `MUTANT` | mutant fraction ≥ 95% | MalariaGEN Pf7. |
 | DA002 resistance | `MIXED` | 5% to 95% | MalariaGEN Pf7. |
 | DA002 resistance | `BELOW_REPORTING_FLOOR` | mutant reads present but under 5% | MalariaGEN Pf7. |
 | DA002 resistance | `who_k13_alert` in `prevalence.tsv` | validated PfKelch13 marker in more than 5% of callable infections | WHO (see below). |
+| DA002 resistance | Callable infections needed for the K13 flag | ≥ 3 per group; fewer: `INSUFFICIENT_CALLABLE` (`da002_min_callable_per_group`) | Provisional. One mutant in one or two samples would otherwise raise the WHO flag. |
 | DA003 diversity | Minimum group size | 3 | Provisional. |
 | DA004 relatedness (WGS) | Markers needed for an estimate | ≥ 200 biallelic; fewer: `EXCLUDED_FEW_MARKERS` | Taylor 2019 (about 200 biallelic markers keep the error below 0.1). |
 | DA004 relatedness (targeted) | Markers needed for an estimate | ≥ 20; 20–199: `ESTIMATED_LOW_PRECISION`, reported without a label; fewer: `EXCLUDED_FEW_MARKERS` | Provisional. No published minimum exists for SNPs that are few and linked within amplicons; the 200-marker precision level is Taylor 2019. |

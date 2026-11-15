@@ -2,13 +2,6 @@
 # and existing-alignment entry.
 
 
-def rg(wc):
-    s = SAMPLES[wc.sample]
-    ln = next(x for x in s["lanes"] if x["lane"] == wc.lane)
-    return (f"@RG\\tID:{wc.sample}.{wc.lane}\\tSM:{wc.sample}\\tLB:{ln['library_id']}"
-            f"\\tPL:{CFG['assay']['platform']}\\tPU:{wc.sample}.{wc.lane}")
-
-
 rule bwa_mem2_lane:
     input:
         r1=str(R / "work" / "trimmed" / "{sample}.{lane}.R1.fastq.gz"),

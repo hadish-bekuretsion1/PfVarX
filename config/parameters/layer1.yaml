@@ -11,7 +11,6 @@ parameters:
   fastp_low_complexity_filter: {value: false, source: FRAMEWORK_POLICY, note: "would bias against AT-rich reads"}
   fastp_dedup: {value: false, source: FRAMEWORK_POLICY}
   bwa_mem2_fixed_batch_K: {value: 100000000, source: FRAMEWORK_POLICY, note: "thread-count-independent output"}
-  bwa_mem2_scoring: {value: "A1 B4 O6 E1 L5 U17 T30", source: SOFTWARE_DEFAULT, note: "bwa-mem2 defaults; recorded, not passed"}
   picard_optical_pixel_distance_unpatterned: {value: 100, source: SOFTWARE_DEFAULT}
   picard_optical_pixel_distance_patterned: {value: 2500, source: SOFTWARE_DEFAULT, note: "Picard documentation for patterned flow cells"}
   mosdepth_exclude_flag: {value: 1796, source: SOFTWARE_DEFAULT}

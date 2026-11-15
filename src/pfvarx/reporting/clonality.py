@@ -4,9 +4,10 @@ clone's share of the parasite DNA.
 Sources, per sample:
   * the PfVarX-Call mixture model (``qc/samples/S/S.caller_qc.json``): the number of DNA
     components it selects and their weights. This gives the count and the percentages.
-  * DA001 (``downstream/DA001/clonality.tsv``), when it ran: the MOIRE monoclonal/polyclonal
-    call. Its COI count is not used for one sample or small cohorts, where MOIRE cannot
-    estimate population allele frequencies.
+  * DA001 (``downstream/DA001/clonality.tsv``), when MOIRE ran (cohorts of at least
+    ``population_frequency_min_samples``): the MOIRE monoclonal/polyclonal call. In smaller
+    cohorts MOIRE is not run, and DA001's call comes from the same mixture test, so it is
+    not counted again. The MOIRE COI count is never used here.
 
 Written to ``results/report/clonality_report.txt`` (one readable line per sample) and
 ``clonality_report.tsv``, and shown in the dashboard overview.
@@ -34,7 +35,10 @@ def _da001(results: Path) -> dict[str, str]:
     path = results / "downstream" / "DA001" / "clonality.tsv"
     if not path.is_file():
         return {}
-    return {row["sample_id"]: row.get("clonality", "") for row in read_tsv(path)}
+    # A call DA001 took from the caller's mixture test (small cohorts) is the same evidence
+    # as the mixture model used here, so only MOIRE calls count as DA001's own.
+    return {row["sample_id"]: row.get("clonality", "") for row in read_tsv(path)
+            if row.get("basis", "MOIRE") in ("MOIRE", "")}
 
 
 def _components(mix: dict[str, Any]) -> tuple[int, list[float], bool, float]:
@@ -112,6 +116,6 @@ def write_report(results: Path, samples: list[str], run_id: str) -> list[dict[st
     lines += [sentence(r) for r in rows] or ["No samples reached variant calling."]
     lines += ["", "Clone percentages are shares of the parasite DNA estimated by the PfVarX-Call mixture model",
               "(uncalibrated until the caller is benchmarked). They approximate, but are not exactly, the share",
-              "of parasites. A single sample cannot support a MOIRE clone count, so DA001's count is not used."]
+              "of parasites. MOIRE (DA001) is used only in cohorts large enough to estimate allele frequencies; its clone count is not used here."]
     (out / "clonality_report.txt").write_text("\n".join(lines) + "\n")
     return rows

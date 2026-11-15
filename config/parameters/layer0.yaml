@@ -1,7 +1,5 @@
 # Layer 0 parameters (maintainer-owned). Every value records its source class.
 version: "1.0.0"
 parameters:
-  quality_encoding_offset: {value: 33, source: SOFTWARE_DEFAULT, note: "Phred+33 (Sanger/Illumina 1.8+)"}
   fastq_records_checked_for_encoding: {value: 10000, source: FRAMEWORK_POLICY, note: "records sampled for the quality-range check; whole-file mate/count checks are exhaustive"}
   indel_length_bound_bp: {value: 50, source: DECLARED_SCOPE, note: "SNPs and indels <=50 bp are in scope"}
-  bootstrap_seed: {value: 20261106, source: FRAMEWORK_POLICY}

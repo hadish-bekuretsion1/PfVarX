@@ -473,14 +473,14 @@ pixi run pytest -q tests/unit/test_inputs.py tests/unit/test_read_evidence.py
 <p>All affected validator tests pass and the supported route matrix is updated if a real new entry implementation is added.</p>
 <h2 id="d05-develop-fastq-preprocessing-and-qc">D05 — Develop FASTQ preprocessing and QC</h2>
 <h3>1. Procedure identification</h3>
-<p><strong>Module:</strong> workflow/rules/l1_fastq_qc.smk and layer1.yaml. <strong>Workflow:</strong> development.</p>
+<p><strong>Module:</strong> workflow/rules/l1_fastq_qc.smk, the fastp options in <code>fastp_args</code> (workflow/rules/common.smk) and layer1.yaml. <strong>Workflow:</strong> development.</p>
 <p><strong>Purpose and scope:</strong> Maintain fastp behavior without erasing AT-rich sequence or inline UMIs.</p>
 <h3>2. Prerequisites and requirements</h3>
 <p>D02; original paired reads represented by synthetic branch fixtures; existing fastp rule and layer1 parameter registry.</p>
 <h3>3. Detailed operational procedure</h3>
 <p><strong>Step 1. Inspect branch-specific options</strong></p>
 <pre><code class="language-bash">cd &quot;$DEV&quot;
-cat workflow/rules/l1_fastq_qc.smk
+cat workflow/rules/l1_fastq_qc.smk workflow/rules/common.smk
 cat config/parameters/layer1.yaml
 </code></pre>
 <p><strong>Step 2. Edit only the owning rule/parameter and exercise assay branches</strong></p>
@@ -711,7 +711,7 @@ head results/downstream/DA005/fst.tsv
 <p>All requested methods have truthful terminal manifests and reproducible outputs or justified skip/block states.</p>
 <h2 id="d13-integrate-and-execute-snakemake-changes">D13 — Integrate and execute Snakemake changes</h2>
 <h3>1. Procedure identification</h3>
-<p><strong>Module:</strong> workflow/Snakefile, workflow/rules/, execution/runner.py. <strong>Workflow:</strong> development.</p>
+<p><strong>Module:</strong> workflow/Snakefile, workflow/rules/ (rules; helper functions in common.smk), execution/runner.py. <strong>Workflow:</strong> development.</p>
 <p><strong>Purpose and scope:</strong> Modify scheduling without bypassing Layer 0 plans, QC checkpoints or failure isolation.</p>
 <h3>2. Prerequisites and requirements</h3>
 <p>D02/D03 and affected component SOPs; Linux local executor; review per-job/global memory, disk and thread envelopes.</p>
@@ -2178,7 +2178,7 @@ values, not universal recommendations or evidence of scientific validity.</p>
 </tr>
 <tr>
 <td><code>layer5.yaml</code></td>
-<td>DA001 minimum informative loci 10, MOIRE burn-in 10000 and 1000 samples, loci thinned to 500 bp; DA004 minimum markers 200 for WGS and 20 for targeted panels (pairs below 200 are low precision, unlabelled); Dcifer level 0.05</td>
+<td>DA001 minimum informative loci 10, MOIRE only with at least 10 informative samples (fewer: caller mixture test, no COI count or Fws), burn-in 10000 and 1000 samples, loci thinned to 500 bp; DA004 minimum markers 200 for WGS and 20 for targeted panels (pairs below 200 are low precision, unlabelled); Dcifer level 0.05</td>
 </tr>
 <tr>
 <td><code>layer5.yaml</code></td>

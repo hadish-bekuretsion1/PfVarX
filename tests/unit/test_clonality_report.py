@@ -49,3 +49,15 @@ def test_report_files(tmp_path: Path) -> None:
     assert "Sample S1 is monoclonal" in text
     assert "Sample S2 is polyclonal with 2 clones: Clone 1: 89.9%, Clone 2: 10.1%" in text
     assert (results / "report/clonality_report.tsv").read_text().startswith("sample_id\tclonality\tnumber_of_clones")
+
+
+def test_da001_calls_from_the_caller_mixture_are_not_counted_twice(tmp_path) -> None:
+    from pfvarx.reporting.clonality import _da001
+
+    d = tmp_path / "downstream" / "DA001"
+    d.mkdir(parents=True)
+    (d / "clonality.tsv").write_text("sample_id\tclonality\tbasis\nA\tPOLYCLONAL\tMOIRE\n"
+                                     "B\tPOLYCLONAL\tCALLER_MIXTURE_LRT\n")
+    assert _da001(tmp_path) == {"A": "POLYCLONAL"}
+    (d / "clonality.tsv").write_text("sample_id\tclonality\nC\tMONOCLONAL\n")  # runs before the basis column
+    assert _da001(tmp_path) == {"C": "MONOCLONAL"}

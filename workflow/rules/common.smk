@@ -1,0 +1,182 @@
+# Helper functions for the PfVarX workflow, kept apart from the rules (Snakemake's
+# modularisation guideline). Included by the Snakefile before any rule file; the functions
+# read the globals defined there (R, P, CFG, PLAN, SAMPLES, LAYERS, COMPUTE, ...) and are
+# called when rules are defined or when the DAG is built.
+
+# Layer 5 locations and analysis lists, used by the eligibility and target functions.
+REQUESTED = PLAN.get("analyses_requested", [])
+INTERNAL = PLAN.get("analyses_internal", [])
+DOWN = R / "downstream"
+ELIG = R / "eligibility"
+
+
+# --- Resources and the per-sample QC gates ---
+
+
+def mem(base):
+    """Attempt-scaled memory within the per-job ceiling (retries only on memory-scalable rules)."""
+    cap = COMPUTE["per_job"]["max_mem_mb"]
+    factor = COMPUTE["retry_memory_factor"]
+    return lambda wc, attempt: int(min(base * factor ** (attempt - 1), cap))
+
+
+def threads(n):
+    return min(n, COMPUTE["per_job"]["max_threads"])
+
+
+def gate(sample):
+    """Layer 1 -> 2 gate decision for one sample (forces the per-sample checkpoint)."""
+    out = checkpoints.l1_gate.get(sample=sample).output[0]
+    return json.loads(Path(out).read_text())
+
+
+def passing(stage):
+    """Samples allowed into *stage* after their own QC gate (failure isolation)."""
+    out = []
+    for s in sorted(SAMPLES):
+        if s in EXCLUDED:
+            continue
+        g = gate(s)
+        if g["permitted"].get(stage, False):
+            out.append(s)
+    return out
+
+
+def final_targets(wildcards):
+    targets = []
+    if 1 in LAYERS and PLAN["input_type"] == "FASTQ":
+        targets += [str(R / "alignments" / f"{s}.bam") for s in passing("L1_OUTPUT")]
+    if 2 in LAYERS:
+        targets += [str(R / "variants" / "samples" / f"{s}.vcf.gz") for s in passing("L2")]
+    if 3 not in LAYERS:
+        return targets
+    # The cohort status is always written. When no sample is permitted into Layer 3 (every
+    # sample failed QC or input validation), the cohort, annotation and analyses are skipped
+    # with an explicit outcome instead of running the merge on an empty file list.
+    targets.append(str(R / "cohort" / "cohort_status.json"))
+    if not passing("L3"):
+        return targets
+    targets += [str(R / "cohort" / "cohort.vcf.gz"), str(R / "cohort" / "missingness.tsv")]
+    if 4 in LAYERS:
+        targets += [str(R / "annotation" / "cohort.ann.vcf.gz"), str(R / "annotation" / "annotation_qc.json")]
+    if 5 in LAYERS:
+        targets += da_targets()
+    return targets
+
+
+# --- Layer 1: FASTQ QC (l1_fastq_qc.smk) ---
+
+
+def lane(wc):
+    return next(x for x in SAMPLES[wc.sample]["lanes"] if x["lane"] == wc.lane)
+
+
+def fastp_args():
+    a = []
+    if P["layer1.fastp_low_complexity_filter"]:
+        a.append("--low_complexity_filter")
+    if P["layer1.fastp_dedup"]:
+        a.append("--dedup")
+    if P["layer1.fastp_detect_adapter_for_pe"]:
+        a.append("--detect_adapter_for_pe")
+    a += [f"--qualified_quality_phred {P['layer1.fastp_qualified_quality_phred']}",
+          f"--unqualified_percent_limit {P['layer1.fastp_unqualified_percent_limit']}",
+          f"--n_base_limit {P['layer1.fastp_n_base_limit']}",
+          f"--length_required {P['layer1.fastp_length_required']}"]
+    if P["layer1.fastp_cut_right"]:
+        a.append(f"--cut_right --cut_window_size {P['layer1.fastp_cut_window_size']} "
+                 f"--cut_mean_quality {P['layer1.fastp_cut_mean_quality']}")
+    if CFG["assay"]["two_colour_chemistry"]:
+        a.append("--trim_poly_g")
+    else:
+        a.append("--disable_trim_poly_g")
+    if DESIGN == "TARGETED_UMI":
+        # UMIs are inline at the 5' end: no quality trimming or filtering before extraction.
+        # Pairs too short to hold the fixed read-structure segments (adapter dimers) are removed
+        # here, because fgbio FastqToBam stops on the first such read.
+        from pfvarx.inputs.validate import runtime_read_structures
+
+        _, min_len, trim_safe = runtime_read_structures(CFG["assay"]["read_structure"])
+        a = [x for x in a if not x.startswith(("--cut_right", "--length_required"))]
+        a += ["--disable_quality_filtering", f"--length_required {min_len}"]
+        if not trim_safe:
+            # A fixed non-template segment ends the read: 3' trimming would corrupt it.
+            a = [x for x in a if x not in ("--detect_adapter_for_pe", "--trim_poly_g", "--disable_trim_poly_g")]
+            a += ["--disable_adapter_trimming", "--disable_trim_poly_g"]
+    return " ".join(a)
+
+
+# --- Layer 1: alignment (l1_align.smk) ---
+
+
+def rg(wc):
+    s = SAMPLES[wc.sample]
+    ln = next(x for x in s["lanes"] if x["lane"] == wc.lane)
+    return (f"@RG\\tID:{wc.sample}.{wc.lane}\\tSM:{wc.sample}\\tLB:{ln['library_id']}"
+            f"\\tPL:{CFG['assay']['platform']}\\tPU:{wc.sample}.{wc.lane}")
+
+
+# --- Layer 1: QC metrics and gate (l1_metrics.smk) ---
+
+
+def gate_inputs(wc):
+    d = R / "qc" / "samples" / wc.sample
+    files = {"flagstat": str(d / f"{wc.sample}.flagstat.json")}
+    if PLAN["input_type"] == "FASTQ":
+        files["fastp"] = [str(d / f"{wc.sample}.{x['lane']}.fastp.json") for x in SAMPLES[wc.sample]["lanes"]]
+    if DESIGN == "WGS":
+        files["mosdepth"] = str(d / "core.mosdepth.region.dist.txt")
+        if PLAN["input_type"] == "FASTQ":
+            files["markdup"] = str(d / f"{wc.sample}.markdup.txt")
+    else:
+        files["targets"] = str(d / "targets.regions.bed.gz")
+        files["ontarget"] = str(d / f"{wc.sample}.ontarget.txt")
+    if DESIGN == "TARGETED_UMI" and PLAN["input_type"] == "FASTQ":
+        files["umi"] = str(d / f"{wc.sample}.umi_family_sizes.txt")
+    return files
+
+
+# --- Layer 3: cohort (l3_cohort.smk) ---
+
+
+def cohort_status_inputs(wc):
+    if passing("L3"):
+        return {"samples": str(R / "cohort" / "cohort_samples.txt")}
+    return {}
+
+
+# --- Layer 5: downstream analyses (l5_downstream.smk) ---
+
+
+def common_inputs(wc=None):
+    base = {"matrix": str(R / "cohort" / "evidence_matrix.tsv.gz"), "sites": str(R / "cohort" / "sites.tsv"),
+            "missing": str(R / "cohort" / "missingness.tsv"), "samples": str(R / "cohort" / "cohort_samples.txt")}
+    if 4 in LAYERS:
+        base["ann"] = str(R / "annotation" / "cohort.ann.vcf.gz")
+    return base
+
+
+def eligibility_inputs(wc):
+    d = {"gates": [str(R / "qc" / "samples" / s / "qc_decision.json") for s in sorted(SAMPLES) if s not in EXCLUDED],
+         "samples": str(R / "cohort" / "cohort_samples.txt")}
+    if "DA001" in REQUESTED + INTERNAL:
+        d["clonality"] = str(DOWN / "DA001" / "clonality.tsv")
+    return d
+
+
+def source_manifest(wc):
+    src = CFG["analyses"].get("spatial_outcome_source")
+    return [str(DOWN / src / "status_manifest.json")] if wc.da == "DA007" and src else []
+
+
+def da_targets():
+    """Phase two: expand only analyses whose cohort decision is EXECUTE."""
+    out = [str(ELIG / "cohort_decisions.json")]
+    if "DA001" in REQUESTED + INTERNAL:
+        out.append(str(DOWN / "DA001" / "status_manifest.json"))
+    decisions = json.loads(Path(checkpoints.da_eligibility.get().output.decisions).read_text())
+    for da, d in decisions["analyses"].items():
+        if da != "DA001" and d["decision"] == "EXECUTE":
+            out.append(str(DOWN / da / "status_manifest.json"))
+    return out
+

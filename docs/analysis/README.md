@@ -254,7 +254,7 @@ results -> runs/<RUN_ID>/results
 | `annotation/cohort.ann.vcf.gz`, `annotation_qc.json` | FO004 SnpEff consequences and annotation checks |
 | `eligibility/` | Per-sample/cohort scientific eligibility decisions |
 | `downstream/DAxxx/status_manifest.json` | Requested method's terminal state, denominators, exclusions and caveats |
-| `downstream/DA001/clonality.tsv` | Clonality, COI median and interval, Fws |
+| `downstream/DA001/clonality.tsv` | Clonality, COI median and interval, Fws (COI count and Fws only with ≥ 10 samples) |
 | `downstream/DA002/marker_calls.tsv`, `prevalence.tsv` | Marker states and prevalence with intervals and the WHO kelch13 flag |
 | `downstream/DA003/population_diversity.tsv` | Diversity per group with bootstrap intervals |
 | `downstream/DA004/pairwise_relatedness.tsv` | Relatedness per pair: method, markers, status and label |
@@ -301,7 +301,7 @@ That is an edit fragment, not a replacement for the entire generated configurati
 
 | ID | Implemented method / requirements |
 |---|---|
-| DA001 | MOIRE clonality; caller technical K shown only as context |
+| DA001 | MOIRE clonality with ≥ 10 informative samples; smaller cohorts take the call from the caller's mixture test (`basis` column) with no COI count or Fws; caller technical K otherwise shown only as context |
 | DA002 | Codon-level resistance markers; independently verified matching catalogue required |
 | DA003 | Within-host FWS and population diversity; group sizes/callability apply |
 | DA004 | hmmIBD / Dcifer relatedness; DA001 and pair eligibility apply. WGS pairs need 200 informative markers; targeted pairs need 20, and pairs below 200 are `ESTIMATED_LOW_PRECISION` without a relatedness label |

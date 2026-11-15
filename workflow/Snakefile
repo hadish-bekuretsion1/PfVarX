@@ -31,19 +31,9 @@ wildcard_constraints:
     lane=r"[A-Za-z0-9][A-Za-z0-9_-]*",
 
 
-def mem(base):
-    """Attempt-scaled memory within the per-job ceiling (retries only on memory-scalable rules)."""
-    cap = COMPUTE["per_job"]["max_mem_mb"]
-    factor = COMPUTE["retry_memory_factor"]
-    return lambda wc, attempt: int(min(base * factor ** (attempt - 1), cap))
-
-
-def threads(n):
-    return min(n, COMPUTE["per_job"]["max_threads"])
-
-
 RUNTIME = COMPUTE["per_job"]["max_runtime_min"]
 
+include: "rules/common.smk"
 include: "rules/l1_fastq_qc.smk"
 include: "rules/l1_align.smk"
 if DESIGN == "TARGETED_UMI" and PLAN["input_type"] == "FASTQ":
@@ -58,47 +48,7 @@ if 5 in LAYERS:
     include: "rules/l5_downstream.smk"
 
 
-def gate(sample):
-    """Layer 1 -> 2 gate decision for one sample (forces the per-sample checkpoint)."""
-    out = checkpoints.l1_gate.get(sample=sample).output[0]
-    return json.loads(Path(out).read_text())
-
-
-def passing(stage):
-    """Samples allowed into *stage* after their own QC gate (failure isolation)."""
-    out = []
-    for s in sorted(SAMPLES):
-        if s in EXCLUDED:
-            continue
-        g = gate(s)
-        if g["permitted"].get(stage, False):
-            out.append(s)
-    return out
-
-
 GATES = [str(R / "qc" / "samples" / s / "qc_decision.json") for s in sorted(SAMPLES) if s not in EXCLUDED]
-
-
-def final_targets(wildcards):
-    targets = []
-    if 1 in LAYERS and PLAN["input_type"] == "FASTQ":
-        targets += [str(R / "alignments" / f"{s}.bam") for s in passing("L1_OUTPUT")]
-    if 2 in LAYERS:
-        targets += [str(R / "variants" / "samples" / f"{s}.vcf.gz") for s in passing("L2")]
-    if 3 not in LAYERS:
-        return targets
-    # The cohort status is always written. When no sample is permitted into Layer 3 (every
-    # sample failed QC or input validation), the cohort, annotation and analyses are skipped
-    # with an explicit outcome instead of running the merge on an empty file list.
-    targets.append(str(R / "cohort" / "cohort_status.json"))
-    if not passing("L3"):
-        return targets
-    targets += [str(R / "cohort" / "cohort.vcf.gz"), str(R / "cohort" / "missingness.tsv")]
-    if 4 in LAYERS:
-        targets += [str(R / "annotation" / "cohort.ann.vcf.gz"), str(R / "annotation" / "annotation_qc.json")]
-    if 5 in LAYERS:
-        targets += da_targets()
-    return targets
 
 
 rule all:

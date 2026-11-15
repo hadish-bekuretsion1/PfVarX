@@ -51,16 +51,6 @@ class Scale(StrEnum):
     BETWEEN_POPULATIONS = "BETWEEN_POPULATIONS"
 
 
-class Processing(StrEnum):
-    PENDING = "PENDING"
-    READY = "READY"
-    RUNNING = "RUNNING"
-    COMPLETED = "COMPLETED"
-    FAILED = "FAILED"
-    BLOCKED_UPSTREAM = "BLOCKED_UPSTREAM"
-    CANCELLED = "CANCELLED"
-
-
 class QC(StrEnum):
     PASS = "PASS"
     WARNING = "WARNING"

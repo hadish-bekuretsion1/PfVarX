@@ -11,7 +11,6 @@ parameters:
   pass_min_fragments: {value: 2, source: LITERATURE_SUPPORTED, note: "MalariaGEN Pf7 2023: an allele seen in fewer than 2 reads is treated as absent"}
   pass_min_neglog10: {value: 10.0, source: UNCALIBRATED_PROVISIONAL, note: "PASS operating point; Experiment C"}
   strand_bias_max_neglog10: {value: 8.0, source: UNCALIBRATED_PROVISIONAL, note: "Fisher exact strand test; Experiment C"}
-  haplotypes_per_window_max: {value: 32, source: UNCALIBRATED_PROVISIONAL, note: "grid {16,32,64}"}
   pairhmm_gap_open: {value: 0.001, source: UNCALIBRATED_PROVISIONAL, note: "initial value; refit per mode"}
   pairhmm_gap_extend: {value: 0.1, source: UNCALIBRATED_PROVISIONAL}
   k_max: {value: 3, source: UNCALIBRATED_PROVISIONAL, note: "grid {3,4,5}; Experiments F and M"}
@@ -20,7 +19,6 @@ parameters:
   em_restarts: {value: 20, source: FRAMEWORK_POLICY}
   em_restart_agreement: {value: 1.0e-4, source: FRAMEWORK_POLICY}
   k_test_alpha: {value: 0.05, source: LITERATURE_SUPPORTED, note: "conventional level; over-selection measured"}
-  k_bootstrap_replicates: {value: 1999, source: FRAMEWORK_POLICY, note: "MC SE <= 0.005 at alpha 0.05"}
   k_bootstrap_replicates_analysis: {value: 39, source: UNCALIBRATED_PROVISIONAL, note: "used only when no precomputed critical-value surface exists; outputs labelled; 39 is the smallest B for which p < 0.05 is attainable"}
   mixture_min_component_weight: {value: 0.02, source: UNCALIBRATED_PROVISIONAL, note: "components below this DNA proportion are treated as unidentified; Experiments F and M"}
   mixture_informative_min_sites: {value: 20, source: UNCALIBRATED_PROVISIONAL}

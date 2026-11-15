@@ -61,7 +61,7 @@ Choose one configuration route:
   Configuration and Input Directories**.
 
 Either route creates the input folders after configuration. See the
-[Configuration guide](docs/configuration%20guide.md) for field examples.
+[Configuration guide](docs/configuration-guide.md) for field examples.
 
 ## 3. Register inputs
 
@@ -132,7 +132,7 @@ outputs, logs and frozen configuration under `runs/<RUN_ID>/`.
 - [Complete orchestration/command guide](docs/orchestration.md)
 - [Sample analysis](docs/analysis/README.md) and [benchmarking](docs/benchmarking/README.md)
 - [Reporting](docs/reporting/README.md), [deployment](docs/deployment.md), [testing](docs/testing.md)
-- [Configuration guide](docs/configuration%20guide.md) and [thresholds and their sources](docs/thresholds.md)
+- [Configuration guide](docs/configuration-guide.md) and [thresholds and their sources](docs/thresholds.md)
 - [Caller contract](docs/caller.md) and [sequencing and downstream eligibility](docs/sequencing.md)
 - [Architecture](docs/architecture.md), including the CLI and GUI parity rule for contributors,
   and [scientific/operational limits](docs/status.md)

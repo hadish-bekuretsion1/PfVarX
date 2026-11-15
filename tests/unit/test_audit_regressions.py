@@ -9,6 +9,7 @@ import pytest
 from pfvarx.caller_adapter import EVIDENCE_COLUMNS, validate_outputs
 from pfvarx.downstream import run
 from pfvarx.downstream.common import Context
+from pfvarx.io import read_tsv
 
 
 def test_independent_method_failure_records_terminal_and_releases_coi_checkpoint(
@@ -135,7 +136,7 @@ def test_coi_withholds_summary_below_informative_locus_gate(
         root=workspace, run=workspace / "runs/test", eff={"config": {"project_id": "TEST"}},
         plan={"samples": [{"sample_id": "S1"}]}, samples=["S1"], metadata={},
         params={"da001_thin_bp": 500, "da001_allele_presence_floor": 0.05,
-                "da001_credibility": 0.95, "da001_min_informative_loci": 2},
+                "da001_credibility": 0.95, "da001_min_informative_loci": 2, "population_frequency_min_samples": 10},
         sites=[{"type": "SNV", "n_pass": "1", "site_id": "SITE", "chrom": "chr1", "pos": "1"}],
         matrix={"SITE": {"S1": {"wsaf": 0.4}}},
     )
@@ -190,3 +191,62 @@ def test_spatial_boundaries_are_read_from_the_workspace():
     from pfvarx.downstream import spatial
 
     assert not spatial.GEO.is_absolute()
+
+
+def test_who_k13_flag_needs_enough_callable_infections() -> None:
+    from pfvarx.downstream.resistance import prevalence
+
+    marker = {"marker_id": "k13_C580Y", "gene_name": "kelch13", "gene_id": "PF3D7_1343700",
+              "evidence_class": "WHO validated"}
+
+    def calls(states: list[str], group: str) -> list[dict[str, str]]:
+        return [{"marker_id": "k13_C580Y", "population": group, "state": s, "alt_fraction": ""} for s in states]
+
+    rows = prevalence(calls(["MUTANT"], "A") + calls(["MUTANT", "WILD_TYPE", "WILD_TYPE", "UNKNOWN"], "B"),
+                      [marker], "population", 0.05, 3)
+    flag = {r["group"]: (r["callable"], r["prevalence_infections"], r["who_k13_alert"]) for r in rows}
+    assert flag["A"] == (1, "1.0000", "INSUFFICIENT_CALLABLE")  # one sample never raises the WHO flag
+    assert flag["B"] == (3, "0.3333", "ABOVE_5_PERCENT")
+    assert flag["ALL"] == (4, "0.5000", "ABOVE_5_PERCENT")
+
+
+def test_small_cohort_uses_the_caller_mixture_instead_of_moire(
+    workspace: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Below the population minimum MOIRE is not identified (on a 9-sample truth cohort its
+    P(COI>1) for single-clone samples ranged 0.00-1.00 across seeds), so it is not run: the
+    call comes from the caller's mixture test and the COI count and FWS are withheld."""
+    from pfvarx.downstream import coi
+
+    sites = [{"type": "SNV", "n_pass": "1", "site_id": f"S{i}", "chrom": "chr1", "pos": str(1000 * i)} for i in range(1, 4)]
+    samples = ["A", "B", "C"]
+    ctx = Context(
+        root=workspace, run=workspace / "runs/test", eff={"config": {"project_id": "TEST", "random_seed": 1}},
+        plan={"samples": [{"sample_id": s} for s in samples]}, samples=samples, metadata={},
+        params={"da001_thin_bp": 500, "da001_allele_presence_floor": 0.05, "da001_credibility": 0.95,
+                "da001_min_informative_loci": 2, "population_frequency_min_samples": 10,
+                "da001_moire_burnin": 10, "da001_moire_samples": 10, "da001_fws_reference_cutoff": 0.95},
+        sites=sites, matrix={s["site_id"]: {sid: {"wsaf": 0.4} for sid in samples} for s in sites},
+    )
+    mixtures = {"A": {"status": "ESTIMATED", "k_selected": 1}, "B": {"status": "ESTIMATED", "k_selected": 3},
+                "C": {"status": "INSUFFICIENT_SITES", "k_selected": None}}
+    for sid in samples:
+        d = ctx.results / f"qc/samples/{sid}"
+        d.mkdir(parents=True)
+        (d / "qc_decision.json").write_text('{"permitted":{"DA001":true}}')
+        (d / f"{sid}.caller_qc.json").write_text(json.dumps({"mixture": mixtures[sid]}))
+
+    def no_moire(*args: object, **kwargs: object) -> None:
+        pytest.fail("MOIRE must not run below the population minimum")
+
+    monkeypatch.setattr(coi.subprocess, "run", no_moire)
+    coi.run(ctx)
+    out = ctx.results / "downstream/DA001"
+    rows = {r["sample_id"]: r for r in read_tsv(out / "clonality.tsv")}
+    assert (rows["A"]["clonality"], rows["A"]["basis"]) == ("MONOCLONAL", "CALLER_MIXTURE_LRT")
+    assert (rows["B"]["clonality"], rows["B"]["basis"]) == ("POLYCLONAL", "CALLER_MIXTURE_LRT")
+    assert (rows["C"]["clonality"], rows["C"]["basis"]) == ("INDETERMINATE", "")
+    assert all(r["prob_polyclonal"] == r["coi_median"] == r["fws"] == "" for r in rows.values())
+    manifest = json.loads((out / "status_manifest.json").read_text())
+    assert manifest["method"]["moire_run"] is False and manifest["samples"]["analysed"] == ["A", "B"]
+    assert not (out / "moire_coi.tsv").exists()

@@ -45,6 +45,9 @@ rule mosdepth_targets:
         prefix=lambda wc: str(R / "qc" / "samples" / wc.sample / "targets"),
         bed=TARGETS,
         flag=P["layer1.mosdepth_exclude_flag"],
+        # Same mapping-quality floor as the core-genome depth and the caller: target depth
+        # counts only reads the caller can use. The on-target read count stays unfiltered.
+        mapq=P["layer2.min_mapping_quality"],
     threads: threads(2)
     resources:
         mem_mb=mem(1000),
@@ -54,25 +57,8 @@ rule mosdepth_targets:
     benchmark:
         str(BENCH / "mosdepth" / "{sample}.targets.tsv")
     shell:
-        "(mosdepth -n -t {threads} -F {params.flag} -b {params.bed:q} {params.prefix:q} {input:q} "
+        "(mosdepth -n -t {threads} -F {params.flag} -Q {params.mapq} -b {params.bed:q} {params.prefix:q} {input:q} "
         "&& samtools view -c -F {params.flag} -L {params.bed:q} {input:q} > {output.ontarget:q}) > {log:q} 2>&1"
-
-
-def gate_inputs(wc):
-    d = R / "qc" / "samples" / wc.sample
-    files = {"flagstat": str(d / f"{wc.sample}.flagstat.json")}
-    if PLAN["input_type"] == "FASTQ":
-        files["fastp"] = [str(d / f"{wc.sample}.{x['lane']}.fastp.json") for x in SAMPLES[wc.sample]["lanes"]]
-    if DESIGN == "WGS":
-        files["mosdepth"] = str(d / "core.mosdepth.region.dist.txt")
-        if PLAN["input_type"] == "FASTQ":
-            files["markdup"] = str(d / f"{wc.sample}.markdup.txt")
-    else:
-        files["targets"] = str(d / "targets.regions.bed.gz")
-        files["ontarget"] = str(d / f"{wc.sample}.ontarget.txt")
-    if DESIGN == "TARGETED_UMI" and PLAN["input_type"] == "FASTQ":
-        files["umi"] = str(d / f"{wc.sample}.umi_family_sizes.txt")
-    return files
 
 
 checkpoint l1_gate:

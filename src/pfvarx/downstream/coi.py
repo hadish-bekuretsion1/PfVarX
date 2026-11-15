@@ -5,6 +5,10 @@ sites. Classification rule (Section 3.10): POLYCLONAL if P(COI > 1) >= credibili
 MONOCLONAL if P(COI > 1) <= 1 - credibility, otherwise INDETERMINATE; samples with too
 few informative loci are INDETERMINATE. FWS is reported as a descriptive index only, and
 the PfVarX-Call technical mixture K is shown as context, never as COI.
+
+MOIRE needs a population: with fewer than ``population_frequency_min_samples`` informative
+samples it is not run, the monoclonal/polyclonal call comes from the caller's per-sample
+mixture test (``basis`` CALLER_MIXTURE_LRT), and the COI count and FWS are withheld.
 """
 
 from __future__ import annotations
@@ -68,6 +72,7 @@ def run(ctx: Context, threads: int = 1) -> None:
     floor = float(ctx.params["da001_allele_presence_floor"])
     cred = float(ctx.params["da001_credibility"])
     min_loci = int(ctx.params["da001_min_informative_loci"])
+    min_population = int(ctx.params["population_frequency_min_samples"])
     eligible = [s for s in ctx.samples if ctx.gate(s)["permitted"].get("DA001")]
     excluded = {"QC_GATE": [s for s in ctx.samples if s not in eligible]}
     sites = informative_sites(ctx)
@@ -89,7 +94,6 @@ def run(ctx: Context, threads: int = 1) -> None:
     excluded["INSUFFICIENT_INFORMATIVE_SITES"] = low_information
     long_form = out / "moire_input.tsv"
     write_tsv(long_form, rows, ["sample_id", "locus", "allele"])
-    rscript = shutil.which("Rscript")
     if not eligible or not rows:
         write_manifest(ctx, "DA001", Terminal.SKIPPED_INELIGIBLE.value,
                        reason_codes=[Reason.INSUFFICIENT_INFORMATIVE_SITES.value], requested=ctx.samples,
@@ -97,64 +101,94 @@ def run(ctx: Context, threads: int = 1) -> None:
                        method={"estimator": "MOIRE"})
         write_tsv(out / "clonality.tsv", [], ["sample_id", "clonality"])
         return
-    if rscript is None:
-        raise SystemExit("METHOD_NOT_INSTALLED: Rscript with the moire package is required for DA001")
-    script = ctx.root / "workflow" / "scripts" / "da001_moire.R"
-    coi_tsv, af_tsv = out / "moire_coi.tsv", out / "moire_allele_freqs.tsv"
-    r = subprocess.run([rscript, str(script), str(long_form), str(coi_tsv), str(af_tsv),
-                        str(ctx.params["da001_moire_burnin"]), str(ctx.params["da001_moire_samples"]),
-                        str(ctx.eff["config"]["random_seed"])], capture_output=True, text=True)
-    (out / "moire.log").write_text(r.stdout + r.stderr)
-    if r.returncode != 0:
-        raise SystemExit(f"MOIRE failed (exit {r.returncode}); see {out / 'moire.log'}")
-    summary = {row["sample_id"]: row for row in read_tsv(coi_tsv)}
-    fw = fws(ctx, sites, eligible)
-    caller_k: dict[str, Any] = {}
+    caller_mix: dict[str, dict[str, Any]] = {}
     for sid in eligible:
         qc = ctx.results / "qc" / "samples" / sid / f"{sid}.caller_qc.json"
         if qc.is_file():
-            mix = json.loads(qc.read_text())["mixture"]
-            caller_k[sid] = mix.get("k_selected")
+            caller_mix[sid] = json.loads(qc.read_text()).get("mixture") or {}
+    informative = [sid for sid in eligible if loci_per_sample[sid] >= min_loci]
+    # MOIRE estimates population allele frequencies jointly with each sample's COI. With few
+    # samples neither is identified: on a 9-sample synthetic cohort the posterior P(COI>1) of
+    # truly single-clone samples ranged from 0.00 to 1.00 across random seeds. Below the
+    # minimum, MOIRE is not run and the per-sample call comes from the caller's mixture test
+    # (bootstrap likelihood-ratio test of one against several genotypes, which needs no
+    # population); the COI count and FWS are then withheld.
+    population_ok = len(informative) >= min_population
+    coi_tsv, af_tsv = out / "moire_coi.tsv", out / "moire_allele_freqs.tsv"
+    summary: dict[str, dict[str, str]] = {}
+    if population_ok:
+        rscript = shutil.which("Rscript")
+        if rscript is None:
+            raise SystemExit("METHOD_NOT_INSTALLED: Rscript with the moire package is required for DA001")
+        script = ctx.root / "workflow" / "scripts" / "da001_moire.R"
+        r = subprocess.run([rscript, str(script), str(long_form), str(coi_tsv), str(af_tsv),
+                            str(ctx.params["da001_moire_burnin"]), str(ctx.params["da001_moire_samples"]),
+                            str(ctx.eff["config"]["random_seed"])], capture_output=True, text=True)
+        (out / "moire.log").write_text(r.stdout + r.stderr)
+        if r.returncode != 0:
+            raise SystemExit(f"MOIRE failed (exit {r.returncode}); see {out / 'moire.log'}")
+        summary = {row["sample_id"]: row for row in read_tsv(coi_tsv)}
+    else:
+        for stale in (coi_tsv, af_tsv, out / "moire.log"):
+            stale.unlink(missing_ok=True)
+    fw = fws(ctx, sites, eligible) if population_ok else {}
     out_rows = []
     for sid in eligible:
-        srow = summary.get(sid) if loci_per_sample[sid] >= min_loci else None
-        if srow is None:
-            clon, reason = Clonality.INDETERMINATE, Reason.INSUFFICIENT_INFORMATIVE_SITES.value
-            ppoly = None
-        else:
-            ppoly = float(srow["prob_polyclonal"])
-            reason = ""
-            if ppoly >= cred:
-                clon = Clonality.POLYCLONAL
-            elif ppoly <= 1 - cred:
-                clon = Clonality.MONOCLONAL
+        mix = caller_mix.get(sid, {})
+        ppoly: float | None = None
+        srow = None
+        if loci_per_sample[sid] < min_loci:
+            clon, reason, basis = Clonality.INDETERMINATE, Reason.INSUFFICIENT_INFORMATIVE_SITES.value, ""
+        elif population_ok:
+            srow = summary.get(sid)
+            basis = "MOIRE"
+            if srow is None:
+                clon, reason = Clonality.INDETERMINATE, "NOT_IN_MOIRE_OUTPUT"
             else:
-                clon = Clonality.INDETERMINATE
-                reason = "CREDIBLE_INTERVAL_SPANS_ONE"
+                ppoly = float(srow["prob_polyclonal"])
+                reason = ""
+                if ppoly >= cred:
+                    clon = Clonality.POLYCLONAL
+                elif ppoly <= 1 - cred:
+                    clon = Clonality.MONOCLONAL
+                else:
+                    clon, reason = Clonality.INDETERMINATE, "CREDIBLE_INTERVAL_SPANS_ONE"
+        elif mix.get("status") == "ESTIMATED" and mix.get("k_selected") is not None:
+            basis = "CALLER_MIXTURE_LRT"
+            clon = Clonality.MONOCLONAL if int(mix["k_selected"]) == 1 else Clonality.POLYCLONAL
+            reason = "MOIRE_NEEDS_POPULATION"
+        else:
+            clon, reason, basis = Clonality.INDETERMINATE, "MOIRE_NEEDS_POPULATION;CALLER_MIXTURE_UNAVAILABLE", ""
         sample_fws = fw.get(sid)
         out_rows.append({
-            "sample_id": sid, "clonality": clon.value, "reason": reason,
+            "sample_id": sid, "clonality": clon.value, "basis": basis, "reason": reason,
             "prob_polyclonal": "" if ppoly is None else f"{ppoly:.4f}",
             "coi_median": _coi(srow, "post_coi_med"), "coi_lower": _coi(srow, "post_coi_lower"),
             "coi_upper": _coi(srow, "post_coi_upper"), "informative_loci": loci_per_sample[sid],
             "fws": "" if sample_fws is None else f"{sample_fws:.4f}",
             "fws_ge_0_95_reference_only": "" if sample_fws is None else str(sample_fws >= float(ctx.params["da001_fws_reference_cutoff"])),
-            "caller_technical_k_context_only": "" if caller_k.get(sid) is None else caller_k[sid]})
+            "caller_technical_k_context_only": "" if mix.get("k_selected") is None else mix["k_selected"]})
     cols = list(out_rows[0])
     write_tsv(out / "clonality.tsv", out_rows, cols)
     counts: dict[str, int] = {}
     for r_ in out_rows:
         clonality = str(r_["clonality"])
         counts[clonality] = counts.get(clonality, 0) + 1
-    assessed = [str(row["sample_id"]) for row in out_rows if row["coi_median"] != ""]
+    assessed = [str(row["sample_id"]) for row in out_rows if row["basis"]]
     excluded["INSUFFICIENT_INFORMATIVE_SITES"] = [sid for sid in eligible if sid not in assessed]
     terminal = (Terminal.SKIPPED_INELIGIBLE if not assessed else
                 Terminal.COMPLETED_WITH_EXCLUSIONS if any(excluded.values()) else Terminal.COMPLETED)
+    outputs = [out / "clonality.tsv"] + ([coi_tsv, af_tsv] if population_ok else [])
+    caveats = (["MOIRE parameters are UNCALIBRATED_PROVISIONAL; convergence not assessed.",
+                "Classification rule uses P(COI>1) at the declared credibility level.",
+                "Caller technical K is context only and is not COI."] if population_ok else
+               [f"Fewer than {min_population} samples with enough informative loci: MOIRE was not run, because "
+                "its allele frequencies and COI are not identified in so few samples. Monoclonal/polyclonal calls "
+                "come from the PfVarX-Call mixture test (one genotype against several, per sample; basis "
+                "CALLER_MIXTURE_LRT). The COI count and FWS are withheld."])
     write_manifest(ctx, "DA001", terminal.value, reason_codes=[] if assessed else [Reason.INSUFFICIENT_INFORMATIVE_SITES.value], requested=ctx.samples, eligible=eligible,
-                   excluded=excluded, analysed=assessed, outputs=[out / "clonality.tsv", coi_tsv, af_tsv] if assessed else [],
-                   caveats=["MOIRE parameters are UNCALIBRATED_PROVISIONAL; convergence not assessed.",
-                            "Classification rule uses P(COI>1) at the declared credibility level.",
-                            "Caller technical K is context only and is not COI."],
-                   method={"estimator": "MOIRE", "credibility": cred, "sites": len(sites),
-                           "presence_floor": floor, "thin_bp": ctx.params["da001_thin_bp"]},
+                   excluded=excluded, analysed=assessed, outputs=outputs if assessed else [], caveats=caveats,
+                   method={"estimator": "MOIRE" if population_ok else "CALLER_MIXTURE_LRT", "credibility": cred,
+                           "sites": len(sites), "population_min_samples": min_population,
+                           "moire_run": population_ok, "presence_floor": floor, "thin_bp": ctx.params["da001_thin_bp"]},
                    results_summary={"classification_counts": counts})

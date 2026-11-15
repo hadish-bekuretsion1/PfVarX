@@ -7,7 +7,7 @@ permissions:
 jobs:
   checks:
     runs-on: ubuntu-24.04
-    timeout-minutes: 30
+    timeout-minutes: 60  # the suite takes 15-28 minutes on hosted runners
     steps:
       - uses: actions/checkout@v4
       - uses: prefix-dev/setup-pixi@v0.8.1
@@ -23,7 +23,7 @@ jobs:
         run: pixi run pfvarx --help && pixi run pfvarx version
       - name: Unit and scientific tests
         run: pixi run pytest -q tests/unit tests/scientific
-      - name: Workflow dry run on the synthetic fixture
+      - name: Integration tests (dry runs and full synthetic pipeline runs)
         run: pixi run pytest -q tests/integration
       - name: Validate software-only source archive
         shell: bash

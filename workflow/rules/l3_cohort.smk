@@ -8,25 +8,21 @@ rule cohort_merge:
         vcf=str(R / "cohort" / "cohort.vcf.gz"),
         tbi=str(R / "cohort" / "cohort.vcf.gz.tbi"),
         samples=str(R / "cohort" / "cohort_samples.txt"),
+    params:
+        # Sample IDs in merge order (IDs never contain dots, so the file stem is the ID).
+        ids=lambda wc, input: " ".join(Path(v).name.split(".")[0] for v in input.vcfs),
+        n=lambda wc, input: len(input.vcfs),
     log:
         str(LOGS / "cohort" / "merge.log"),
-    run:
-        if not input.vcfs:
-            # final_targets never requests the cohort without an admitted sample; fail clearly
-            # rather than with a bcftools usage message if that contract is ever broken.
-            raise ValueError("cohort_merge needs at least one sample permitted into Layer 3")
-        Path(output.samples).write_text("\n".join(Path(v).name.split(".")[0] for v in input.vcfs) + "\n")
-        if len(input.vcfs) == 1:
-            shell("(cp {input.vcfs[0]:q} {output.vcf:q} && bcftools index -t -f {output.vcf:q}) > {log:q} 2>&1")
-        else:
-            shell("(bcftools merge -m none -i - -Oz -o {output.vcf:q} {input.vcfs:q} "
-                  "&& bcftools index -t {output.vcf:q}) > {log:q} 2>&1")
-
-
-def cohort_status_inputs(wc):
-    if passing("L3"):
-        return {"samples": str(R / "cohort" / "cohort_samples.txt")}
-    return {}
+    # final_targets requests the cohort only when a sample is permitted into Layer 3. One
+    # sample is copied (bcftools merge needs two files); several are merged variant-only, with
+    # missing genotypes left missing (no -0: absence of a call is not a reference call).
+    shell:
+        "(printf '%s\\n' {params.ids} > {output.samples:q} "
+        "&& if [ {params.n} -eq 1 ]; "
+        "then cp {input.vcfs:q} {output.vcf:q}; "
+        "else bcftools merge -m none -i - -Oz -o {output.vcf:q} {input.vcfs:q}; fi "
+        "&& bcftools index -t -f {output.vcf:q}) > {log:q} 2>&1"
 
 
 rule cohort_status:

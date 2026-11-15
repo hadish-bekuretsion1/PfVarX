@@ -162,7 +162,8 @@ def run(ctx: Context, threads: int = 1) -> None:
                               "evidence_class": m.get("evidence_class", "")})
     cols = list(calls[0]) if calls else ["sample_id", "marker_id", "state"]
     write_tsv(out / "marker_calls.tsv", calls, cols)
-    prev = prevalence(calls, markers, "population", float(p["da002_k13_prevalence_alert"]))
+    prev = prevalence(calls, markers, "population", float(p["da002_k13_prevalence_alert"]),
+                      int(p["da002_min_callable_per_group"]))
     write_tsv(out / "prevalence.tsv", prev, list(prev[0]) if prev else ["marker_id"])
     caveats = ["Molecular markers are not evidence of an individual patient's treatment outcome.",
                "An UNKNOWN marker is uncallable; it is never counted as wild type.",
@@ -170,7 +171,9 @@ def run(ctx: Context, threads: int = 1) -> None:
                "Reporting floor (5%) and MIXED threshold (95%) follow the MalariaGEN Pf7 read-fraction rule; "
                "they are not calibrated for this caller's detection limit.",
                "who_k13_alert marks validated PfKelch13 markers above the WHO 5% level for follow-up; "
-               "confirmation needs delayed-clearance evidence from a therapeutic efficacy study."]
+               "confirmation needs delayed-clearance evidence from a therapeutic efficacy study. "
+               f"Groups with fewer than {int(p['da002_min_callable_per_group'])} callable infections are "
+               "INSUFFICIENT_CALLABLE."]
     if status == "TEST_FIXTURE":
         caveats.insert(0, "TEST FIXTURE CATALOGUE: results are for software testing, not for surveillance.")
     write_json(out / "catalog_provenance.json", {"path": str(cat_path), "meta": meta, "markers": len(markers)})
@@ -190,8 +193,13 @@ def is_validated_k13(marker: dict[str, str]) -> bool:
 
 
 def prevalence(calls: list[dict[str, Any]], markers: list[dict[str, str]], group_key: str,
-               k13_alert: float | None = None) -> list[dict[str, Any]]:
-    """Marker prevalence per group. ``k13_alert`` flags validated PfKelch13 markers above the WHO level."""
+               k13_alert: float | None = None, min_callable: int = 1) -> list[dict[str, Any]]:
+    """Marker prevalence per group. ``k13_alert`` flags validated PfKelch13 markers above the WHO level.
+
+    The flag needs at least *min_callable* callable infections in the group: one mutant among
+    one or two callable samples is a prevalence of 50-100% and would otherwise raise the WHO
+    flag for a whole population. Below the minimum the flag is INSUFFICIENT_CALLABLE; the
+    prevalence and its Wilson interval are still reported."""
     rows = []
     groups = sorted({c[group_key] for c in calls}) + ["ALL"]
     for m in markers:
@@ -210,5 +218,6 @@ def prevalence(calls: list[dict[str, Any]], markers: list[dict[str, str]], group
                          # WHO molecular criterion for suspected artemisinin partial resistance; a flag
                          # for follow-up (therapeutic efficacy study), never a resistance decision.
                          "who_k13_alert": ("" if k13_alert is None or not n or not is_validated_k13(m)
+                                           else "INSUFFICIENT_CALLABLE" if n < min_callable
                                            else "ABOVE_5_PERCENT" if k / n > k13_alert else "NOT_ABOVE")})
     return rows

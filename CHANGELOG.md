@@ -5,6 +5,51 @@
 The release version was reset to 0.0.0 after 0.4.2, as the baseline for the first reviewed
 release. The sections below 0.0.0 are the earlier development numbering, kept as history.
 
+### Second end-to-end audit
+
+Scientific corrections:
+
+- DA002: the WHO PfKelch13 flag (`who_k13_alert`) needs at least 3 callable infections in a
+  group (`da002_min_callable_per_group`, previously defined but unused); fewer give
+  `INSUFFICIENT_CALLABLE`. One mutant in one sample was a 100% prevalence and raised the flag
+  for a whole population.
+- DA001: MOIRE is run only with at least 10 samples that have enough informative loci
+  (`population_frequency_min_samples`). It estimates allele frequencies and COI jointly, and in
+  small cohorts neither is identified: on the 9-sample synthetic truth cohort all 6 single-clone
+  samples were called polyclonal (P(COI > 1) 0.99-1.00), and across five seeds their P ranged
+  from 0.00 to 1.00. One real sample got a COI of 9. Below the minimum, the
+  monoclonal/polyclonal call comes from the caller's per-sample mixture test (new `basis`
+  column, `CALLER_MIXTURE_LRT`; 6/6 single-clone and 3/3 mixed samples correct on that cohort),
+  and the COI count and Fws are withheld. The clonality report does not count such a call as
+  separate DA001 evidence.
+- DA001 and DA003: Fws is withheld below the same minimum. It uses allele frequencies estimated
+  from the analysed samples, in which each sample is 1/n of its own reference; one sample gave
+  Fws 0 by construction.
+- DA004: Dcifer no longer assumes COI 1 for a sample without a MOIRE count; it uses Dcifer's
+  naive estimate (`getCOI`, `lrank = 2`). Monoclonal samples stay at 1.
+- Targeted designs: target depth for the QC gate counts only reads at the caller's mapping
+  quality (`-Q`), as the WGS core depth already did. The on-target read fraction is unchanged.
+- The caller admits no indel longer than the declared scope (`indel_length_bound_bp`, 50 bp).
+
+Consistency and streamlining:
+
+- Parameters that changed nothing were removed: `quality_encoding_offset` (Phred+33 is an
+  input requirement), `bootstrap_seed` (`random_seed` is used), `bwa_mem2_scoring`,
+  `k_bootstrap_replicates`, `haplotypes_per_window_max`, `merge_missing_to_ref`,
+  `vep_cross_check_fraction` and `control_chart_min_runs`. `fastp_low_complexity_filter` and
+  `fastp_dedup` now set the fastp options (both stay off).
+- The preflight resource plan disagreed with the rules (caller 1 thread and 2 000 MB against
+  24 threads; UMI jobs 2 threads against 4). It now matches, and a test compares the two.
+- The caller requests 8 threads and 5 000 MB (was 24 and 4 000). Measured on a 29x WGS sample:
+  579 s and 3.6 GB with 8 workers, 474 s and 3.8 GB with 24; the old request was below the
+  measured peak, and 8 threads let three samples run at once on a 24-core host.
+- Workflow helper functions moved to `workflow/rules/common.smk`; `cohort_merge` is a shell
+  rule. Unused code was removed. `docs/configuration guide.*` is renamed
+  `docs/configuration-guide.*`.
+- A stray test output (`0.95`) committed at the repository root was removed.
+- CI: timeout raised to 60 minutes (runs took up to 28 of 30), and the integration step is
+  named for what it runs.
+
 ### Clone counts not inflated by indel artefacts
 
 - SNVs within 10 bp of a called indel are left out of the mixture model

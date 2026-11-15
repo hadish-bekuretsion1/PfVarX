@@ -91,7 +91,10 @@ def run(ctx: Context, threads: int = 1) -> None:
                     rows.append({"sample_id": sid, "locus": s["site_id"], "allele": "A"})
         lf = out / "dcifer_input.tsv"
         write_tsv(lf, rows, ["sample_id", "locus", "allele"])
-        coi_rows = [{"sample_id": s, "coi": clon[s]["coi_median"] or 1} for s in eligible]
+        # MOIRE's COI count where DA001 reported one; monoclonal samples are 1; otherwise "NA",
+        # and the R script uses Dcifer's own naive estimate (getCOI) rather than assuming 1.
+        coi_rows = [{"sample_id": s, "coi": clon.get(s, {}).get("coi_median")
+                     or ("1" if clon.get(s, {}).get("clonality") == "MONOCLONAL" else "NA")} for s in eligible]
         write_tsv(out / "dcifer_coi.tsv", coi_rows, ["sample_id", "coi"])
         r = subprocess.run(["Rscript", str(ctx.root / "workflow" / "scripts" / "da004_dcifer.R"), str(lf),
                             str(out / "dcifer_coi.tsv"), str(out / "dcifer_pairs.tsv"),

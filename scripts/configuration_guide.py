@@ -2,7 +2,7 @@
 
 ``src/pfvarx/configuration/gui/field-guide.json`` is the single source for what each setting
 means; the GUI shows it next to every field. This script rewrites the example and help cells
-of the setting tables in ``docs/configuration guide.md`` and ``.html`` from it, so terminal
+of the setting tables in ``docs/configuration-guide.md`` and ``.html`` from it, so terminal
 users read exactly what GUI users read.
 
     python scripts/configuration_guide.py          # rewrite both guide files
@@ -20,8 +20,8 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 FIELD_GUIDE = ROOT / "src/pfvarx/configuration/gui/field-guide.json"
-GUIDE_MD = ROOT / "docs/configuration guide.md"
-GUIDE_HTML = ROOT / "docs/configuration guide.html"
+GUIDE_MD = ROOT / "docs/configuration-guide.md"
+GUIDE_HTML = ROOT / "docs/configuration-guide.html"
 MD_ROW = re.compile(r"^\| `(?P<key>[a-z_]+(?:\.[a-z_0-9]+)*)` \| .*? \| .* \|$", re.MULTILINE)
 HTML_ROW = re.compile(r'<tr><th scope="row"><code>(?P<key>[a-z_]+(?:\.[a-z_0-9]+)*)</code></th>.*?</tr>')
 

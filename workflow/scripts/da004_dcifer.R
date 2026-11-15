@@ -7,7 +7,13 @@ nr <- if (length(a) >= 5) as.integer(a[5]) else 1000L
 df <- read.delim(a[1], stringsAsFactors = FALSE)
 coi_tab <- read.delim(a[2], stringsAsFactors = FALSE)
 dsmp <- formatDat(df, svar = "sample_id", lvar = "locus", avar = "allele")
-coi <- setNames(pmax(1L, as.integer(round(coi_tab$coi))), coi_tab$sample_id)[names(dsmp)]
+given <- setNames(suppressWarnings(as.numeric(coi_tab$coi)), coi_tab$sample_id)[names(dsmp)]
+# Samples without a COI count (DA001 withheld it, or it was not run) use Dcifer's naive
+# estimate from allele counts (Gerlovina et al. 2022), never an assumed 1.
+naive <- getCOI(dsmp, lrank = 2)
+coi <- pmax(1L, as.integer(round(ifelse(is.na(given), naive[names(dsmp)], given))))
+names(coi) <- names(dsmp)
+cat("COI from DA001:", sum(!is.na(given)), "; naive getCOI:", sum(is.na(given)), "\n")
 afreq <- calcAfreq(dsmp, coi, tol = 1e-5)
 res <- ibdDat(dsmp, coi, afreq, pval = TRUE, confint = TRUE, rnull = 0, alpha = alpha, nr = nr)
 ids <- names(dsmp)

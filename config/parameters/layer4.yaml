@@ -1,4 +1,3 @@
 version: "1.0.0"
 parameters:
   snpeff_upstream_downstream_len: {value: 0, source: FRAMEWORK_POLICY, note: "compact gene-dense genome"}
-  vep_cross_check_fraction: {value: 0.0, source: FRAMEWORK_POLICY, note: "VEP cross-check not installed in 0.2.0"}

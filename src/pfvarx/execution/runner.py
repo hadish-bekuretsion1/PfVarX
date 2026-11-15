@@ -10,7 +10,6 @@ downstream analysis was skipped.
 from __future__ import annotations
 
 import os
-import shutil
 import subprocess
 import tempfile
 from pathlib import Path
@@ -247,6 +246,3 @@ def _execute(root: Path, mode: str = "NEW", previous: str | None = None) -> dict
         cleanup = cleanup_run(root, run, apply=True)
     return {"run_id": run.name, "status": final, "passes": passes, "downstream_failures": downstream_failures, "report": report, "cleanup": cleanup}
 
-
-def which_or_none(name: str) -> str | None:
-    return shutil.which(name)

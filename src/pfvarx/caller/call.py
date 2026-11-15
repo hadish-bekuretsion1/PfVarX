@@ -111,6 +111,7 @@ class Params:
     seed: int
     min_weight: float
     candidate_min_alt_reads: int = 2
+    max_indel_length_bp: int | None = None  # declared scope (layer0); longer indels are not candidates
     pairhmm_max_reads: int = 200
     pairhmm_flank_bp: int = 60
     focal_min_length_bp: int = 50
@@ -138,6 +139,8 @@ class Params:
                    min_weight=float(p["mixture_min_component_weight"]),
                    # .get keeps runs frozen before these became parameters reproducible.
                    candidate_min_alt_reads=int(p.get("candidate_min_alt_reads", 2)),
+                   max_indel_length_bp=(int(eff["parameters"]["layer0.indel_length_bound_bp"]["value"])
+                                        if "layer0.indel_length_bound_bp" in eff["parameters"] else None),
                    pairhmm_max_reads=int(p.get("pairhmm_max_reads", 200)),
                    pairhmm_flank_bp=int(p.get("pairhmm_flank_bp", 60)),
                    focal_min_length_bp=int(p.get("focal_loss_min_length_bp", 50)),
@@ -252,7 +255,8 @@ def extract(bam: pysam.AlignmentFile, fasta: pysam.FastaFile, chrom: str,
             ev.n[pos] = n
             ev.nonref[pos] = nonref
             ev.indel[pos] = indel_n
-            keep = {k: v for k, v in local.items() if v[0] >= p.candidate_min_alt_reads}
+            keep = {k: v for k, v in local.items() if v[0] >= p.candidate_min_alt_reads
+                    and (k[0] == "SNV" or p.max_indel_length_bp is None or len(k[1]) <= p.max_indel_length_bp)}
             if keep:
                 tallies.update(keep)
                 ev.alleles[pos] = tallies

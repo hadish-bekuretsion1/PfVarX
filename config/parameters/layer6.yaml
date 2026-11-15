@@ -1,4 +1,3 @@
 version: "1.0.0"
 parameters:
   max_embedded_records: {value: 200000, source: FRAMEWORK_POLICY, note: "above this, views are paginated summaries; omitted records counted"}
-  control_chart_min_runs: {value: 20, source: LITERATURE_SUPPORTED, note: "individuals/moving-range chart baseline"}

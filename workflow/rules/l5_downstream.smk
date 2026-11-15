@@ -1,17 +1,6 @@
 # Layer 5: downstream analyses with two-phase eligibility (checkpoint), then dynamic expansion.
 
-REQUESTED = PLAN.get("analyses_requested", [])
-INTERNAL = PLAN.get("analyses_internal", [])
-DOWN = R / "downstream"
-ELIG = R / "eligibility"
-
-
-def common_inputs(wc=None):
-    base = {"matrix": str(R / "cohort" / "evidence_matrix.tsv.gz"), "sites": str(R / "cohort" / "sites.tsv"),
-            "missing": str(R / "cohort" / "missingness.tsv"), "samples": str(R / "cohort" / "cohort_samples.txt")}
-    if 4 in LAYERS:
-        base["ann"] = str(R / "annotation" / "cohort.ann.vcf.gz")
-    return base
+# REQUESTED, INTERNAL, DOWN and ELIG and the input functions are in common.smk.
 
 
 rule da001_clonality:
@@ -36,14 +25,6 @@ rule da001_clonality:
         "python -m pfvarx.downstream.run --da DA001 --run-dir {params.run:q} --root {params.root:q} > {log:q} 2>&1"
 
 
-def eligibility_inputs(wc):
-    d = {"gates": [str(R / "qc" / "samples" / s / "qc_decision.json") for s in sorted(SAMPLES) if s not in EXCLUDED],
-         "samples": str(R / "cohort" / "cohort_samples.txt")}
-    if "DA001" in REQUESTED + INTERNAL:
-        d["clonality"] = str(DOWN / "DA001" / "clonality.tsv")
-    return d
-
-
 checkpoint da_eligibility:
     input:
         unpack(eligibility_inputs),
@@ -57,11 +38,6 @@ checkpoint da_eligibility:
         str(LOGS / "downstream" / "eligibility.log"),
     shell:
         "python -m pfvarx.downstream.run --eligibility --run-dir {params.run:q} --root {params.root:q} > {log:q} 2>&1"
-
-
-def source_manifest(wc):
-    src = CFG["analyses"].get("spatial_outcome_source")
-    return [str(DOWN / src / "status_manifest.json")] if wc.da == "DA007" and src else []
 
 
 rule da_execute:
@@ -89,13 +65,3 @@ rule da_execute:
         "--threads {threads} > {log:q} 2>&1"
 
 
-def da_targets():
-    """Phase two: expand only analyses whose cohort decision is EXECUTE."""
-    out = [str(ELIG / "cohort_decisions.json")]
-    if "DA001" in REQUESTED + INTERNAL:
-        out.append(str(DOWN / "DA001" / "status_manifest.json"))
-    decisions = json.loads(Path(checkpoints.da_eligibility.get().output.decisions).read_text())
-    for da, d in decisions["analyses"].items():
-        if da != "DA001" and d["decision"] == "EXECUTE":
-            out.append(str(DOWN / da / "status_manifest.json"))
-    return out

@@ -22,7 +22,7 @@ SEMVER = r"\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?"
 # Documents that describe the current release, with the phrases that state its version.
 CURRENT_RELEASE_DOCS = (
     "README.md", "docs/README.html", "docs/status.md",
-    "docs/configuration guide.md", "docs/configuration guide.html",
+    "docs/configuration-guide.md", "docs/configuration-guide.html",
     "docs/sop/PfVarX_SOP_Manual.md", "docs/sop/PfVarX_SOP_Manual.html",
 )
 PHRASES = (

@@ -16,18 +16,19 @@ import yaml
 from pfvarx.configuration.models import Bundle
 from pfvarx.constants import Design, FinalOutput, InputType, Reason
 
-# Starting requests: memory scales with input size where a predictor is known.
+# Starting requests, summarising the rules in workflow/rules (tests/unit/test_resource_plan.py
+# keeps the two equal); memory scales with input size where a predictor is known.
 JOB_CLASSES: dict[str, dict[str, Any]] = {
     "fastp": {"layer": 1, "threads": 4, "mem_mb": 2000, "per_gb_mb": 0},
     "bwa_mem2_index": {"layer": 0, "threads": 1, "mem_mb": 4000, "per_gb_mb": 0},
     "bwa_mem2_align": {"layer": 1, "threads": 4, "mem_mb": 6000, "per_gb_mb": 0},
     "markdup": {"layer": 1, "threads": 1, "mem_mb": 4000, "per_gb_mb": 500},
-    "fgbio_umi": {"layer": 1, "threads": 2, "mem_mb": 4000, "per_gb_mb": 500},
+    "fgbio_umi": {"layer": 1, "threads": 4, "mem_mb": 6000, "per_gb_mb": 500},
     "alignment_entry": {"layer": 1, "threads": 1, "mem_mb": 4000, "per_gb_mb": 0},
     "fgbio_clip": {"layer": 1, "threads": 1, "mem_mb": 3000, "per_gb_mb": 0},
     "metrics": {"layer": 1, "threads": 2, "mem_mb": 1000, "per_gb_mb": 0},
-    "pfvarx_call": {"layer": 2, "threads": 1, "mem_mb": 2000, "per_gb_mb": 250},
-    "cohort_merge": {"layer": 3, "threads": 1, "mem_mb": 1000, "per_gb_mb": 0},
+    "pfvarx_call": {"layer": 2, "threads": 8, "mem_mb": 5000, "per_gb_mb": 0},
+    "cohort_merge": {"layer": 3, "threads": 1, "mem_mb": 2000, "per_gb_mb": 0},
     "snpeff": {"layer": 4, "threads": 1, "mem_mb": 4000, "per_gb_mb": 0},
     "downstream": {"layer": 5, "threads": 2, "mem_mb": 2000, "per_gb_mb": 0},
     "dashboard": {"layer": 6, "threads": 1, "mem_mb": 1000, "per_gb_mb": 0},

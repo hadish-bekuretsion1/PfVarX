@@ -15,7 +15,7 @@ from pfvarx.constants import Terminal
 from pfvarx.downstream.coi import fws
 from pfvarx.downstream.common import Context, decisions, write_manifest
 from pfvarx.genomic_evidence import read_bed
-from pfvarx.io import read_tsv, write_tsv
+from pfvarx.io import write_tsv
 
 
 def callable_intersection_bases(ctx: Context, samples: list[str]) -> int:
@@ -90,7 +90,10 @@ def run(ctx: Context, threads: int = 1) -> None:
     excluded = {"INELIGIBLE": sorted(set(ctx.samples) - set(eligible))}
     col = ctx.eff["config"]["analyses"].get("population_column") or "population"
     snv_sites = [s for s in ctx.sites if s["type"] == "SNV"]
-    within = fws(ctx, snv_sites, eligible)
+    # FWS needs population allele frequencies; with few samples each sets much of its own
+    # reference (one sample: FWS is 0 by construction), so it is withheld below the minimum.
+    population_ok = len(eligible) >= int(ctx.params["population_frequency_min_samples"])
+    within = fws(ctx, snv_sites, eligible) if population_ok else {s: None for s in eligible}
     write_tsv(out / "within_host_fws.tsv", [{"sample_id": s, "fws": "" if within[s] is None else f"{within[s]:.4f}"}
                                             for s in eligible], ["sample_id", "fws"])
     groups: dict[str, list[str]] = {"ALL": eligible}
@@ -120,7 +123,9 @@ def run(ctx: Context, threads: int = 1) -> None:
                    caveats=["Population statistics use the dominant allele per sample (polyclonal samples simplified).",
                             "Sites restricted to those observed in every sample of the group; callable-base "
                             "denominator is the intersection of the samples' callability masks.",
-                            "FWS is descriptive and depends on the reference group used."],
+                            "FWS is descriptive and depends on the reference group used."]
+                   + ([] if population_ok else
+                      [f"FWS withheld: fewer than {int(ctx.params['population_frequency_min_samples'])} samples "
+                       "to estimate population allele frequencies."]),
                    method={"representation": "dominant allele", "bootstrap": "200 resamples of samples"},
                    results_summary={"groups": len(groups)})
-    _ = read_tsv  # keep import for adapters used by tests

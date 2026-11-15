@@ -84,7 +84,7 @@ to one must be made to the other in the same commit.
 
 | When you change | Also change |
 | --- | --- |
-| A setting in `configuration/models.py` | Its entry in `gui/field-guide.json`, both project templates (`config/templates/analysis.yaml`, `benchmarking.yaml`) or the quality/compute template, then run `python scripts/configuration_guide.py` to refresh `docs/configuration guide.md` and `.html` |
+| A setting in `configuration/models.py` | Its entry in `gui/field-guide.json`, both project templates (`config/templates/analysis.yaml`, `benchmarking.yaml`) or the quality/compute template, then run `python scripts/configuration_guide.py` to refresh `docs/configuration-guide.md` and `.html` |
 | The help text of a setting | `gui/field-guide.json` only (it is the single source), then run `python scripts/configuration_guide.py` |
 | A GUI tab or button | Its CLI command in `cli.py` and the "Terminal equivalent" line in `gui/index.html` |
 | A CLI configuration or preflight command | The GUI tab or stage that runs it (`configuration/web.py`, `gui/app.js`) |
