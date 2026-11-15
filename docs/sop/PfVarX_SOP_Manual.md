@@ -3259,7 +3259,9 @@ WORKSPACE/
 │       │   └── method-specific files listed in R11
 │       ├── report/
 │       │   ├── pfvarx_dashboard.html
-│       │   └── dashboard_data.json
+│       │   ├── dashboard_data.json
+│       │   ├── clonality_report.txt        one line per sample: monoclonal, or polyclonal with clones and %
+│       │   └── clonality_report.tsv
 │       └── work/                           transient tool/caller intermediates
 ├── results -> runs/<LATEST_RUN_ID>/results
 └── benchmarks/                            evaluation output, outside individual run

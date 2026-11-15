@@ -5,6 +5,14 @@
 The release version was reset to 0.0.0 after 0.4.2, as the baseline for the first reviewed
 release. The sections below 0.0.0 are the earlier development numbering, kept as history.
 
+### Per-sample clonality report
+
+- Every run with variant calls writes `results/report/clonality_report.txt` and `.tsv`, and
+  the dashboard overview shows a clonality table: each sample is monoclonal, or polyclonal
+  with the number of clones and each clone's percentage of the parasite DNA, from the
+  PfVarX-Call mixture model, combined with DA001's call when DA001 ran. Disagreements,
+  unresolved minor clones and the largest tested clone count are stated explicitly.
+
 ### SnpEff database ID safe for any release label
 
 - The SnpEff database ID derived from `reference.release_label` now keeps only letters,

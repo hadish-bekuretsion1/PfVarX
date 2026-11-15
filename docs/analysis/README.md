@@ -263,6 +263,7 @@ results -> runs/<RUN_ID>/results
 | `downstream/DA007/country_month_summary.tsv` | Prevalence by place and month; GAM fit when supported |
 | `report/pfvarx_dashboard.html` | Offline report; open after the run finalizes |
 | `report/dashboard_data.json` | Report data backing the HTML |
+| `report/clonality_report.txt`, `.tsv` | Per sample: monoclonal, or polyclonal with the number of clones and each clone's share of the parasite DNA, for example "Sample Y is polyclonal with 3 clones: Clone 1: 50.0%, Clone 2: 30.0%, Clone 3: 20.0%" |
 | `qc/centralized_quality_matrix.json` | Aggregated quality records |
 
 Count accepted variants by `FILTER=PASS` / caller `PST=PASS`, not by total VCF rows.

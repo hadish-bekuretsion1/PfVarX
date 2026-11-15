@@ -207,3 +207,5 @@ def test_every_downstream_analysis_executes(tmp_path: Path) -> None:
     summary = json.loads((res / "downstream/DA004/status_manifest.json").read_text())["results_summary"]
     assert summary["pairs_estimated"] > 0, summary
     assert (res / "downstream/DA006/tree.treefile").is_file()
+    report = (res / "report/clonality_report.txt").read_text()
+    assert all(f"Sample PF{i:03d} is" in report for i in range(1, 12)), report

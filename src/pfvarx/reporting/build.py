@@ -445,6 +445,10 @@ def build_report(root: Path, run: Path) -> dict[str, Any]:
         "scope": "Current reporting package; frozen upstream scientific provenance is preserved",
     }
     res = run / "results"
+    from pfvarx.reporting.clonality import write_report as write_clonality
+
+    data["clonality"] = write_clonality(res, [s["sample_id"] for s in data["samples"]
+                                              if (res / "qc" / "samples" / s["sample_id"]).is_dir()], run.name)
     write_json(res / "report" / "dashboard_data.json", data)
     write_json(res / "qc" / "centralized_quality_matrix.json",
                {"schema": "pfvarx.qc_matrix/1", "run_id": run.name, "rows": data["qc_matrix"],

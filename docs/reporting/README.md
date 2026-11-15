@@ -50,6 +50,28 @@ The schema is shipped at `src/pfvarx/reporting/dashboard.schema.json`.
 Client validation checks the required identity and structural types; it is not a
 scientific validity assessment or a complete JSON Schema engine.
 
+## Clonality report
+
+Every run with variant calls writes `results/report/clonality_report.txt`, one readable
+line per sample, and the same rows in `clonality_report.tsv`; the dashboard overview
+shows them as a table:
+
+```text
+Sample X is monoclonal
+Sample Y is polyclonal with 3 clones: Clone 1: 50.0%, Clone 2: 30.0%, Clone 3: 20.0%
+```
+
+The number of clones and the percentages come from the PfVarX-Call mixture model: the
+number of DNA components it selects and their weights, largest first. When DA001 ran,
+its MOIRE monoclonal/polyclonal call is combined with it; MOIRE's own clone count is not
+used, because one sample or a small cohort cannot support it. The report says so when the
+two disagree (INDETERMINATE), when DA001 sees more clones than the mixture model resolves
+("not resolved"), and when the largest number of clones tested was selected ("at least N").
+Clones below 2% of the DNA cannot be resolved. Percentages are shares of parasite DNA,
+which approximate but are not exactly the share of parasites, and stay uncalibrated until
+the caller is benchmarked. `./pfvarx report --run-id ID` rebuilds the report for an
+earlier run without rerunning any analysis.
+
 ## Sections and scientific views
 
 The sidebar contains eight sections: overview, downstream analyses, variant calling and
