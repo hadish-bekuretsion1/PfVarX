@@ -5,6 +5,15 @@
 The release version was reset to 0.0.0 after 0.4.2, as the baseline for the first reviewed
 release. The sections below 0.0.0 are the earlier development numbering, kept as history.
 
+### Clone counts not inflated by indel artefacts
+
+- SNVs within 10 bp of a called indel are left out of the mixture model
+  (`mixture_indel_exclusion_bp`). Misaligned reads beside true indels produced false
+  low-fraction SNVs that made single-clone samples look polyclonal. On the synthetic 40×
+  cohort, single-clone samples estimated as one clone rose from 3 of 6 to 6 of 6 (PF002
+  78.7/21.3, PF004 85/15 and PF006 62.7/29.5/7.8 are now monoclonal); mixed samples and all
+  calls are unchanged. Caller QC records `mixture.snvs_excluded_near_indels`.
+
 ### Error model robust to mixed infections
 
 - In mixed infections, minor-clone variants among the "reference" positions inflated the

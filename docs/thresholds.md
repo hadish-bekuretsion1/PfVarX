@@ -116,8 +116,15 @@ truncated likelihood. Without it, minor-clone variants in mixed infections infla
 model and were screened out (on synthetic 40× mixtures, 3% of minor-clone variants were
 called before and 85% after). Mixture-constrained calling (`mixture_constrained_calling`) is
 implemented but off: after the error-model fix it added 34–75 true and 4–17 false calls on
-the same mixtures, depending on its threshold, and needs indel-adjacent artefacts handled
-first.
+the same mixtures, depending on its threshold.
+
+The mixture model leaves out SNVs within 10 bp of a called indel, including a deletion's span
+(`mixture_indel_exclusion_bp`). Reads across an indel are sometimes aligned with mismatches
+instead of a gap, which creates false low-fraction SNVs beside true indels; a few of them were
+enough to make a single-clone sample fit two or three clones. On the synthetic 40× cohort, 3 of
+6 single-clone samples were estimated as 2–3 clones before and all 6 as one clone after; the
+mixed samples' estimates did not change. Calls are not affected. The number of sites left out
+is recorded in the caller QC (`mixture.snvs_excluded_near_indels`).
 
 ## Stage 3 — cohort evidence
 

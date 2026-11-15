@@ -30,6 +30,7 @@ parameters:
   pairhmm_flank_bp: {value: 60, source: FRAMEWORK_POLICY, note: "reference flank on each side of the indel haplotypes"}
   error_fit_exclude_fraction: {value: 0.05, source: FRAMEWORK_POLICY, note: "sites with >= pass_min_fragments reads and >= this fraction for a non-reference allele are left out of the error-model fit, with a truncated likelihood; MalariaGEN Pf7 treats alleles below 5% of reads as absent"}
   mixture_site_spacing_bp: {value: 500, source: FRAMEWORK_POLICY, note: "minimum distance between PASS SNVs used by the mixture model (a linkage proxy)"}
+  mixture_indel_exclusion_bp: {value: 10, source: FRAMEWORK_POLICY, note: "SNVs this close to a called indel are left out of the mixture model (alignment artefacts beside indels); calls are unchanged"}
   mixture_constrained_calling: {value: false, source: FRAMEWORK_POLICY, note: "pass-two: promote LOW_CONFIDENCE candidates whose reads fit an allowed clone fraction; off until benchmarked"}
   mixture_constrained_min_log10_lr: {value: 10.0, source: UNCALIBRATED_PROVISIONAL, note: "log10 LR of the best allowed clone fraction against error needed for promotion; to be set from simulated mixtures"}
   focal_loss_min_length_bp: {value: 50, source: UNCALIBRATED_PROVISIONAL, note: "shortest low-depth run reported as focal callability loss"}

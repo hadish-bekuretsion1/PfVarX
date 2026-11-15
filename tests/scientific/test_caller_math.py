@@ -94,3 +94,18 @@ def test_error_fit_survives_minor_clone_variants() -> None:
     assert naive["phi"] < 100  # collapsed: errors look wildly over-dispersed
     assert robust["phi"] > 1000 and abs(robust["mu"] - 1e-3) < 2e-4, robust
     assert robust["variant_like_excluded"] >= 500
+
+
+def test_snvs_beside_called_indels_are_left_out_of_mixture_sites() -> None:
+    from pfvarx.caller.call import CallStatus, Candidate, without_indel_neighbours
+
+    def cand(pos: int, kind: str = "SNV", ref: str = "A", alt: str = "G",
+             status: str = CallStatus.PASS, chrom: str = "c1") -> Candidate:
+        return Candidate(chrom=chrom, pos=pos, ref=ref, alt=alt, kind=kind, y=5, n=40, status=status)
+
+    deletion = cand(1000, "DEL", ref="ATTTT", alt="A")  # spans 1000-1005
+    rejected = cand(5000, "INS", ref="A", alt="AT", status="REJECTED")
+    snvs = [cand(985), cand(992), cand(1003), cand(1014), cand(1016), cand(4998), cand(1003, chrom="c2")]
+    kept, excluded = without_indel_neighbours(snvs, [deletion, rejected, *snvs], 10)
+    assert [(c.chrom, c.pos) for c in kept] == [("c1", 985), ("c1", 1016), ("c1", 4998), ("c2", 1003)]
+    assert excluded == 3

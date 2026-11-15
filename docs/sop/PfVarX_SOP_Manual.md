@@ -3293,7 +3293,7 @@ values, not universal recommendations or evidence of scientific validity.
 | `layer1.yaml` | fastp quality threshold 15, maximum unqualified percentage 40, N-base limit 5, minimum length 50; cut-right false (window 4, mean quality 20 when enabled); fgbio consensus filter: minimum reads 3, base quality 45, maximum base error 0.2 |
 | `layer1.yaml` | low-complexity filter false because indiscriminate filtering can bias AT-rich sequence; UMI branch preserves tag extraction order |
 | `layer2.yaml` | min MAPQ 20, base quality 13, usable depth 5 (MalariaGEN Pf7/Pf8); candidates need 2 reads; pair-HMM caps 200 reads with 60 bp flanks; these remain source-class-labelled |
-| `layer2.yaml` | screening -log10 threshold 6, PASS minimum fragments 2 and minimum score 10; not a calibrated detection guarantee |
+| `layer2.yaml` | screening -log10 threshold 6, PASS minimum fragments 2 and minimum score 10; not a calibrated detection guarantee; the mixture model skips SNVs within 10 bp of a called indel |
 | `layer5.yaml` | DA001 minimum informative loci 10, MOIRE burn-in 10000 and 1000 samples, loci thinned to 500 bp; DA004 minimum markers 200 for WGS and 20 for targeted panels (pairs below 200 are low precision, unlabelled); Dcifer level 0.05 |
 | `layer5.yaml` | DA006 minimum monoclonal samples 4 and informative sites 10; sample/site missingness ceilings 0.2; UFBoot/SH-aLRT 1000 each |
 | `layer5.yaml` | DA003/DA005 population minimum 3; DA003 bootstrap 200; DA002 minimum callable/group 3, reporting floor 0.05 and MIXED below 0.95; DA007 GAM after 10 samples; provisional settings require scientific review |

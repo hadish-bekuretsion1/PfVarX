@@ -115,6 +115,7 @@ class Params:
     pairhmm_flank_bp: int = 60
     focal_min_length_bp: int = 50
     mixture_site_spacing_bp: int = 500
+    mixture_indel_exclusion_bp: int = 0
     constrained_calling: bool = False
     constrained_min_log10_lr: float = 10.0
     error_fit_exclude_fraction: float | None = None
@@ -141,6 +142,7 @@ class Params:
                    pairhmm_flank_bp=int(p.get("pairhmm_flank_bp", 60)),
                    focal_min_length_bp=int(p.get("focal_loss_min_length_bp", 50)),
                    mixture_site_spacing_bp=int(p.get("mixture_site_spacing_bp", 500)),
+                   mixture_indel_exclusion_bp=int(p.get("mixture_indel_exclusion_bp", 0)),
                    constrained_calling=bool(p.get("mixture_constrained_calling", False)),
                    constrained_min_log10_lr=float(p.get("mixture_constrained_min_log10_lr", 10.0)),
                    error_fit_exclude_fraction=(None if p.get("error_fit_exclude_fraction") is None
@@ -474,6 +476,36 @@ def write_bed(path: Path, iv: dict[str, list[tuple[int, int]]]) -> None:
                 h.write(f"{chrom}\t{s}\t{e}\n")
 
 
+def without_indel_neighbours(snvs: list[Candidate], cands: list[Candidate], distance: int
+                             ) -> tuple[list[Candidate], int]:
+    """SNVs farther than *distance* bp from any called indel (PASS or LOW_CONFIDENCE, including
+    a deletion's span). Reads spanning an indel are sometimes aligned with mismatches instead
+    of a gap, which makes false low-fraction SNVs beside true indels; a few such sites are
+    enough to make a single-clone sample fit two components. Calls are not changed: this only
+    selects the sites the mixture model sees."""
+    import bisect
+
+    spans: dict[str, list[tuple[int, int]]] = defaultdict(list)
+    for c in cands:
+        if c.kind != "SNV" and c.status in (CallStatus.PASS, CallStatus.LOW_CONFIDENCE):
+            spans[c.chrom].append((c.pos, c.pos + max(len(c.ref), len(c.alt))))
+    starts = {chrom: sorted(s) for chrom, s in spans.items()}
+    kept = []
+    for c in snvs:
+        intervals = starts.get(c.chrom, [])
+        i = bisect.bisect_left(intervals, (c.pos - distance - 1000, 0))
+        close = False
+        for start, end in intervals[i:]:
+            if start - distance > c.pos:
+                break
+            if start - distance <= c.pos <= end + distance:
+                close = True
+                break
+        if not close:
+            kept.append(c)
+    return kept, len(snvs) - len(kept)
+
+
 def allowed_fractions(weights: list[float]) -> list[float]:
     """DNA fractions a real variant can have: the summed weight of any non-empty set of clones."""
     import itertools
@@ -706,6 +738,9 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
     callable_bases = sum(e - s for iv in callable_iv.values() for s, e in iv)
     # pass one mixture on PASS biallelic SNVs, thinned to >= 500 bp apart
     snv = [c for c in cands if c.kind == "SNV" and c.status == CallStatus.PASS]
+    near_indel = 0
+    if p.mixture_indel_exclusion_bp > 0:
+        snv, near_indel = without_indel_neighbours(snv, cands, p.mixture_indel_exclusion_bp)
     by_pos: dict[tuple[str, int], int] = defaultdict(int)
     for c in snv:
         by_pos[(c.chrom, c.pos)] += 1
@@ -724,6 +759,7 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
                                p.em_tol, p.em_iter, p.min_weight, executor=pool, batch=threads)
         mix["status"] = "ESTIMATED"
         mix["informative_sites"] = len(thinned)
+        mix["snvs_excluded_near_indels"] = near_indel
         mix["bootstrap_basis"] = (f"{p.replicates} replicates (UNCALIBRATED_PROVISIONAL; "
                                   "release design uses 1999 and a precomputed surface)")
     else:
