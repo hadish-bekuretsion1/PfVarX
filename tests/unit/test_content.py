@@ -86,7 +86,19 @@ def test_catalogue_structure(tmp_path: Path) -> None:
     assert v.validate_catalog(_write(tmp_path / "a", good)).status == "PASS"
     rep = v.validate_catalog(_write(tmp_path / "b", "#status=X\nmarker_id\tgene_id\nm1\tg1\n"))
     assert rep.status == "FAIL" and "missing columns" in rep.findings[0].detail
-    assert v.validate_catalog(_write(tmp_path / "c", header + "m1\tg1\tk13\tchr1\t1\t1\t+\tC\tY\n")).status == "WARNING"
+    rep = v.validate_catalog(_write(tmp_path / "c", header + "m1\tg1\tk13\tchr1\t1\t1\t+\tC\tY\n"))
+    assert rep.status == "FAIL" and "three-letter" in rep.findings[0].detail
+    no_status = header + "m1\tg1\tk13\tchr1\t1\t1\t+\tCys\tTyr\n"
+    assert v.validate_catalog(_write(tmp_path / "d", no_status)).status == "WARNING"
+    shifted = "#status=X\n" + header + "m1\tg1\tk13\t\t\t446\t\t\tPhe\tIle\n"  # the old shipped layout
+    rep = v.validate_catalog(_write(tmp_path / "e", shifted))
+    assert rep.status == "FAIL" and "shifted" in rep.findings[0].detail
+
+
+def test_shipped_catalogue_is_well_formed() -> None:
+    repo = Path(__file__).resolve().parents[2]
+    rep = v.validate_catalog(repo / "config/registry/resistance_catalog_pfvarx_v1.tsv")
+    assert rep.status == "PASS" and rep.facts["markers"] == 26, rep.findings
 
 
 def test_folder_setting_picks_the_file_by_content(tmp_path: Path) -> None:

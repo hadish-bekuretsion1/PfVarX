@@ -5,6 +5,16 @@
 The release version was reset to 0.0.0 after 0.4.2, as the baseline for the first reviewed
 release. The sections below 0.0.0 are the earlier development numbering, kept as history.
 
+### Shipped resistance catalogue repaired
+
+- `config/registry/resistance_catalog_pfvarx_v1.tsv` had 12 fields per marker row under an
+  11-column header, so every value after `gene_name` sat one or more columns off (the codon
+  under `codon_start`, the wild-type amino acid under `alt_aa`). The 26 rows are rewritten into
+  their declared columns with unchanged values; the status stays DRAFT_REQUIRES_VERIFICATION.
+- Catalogue validation now fails a row whose field count differs from the header, a codon that
+  is not a whole number, or an amino acid that is not a three-letter code. A test keeps the
+  shipped catalogue well formed.
+
 ### Per-sample clonality report
 
 - Every run with variant calls writes `results/report/clonality_report.txt` and `.tsv`, and

@@ -291,14 +291,29 @@ def validate_catalog(path: Path) -> FileReport:
     meta: dict[str, str] = {}
     header: list[str] | None = None
     markers = 0
-    for line in path.read_text(errors="replace").splitlines():
+    amino_acids = {"Ala", "Arg", "Asn", "Asp", "Cys", "Gln", "Glu", "Gly", "His", "Ile", "Leu", "Lys", "Met",
+                   "Phe", "Pro", "Ser", "Thr", "Trp", "Tyr", "Val", "Stop"}
+    for i, line in enumerate(path.read_text(errors="replace").splitlines(), start=1):
         if line.startswith("#") and "=" in line:
             key, value = line[1:].split("=", 1)
             meta[key.strip()] = value.strip()
         elif line.strip() and header is None:
             header = line.split("\t")
-        elif line.strip():
+        elif line.strip() and header is not None:
             markers += 1
+            cells = line.split("\t")
+            if len(cells) != len(header):
+                rep.fail(Reason.CATALOG_MALFORMED, f"{len(cells)} fields but the header has {len(header)}; "
+                         "values are shifted out of their columns", i)
+                break
+            row = dict(zip(header, cells))
+            if "codon" in row and not row["codon"].isdigit():
+                rep.fail(Reason.CATALOG_MALFORMED, f"codon {row['codon']!r} is not a whole number", i)
+                break
+            bad = [row[c] for c in ("ref_aa", "alt_aa") if c in row and row[c] not in amino_acids]
+            if bad:
+                rep.fail(Reason.CATALOG_MALFORMED, f"amino acid {bad[0]!r} is not a three-letter code", i)
+                break
     missing = [c for c in CATALOG_COLUMNS if c not in (header or [])]
     if missing:
         rep.fail(Reason.CATALOG_MALFORMED, "missing columns: " + ", ".join(missing))
