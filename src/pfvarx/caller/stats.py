@@ -24,6 +24,8 @@ class ErrorFit(TypedDict):
     nonzero_sites: NotRequired[int]
     neg_log_lik: NotRequired[float]
     phi_bounds: NotRequired[list[float]]
+    variant_like_excluded: NotRequired[int]
+    truncation: NotRequired[list[float]]
 
 
 def betabinom_logpmf(y: np.ndarray, n: np.ndarray, mu: np.ndarray | float, phi: float) -> np.ndarray:
@@ -65,9 +67,24 @@ def betabinom_sf_log10(y: int, n: int, mu: float, phi: float) -> float:
     return float(-special.logsumexp(lp) / math.log(10))
 
 
+def _truncation_ymax(n: np.ndarray, exclude: tuple[int, float]) -> np.ndarray:
+    """Largest count kept at depth n when sites with >= min_reads and >= fraction are excluded."""
+    min_reads, fraction = exclude
+    return np.maximum(min_reads - 1, np.ceil(fraction * n) - 1).astype(int)
+
+
+def _log_kept_mass(un: np.ndarray, ymax: np.ndarray, mu: float, phi: float) -> np.ndarray:
+    """log P(Y <= ymax(n) | n) for each distinct depth (the truncation normaliser)."""
+    out = np.empty(len(un))
+    for i, (depth, top) in enumerate(zip(un, ymax, strict=True)):
+        k = np.arange(0, min(int(top), int(depth)) + 1)
+        out[i] = special.logsumexp(betabinom_logpmf(k, np.full(len(k), depth), mu, phi))
+    return out
+
+
 def fit_betabinom(y: np.ndarray, n: np.ndarray, trim_fraction: float,
                   init_mu: float, init_phi: float, phi_bounds: tuple[float, float] = (10.0, 1e7),
-                  min_nonzero_for_phi: int = 50) -> ErrorFit:
+                  min_nonzero_for_phi: int = 50, exclude: tuple[int, float] | None = None) -> ErrorFit:
     """ML fit of (mu, phi) on known-reference positions after trimming the upper tail.
 
     Trimming is rank-based among positions with y > 0 (zero-count positions are never
@@ -80,6 +97,14 @@ def fit_betabinom(y: np.ndarray, n: np.ndarray, trim_fraction: float,
     n = np.asarray(n, dtype=float)
     keep = n > 0
     y, n = y[keep], n[keep]
+    excluded = 0
+    if exclude is not None:
+        # Sites whose count looks like a real allele (>= min_reads and >= fraction of reads)
+        # are left out; the likelihood of the rest is truncated to match (see below). In a
+        # mixed infection this keeps minor-clone variants from inflating the error model.
+        variant_like = y > _truncation_ymax(n, exclude)
+        excluded = int(variant_like.sum())
+        y, n = y[~variant_like], n[~variant_like]
     if len(y) < 50 or y.sum() == 0:
         return {"mu": init_mu, "phi": init_phi, "n_sites": int(len(y)), "fitted": False,
                 "trimmed": 0, "reason": "too few sites or no error events"}
@@ -91,30 +116,46 @@ def fit_betabinom(y: np.ndarray, n: np.ndarray, trim_fraction: float,
         sel[order[:drop]] = False
     y, n = y[sel], n[sel]
     index = _unique_pairs(y, n)
+    depths, depth_inverse = np.unique(n, return_inverse=True)
+    ymax = _truncation_ymax(depths, exclude) if exclude is not None else depths.astype(int)
+
+    def truncated(total: float, mu: float, phi: float) -> float:
+        """Subtract each site's log P(Y <= ymax(n)): the truncated (censored-subset) likelihood."""
+        if exclude is None:
+            return total
+        return total - float(np.sum(_log_kept_mass(depths, ymax, mu, phi)[depth_inverse]))
 
     if len(nz) - drop < min_nonzero_for_phi:
         # Too few error events to identify overdispersion: shrink phi fully to the mode
         # default and estimate mu only (proposal: shrinkage toward phi(m)).
         res1 = optimize.minimize_scalar(
-            lambda t: -_sum_logpmf(y, n, special.expit(t), init_phi, index),
+            lambda t: -truncated(_sum_logpmf(y, n, special.expit(t), init_phi, index), special.expit(t), init_phi),
             bounds=(-18.0, 0.0), method="bounded")
-        return {"mu": float(special.expit(res1.x)), "phi": float(init_phi), "n_sites": int(len(y)),
-                "fitted": True, "trimmed": int(drop), "phi_source": "MODE_DEFAULT_SHRINKAGE",
-                "nonzero_sites": int(len(nz) - drop)}
+        shrunk: ErrorFit = {"mu": float(special.expit(res1.x)), "phi": float(init_phi), "n_sites": int(len(y)),
+                            "fitted": True, "trimmed": int(drop), "phi_source": "MODE_DEFAULT_SHRINKAGE",
+                            "nonzero_sites": int(len(nz) - drop)}
+        if exclude is not None:
+            shrunk["variant_like_excluded"] = excluded
+            shrunk["truncation"] = [float(exclude[0]), float(exclude[1])]
+        return shrunk
 
     def nll(theta: np.ndarray) -> float:
         mu = special.expit(theta[0])
         phi = math.exp(theta[1])
-        return -_sum_logpmf(y, n, mu, phi, index)
+        return -truncated(_sum_logpmf(y, n, mu, phi, index), mu, phi)
 
     start = np.array([special.logit(max(min(init_mu, 0.5), 1e-6)),
                       math.log(min(max(init_phi, phi_bounds[0]), phi_bounds[1]))])
     res = optimize.minimize(nll, start, method="L-BFGS-B",
                             bounds=[(-18.0, 0.0), (math.log(phi_bounds[0]), math.log(phi_bounds[1]))])
-    return {"mu": float(special.expit(res.x[0])), "phi": float(math.exp(res.x[1])),
-            "n_sites": int(len(y)), "fitted": bool(res.success), "trimmed": int(drop),
-            "neg_log_lik": float(res.fun), "phi_bounds": list(phi_bounds),
-            "phi_source": "SAMPLE_FIT", "nonzero_sites": int(len(nz) - drop)}
+    result: ErrorFit = {"mu": float(special.expit(res.x[0])), "phi": float(math.exp(res.x[1])),
+                        "n_sites": int(len(y)), "fitted": bool(res.success), "trimmed": int(drop),
+                        "neg_log_lik": float(res.fun), "phi_bounds": list(phi_bounds),
+                        "phi_source": "SAMPLE_FIT", "nonzero_sites": int(len(nz) - drop)}
+    if exclude is not None:
+        result["variant_like_excluded"] = excluded
+        result["truncation"] = [float(exclude[0]), float(exclude[1])]
+    return result
 
 
 def profile_interval(y: int, n: int, eps: float, phi: float, level: float) -> tuple[float, float, float]:

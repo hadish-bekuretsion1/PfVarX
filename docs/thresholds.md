@@ -110,6 +110,15 @@ PfVarX-Call. No external publication can supply them. They stay
 (2 reads), the pair-HMM read cap (200) and flank (60 bp), and the shortest focal callability
 loss reported (50 bp).
 
+The error model leaves out of its fit any position where a non-reference allele has at least
+2 reads and at least 5% of reads (`error_fit_exclude_fraction`), and corrects for this with a
+truncated likelihood. Without it, minor-clone variants in mixed infections inflated the error
+model and were screened out (on synthetic 40× mixtures, 3% of minor-clone variants were
+called before and 85% after). Mixture-constrained calling (`mixture_constrained_calling`) is
+implemented but off: after the error-model fix it added 34–75 true and 4–17 false calls on
+the same mixtures, depending on its threshold, and needs indel-adjacent artefacts handled
+first.
+
 ## Stage 3 — cohort evidence
 
 | State at a cohort site | Rule | Source |

@@ -74,3 +74,23 @@ def test_negligible_component_collapses_to_smaller_k() -> None:
     r = mixture.select_k(y, n, 3e-4, 500.0, 2, 0.05, 39, 17, 4, 1e-4, 1e-8, 300, min_weight=0.05)
     assert r["k_selected"] == 1
     assert all(c["min_weight"] < 0.05 for c in r["boundary_collapses"])
+
+
+def test_error_fit_survives_minor_clone_variants() -> None:
+    """In a mixed infection, minor-clone variants sit among 'reference' positions. Without
+    exclusion they inflate the error model (phi collapses to the bound and real variants are
+    screened out); with exclusion and a truncated likelihood the fit recovers the error rate."""
+    import numpy as np
+
+    from pfvarx.caller.stats import fit_betabinom
+
+    rng = np.random.default_rng(1)
+    n = rng.poisson(30, 200_000) + 1
+    y = rng.binomial(n, 1e-3)  # sequencing error only
+    minor = rng.choice(len(n), 600, replace=False)
+    y[minor] = rng.binomial(n[minor], 0.2)  # a 20% minor clone's variants
+    naive = fit_betabinom(y, n, 0.025, 5e-3, 200.0)
+    robust = fit_betabinom(y, n, 0.025, 5e-3, 200.0, exclude=(2, 0.05))
+    assert naive["phi"] < 100  # collapsed: errors look wildly over-dispersed
+    assert robust["phi"] > 1000 and abs(robust["mu"] - 1e-3) < 2e-4, robust
+    assert robust["variant_like_excluded"] >= 500

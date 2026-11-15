@@ -43,7 +43,7 @@ verified; no automatic cluster/container deployment claim is made.
 | Resistance catalogue | Shipped catalogue is DRAFT_REQUIRES_VERIFICATION; real DA002 is blocked until a maintainer independently verifies a matching catalogue. TEST_FIXTURE catalogues are only for software tests. |
 | Caller error model | Reduced substitution/homopolymer classes and fitted dispersion; full covariate/random-effect model is not implemented. |
 | Haplotypes | Local reference/alternative pair-HMM and linkage blocks; bounded combinatorial enumeration and pass-two mixture factor remain proposed extensions. |
-| Mixture K | Technical DNA-mixture count, not biological COI. Analysis fallback bootstrap count is provisional; precomputed critical-value surface is not implemented. |
+| Mixture K | Technical DNA-mixture count, not biological COI. A few false low-fraction SNVs next to true indels (alignment artefacts) can make a single-clone sample fit 2–3 components (3 of 6 synthetic single-clone samples); robust site selection is still to be implemented. Analysis fallback bootstrap count is provisional; precomputed critical-value surface is not implemented. |
 | WSAF | Profile-likelihood intervals; representation-bias correction remains unimplemented. |
 | Clonality | MOIRE implemented, descriptive FWS retained; THE REAL McCOIL and DEploid remain unimplemented alternatives. MCMC settings/convergence require scientific review. |
 | Relatedness | hmmIBD/Dcifer implemented; isoRelate is not included. WGS pairs need 200 informative markers (Taylor 2019); the targeted minimum of 20 is provisional, and pairs below 200 are reported as low precision without a label. |

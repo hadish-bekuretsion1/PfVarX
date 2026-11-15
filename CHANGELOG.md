@@ -5,6 +5,21 @@
 The release version was reset to 0.0.0 after 0.4.2, as the baseline for the first reviewed
 release. The sections below 0.0.0 are the earlier development numbering, kept as history.
 
+### Error model robust to mixed infections
+
+- In mixed infections, minor-clone variants among the "reference" positions inflated the
+  per-sample error model (dispersion phi fell from thousands to the bound of 10), so real
+  variants were screened out. The fit now leaves out positions with a non-reference allele
+  on at least 2 reads and at least 5% of reads, with a truncated likelihood
+  (`error_fit_exclude_fraction`). On synthetic 40× cohorts with known truth, minor-clone
+  recall rose from 25 of 839 to 715 of 839, majority-clone recall in mixed samples recovered
+  (PF008: 55 to 383 of 395), precision rose from 95.8% to 96.8%, and the mixture weights moved
+  to the truth (70/30: 79.5/20.5 to 71/29; 50/30/20: 91.8/8.2 to 54.7/25.4/19.9). Results
+  change for every sample; rerun earlier studies with this version.
+- Mixture-constrained calling is implemented and off by default
+  (`mixture_constrained_calling`, `mixture_constrained_min_log10_lr`); when on, records
+  carry MCF, MCLR and MCP. The 500 bp mixture-site spacing is now a parameter.
+
 ### Faster caller with identical results
 
 - Profiling a real 29× sample showed the mixture bootstrap (58%), read evidence (22%), indel

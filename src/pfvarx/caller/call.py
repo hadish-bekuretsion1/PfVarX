@@ -79,6 +79,9 @@ class Candidate:
     lhid: str = "."
     lhwin: str = "."
     pairhmm_reads: int = 0
+    mcf: float | None = None  # matched clone fraction (mixture-constrained calling)
+    mclr: float | None = None  # log10 LR: allowed clone fraction versus sequencing error
+    mc_promoted: bool = False
 
 
 @dataclass
@@ -111,6 +114,10 @@ class Params:
     pairhmm_max_reads: int = 200
     pairhmm_flank_bp: int = 60
     focal_min_length_bp: int = 50
+    mixture_site_spacing_bp: int = 500
+    constrained_calling: bool = False
+    constrained_min_log10_lr: float = 10.0
+    error_fit_exclude_fraction: float | None = None
 
     @classmethod
     def from_frozen(cls, eff: dict[str, Any]) -> Params:
@@ -132,7 +139,12 @@ class Params:
                    candidate_min_alt_reads=int(p.get("candidate_min_alt_reads", 2)),
                    pairhmm_max_reads=int(p.get("pairhmm_max_reads", 200)),
                    pairhmm_flank_bp=int(p.get("pairhmm_flank_bp", 60)),
-                   focal_min_length_bp=int(p.get("focal_loss_min_length_bp", 50)))
+                   focal_min_length_bp=int(p.get("focal_loss_min_length_bp", 50)),
+                   mixture_site_spacing_bp=int(p.get("mixture_site_spacing_bp", 500)),
+                   constrained_calling=bool(p.get("mixture_constrained_calling", False)),
+                   constrained_min_log10_lr=float(p.get("mixture_constrained_min_log10_lr", 10.0)),
+                   error_fit_exclude_fraction=(None if p.get("error_fit_exclude_fraction") is None
+                                               else float(p["error_fit_exclude_fraction"])))
 
 
 def homopolymer_after(seq: str, i: int) -> int:
@@ -266,12 +278,13 @@ def fit_error_model(evs: dict[str, Evidence], seqs: dict[str, str], p: Params,
             iy[c].append(ev.indel[sel])
             inn[c].append(ev.n[sel])
     y, n = np.concatenate(ys) if ys else np.array([]), np.concatenate(ns) if ns else np.array([])
-    snv = fit_betabinom(y, n, p.trim, p.eps0, p.phi0)
+    truncation = None if p.error_fit_exclude_fraction is None else (p.min_fragments, p.error_fit_exclude_fraction)
+    snv = fit_betabinom(y, n, p.trim, p.eps0, p.phi0, exclude=truncation)
     indel = {}
     for c in range(len(TRACT_CLASSES)):
         yy = np.concatenate(iy[c]) if iy[c] else np.array([])
         nn = np.concatenate(inn[c]) if inn[c] else np.array([])
-        f = fit_betabinom(yy, nn, p.trim, p.eps0 / 5, p.phi0)
+        f = fit_betabinom(yy, nn, p.trim, p.eps0 / 5, p.phi0, exclude=truncation)
         f["mu"] = max(f["mu"], 1e-6)
         indel[str(c)] = f
     return {"snv_any": snv, "indel_by_tract_class": indel,
@@ -461,8 +474,62 @@ def write_bed(path: Path, iv: dict[str, list[tuple[int, int]]]) -> None:
                 h.write(f"{chrom}\t{s}\t{e}\n")
 
 
+def allowed_fractions(weights: list[float]) -> list[float]:
+    """DNA fractions a real variant can have: the summed weight of any non-empty set of clones."""
+    import itertools
+
+    sums = {round(sum(combo), 12) for r in range(1, len(weights) + 1)
+            for combo in itertools.combinations(weights, r)}
+    return sorted(min(1.0, s) for s in sums)
+
+
+def constrained_score(c: Candidate, model: dict[str, Any], fractions: list[float]) -> tuple[float, float]:
+    """Best allowed clone fraction for *c* and log10 LR of that fraction against sequencing
+    error alone (the error rate of the candidate's class, as in ``decide``)."""
+    if c.kind == "SNV":
+        eps, phi = model["snv_any"]["mu"] / 3.0, model["snv_any"]["phi"]
+    else:
+        m = model["indel_by_tract_class"][str(tract_class(c.tract))]
+        eps, phi = m["mu"], m["phi"]
+    eps = min(eps, 0.25)
+    from pfvarx.caller.stats import betabinom_logpmf
+
+    y, n = np.array([float(c.y)]), np.array([float(c.n)])
+    null = float(betabinom_logpmf(y, n, eps, phi)[0])
+    mus = np.array([f * (1 - eps) + (1 - f) * eps for f in fractions])
+    alt = betabinom_logpmf(np.full(len(mus), float(c.y)), np.full(len(mus), float(c.n)), mus, phi)
+    best = int(np.argmax(alt))
+    return fractions[best], float((alt[best] - null) / math.log(10))
+
+
+def apply_constrained_calling(cands: list[Candidate], model: dict[str, Any], weights: list[float],
+                              p: Params) -> dict[str, Any]:
+    """Mixture-constrained calling (pass-two mixture factor).
+
+    A real variant's DNA fraction must equal the summed weight of the clones that carry it;
+    sequencing errors follow no such rule. Each PASS or LOW_CONFIDENCE candidate is scored by
+    the likelihood ratio of its best allowed clone fraction against error alone. A
+    LOW_CONFIDENCE candidate whose ratio reaches the threshold, with enough supporting reads,
+    becomes PASS. Candidates that are filtered, under-covered or in excluded context are left
+    alone; PASS calls are only annotated, never demoted."""
+    fractions = allowed_fractions(weights)
+    promoted = 0
+    for c in cands:
+        if c.status not in (CallStatus.PASS, CallStatus.LOW_CONFIDENCE) or c.n <= 0:
+            continue
+        c.mcf, c.mclr = constrained_score(c, model, fractions)
+        if (c.status == CallStatus.LOW_CONFIDENCE and c.mclr >= p.constrained_min_log10_lr
+                and c.y >= p.min_fragments):
+            c.status = CallStatus.PASS.value
+            c.mc_promoted = True
+            promoted += 1
+    return {"enabled": True, "allowed_fractions": fractions, "min_log10_lr": p.constrained_min_log10_lr,
+            "promoted_to_pass": promoted, "label": "UNCALIBRATED_PROVISIONAL until benchmarked"}
+
+
 def write_vcf(path: Path, sample: str, cands: list[Candidate], fasta: pysam.FastaFile,
-              contig_md5: dict[str, str], model: dict[str, Any], calibration: str) -> None:
+              contig_md5: dict[str, str], model: dict[str, Any], calibration: str,
+              constrained: bool = False) -> None:
     lines = [
         "##fileformat=VCFv4.3",
         f"##source=PfVarX-Call {__version__}",
@@ -492,6 +559,11 @@ def write_vcf(path: Path, sample: str, cands: list[Candidate], fasta: pysam.Fast
         '##FORMAT=<ID=WSAFCOR,Number=1,Type=String,Description="Representation-bias correction state">',
         '##FORMAT=<ID=LHID,Number=1,Type=String,Description="Local haplotype (read-backed linkage block) id">',
         '##FORMAT=<ID=LHWIN,Number=1,Type=String,Description="Window (contig_start-end, 1-based) within which the haplotype claim holds">',
+        *([
+            '##FORMAT=<ID=MCF,Number=1,Type=Float,Description="Allowed clone fraction that best explains the reads (mixture-constrained calling)">',
+            '##FORMAT=<ID=MCLR,Number=1,Type=Float,Description="log10 likelihood ratio of MCF against sequencing error">',
+            '##FORMAT=<ID=MCP,Number=1,Type=Integer,Description="1 if mixture-constrained calling promoted the record to PASS">',
+        ] if constrained else []),
         "#CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO\tFORMAT\t" + sample,
     ]
     for c in sorted(cands, key=lambda c: (fasta.references.index(c.chrom), c.pos, c.alt)):
@@ -504,6 +576,10 @@ def write_vcf(path: Path, sample: str, cands: list[Candidate], fasta: pysam.Fast
         fmt = "GT:AD:DP:PST:WSAF:WSAFLO:WSAFHI:WSAFCOR:LHID:LHWIN"
         val = (f"{gt}:{c.n - c.y},{c.y}:{c.n}:{c.status}:{c.wsaf:.4f}:{c.wsaf_lo:.4f}:{c.wsaf_hi:.4f}"
                f":UNCORRECTED:{c.lhid}:{c.lhwin}")
+        if constrained:
+            fmt += ":MCF:MCLR:MCP"
+            val += (":." if c.mcf is None else f":{c.mcf:.4f}") + (":." if c.mclr is None else f":{c.mclr:.2f}")
+            val += f":{int(c.mc_promoted)}"
         lines.append(f"{c.chrom}\t{c.pos + 1}\t.\t{c.ref}\t{c.alt}\t{qual}\t{filt}\t{info}\t{fmt}\t{val}")
     path.write_text("\n".join(lines) + "\n")
 
@@ -636,7 +712,7 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
     snv = [c for c in snv if by_pos[(c.chrom, c.pos)] == 1]
     thinned: list[Candidate] = []
     for c in snv:
-        if not thinned or thinned[-1].chrom != c.chrom or c.pos - thinned[-1].pos >= 500:
+        if not thinned or thinned[-1].chrom != c.chrom or c.pos - thinned[-1].pos >= p.mixture_site_spacing_bp:
             thinned.append(c)
     mix: dict[str, Any]
     _progress(f"decisions and linkage done; mixture model on {len(thinned)} sites")
@@ -656,9 +732,17 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
     _progress("mixture model selected")
     if pool is not None:
         pool.shutdown()
+    if p.constrained_calling:
+        if mix["status"] == "ESTIMATED":
+            mix["constrained_calling"] = apply_constrained_calling(cands, model, mix["fit"]["weights"], p)
+            _progress(f"mixture-constrained calling promoted {mix['constrained_calling']['promoted_to_pass']} "
+                      "candidate(s) to PASS")
+        else:
+            mix["constrained_calling"] = {"enabled": True, "applied": False,
+                                          "reason": "no mixture estimate for this sample"}
     calibration = "UNCALIBRATED"
     out_vcf = Path(args.out_vcf)
-    write_vcf(out_vcf, args.sample, cands, fasta, md5, model, calibration)
+    write_vcf(out_vcf, args.sample, cands, fasta, md5, model, calibration, p.constrained_calling)
     write_bed(Path(args.out_callable), callable_iv)
     write_bed(Path(args.out_focal), focal)
     cols = ["chrom", "pos", "ref", "alt", "kind", "y", "n", "alt_f", "alt_r", "ref_f", "ref_r",
