@@ -47,6 +47,28 @@ def load_catalog(path: Path) -> tuple[dict[str, str], list[dict[str, str]]]:
     return meta, rows
 
 
+def catalog_path(ctx: Context) -> Path:
+    return ctx.root / (ctx.eff["config"]["analyses"].get("resistance_catalog")
+                       or "config/registry/resistance_catalog_pfvarx_v1.tsv")
+
+
+def codon_positions(ctx: Context, markers: list[dict[str, str]]) -> list[list[int]]:
+    """0-based genomic positions of each marker codon (empty when it cannot be placed).
+    Sets the marker's chrom and strand when they come from the GFF."""
+    gff = ctx.root / ctx.eff["config"]["reference"]["gff"] if ctx.eff["config"]["reference"].get("gff") else None
+    out: list[list[int]] = []
+    for m in markers:
+        if m.get("codon_start"):
+            st = int(m["codon_start"]) - 1
+            out.append([st, st + 1, st + 2] if m.get("strand", "+") == "+" else [st + 2, st + 1, st])
+        elif gff is not None and (res := resolve_codon(gff, m["gene_id"], int(m["codon"]))):
+            m["chrom"], positions, m["strand"] = res
+            out.append(positions)
+        else:
+            out.append([])
+    return out
+
+
 def resolve_codon(gff: Path, gene_id: str, codon: int) -> tuple[str, list[int], str] | None:
     """Genomic 0-based positions of a codon from GFF3 CDS features (handles strand and exons)."""
     cds: list[tuple[str, int, int, str]] = []
@@ -101,8 +123,7 @@ def run(ctx: Context, threads: int = 1) -> None:
     dec = decisions(ctx)["analyses"]["DA002"]
     eligible = sorted({s for c in dec["scales"].values() for s in c["eligible"]})
     excluded = {"INELIGIBLE": sorted(set(ctx.samples) - set(eligible))}
-    cat_path = ctx.root / (ctx.eff["config"]["analyses"].get("resistance_catalog")
-                           or "config/registry/resistance_catalog_pfvarx_v1.tsv")
+    cat_path = catalog_path(ctx)
     meta, markers = load_catalog(cat_path)
     status = meta.get("status", "UNKNOWN")
     if status not in ("MAINTAINER_VERIFIED", "TEST_FIXTURE"):
@@ -117,17 +138,7 @@ def run(ctx: Context, threads: int = 1) -> None:
     min_mapq = int(ctx.eff["parameters"]["layer2.min_mapping_quality"]["value"])
     min_bq = int(ctx.eff["parameters"]["layer2.min_base_quality"]["value"])
     floor, mixed_thr = float(p["da002_reporting_floor"]), float(p["da002_mixed_threshold"])
-    gff = ctx.root / ctx.eff["config"]["reference"]["gff"] if ctx.eff["config"]["reference"].get("gff") else None
-    marker_positions: list[list[int]] = []
-    for m in markers:
-        if m.get("codon_start"):
-            st = int(m["codon_start"]) - 1
-            marker_positions.append([st, st + 1, st + 2] if m.get("strand", "+") == "+" else [st + 2, st + 1, st])
-        elif gff is not None and (res := resolve_codon(gff, m["gene_id"], int(m["codon"]))):
-            m["chrom"], positions, m["strand"] = res
-            marker_positions.append(positions)
-        else:
-            marker_positions.append([])
+    marker_positions = codon_positions(ctx, markers)
     calls: list[dict[str, Any]] = []
     for sid in eligible:
         with pysam.AlignmentFile(str(ctx.results / "alignments" / f"{sid}.bam")) as bam:
@@ -182,7 +193,8 @@ def run(ctx: Context, threads: int = 1) -> None:
                                   else Terminal.COMPLETED).value,
                    reason_codes=[], requested=ctx.samples, eligible=eligible, excluded=excluded, analysed=eligible,
                    outputs=[out / "marker_calls.tsv", out / "prevalence.tsv", out / "catalog_provenance.json"],
-                   caveats=caveats, method={"catalog": meta, "min_codon_reads": min_depth, "reporting_floor": floor,
+                   caveats=caveats, method={"catalog": meta, "min_codon_reads": min_depth,
+                           "count_unit": sorted({(s.get("assay") or {}).get("count_unit", "reads") for s in ctx.plan["samples"]}), "reporting_floor": floor,
                                             "mixed_threshold": mixed_thr, "interval": "Wilson (simple random sampling)"},
                    results_summary={"marker_calls": len(calls), "unknown_calls": unknown})
 

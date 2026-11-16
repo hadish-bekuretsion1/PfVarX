@@ -5,6 +5,43 @@
 The release version was reset to 0.0.0 after 0.4.2, as the baseline for the first reviewed
 release. The sections below 0.0.0 are the earlier development numbering, kept as history.
 
+### Assay design selects the branch; libraries are described per sample (config schema 4)
+
+- `assay_design` (`wgs`, `targeted_umi`, `targeted_no_umi`) is the one run setting that
+  selects the processing branch, for FASTQ and for BAM/CRAM entry. `assay.sequencing_type`,
+  `assay.amplification_route`, `assay.read_structure`, `assay.targets_bed` and
+  `assay.primers_tsv` are no longer run settings: paired-end short-read genomic DNA is fixed.
+- New optional manifest columns: `technique` (`WGS`, `SELECTIVE_WGS`, `AMPLICON`,
+  `TBS_UMI`, `TBS_NON_UMI`; empty or `null` = unspecified), `amplification_route`
+  (`DIRECT`, `SWGA`, `AMPLICON`, provenance), `panel_id` + `panel_version`,
+  `library_protocol_id` and, for imported alignments, `processing_state`. Labels, routes,
+  protocols and panels must agree with each other and the design; conflicts fail input
+  validation for the affected sample, naming the sample and library. `SELECTIVE_WGS`
+  records `SWGA`; direct and sWGA WGS share the WGS branch.
+- New library catalog (`assay.library_catalog`, `pfvarx.library_catalog/1`): panels (targets
+  BED, primers or probes) and library protocols (technique, route, UMI read structure and
+  consensus settings, falling back to `layer1.yaml`). Required for targeted designs; one
+  panel per run. Template: `config/templates/library_catalog.yaml`, placed by `init`.
+- Imported BAM/CRAM files run only the steps their documented state still needs: WGS
+  `aligned` marks duplicates; `targeted_no_umi` `aligned` trims primers; `targeted_umi`
+  `aligned` (raw reads with RX UMIs) groups, builds consensus, realigns and trims, while
+  `consensus` only trims (consensus is not generated again). Before schema 4, targeted
+  imports without a TrimPrimers record were rejected and UMI imports were taken as finished.
+  The documented state is checked against the reads (fgbio `cD` consensus tags, `RX` UMI
+  tags) and `@PG`; a contradiction is rejected. UMI BAM entry now gets the aligner index.
+- Read counts and UMI consensus-molecule counts are distinguished: `count_unit` in caller QC,
+  QC decisions and DA002, and `##PfVarX_count_unit=` in each per-sample VCF.
+- Eligibility comes from the panel and callable evidence (rule version 1.1.0, registry
+  2.1.0): DA002 needs a catalogue codon in the territory (`PANEL_LACKS_MARKERS`) and one
+  callable per sample (`NO_CALLABLE_MARKERS`); DA005 and DA006 are open to panels with at
+  least 10 separate target regions (`da005_min_independent_loci`,
+  `da006_min_independent_loci`, provisional), with a caveat that panel loci are linked.
+- Migration: `./pfvarx config-migrate [--apply]` (and saving in the GUI) moves a schema-3
+  workspace to schema 4, writing the catalog and filling empty manifest cells, with
+  `.before-config4` backups. Schema-3 configs are refused with that instruction; runs frozen
+  under schema 3 still resume and report. 24 missing Pixi environments (targeted with
+  structure or phylogeny) were added; the 91 existing environments are unchanged.
+
 ### Second end-to-end audit
 
 Scientific corrections:

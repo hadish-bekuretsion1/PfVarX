@@ -26,7 +26,9 @@ from pfvarx.configuration.loader import (
     sha256_text,
     validate_bundle,
 )
+from pfvarx.configuration.migrate import migrate_workspace, plan_v3
 from pfvarx.configuration.models import Bundle
+from pfvarx.constants import Design
 from pfvarx.execution.retention import workspace_lock
 from pfvarx.initialization.layout import check_release_label, create_input_dirs, required_dirs
 from pfvarx.inputs.transfer import check_content, destination_for, download, folder_contents
@@ -48,14 +50,17 @@ def editor_state(root: Path, purpose: str) -> dict[str, Any]:
         path = root / rel
         parsed[name] = read_yaml(path if path.is_file() else root / f"config/templates/{templates[name]}.yaml")
     project = migrate_project(parsed["config"])
+    migration_needed = project.get("schema_version") == "pfvarx.config/3"
+    if migration_needed:
+        # Show the schema-4 form; saving migrates the catalog and manifest first (config-migrate).
+        project = plan_v3(project)[0]
     installation = root / "config/installation.json"
     if installation.is_file() and not (root / USER_FILES["config"]).is_file():
         meta = read_json(installation)
         project.update(final_output=meta["max_final_output"], input_type=meta.get("input_type", "FASTQ"))
-        project["assay"]["design"] = meta["design"]
-        if meta["design"] != "WGS":
-            project["assay"].update(amplification_route="AMPLICON", targets_bed="inputs/targets/targets.bed",
-                                    primers_tsv="inputs/targets/primers.tsv")
+        project["assay_design"] = Design.parse(meta["design"]).value
+        if Design.parse(meta["design"]).targeted:
+            project["assay"]["library_catalog"] = "inputs/metadata/library_catalog.yaml"
         if meta.get("auto_analyses"):
             project["analyses"]["selection"] = "auto"
         else:
@@ -70,6 +75,7 @@ def editor_state(root: Path, purpose: str) -> dict[str, Any]:
     parsed["config"] = project
     return {
         "values": parsed, "schema": Bundle.model_json_schema(), "revision": revision(root),
+        "migration_needed": migration_needed,
         "installation": read_json(installation) if installation.is_file() else None,
         "input_folders_created": (root / "inputs").is_dir(),
         "field_guide": read_json(Path(__file__).with_name("gui") / "field-guide.json"),
@@ -89,6 +95,13 @@ def save(root: Path, values: dict[str, Any], expected: str, replace: bool) -> di
         current = revision(root)
         if current != expected:
             raise ValueError("Configuration changed since this form loaded. Reload the page.")
+        migration = None
+        on_disk = within(root, USER_FILES["config"])
+        if on_disk.is_file() and migrate_project(read_yaml(on_disk)).get("schema_version") == "pfvarx.config/3":
+            # Same step as './pfvarx config-migrate --apply': library catalog and manifest columns.
+            migration = migrate_workspace(root, apply=True)
+            if migration["status"] == "BLOCKED":
+                raise ValueError(migration["detail"])
         # Check every destination before creating any files or directories.
         destinations = {name: within(root, rel) for name, rel in USER_FILES.items()}
         input_dirs = [within(root, rel) for rel in dirs]
@@ -128,7 +141,7 @@ def save(root: Path, values: dict[str, Any], expected: str, replace: bool) -> di
                     destinations[name].unlink()
             raise
         return {"directories": dirs, "saved": [USER_FILES[name] for name in changes],
-                "backups": backups, "revision": revision(root)}
+                "backups": backups, "revision": revision(root), "migration": migration}
 
 
 PREFLIGHT_STAGES = ("validate", "prepare", "verify-prepared", "ready")

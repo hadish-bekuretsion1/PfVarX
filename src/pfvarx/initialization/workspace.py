@@ -8,6 +8,7 @@ from typing import Any
 import yaml
 
 from pfvarx.configuration.loader import load_bundle
+from pfvarx.constants import Design
 from pfvarx.initialization.layout import config_init, init_inputs
 from pfvarx.io import read_json, write_json
 
@@ -22,15 +23,11 @@ def initialize(root: Path, *, config_only: bool = False) -> dict[str, Any]:
         config = yaml.safe_load(config_path.read_text())
         config["final_output"] = metadata["max_final_output"]
         config["input_type"] = metadata.get("input_type", "FASTQ")
-        config["assay"]["design"] = metadata["design"]
-        if metadata["design"] != "WGS":
-            config["assay"].update(
-                amplification_route="AMPLICON",
-                targets_bed="inputs/targets/targets.bed",
-                primers_tsv="inputs/targets/primers.tsv",
-            )
-        if metadata["design"] == "TARGETED_UMI":
-            config["assay"]["read_structure"] = "8M+T 8M+T"
+        design = Design.parse(metadata["design"])
+        config["assay_design"] = design.value
+        if design.targeted:
+            # Panels and UMI protocols live in the library catalog (written with the input folders).
+            config["assay"]["library_catalog"] = "inputs/metadata/library_catalog.yaml"
         if metadata["analyses_requested"]:
             from pfvarx.configuration.loader import LEGACY_IDS
 

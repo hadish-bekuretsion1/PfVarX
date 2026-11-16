@@ -85,6 +85,15 @@ def config_init(purpose: str = typer.Option(..., "--purpose", help="analysis | b
     emit({"created": [str(p.relative_to(root)) for p in guard(lambda: ci(root, purpose))]})
 
 
+@app.command("config-migrate")
+def config_migrate(apply: bool = typer.Option(False, "--apply", help="write the changes (default: report only)")) -> None:
+    """Move a schema-3 configuration to schema 4 (assay_design, library catalog, manifest columns)."""
+    from pfvarx.configuration.migrate import migrate_workspace
+
+    res = guard(lambda: migrate_workspace(_root(), apply=apply))
+    emit(res, 1 if res["status"] == "BLOCKED" else 0)
+
+
 @app.command()
 def init() -> None:
     """Create purpose- and assay-specific input folders only."""
@@ -213,7 +222,7 @@ def status() -> None:
 
 
 @app.command()
-def fixture(design: str = typer.Option("WGS", "--design"), purpose: str = typer.Option("analysis", "--purpose"),
+def fixture(design: str = typer.Option("wgs", "--design", help="wgs | targeted_umi | targeted_no_umi"), purpose: str = typer.Option("analysis", "--purpose"),
             depth: int = typer.Option(40, "--depth"), seed: int = typer.Option(7, "--seed"),
             n_mono: int = typer.Option(6, "--n-mono"), n_poly: int = typer.Option(3, "--n-poly"),
             low_depth_sample: bool = typer.Option(False, "--low-depth-sample"),

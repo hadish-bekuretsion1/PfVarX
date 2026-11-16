@@ -10,9 +10,12 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 
+from pfvarx.constants import Design
 from pfvarx.io import read_tsv, write_json
 
 MANIFEST_SCHEMA = "pfvarx.analysis_status/1"
+PANEL_CAVEAT = ("Targeted panel: only the panel's target regions are analysed, and sites within one "
+                "amplicon or target region are linked, so the result describes the panel loci, not the genome.")
 
 
 @dataclass
@@ -38,6 +41,12 @@ class Context:
 
     def gate(self, sample: str) -> dict[str, Any]:
         return json.loads((self.results / "qc" / "samples" / sample / "qc_decision.json").read_text())
+
+    @property
+    def design(self) -> Design:
+        """The run's assay design (runs frozen before config schema 4 recorded assay.design)."""
+        cfg = self.eff["config"]
+        return Design.parse(self.plan.get("design") or cfg.get("assay_design") or cfg["assay"]["design"])
 
 
 def load_context(root: Path, run: Path, with_matrix: bool = True) -> Context:

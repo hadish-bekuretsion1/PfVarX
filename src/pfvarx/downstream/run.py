@@ -89,11 +89,16 @@ def run_eligibility(ctx: Context) -> None:
         except FileNotFoundError:
             gate = {"verdict": "NOT_EVALUATED", "permitted": {}}
         processing = "COMPLETED" if sid in ctx.samples else "BLOCKED_UPSTREAM"
-        states[sid] = SampleState(sample_id=sid, design=ctx.eff["config"]["assay"]["design"], qc=gate,
+        states[sid] = SampleState(sample_id=sid, design=ctx.design.value, qc=gate,
                                   clonality=(clon or {}).get(sid) if clon is not None else None,
                                   metadata=ctx.metadata.get(sid, {}), processing=processing)
     scales = ctx.eff["config"]["analyses"]["scales"]
+    from pfvarx.eligibility.territory import callable_markers, describe
+
+    territory = describe(ctx)
     run_ctx = {"run_id": ctx.run.name, "project_id": ctx.eff["config"]["project_id"],
+               "territory": territory,
+               "callable_markers": {sid: callable_markers(ctx, sid, territory) for sid in ctx.samples},
                "policy_version": ctx.eff["quality"]["policy_id"],
                "population_column": ctx.eff["config"]["analyses"]["population_column"],
                "run_policy": ctx.eff["config"]["run_policy"]}

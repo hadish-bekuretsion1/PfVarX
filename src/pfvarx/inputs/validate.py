@@ -469,6 +469,29 @@ def _validate_alignment(path: Path, contigs: dict[str, dict[str, Any]], referenc
     return rep
 
 
+def alignment_state_evidence(path: Path, reference: Path, reads: int = 2000) -> dict[str, Any]:
+    """What an imported alignment shows about its processing: @PG programs, and whether the
+    first mapped reads carry fgbio consensus tags (cD) or raw UMI tags (RX)."""
+    import pysam
+
+    with pysam.AlignmentFile(str(path), reference_filename=str(reference)) as aln:
+        programs = [pg.get("PN", pg.get("ID", "")) for pg in aln.header.to_dict().get("PG", [])]
+        seen = consensus = umi = 0
+        for read in aln.fetch(until_eof=True):
+            if read.is_unmapped or read.is_secondary or read.is_supplementary:
+                continue
+            seen += 1
+            consensus += read.has_tag("cD")
+            umi += read.has_tag("RX")
+            if seen >= reads:
+                break
+    return {"programs": programs, "reads_inspected": seen, "consensus_tagged": consensus, "umi_tagged": umi,
+            "trim_primers_recorded": any("TrimPrimers" in p for p in programs),
+            "consensus_recorded": any("CallMolecularConsensusReads" in p or "CallDuplexConsensusReads" in p
+                                      for p in programs),
+            "duplicates_marked_recorded": any("MarkDuplicates" in p or "markdup" in p.lower() for p in programs)}
+
+
 REQUIRED_SAMPLE_COLUMNS = {"sample_id", "lane", "library_id"}
 
 

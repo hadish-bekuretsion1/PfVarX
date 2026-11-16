@@ -14,7 +14,7 @@ from typing import Any
 import numpy as np
 
 from pfvarx.constants import Reason, Terminal
-from pfvarx.downstream.common import Context, decisions, write_manifest
+from pfvarx.downstream.common import PANEL_CAVEAT, Context, decisions, write_manifest
 from pfvarx.downstream.diversity import dominant
 from pfvarx.io import write_json, write_tsv
 
@@ -79,7 +79,8 @@ def run(ctx: Context, threads: int = 1) -> None:
                    reason_codes=[], requested=ctx.samples, eligible=eligible, excluded=excluded, analysed=eligible,
                    outputs=[out / "pca.tsv", out / "fst.tsv", out / "pca_model.json"],
                    caveats=["Polyclonal samples are represented by their dominant allele.",
-                            "PCA axes describe the analysed samples only; filtering in the dashboard does not refit."],
+                            "PCA axes describe the analysed samples only; filtering in the dashboard does not refit."]
+                   + ([PANEL_CAVEAT] if ctx.design.targeted else []),
                    method={"tool": "scikit-allel", "ploidy": 1, "scaler": "patterson",
                            "ld": {"size": p["da005_ld_window"], "step": p["da005_ld_step"], "r2": p["da005_ld_threshold"]}},
                    results_summary=json.loads(json.dumps({"fst_pairs": len(fst_rows)})))

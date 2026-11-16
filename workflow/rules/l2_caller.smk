@@ -15,6 +15,8 @@ rule pfvarx_call:
         core=CORE,
         frozen=FROZEN,
         unreliable=str(ROOT / "config" / "registry" / "context_unreliable.bed"),
+        # What AD/DP count: sequenced reads, or UMI consensus molecules (targeted_umi).
+        unit=lambda wc: count_unit(wc.sample),
     # Chromosomes, indel rescoring and bootstrap replicates run in parallel; results do not
     # depend on the thread count. Measured on a 29x WGS sample (20.8 Mb core): 579 s and 3.6 GB
     # with 8 workers, 474 s and 3.8 GB with 24. Memory is set by the genome, not the workers,
@@ -32,7 +34,8 @@ rule pfvarx_call:
         "python -m pfvarx.caller_adapter --bam {input.bam:q} --reference {params.ref:q} --core-mask {params.core:q} "
         "--frozen-config {params.frozen:q} --sample {wildcards.sample} --context-unreliable {params.unreliable:q} "
         "--out-vcf {output.vcf:q} --out-evidence {output.evidence:q} --out-callable {output.callable:q} "
-        "--out-focal {output.focal:q} --out-qc {output.qc:q} --threads {threads} > {log:q} 2>&1"
+        "--out-focal {output.focal:q} --out-qc {output.qc:q} --threads {threads} "
+        "--count-unit {params.unit} > {log:q} 2>&1"
 
 
 rule normalise_sample:
@@ -46,8 +49,10 @@ rule normalise_sample:
         m=P["layer3.norm_multiallelic"],
         c=P["layer3.norm_check_ref"],
         o=P["layer3.norm_multi_overlaps"],
+        unit=lambda wc: count_unit(wc.sample),
     log:
         str(LOGS / "norm" / "{sample}.log"),
     shell:
-        "(bcftools norm -f {params.ref:q} -m {params.m} --check-ref {params.c} --multi-overlaps {params.o} "
-        "-Oz -o {output.vcf:q} {input:q} && bcftools index -t {output.vcf:q}) > {log:q} 2>&1"
+        "(bcftools norm -f {params.ref:q} -m {params.m} --check-ref {params.c} --multi-overlaps {params.o} -Ou {input:q} "
+        "| bcftools annotate --header-line '##PfVarX_count_unit={params.unit}' -Oz -o {output.vcf:q} "
+        "&& bcftools index -t {output.vcf:q}) > {log:q} 2>&1"

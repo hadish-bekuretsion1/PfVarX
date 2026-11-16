@@ -32,15 +32,78 @@ class InputType(StrEnum):
 
 
 class Design(StrEnum):
-    WGS = "WGS"
-    TARGETED_NON_UMI = "TARGETED_NON_UMI"
-    TARGETED_UMI = "TARGETED_UMI"
+    """Assay design (config ``assay_design``): the setting that selects the processing branch."""
+
+    WGS = "wgs"
+    TARGETED_UMI = "targeted_umi"
+    TARGETED_NO_UMI = "targeted_no_umi"
+
+    @classmethod
+    def parse(cls, value: object) -> Design:
+        """Accept the current values and the spellings of config schema 3 and earlier runs."""
+        text = str(value.value if isinstance(value, StrEnum) else value).strip().lower()
+        return cls(LEGACY_DESIGNS.get(text, text))
+
+    @property
+    def targeted(self) -> bool:
+        return self is not Design.WGS
+
+
+LEGACY_DESIGNS = {"targeted_non_umi": "targeted_no_umi"}
 
 
 class Route(StrEnum):
-    DIRECT = "DIRECT"
-    SWGA = "SWGA"
+    """Amplification route, recorded per library as provenance (not a run setting)."""
+
+    DIRECT = "DIRECT"  # confirmed WGS without selective amplification
+    SWGA = "SWGA"  # documented selective whole-genome amplification
+    AMPLICON = "AMPLICON"  # targeted library prepared by amplicon PCR
+
+
+class Technique(StrEnum):
+    """Optional sequencing-technique label in the sample manifest or library protocol."""
+
+    WGS = "WGS"
+    SELECTIVE_WGS = "SELECTIVE_WGS"
     AMPLICON = "AMPLICON"
+    TBS_UMI = "TBS_UMI"
+    TBS_NON_UMI = "TBS_NON_UMI"
+
+
+# Designs each technique label may be used with, and the route a label documents.
+TECHNIQUE_DESIGNS = {
+    Technique.WGS: (Design.WGS,),
+    Technique.SELECTIVE_WGS: (Design.WGS,),
+    Technique.AMPLICON: (Design.TARGETED_UMI, Design.TARGETED_NO_UMI),
+    Technique.TBS_UMI: (Design.TARGETED_UMI,),
+    Technique.TBS_NON_UMI: (Design.TARGETED_NO_UMI,),
+}
+TECHNIQUE_ROUTE = {Technique.SELECTIVE_WGS: Route.SWGA, Technique.AMPLICON: Route.AMPLICON}
+
+
+class ProcessingState(StrEnum):
+    """Documented processing state of an imported BAM/CRAM (sample manifest ``processing_state``)."""
+
+    ALIGNED = "aligned"  # aligned reads only (UMI designs: raw reads with UMIs in the RX tag)
+    DUPLICATES_MARKED = "duplicates_marked"  # wgs
+    PRIMERS_TRIMMED = "primers_trimmed"  # targeted_no_umi
+    CONSENSUS = "consensus"  # targeted_umi: consensus reads, primers not yet trimmed
+    CONSENSUS_PRIMERS_TRIMMED = "consensus_primers_trimmed"  # targeted_umi: consensus and trimmed
+
+
+DESIGN_STATES = {
+    Design.WGS: (ProcessingState.ALIGNED, ProcessingState.DUPLICATES_MARKED),
+    Design.TARGETED_NO_UMI: (ProcessingState.ALIGNED, ProcessingState.PRIMERS_TRIMMED),
+    Design.TARGETED_UMI: (ProcessingState.ALIGNED, ProcessingState.CONSENSUS,
+                          ProcessingState.CONSENSUS_PRIMERS_TRIMMED),
+}
+
+
+class CountUnit(StrEnum):
+    """What allele counts and depths count: sequenced reads, or UMI consensus molecules."""
+
+    READS = "reads"
+    CONSENSUS_MOLECULES = "consensus_molecules"
 
 
 class Scale(StrEnum):
@@ -156,6 +219,10 @@ class Reason(StrEnum):
     ALIGNMENT_READ_GROUP = "ALIGNMENT_READ_GROUP"
     ALIGNMENT_PROCESSING_STATE = "ALIGNMENT_PROCESSING_STATE"
     UMI_READ_STRUCTURE = "UMI_READ_STRUCTURE"
+    TECHNIQUE_CONFLICT = "TECHNIQUE_CONFLICT"
+    LIBRARY_CATALOG_INVALID = "LIBRARY_CATALOG_INVALID"
+    PANEL_UNRESOLVED = "PANEL_UNRESOLVED"
+    PROTOCOL_UNRESOLVED = "PROTOCOL_UNRESOLVED"
     VCF_INCOMPATIBLE = "VCF_INCOMPATIBLE"
     # QC
     QC_GATE_FAIL = "QC_GATE_FAIL"
@@ -182,6 +249,9 @@ class Reason(StrEnum):
     NO_ELIGIBLE_PAIR = "NO_ELIGIBLE_PAIR"
     NO_ELIGIBLE_SAMPLES = "NO_ELIGIBLE_SAMPLES"
     NO_COHORT = "NO_COHORT"
+    PANEL_LACKS_MARKERS = "PANEL_LACKS_MARKERS"
+    NO_CALLABLE_MARKERS = "NO_CALLABLE_MARKERS"
+    TOO_FEW_INDEPENDENT_LOCI = "TOO_FEW_INDEPENDENT_LOCI"
     PARAMETER_UNSET = "PARAMETER_UNSET"
     # resources
     RESOURCE_MEMORY_EXCEEDED = "RESOURCE_MEMORY_EXCEEDED"

@@ -12,11 +12,16 @@ from pathlib import Path
 from typing import Any
 
 from pfvarx.configuration.models import Bundle
-from pfvarx.constants import InputType
+from pfvarx.constants import Design, InputType
 from pfvarx.io import read_json, sha256, write_json
 
 BWA_SUFFIXES = (".0123", ".amb", ".ann", ".bwt.2bit.64", ".pac")
 
+
+
+def needs_aligner_index(cfg: Any) -> bool:
+    """FASTQ entry aligns reads; targeted_umi BAM entry may realign new consensus reads."""
+    return cfg.input_type == InputType.FASTQ or cfg.assay_design == Design.TARGETED_UMI
 
 def _tool(name: str) -> str:
     found = shutil.which(name)
@@ -53,7 +58,7 @@ def plan_preparation(root: Path, bundle: Bundle) -> dict[str, Any]:
         actions.append({"action": "samtools_faidx", "output": f"{target}.fai"})
     if stale or damaged(prep / "combined.dict"):
         actions.append({"action": "picard_dict", "output": str(prep / "combined.dict")})
-    if cfg.input_type == InputType.FASTQ and (stale or any(damaged(Path(f"{target}{s}")) for s in BWA_SUFFIXES)):
+    if needs_aligner_index(cfg) and (stale or any(damaged(Path(f"{target}{s}")) for s in BWA_SUFFIXES)):
         actions.append({"action": "bwa_mem2_index", "output": f"{target}.*"})
     parasite = prep / "parasite.fasta"
     if stale or damaged(parasite) or damaged(Path(f"{parasite}.fai")):
@@ -123,7 +128,7 @@ def prepare(root: Path, bundle: Bundle, dry_run: bool) -> dict[str, Any]:
 def required_artifacts(root: Path, bundle: Bundle) -> list[Path]:
     prep = root / "inputs/reference/prepared"
     paths = [prep / name for name in ("combined.fasta", "combined.fasta.fai", "combined.dict", "parasite.fasta", "parasite.fasta.fai")]
-    if bundle.config.input_type == InputType.FASTQ:
+    if needs_aligner_index(bundle.config):
         paths += [Path(str(prep / "combined.fasta") + suffix) for suffix in BWA_SUFFIXES]
     return paths
 

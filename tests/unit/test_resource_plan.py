@@ -20,7 +20,7 @@ CLASS_RULES = {
     "fgbio_umi": ["umi_fastq_to_bam", "umi_align_zipper", "umi_group", "umi_consensus", "umi_realign",
                   "umi_preclip_and_trim"],
     "alignment_entry": ["alignment_entry"],
-    "fgbio_clip": ["trim_primers"],
+    "fgbio_clip": ["trim_primers", "entry_trim_primers"],
     "metrics": ["mosdepth_core", "mosdepth_targets"],
     "pfvarx_call": ["pfvarx_call"],
     "cohort_merge": ["cohort_merge", "cohort_evidence"],

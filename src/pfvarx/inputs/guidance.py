@@ -21,10 +21,18 @@ ROLES: dict[str, tuple[str, str, str, tuple[str, ...]]] = {
     "GFF": ("Gene annotation GFF", "reference.gff",
             "SnpEff builds its annotation database from it, and drug-resistance codons (DA002) are located with it.",
             ("GFF",)),
-    "TARGETS": ("Target regions BED", "assay.targets_bed",
+    "TARGETS": ("Target regions BED", "library catalog: panel targets_bed",
                 "Defines the amplicons of a targeted panel for on-target and dropout QC.", ("BED",)),
-    "PRIMERS": ("Primer table", "assay.primers_tsv",
+    "PROBES": ("Probe regions BED", "library catalog: panel probes_bed",
+               "Records the capture probes of a capture panel.", ("BED",)),
+    "PRIMERS": ("Primer table", "library catalog: panel primers_tsv",
                 "Primer positions are clipped from targeted reads before calling.", ("PRIMERS",)),
+    "LIBRARY_CATALOG": ("Library catalog", "assay.library_catalog",
+                        "Defines the targeted panels (intervals, primers or probes) and the library protocols "
+                        "(UMI extraction and consensus settings) that manifest rows refer to.", ("LIBRARY_CATALOG",)),
+    "LIBRARY_ASSAY": ("Library descriptions in the sample manifest", "samples_tsv technique, amplification_route, "
+                      "panel_id, panel_version, library_protocol_id, processing_state",
+                      "Say what each library is, so the right branch, panel and UMI settings are used.", ()),
     "SAMPLE_METADATA": ("Sample sheet", "samples_tsv",
                         "Lists every sample and lane with its input files and study metadata.", ("SAMPLE_SHEET",)),
     "CATALOGUE": ("Resistance marker catalogue", "analyses.resistance_catalog",
@@ -34,7 +42,7 @@ ROLES: dict[str, tuple[str, str, str, tuple[str, ...]]] = {
                    ("FASTQ",)),
     "ALIGNMENT": ("Alignment (BAM/CRAM)", "samples.tsv bam", "Existing alignment used instead of FASTQ.",
                   ("BAM", "CRAM")),
-    "UMI_READ_STRUCTURE": ("UMI read structure", "assay.read_structure",
+    "UMI_READ_STRUCTURE": ("UMI read structure", "library catalog: protocol umi.read_structure",
                            "Tells fgbio where the UMI and template bases are in each read.", ()),
     "VCF": ("VCF input", "input_type", "VCF entry is not supported; use FASTQ, BAM or CRAM.", ("VCF",)),
 }
@@ -57,14 +65,35 @@ GENERIC: dict[str, list[str]] = {
     "ALIGNMENT_UNSORTED": ["Sort by coordinate: samtools sort -o sorted.bam input.bam, then samtools index sorted.bam."],
     "ALIGNMENT_NO_INDEX": ["Create the index next to the file: samtools index FILE."],
     "ALIGNMENT_READ_GROUP": ["Every @RG needs ID, SM, LB and PL, and SM must equal the sample_id in the sample sheet."],
-    "ALIGNMENT_PROCESSING_STATE": ["Supply an alignment processed as the assay requires (see docs/orchestration.md)."],
+    "ALIGNMENT_PROCESSING_STATE": [
+        "Set processing_state in the sample manifest to what was already done to the file: wgs: aligned or "
+        "duplicates_marked; targeted_no_umi: aligned or primers_trimmed; targeted_umi: aligned (raw reads with "
+        "UMIs in the RX tag), consensus or consensus_primers_trimmed.",
+        "The state must match the file: consensus reads carry the fgbio cD tag, raw UMI reads the RX tag, and a "
+        "file whose header records fgbio TrimPrimers is already trimmed.",
+    ],
+    "TECHNIQUE_CONFLICT": [
+        "Make the manifest agree with assay_design: WGS and SELECTIVE_WGS only with wgs; AMPLICON with either "
+        "targeted design; TBS_UMI only with targeted_umi; TBS_NON_UMI only with targeted_no_umi. Leave technique "
+        "empty (or null) when it is not recorded.",
+        "amplification_route is DIRECT or SWGA for wgs and AMPLICON for targeted libraries; it must agree with the "
+        "technique label and the library protocol.",
+        "If the run's assay_design is wrong, change assay_design; if one library differs, register it in a "
+        "separate run.",
+    ],
+    "LIBRARY_CATALOG_INVALID": ["Correct the library catalog at the reported key (see "
+                                "config/templates/library_catalog.yaml for the layout)."],
+    "PANEL_UNRESOLVED": ["Give every targeted manifest row a panel_id and panel_version that the library catalog "
+                         "defines; a run uses one panel."],
+    "PROTOCOL_UNRESOLVED": ["Give the row a library_protocol_id that the library catalog defines; UMI FASTQ needs a "
+                            "protocol with umi.read_structure."],
     "FASTQ_TRUNCATED": ["The file ends inside a read: copy or download it again and check its checksum."],
     "FASTQ_MATE_COUNT_MISMATCH": ["Read 1 and read 2 must come from the same sample and lane, with equal read counts."],
     "FASTQ_MATE_NAME_MISMATCH": ["Read 1 and read 2 must list the same read names in the same order."],
     "FASTQ_QUALITY_ENCODING": ["Qualities must be Phred+33 (Illumina 1.8 and later); re-export the reads in that encoding."],
     "FASTQ_MALFORMED_RECORD": ["Replace the file with a verified export; each read needs four lines (@name, bases, +, qualities)."],
-    "UMI_READ_STRUCTURE": ["Set assay.read_structure from the library protocol, for example '8M+T 8M+T' "
-                           "(8 UMI bases, then template)."],
+    "UMI_READ_STRUCTURE": ["Set umi.read_structure of the sample's library protocol in the library catalog, for "
+                           "example '8M+T 8M+T' (8 UMI bases, then template)."],
     "VCF_INCOMPATIBLE": ["Use FASTQ, BAM or CRAM input instead."],
     "CONTENT_MISMATCH": [
         "PfVarX recognises files by their content, not their name or extension. Check that this is the file "

@@ -1,11 +1,11 @@
 # Maintainer-owned downstream method registry (Table F.3). Users cannot edit it.
-version: "2.0.0"
+version: "2.1.0"  # 2.1.0: lower-case assay designs; panel- and evidence-based needs
 analyses:
   DA001:
     name: Complexity of infection and clonal status
     method: MOIRE (r-moire) on biallelic or multiallelic loci; FWS descriptive
     tool: moire
-    designs: [WGS, TARGETED_NON_UMI, TARGETED_UMI]
+    designs: [wgs, targeted_no_umi, targeted_umi]
     scales: [SAMPLE, COHORT, POPULATION]
     clonality: [MONOCLONAL, POLYCLONAL, INDETERMINATE]
     requires: [cohort_variants]
@@ -16,10 +16,13 @@ analyses:
     name: Drug-resistance markers
     method: catalogue-matched marker genotyping with callable denominators
     tool: pfvarx.downstream.resistance
-    designs: [WGS, TARGETED_NON_UMI, TARGETED_UMI]
+    designs: [wgs, targeted_no_umi, targeted_umi]
     scales: [SAMPLE, COHORT, POPULATION, BETWEEN_POPULATIONS]
     clonality: [MONOCLONAL, POLYCLONAL, INDETERMINATE]
     requires: [annotated_variants, callability]
+    # The territory (core genome or panel) must contain a catalogue codon, and each sample
+    # must have at least one whole catalogue codon in its callable regions.
+    needs: {catalogue_markers_in_territory: 1, callable_markers: 1}
     prerequisites: []
     required_metadata: []
     validation_status: TESTED
@@ -27,7 +30,7 @@ analyses:
     name: Genetic diversity
     method: FWS, nucleotide diversity per callable base, expected heterozygosity
     tool: pfvarx.downstream.diversity
-    designs: [WGS, TARGETED_NON_UMI, TARGETED_UMI]
+    designs: [wgs, targeted_no_umi, targeted_umi]
     scales: [SAMPLE, COHORT, POPULATION, BETWEEN_POPULATIONS]
     clonality: [MONOCLONAL, POLYCLONAL, INDETERMINATE]
     requires: [cohort_variants, callability]
@@ -38,7 +41,7 @@ analyses:
     name: Relatedness and identity by descent
     method: hmmIBD for monoclonal pairs; Dcifer for pairs including polyclonal samples
     tool: hmmIBD|dcifer
-    designs: [WGS, TARGETED_NON_UMI, TARGETED_UMI]
+    designs: [wgs, targeted_no_umi, targeted_umi]
     scales: [PAIRWISE, COHORT, POPULATION]
     clonality: [MONOCLONAL, POLYCLONAL]
     requires: [cohort_variants]
@@ -49,10 +52,12 @@ analyses:
     name: Population structure
     method: PCA (haploid, ploidy=1) and Hudson FST with block jackknife (scikit-allel)
     tool: scikit-allel
-    designs: [WGS]
+    designs: [wgs, targeted_no_umi, targeted_umi]
     scales: [COHORT, POPULATION, BETWEEN_POPULATIONS]
     clonality: [MONOCLONAL, POLYCLONAL]
     requires: [cohort_variants]
+    # A panel contributes one independent locus per separate target region.
+    needs: {independent_loci_param: da005_min_independent_loci}
     prerequisites: [DA001]
     required_metadata: [population]
     validation_status: TESTED
@@ -60,10 +65,12 @@ analyses:
     name: Conventional single-lineage phylogenetics
     method: IQ-TREE 2, ModelFinder restricted to +ASC models, UFBoot and SH-aLRT
     tool: iqtree2
-    designs: [WGS]
+    designs: [wgs, targeted_no_umi, targeted_umi]
     scales: [COHORT, POPULATION]
     clonality: [MONOCLONAL]
     requires: [cohort_variants, callability]
+    # A panel contributes one independent locus per separate target region.
+    needs: {independent_loci_param: da006_min_independent_loci}
     prerequisites: [DA001]
     required_metadata: []
     validation_status: TESTED
@@ -71,7 +78,7 @@ analyses:
     name: Spatial and temporal summary
     method: descriptive maps and time series; mgcv GAM (REML) where supported
     tool: Rscript
-    designs: [WGS, TARGETED_NON_UMI, TARGETED_UMI]
+    designs: [wgs, targeted_no_umi, targeted_umi]
     scales: [SAMPLE, COHORT, POPULATION]
     clonality: [MONOCLONAL, POLYCLONAL, INDETERMINATE]
     requires: [source_outcome]

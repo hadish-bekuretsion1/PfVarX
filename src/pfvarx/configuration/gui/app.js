@@ -22,8 +22,7 @@ function resolveSchema(spec) {
 }
 
 const filePlaceholders = {
-    "config.assay.targets_bed": "inputs/targets/",
-    "config.assay.primers_tsv": "inputs/targets/",
+    "config.assay.library_catalog": "inputs/metadata/",
     "config.samples_tsv": "inputs/metadata/",
     "config.reference.fasta": "inputs/reference/",
     "config.reference.core_mask_bed": "inputs/reference/",
@@ -51,9 +50,8 @@ function draw(parent, object, schema, path = "") {
         const label = document.createElement("label");
         const labels = {
             "config.samples_tsv": "Study metadata and catalogue",
-            "config.assay.design": "Assay design", "config.assay.sequencing_type": "Sequencing type",
-            "config.assay.amplification_route": "Amplification route",
-            "config.assay.targets_bed": "Target regions (BED)", "config.assay.primers_tsv": "Primer definitions (TSV)",
+            "config.assay_design": "Assay design",
+            "config.assay.library_catalog": "Library catalog: panels and library protocols (YAML)",
             "config.reference.core_mask_bed": "Core-genome mask (BED)"
         };
         label.textContent = (labels[id] || key.replaceAll("_", " ")) + " ";
@@ -105,7 +103,6 @@ function draw(parent, object, schema, path = "") {
             "config.purpose": ["analysis", "benchmarking"]
         })[id];
         if (id === "config.input_type") options = options.filter(value => value === "FASTQ" || value === "BAM");
-        if (id === "config.assay.sequencing_type" && object[key] !== "SWGS") options = options.filter(value => value !== "SWGS");
         if (id === "compute.executor") options = options.filter(value => value !== "slurm");
         if (options) {
             input = document.createElement("select");
@@ -113,10 +110,8 @@ function draw(parent, object, schema, path = "") {
             for (const value of optional ? ["", ...options] : options) {
                 const names = {
                     local: "Local", hpc: "HPC (single node)", server: "Server", cloud: "Cloud VM",
-                    WGS: "Whole-genome sequencing", SELECTIVE_WGS: "Selective Whole Genome Sequencing",
-                    TARGETED_NON_UMI: "Targeted without UMI", TARGETED_UMI: "Targeted with UMI",
-                    AMPLICON: "Amplicon", DIRECT: "Direct", SWGA: "Selective whole-genome amplification",
-                    TBS_UMI: "Targeted barcode with UMI", TBS_NON_UMI: "Targeted barcode without UMI"
+                    wgs: "Whole-genome sequencing (direct or sWGA)",
+                    targeted_no_umi: "Targeted without UMI", targeted_umi: "Targeted with UMI"
                 };
                 input.append(new Option(names[value] || value || "Unspecified", value));
             }
@@ -198,10 +193,10 @@ function toggle(id, visible) {
 function showInputFolders(directories) {
     const contents = {
         "inputs/fastq": "Paired reads (.fastq or .fastq.gz), such as sample_R1.fastq.gz and sample_R2.fastq.gz.",
-        "inputs/alignments": "Coordinate-sorted BAM files and their indexes (.bai or .csi).",
+        "inputs/alignments": "Coordinate-sorted BAM files and their indexes (.bai or .csi). Record each file's processing_state in the sample registry so only the missing steps run.",
         "inputs/reference": "Reference FASTA and matching core-genome BED. Include matching GFF when annotation is needed.",
-        "inputs/metadata": "Sample registry TSV with input paths and study metadata (country, latitude, longitude, collection_date and population where applicable). Optional separate study metadata and verified marker catalogue TSV. Join study metadata to the configured sample registry by sample_id before validation.",
-        "inputs/targets": "Target regions BED and primer definitions TSV matched to the reference.",
+        "inputs/metadata": "Sample registry TSV with input paths and study metadata (country, latitude, longitude, collection_date and population where applicable). Optional separate study metadata and verified marker catalogue TSV. Join study metadata to the configured sample registry by sample_id before validation. Library columns (technique, amplification_route, panel_id, panel_version, library_protocol_id) describe each library; targeted designs also need the library catalog YAML.",
+        "inputs/targets": "Target regions BED and primer definitions TSV (or probe BED) matched to the reference, named by a panel in the library catalog.",
         "inputs/truth": "truth.json, confident_regions.bed, and <MONOCLONAL_SAMPLE_ID>.truth.vcf for each scored monoclonal sample.",
         "inputs/partitions": "partition.json, created by ./pfvarx benchmark-partition."
     };
@@ -236,14 +231,11 @@ function changed(id) {
         option.disabled = option.value === "FO001" && config.input_type !== "FASTQ";
     }
     const full = config.final_output === "FO004";
-    const targeted = assay.design !== "WGS";
-    if (id === "config.assay.design") {
-        assay.sequencing_type = null;
-        assay.amplification_route = targeted ? "AMPLICON" : "DIRECT";
-        assay.targets_bed = targeted ? assay.targets_bed || filePlaceholders["config.assay.targets_bed"] : null;
-        assay.primers_tsv = targeted ? assay.primers_tsv || filePlaceholders["config.assay.primers_tsv"] : null;
-        if (assay.design !== "TARGETED_UMI") assay.read_structure = null;
-        analyses.requested = (analyses.requested || []).filter(da => state.analyses[da].designs.includes(assay.design));
+    const targeted = config.assay_design !== "wgs";
+    if (id === "config.assay_design") {
+        // Panels and library protocols live in the library catalog; manifest rows name them.
+        assay.library_catalog = targeted ? assay.library_catalog || filePlaceholders["config.assay.library_catalog"] : null;
+        analyses.requested = (analyses.requested || []).filter(da => state.analyses[da].designs.includes(config.assay_design));
         analyses.scales = Object.fromEntries(Object.entries(analyses.scales || {}).filter(([da]) => analyses.requested.includes(da)));
         render();
         return;
@@ -277,31 +269,15 @@ function changed(id) {
     toggle("config.analyses.requested", full && analyses.selection !== "auto");
     toggle("config.analyses.scales", full && analyses.selection !== "auto");
     toggle("config.reference.gff", full);
-    toggle("config.assay.targets_bed", targeted);
-    toggle("config.assay.primers_tsv", targeted);
-    toggle("config.assay.read_structure", assay.design === "TARGETED_UMI");
+    toggle("config.assay.library_catalog", targeted);
     toggle("config.caller.executable", config.caller.backend === "external");
     toggle("config.caller.sha256", config.caller.backend === "external");
     toggle("compute.slurm_partition", false);
-    const route = byId("config.assay.amplification_route");
-    if (id === "config.assay.sequencing_type" && assay.sequencing_type === "SELECTIVE_WGS") {
-        assay.amplification_route = "SWGA";
-        route.value = "SWGA";
-    }
-    for (const option of route.options) option.disabled = targeted !== (option.value === "AMPLICON") || (assay.sequencing_type === "SELECTIVE_WGS" && option.value !== "SWGA");
-    const sequencing = byId("config.assay.sequencing_type");
-    const allowed = {
-        WGS: ["WGS", "SELECTIVE_WGS"], TARGETED_NON_UMI: ["AMPLICON", "TBS_NON_UMI"],
-        TARGETED_UMI: ["AMPLICON", "TBS_UMI"]
-    }[assay.design];
-    for (const option of sequencing.options) option.disabled = option.value !== "" && option.value !== assay.sequencing_type && !allowed.includes(option.value);
     for (const box of editor.querySelectorAll('[data-field="config.analyses.requested"] input')) {
-        box.disabled = !full || analyses.selection === "auto" || !state.analyses[box.value].designs.includes(assay.design);
+        box.disabled = !full || analyses.selection === "auto" || !state.analyses[box.value].designs.includes(config.assay_design);
     }
     const conditionalRequirements = {
-        "config.assay.targets_bed": targeted,
-        "config.assay.primers_tsv": targeted,
-        "config.assay.read_structure": assay.design === "TARGETED_UMI",
+        "config.assay.library_catalog": targeted,
         "config.reference.gff": full && analyses.selection !== "auto",
         "config.analyses.spatial_outcome_source": full && (analyses.requested || []).includes("DA007"),
         "config.caller.executable": config.caller.backend === "external",
@@ -333,7 +309,11 @@ function changed(id) {
             const result = await request("check", {values});
             if (current !== generation) return;
             showInputFolders(result.directories);
-            status.textContent = "Ready to save.";
+            status.textContent = state.migration_needed
+                ? "Ready to save. This workspace uses configuration schema 3: saving first runs the migration " +
+                  "(terminal equivalent: ./pfvarx config-migrate --apply), which writes the library catalog and the " +
+                  "manifest columns from the old assay settings and keeps backups."
+                : "Ready to save.";
         } catch (error) {
             if (current === generation) status.textContent = error.message;
         }
@@ -359,8 +339,7 @@ async function load() {
         }
         if (!state.input_folders_created) {
             const defaults = [
-                [values.config.assay, "targets_bed", "inputs/targets/targets.bed"],
-                [values.config.assay, "primers_tsv", "inputs/targets/primers.tsv"],
+                [values.config.assay, "library_catalog", "inputs/metadata/library_catalog.yaml"],
                 [values.config, "samples_tsv", "inputs/metadata/samples.tsv"],
                 [values.config.reference, "fasta", "inputs/reference/Pf3D7.fasta"],
                 [values.config.reference, "core_mask_bed", "inputs/reference/core_genome.bed"]

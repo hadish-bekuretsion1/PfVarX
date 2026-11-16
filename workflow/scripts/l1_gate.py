@@ -4,12 +4,15 @@ import gzip
 import json
 from pathlib import Path
 
+from pfvarx.constants import Design
 from pfvarx.quality import metrics as m
 from pfvarx.quality.policy import evaluate_sample, load_policy, stage_permitted
 
 sm = snakemake  # noqa: F821  (injected by Snakemake)
 eff = json.loads(Path(sm.params.frozen).read_text())
-design = eff["config"]["assay"]["design"]
+plan = json.loads((Path(sm.params.frozen).parent / "frozen_plan.json").read_text())
+design = Design.parse(plan.get("design") or eff["config"].get("assay_design") or eff["config"]["assay"]["design"]).value
+library = next((s.get("assay") or {} for s in plan["samples"] if s["sample_id"] == sm.wildcards.sample), {})
 min_depth = int(eff["parameters"]["layer2.min_usable_depth"]["value"])
 inp = sm.input
 values: dict = {}
@@ -45,4 +48,8 @@ qc["permitted"] = {st: (True if st == "L1_OUTPUT" and qc["verdict"] != "FAIL" el
                    for st in stages}
 qc["sample_id"] = sm.wildcards.sample
 qc["metrics"] = values
+# Depths and counts of a UMI consensus BAM are consensus molecules, not sequenced reads.
+qc["count_unit"] = library.get("count_unit") or ("consensus_molecules" if design == "targeted_umi" else "reads")
+qc["library"] = {k: library.get(k) for k in ("technique", "amplification_route", "route_source", "panel_id",
+                                             "panel_version", "library_protocol_id", "processing_state")}
 Path(sm.output[0]).write_text(json.dumps(qc, indent=2, default=str))

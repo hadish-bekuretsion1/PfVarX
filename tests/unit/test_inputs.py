@@ -84,5 +84,5 @@ def test_wgs_sample_must_not_mix_flowcell_types(tmp_path: Path) -> None:
     rep, _ = v.validate_samples(sheet, tmp_path, InputType.FASTQ, Design.WGS, set())
     failures = [f for f in rep.findings if f.level == "FAIL"]
     assert len(failures) == 1 and failures[0].record == 3 and "mixes flowcell_type" in failures[0].detail
-    targeted, _ = v.validate_samples(sheet, tmp_path, InputType.FASTQ, Design.TARGETED_NON_UMI, set())
+    targeted, _ = v.validate_samples(sheet, tmp_path, InputType.FASTQ, Design.TARGETED_NO_UMI, set())
     assert not [f for f in targeted.findings if f.level == "FAIL"]

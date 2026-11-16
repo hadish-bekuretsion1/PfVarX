@@ -19,7 +19,7 @@
 <button type="button" id="workflow-tab" aria-controls="workflow-panel" aria-pressed="false">Workflow Check and Run</button>
 </nav>
 <section id="configuration-panel">
-<p>Terminal equivalent: edit the YAML files in <code>config/</code>, then <code>./pfvarx input-directories</code>.</p>
+<p>Terminal equivalent: edit the YAML files in <code>config/</code>, then <code>./pfvarx input-directories</code>. A schema-3 configuration is migrated on save, as <code>./pfvarx config-migrate --apply</code> does.</p>
 <label>Template <select id="purpose"><option>analysis</option><option>benchmarking</option></select></label>
 <section id="raw-data-location" aria-label="Raw data location" hidden>
 <label for="raw-data-directory">Raw data folder</label>

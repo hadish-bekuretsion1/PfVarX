@@ -16,6 +16,11 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
+import yaml
+
+from pfvarx.configuration.library import CATALOG_SCHEMA
+from pfvarx.constants import Design
+
 CODON = {"Cys": "TGT", "Tyr": "TAT", "Lys": "AAA", "Thr": "ACA", "Asn": "AAT", "Ile": "ATA",
          "Ser": "TCA", "Ala": "GCA", "Arg": "AGA", "Gly": "GGA", "Leu": "TTA", "Phe": "TTT",
          "Met": "ATG", "Stop": "TAA"}
@@ -204,11 +209,19 @@ def write_fasta(path: Path, seqs: dict[str, list[str]]) -> None:
                 h.write(seq[i:i + 60] + "\n")
 
 
-def build(dest: Path, design: str = "WGS", seed: int = 7, depth: int = 40, n_mono: int = 6,
+FIXTURE_PANEL = ("PFVARX_SYNTHETIC_PANEL", "1")
+FIXTURE_PROTOCOL = "SYNTHETIC_UMI8"
+FIXTURE_READ_STRUCTURE = "8M+T 8M+T"
+FIXTURE_TECHNIQUE = {Design.WGS: "WGS", Design.TARGETED_NO_UMI: "AMPLICON", Design.TARGETED_UMI: "TBS_UMI"}
+
+
+def build(dest: Path, design: str = "wgs", seed: int = 7, depth: int = 40, n_mono: int = 6,
           n_poly: int = 3, purpose: str = "analysis", low_depth_sample: bool = False,
           variant_scale: int = 1) -> dict[str, Any]:
     if variant_scale < 1:
         raise ValueError("variant_scale must be at least 1")
+    design = Design.parse(design)
+    targeted = design != Design.WGS
     rng = random.Random(seed)
     lengths = {"ctg1": 30000, "ctg2": 24000}
     ref = make_reference(rng, lengths)
@@ -230,7 +243,7 @@ def build(dest: Path, design: str = "WGS", seed: int = 7, depth: int = 40, n_mon
             h.write(f"{chrom}\tsynthetic\texon\t{start}\t{end}\t.\t+\t.\tID={gene}.1-E1;Parent={gene}.1\n")
             h.write(f"{chrom}\tsynthetic\tCDS\t{start}\t{end}\t.\t+\t0\tID={gene}.1-CDS;Parent={gene}.1\n")
     regions = None
-    if design != "WGS":
+    if targeted:
         (dest / "inputs/targets").mkdir(parents=True, exist_ok=True)
         amps = []
         for chrom, (a, b) in core.items():
@@ -263,12 +276,12 @@ def build(dest: Path, design: str = "WGS", seed: int = 7, depth: int = 40, n_mon
     for sid, comp in plan:
         genomes = [(w, clones[c]) for w, c in comp]
         d = 3 if low_depth_sample and sid == plan[-1][0] else depth
-        if design == "WGS":
+        if not targeted:
             n_pairs = int(d * sum(lengths.values()) / (2 * read_len))
         else:
             n_pairs = int(d * 2 * len(regions or []) * 220 / (2 * read_len))
-        umi = 8 if design == "TARGETED_UMI" else 0
-        fam = 3.0 if design == "TARGETED_UMI" else 0.0
+        umi = 8 if design == Design.TARGETED_UMI else 0
+        fam = 3.0 if design == Design.TARGETED_UMI else 0.0
         r1, r2 = simulate_pairs(rng, genomes, n_pairs, read_len + umi if umi else read_len, 300, 40,
                                 regions, sid, umi, fam)
         write_fastq(dest / f"inputs/fastq/{sid}_L001_R1.fastq.gz", r1)
@@ -279,6 +292,10 @@ def build(dest: Path, design: str = "WGS", seed: int = 7, depth: int = 40, n_mon
         samples.append({"sample_id": sid, "lane": "L001", "fastq_1": f"inputs/fastq/{sid}_L001_R1.fastq.gz",
                         "fastq_2": f"inputs/fastq/{sid}_L001_R2.fastq.gz", "bam": "", "vcf": "",
                         "library_id": f"{sid}_lib1", "flowcell_type": "unpatterned", "population": pop,
+                        "technique": FIXTURE_TECHNIQUE[design], "amplification_route": "AMPLICON" if targeted else "DIRECT",
+                        "panel_id": FIXTURE_PANEL[0] if targeted else "", "panel_version": FIXTURE_PANEL[1] if targeted else "",
+                        "library_protocol_id": FIXTURE_PROTOCOL if design == Design.TARGETED_UMI else "",
+                        "processing_state": "",
                         "country": country, "latitude": f"{lat + 0.01 * idx:.3f}",
                         "longitude": f"{lon + 0.01 * idx:.3f}",
                         "collection_date": f"2025-{(idx % 12) + 1:02d}-15"})
@@ -286,7 +303,21 @@ def build(dest: Path, design: str = "WGS", seed: int = 7, depth: int = 40, n_mon
                                  "true_k": len(comp),
                                  "clonality": "MONOCLONAL" if len(comp) == 1 else "POLYCLONAL"}
     cols = ["sample_id", "lane", "fastq_1", "fastq_2", "bam", "vcf", "library_id", "flowcell_type",
-            "population", "country", "latitude", "longitude", "collection_date"]
+            "technique", "amplification_route", "panel_id", "panel_version", "library_protocol_id",
+            "processing_state", "population", "country", "latitude", "longitude", "collection_date"]
+    if targeted:
+        # Library catalog: the synthetic panel and, for UMI libraries, the UMI protocol.
+        catalog_doc = {"schema_version": CATALOG_SCHEMA,
+                       "panels": [{"panel_id": FIXTURE_PANEL[0], "panel_version": FIXTURE_PANEL[1],
+                                   "targets_bed": "inputs/targets/targets.bed",
+                                   "primers_tsv": "inputs/targets/primers.tsv",
+                                   "description": "synthetic amplicon panel (software test)"}],
+                       "library_protocols": ([{"library_protocol_id": FIXTURE_PROTOCOL, "technique": "TBS_UMI",
+                                               "amplification_route": "AMPLICON",
+                                               "umi": {"read_structure": FIXTURE_READ_STRUCTURE},
+                                               "description": "8-base inline UMI on both reads"}]
+                                             if design == Design.TARGETED_UMI else [])}
+        (dest / "inputs/metadata/library_catalog.yaml").write_text(yaml.safe_dump(catalog_doc, sort_keys=False))
     with (dest / "inputs/metadata/samples.tsv").open("w") as h:
         h.write("\t".join(cols) + "\n")
         for s in samples:
@@ -314,4 +345,4 @@ def build(dest: Path, design: str = "WGS", seed: int = 7, depth: int = 40, n_mon
                 for v in cvars[clone]:
                     lines.append(f"{v.chrom}\t{v.pos}\t.\t{v.ref}\t{v.alt}\t.\tPASS\t.\tGT\t1")
                 (dest / f"inputs/truth/{sid}.truth.vcf").write_text("\n".join(lines) + "\n")
-    return {"samples": [s["sample_id"] for s in samples], "design": design, "truth": truth["samples"]}
+    return {"samples": [s["sample_id"] for s in samples], "design": design.value, "truth": truth["samples"]}

@@ -12,7 +12,7 @@ post-clone installation entry point. Review it before running it.
 python3 bootstrap.py --profile sample --workspace ../sample-wgs
 python3 bootstrap.py --profile cohort --workspace ../cohort-wgs
 python3 bootstrap.py --profile downstream --analyses DA005 --workspace ../population
-python3 bootstrap.py --profile sample --design TARGETED_UMI --workspace ../targeted-umi
+python3 bootstrap.py --profile sample --design targeted_umi --workspace ../targeted-umi
 python3 bootstrap.py --profile benchmark --workspace ../benchmark
 python3 bootstrap.py --profile benchmark --analyses DA002 DA001 DA007 --rtg --workspace ../benchmark-full
 ```
@@ -49,6 +49,7 @@ Pixi/tool diagnostics go to stderr. `PFVARX_JSON_OUT` can save command JSON atom
 | --- | --- | --- |
 | `workspace-init` | Installed profile or full source | Three missing editable YAML files and, unless --config-only is set, input folders and an initialization report; never overwrite user config |
 | `config-init --purpose analysis|benchmarking` | Full source/compatible selection | Missing config/quality/compute templates only; legacy explicit setup |
+| `config-migrate [--apply]` | Workspace with a schema-3 `config/config.yaml` | Reports, then with `--apply` performs, the move to schema 4: `assay_design`, `inputs/metadata/library_catalog.yaml` (targeted panel and UMI protocol) and the manifest columns; keeps `.before-config4` backups |
 | `init` | Valid config | Assay/purpose-specific input directories only |
 | `discover-inputs --directory DIR` | Actual FASTQ folder | `metadata/discovered_samples.tsv`; REVIEW_REQUIRED, complete unambiguous pairs only |
 | `register-inputs --manifest FILE --mode reference|link` | Reviewed TSV and valid config | Registered sample sheet, optional organized symlinks, metadata/registration.json; refuses nonempty sheet overwrite |

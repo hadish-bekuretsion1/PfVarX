@@ -47,8 +47,10 @@ def cleanup_run(root: Path, run: Path, apply: bool = False) -> dict[str, Any]:
             inputs.extend(root / lane[k] for k in ("fastq_1", "fastq_2") if lane.get(k))
     for value in [
         cfg.get("samples_tsv"),
-        cfg.get("assay", {}).get("targets_bed"),
+        cfg.get("assay", {}).get("targets_bed"),  # runs frozen before config schema 4
         cfg.get("assay", {}).get("primers_tsv"),
+        cfg.get("assay", {}).get("library_catalog"),
+        *[(plan.get("panel") or {}).get(k) for k in ("targets_bed", "primers_tsv", "probes_bed")],
         cfg.get("analyses", {}).get("resistance_catalog"),
     ]:
         if value:

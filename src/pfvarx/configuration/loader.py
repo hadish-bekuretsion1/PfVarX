@@ -16,7 +16,7 @@ import yaml
 from pydantic import BaseModel, ValidationError
 
 from pfvarx.configuration.models import Bundle, ComputeConfig, ProjectConfig, QualityConfig
-from pfvarx.constants import ParameterSource
+from pfvarx.constants import Design, ParameterSource
 
 
 class ConfigError(ValueError):
@@ -72,8 +72,7 @@ FOLDER_SETTINGS = {
     "reference.fasta": "inputs/reference/Pf3D7.fasta",
     "reference.core_mask_bed": "inputs/reference/core_genome.bed",
     "reference.gff": "inputs/reference/Pf3D7.gff",
-    "assay.targets_bed": "inputs/targets/targets.bed",
-    "assay.primers_tsv": "inputs/targets/primers.tsv",
+    "assay.library_catalog": "inputs/metadata/library_catalog.yaml",
     "analyses.resistance_catalog": "inputs/metadata/verified_catalog.tsv",
 }
 
@@ -110,7 +109,14 @@ def resolve_input_defaults(project: dict[str, Any], root: Path | None = None) ->
 
 def validate_bundle(root: Path, parsed: dict[str, Any]) -> Bundle:
     problems: list[str] = []
-    parsed = {**parsed, "config": resolve_input_defaults(migrate_project(parsed["config"]), root)}
+    project = migrate_project(parsed["config"])
+    if project.get("schema_version") == "pfvarx.config/3":
+        raise ConfigError([
+            f"{USER_FILES['config']}: uses configuration schema 3. Run './pfvarx config-migrate --apply' "
+            "(backs up the old files) to move assay.design to assay_design and the panel, UMI and "
+            "technique settings into the library catalog and sample manifest; see docs/configuration.md."
+        ])
+    parsed = {**parsed, "config": resolve_input_defaults(project, root)}
     models: dict[str, type[BaseModel]] = {"config": ProjectConfig, "quality": QualityConfig, "compute": ComputeConfig}
     built: dict[str, Any] = {}
     for name, model in models.items():
@@ -124,7 +130,8 @@ def validate_bundle(root: Path, parsed: dict[str, Any]) -> Bundle:
     analyses = bundle.config.analyses
     if analyses.selection == "auto":
         registry = read_yaml(root / "config/registry/downstream_analyses.yaml")["analyses"]
-        selected = sorted(da for da, contract in registry.items() if bundle.config.assay.design.value in contract["designs"])
+        selected = sorted(da for da, contract in registry.items()
+                          if bundle.config.assay_design.value in [Design.parse(d).value for d in contract["designs"]])
         if analyses.spatial_outcome_source not in (None, "DA002"):
             raise ConfigError(["Automatic selection supports only DA002 as the spatial outcome source"])
         changes = {
@@ -154,7 +161,7 @@ def validate_bundle(root: Path, parsed: dict[str, Any]) -> Bundle:
             if (
                 unavailable
                 or bundle.config.final_output.value > metadata["max_final_output"]
-                or bundle.config.assay.design.value != metadata["design"]
+                or bundle.config.assay_design != Design.parse(metadata["design"])
                 or bundle.config.input_type.value not in supported_inputs
             ):
                 raise ConfigError(

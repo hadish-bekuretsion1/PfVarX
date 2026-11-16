@@ -44,7 +44,10 @@ initialized, enter it directly. Bootstrap requires a new destination.
 | Full development environment | `--profile development` |
 
 For aligned input, add `--input-type BAM` or `--input-type CRAM`. For targeted
-reads, add `--design TARGETED_NON_UMI` or `--design TARGETED_UMI`.
+libraries, add `--design targeted_no_umi` or `--design targeted_umi`. The design
+(`assay_design` in `config.yaml`) selects the processing branch; each library's
+technique, amplification route, panel, protocol and imported-BAM state are recorded in the
+sample manifest and library catalog ([assay design and library records](docs/sequencing.md)).
 
 ## 2. Configure
 

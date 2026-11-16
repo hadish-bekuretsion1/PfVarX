@@ -37,17 +37,16 @@ def test_auto_selection_uses_declared_targeted_branch(workspace: Path) -> None:
     config = values["config"]
     config.update(final_output="FO004")
     config["reference"].update(release_label="fixture", gff="inputs/reference/test.gff")
-    config["assay"].update(design="TARGETED_NON_UMI", sequencing_type="TBS_UMI",
-                           amplification_route="AMPLICON", targets_bed="inputs/targets/targets.bed",
-                           primers_tsv="inputs/targets/primers.tsv")
+    config["assay_design"] = "targeted_no_umi"
     config["analyses"]["selection"] = "auto"
-    with pytest.raises(ConfigError, match="sequencing_type is incompatible"):
+    with pytest.raises(ConfigError, match="library_catalog"):
         save(workspace, values, state["revision"], False)
-    config["assay"]["sequencing_type"] = "TBS_NON_UMI"
+    config["assay"]["library_catalog"] = "inputs/metadata/library_catalog.yaml"
     saved = save(workspace, values, state["revision"], False)
     assert "inputs/targets" in saved["directories"]
     resolved = load_bundle(workspace).config.analyses
-    assert resolved.requested == ["DA001", "DA002", "DA003", "DA004", "DA007"]
+    # Every analysis applies to every design; the panel and callable evidence decide at run time.
+    assert resolved.requested == ["DA001", "DA002", "DA003", "DA004", "DA005", "DA006", "DA007"]
     assert resolved.spatial_outcome_source == "DA002"
     assert config["analyses"]["requested"] == []
 

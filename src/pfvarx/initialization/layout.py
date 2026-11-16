@@ -12,7 +12,7 @@ from pathlib import Path
 from typing import Any
 
 from pfvarx.configuration.models import ProjectConfig
-from pfvarx.constants import Design, InputType, Purpose
+from pfvarx.constants import InputType, Purpose
 from pfvarx.io import within
 
 SAMPLE_COLUMNS = ["sample_id", "lane", "fastq_1", "fastq_2", "bam", "vcf", "library_id",
@@ -46,7 +46,7 @@ def required_dirs(cfg: ProjectConfig) -> list[str]:
         dirs.append("inputs/alignments")
     else:
         dirs.append("inputs/vcf")
-    if cfg.assay.design != Design.WGS:
+    if cfg.assay_design.targeted:
         dirs.append("inputs/targets")
     if cfg.purpose == Purpose.BENCHMARKING:
         dirs += ["inputs/truth", "inputs/partitions"]
@@ -75,8 +75,22 @@ def check_release_label(cfg: ProjectConfig) -> None:
 def init_inputs(root: Path, cfg: ProjectConfig) -> dict[str, Any]:
     directories = required_dirs(cfg)
     created = create_input_dirs(root, directories)
+    catalog = write_catalog_template(root, cfg)
     return {"directories": [rel + "/" for rel in directories], "created_dirs": created,
-            "samples_template_written": False, "result_dirs_created": []}
+            "samples_template_written": False, "result_dirs_created": [],
+            "library_catalog_template_written": catalog}
+
+
+def write_catalog_template(root: Path, cfg: ProjectConfig) -> str | None:
+    """Targeted designs: place the library catalog template where the config points, if absent."""
+    if not cfg.assay_design.targeted or cfg.assay.library_catalog is None:
+        return None
+    target = within(root, str(cfg.assay.library_catalog))
+    if target.exists():
+        return None
+    target.parent.mkdir(parents=True, exist_ok=True)
+    shutil.copyfile(root / "config" / "templates" / "library_catalog.yaml", target)
+    return str(cfg.assay.library_catalog)
 
 
 def check_layout(root: Path, cfg: ProjectConfig) -> dict[str, Any]:
@@ -85,10 +99,8 @@ def check_layout(root: Path, cfg: ProjectConfig) -> dict[str, Any]:
              "samples_tsv": cfg.samples_tsv}
     if cfg.final_output.value == "FO004" and (cfg.reference.gff or cfg.analyses.selection != "auto"):
         files["reference.gff"] = cfg.reference.gff
-    if cfg.assay.targets_bed:
-        files["assay.targets_bed"] = cfg.assay.targets_bed
-    if cfg.assay.primers_tsv:
-        files["assay.primers_tsv"] = cfg.assay.primers_tsv
+    if cfg.assay.library_catalog or cfg.assay_design.targeted:
+        files["assay.library_catalog"] = cfg.assay.library_catalog
     missing_files = {k: str(v) for k, v in files.items() if v is None or not (root / v).is_file()}
     misplaced = []
     for unexpected in ("results", "work"):

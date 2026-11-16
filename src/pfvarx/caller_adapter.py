@@ -14,7 +14,7 @@ from tempfile import TemporaryDirectory
 import pysam
 
 from pfvarx.configuration.models import CallerConfig
-from pfvarx.constants import CallStatus
+from pfvarx.constants import CallStatus, CountUnit
 from pfvarx.io import read_json, sha256, write_json
 
 EVIDENCE_COLUMNS = (
@@ -112,11 +112,14 @@ def main() -> None:
         parser.add_argument("--out-" + name, required=True, type=Path)
     # Worker processes for the native caller only; the external contract is unchanged.
     parser.add_argument("--threads", type=int, default=1)
+    # Recorded in the caller QC for either backend: what the allele counts and depths count.
+    parser.add_argument("--count-unit", choices=[u.value for u in CountUnit], default=CountUnit.READS.value)
     args = parser.parse_args()
     config = CallerConfig.model_validate(read_json(Path(args.frozen_config))["config"].get("caller", {}))
     check_backend(config)
     if config.backend == "native":
         importlib.import_module("pfvarx.caller.call").run(args)
+        record_count_unit(args.out_qc, args.count_unit)
         return
     for name in OUTPUTS:
         getattr(args, "out_" + name).parent.mkdir(parents=True, exist_ok=True)
@@ -134,6 +137,14 @@ def main() -> None:
         write_json(paths["qc"], qc)
         for name, path in paths.items():
             path.replace(getattr(args, "out_" + name))
+    record_count_unit(args.out_qc, args.count_unit)
+
+
+def record_count_unit(path: Path, unit: str) -> None:
+    """Read counts and UMI consensus-molecule counts are different quantities: say which."""
+    qc = read_json(path)
+    qc["count_unit"] = unit
+    write_json(path, qc)
 
 
 if __name__ == "__main__":

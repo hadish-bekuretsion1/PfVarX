@@ -17,7 +17,7 @@ from typing import Any, TypedDict
 
 from pfvarx.caller_adapter import check_backend
 from pfvarx.configuration.loader import effective_config, load_bundle
-from pfvarx.constants import FailureClass, Severity
+from pfvarx.constants import Design, FailureClass, Severity
 from pfvarx.diagnostics.events import append, event
 from pfvarx.eligibility.engine import internal_prerequisites, load_registry
 from pfvarx.inputs.registry import validate_all
@@ -37,7 +37,8 @@ def build_plan(root: Path) -> dict[str, Any]:
     samples: dict[str, dict[str, Any]] = {}
     for row in validation["registry"]:
         s = samples.setdefault(row["sample_id"], {"sample_id": row["sample_id"], "lanes": [],
-                                                  "bam": row.get("bam", ""), "vcf": row.get("vcf", "")})
+                                                  "bam": row.get("bam", ""), "vcf": row.get("vcf", ""),
+                                                  "assay": validation["libraries"].get(row["sample_id"], {})})
         s["lanes"].append({"lane": row["lane"], "fastq_1": row.get("fastq_1", ""), "fastq_2": row.get("fastq_2", ""),
                            "library_id": row["library_id"], "flowcell_type": row.get("flowcell_type", "")})
     failed_inputs = sorted(s for s, st in validation["samples"].items() if st == "FAIL")
@@ -57,7 +58,8 @@ def build_plan(root: Path) -> dict[str, Any]:
     ref = read_json(manifest) if manifest.is_file() else {}
     return {
         "schema": "pfvarx.plan/1",
-        "input_type": cfg.input_type.value, "design": cfg.assay.design.value,
+        "input_type": cfg.input_type.value, "design": cfg.assay_design.value,
+        "panel": validation["panel"],
         "final_output": cfg.final_output.value, "layers": resources["layers"],
         "samples": [s for k, s in sorted(samples.items()) if k not in failed_inputs],
         "samples_failed_validation": failed_inputs,
@@ -66,11 +68,11 @@ def build_plan(root: Path) -> dict[str, Any]:
                       "reference_sha256": ref.get("reference_sha256")},
         "preparation_current": prep["status"] == "PASS",
         "prepared_verification": prep,
-        "sequencing_type": cfg.assay.sequencing_type,
         "analysis_selection": cfg.analyses.selection,
         "analyses_not_applicable": {
             da: "DESIGN_NOT_SUPPORTED" for da, contract in registry["analyses"].items()
-            if cfg.analyses.selection == "auto" and cfg.assay.design.value not in contract["designs"]
+            if cfg.analyses.selection == "auto"
+            and cfg.assay_design.value not in [Design.parse(d).value for d in contract["designs"]]
         },
         "analyses_requested": requested, "analyses_internal": internal,
         "resources": resources, "input_gb": round(gb, 4),

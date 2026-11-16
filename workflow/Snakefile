@@ -5,6 +5,8 @@
 import json
 from pathlib import Path
 
+from pfvarx.constants import Design
+
 ROOT = Path(config["root"]).resolve()
 RUN = Path(config["run_dir"]).resolve()
 EFF = json.loads((RUN / "frozen_config.json").read_text())
@@ -13,7 +15,14 @@ R = RUN / "results"
 LOGS = RUN / "logs"
 BENCH = RUN / "benchmarks"
 CFG = EFF["config"]
-DESIGN = CFG["assay"]["design"]
+# assay_design selects the branch. Runs frozen before configuration schema 4 recorded it
+# as assay.design with upper-case values; both are read.
+DESIGN = Design.parse(PLAN.get("design") or CFG.get("assay_design") or CFG["assay"]["design"]).value
+# The run's targeted panel (one per run), resolved from panel_id + panel_version.
+PANEL = PLAN.get("panel") or {"targets_bed": CFG["assay"].get("targets_bed"),
+                              "primers_tsv": CFG["assay"].get("primers_tsv")}
+TARGETS = str(ROOT / PANEL["targets_bed"]) if PANEL.get("targets_bed") else ""
+PRIMERS = str(ROOT / PANEL["primers_tsv"]) if PANEL.get("primers_tsv") else ""
 P = {k: v["value"] for k, v in EFF["parameters"].items()}
 SAMPLES = {s["sample_id"]: s for s in PLAN["samples"]}
 REF = str(ROOT / PLAN["reference"]["combined_fasta"])
@@ -36,7 +45,7 @@ RUNTIME = COMPUTE["per_job"]["max_runtime_min"]
 include: "rules/common.smk"
 include: "rules/l1_fastq_qc.smk"
 include: "rules/l1_align.smk"
-if DESIGN == "TARGETED_UMI" and PLAN["input_type"] == "FASTQ":
+if DESIGN == "targeted_umi":
     include: "rules/l1_umi.smk"
 include: "rules/l1_metrics.smk"
 include: "rules/l2_caller.smk"

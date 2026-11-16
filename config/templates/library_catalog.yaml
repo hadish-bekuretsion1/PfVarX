@@ -1,0 +1,23 @@
+# PfVarX library catalog: targeted panels and library protocols.
+# Sample-manifest rows name a panel (panel_id + panel_version) and, where needed, a
+# library protocol (library_protocol_id). Replace every EDIT value with your lab's records.
+schema_version: pfvarx.library_catalog/1          # FIXED
+panels:
+  - panel_id: MY_PANEL                            # EDIT: panel name as written in the manifest
+    panel_version: "1"                            # EDIT: panel version as written in the manifest
+    targets_bed: inputs/targets/targets.bed       # EDIT: targeted intervals (BED, 0-based half-open)
+    primers_tsv: inputs/targets/primers.tsv       # EDIT: amplicon primers (fgbio TrimPrimers table); null for capture panels
+    probes_bed: null                              # OPTIONAL: capture probes (BED); recorded, not trimmed
+    description: null                             # OPTIONAL
+library_protocols:
+  - library_protocol_id: MY_UMI_PROTOCOL          # EDIT: protocol name as written in the manifest
+    technique: null                               # OPTIONAL: AMPLICON | TBS_UMI | TBS_NON_UMI (targeted) or WGS | SELECTIVE_WGS
+    amplification_route: AMPLICON                 # OPTIONAL: DIRECT | SWGA (WGS) or AMPLICON (targeted)
+    umi:                                          # targeted_umi only; delete this block for libraries without UMIs
+      read_structure: "8M+T 8M+T"                 # EDIT: fgbio read structures of R1 and R2
+      # Optional consensus settings; omitted ones use config/parameters/layer1.yaml:
+      # group_strategy, group_edits, group_min_map_q, consensus_min_reads,
+      # consensus_error_pre_umi, consensus_error_post_umi, consensus_min_input_base_quality,
+      # filter_min_reads, filter_min_base_quality, filter_max_read_error_rate,
+      # filter_max_base_error_rate, filter_max_no_call_fraction
+    description: null                             # OPTIONAL

@@ -1,6 +1,6 @@
 # L1 QC metrics and the per-sample Layer 1 gate (checkpoint).
 
-TARGETS = str(ROOT / CFG["assay"]["targets_bed"]) if CFG["assay"]["targets_bed"] else ""
+# TARGETS (the run panel's intervals) is defined in the Snakefile.
 
 
 rule flagstat:

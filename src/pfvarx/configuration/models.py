@@ -18,11 +18,10 @@ from pfvarx.constants import (
     FinalOutput,
     InputType,
     Purpose,
-    Route,
     Scale,
 )
 
-CONFIG_SCHEMA = "pfvarx.config/3"
+CONFIG_SCHEMA = "pfvarx.config/4"
 QUALITY_SCHEMA = "pfvarx.quality/2"
 COMPUTE_SCHEMA = "pfvarx.compute/2"
 
@@ -32,41 +31,14 @@ class Strict(BaseModel):
 
 
 class AssayConfig(Strict):
-    design: Design
-    sequencing_type: Literal["WGS", "SWGS", "SELECTIVE_WGS", "AMPLICON", "TBS_UMI", "TBS_NON_UMI"] | None = None
-    amplification_route: Route
-    read_structure: str | None = Field(
-        default=None, description="fgbio read structure, e.g. '8M143T 8M143T'; UMI only"
+    """Library-wide settings. What each library is (panel, protocol, technique, route,
+    imported-BAM state) is recorded per sample in the manifest and the library catalog."""
+
+    library_catalog: Path | None = Field(
+        default=None, description="Panels and library protocols (YAML); required for targeted designs"
     )
-    targets_bed: Path | None = None
-    primers_tsv: Path | None = None
     two_colour_chemistry: bool = False
     platform: str = "ILLUMINA"
-
-    @model_validator(mode="after")
-    def _design_consistency(self) -> AssayConfig:
-        compatible = {
-            "WGS": (Design.WGS,), "SWGS": (Design.WGS,), "SELECTIVE_WGS": (Design.WGS,),
-            "AMPLICON": (Design.TARGETED_NON_UMI, Design.TARGETED_UMI),
-            "TBS_UMI": (Design.TARGETED_UMI,),
-            "TBS_NON_UMI": (Design.TARGETED_NON_UMI,),
-        }
-        if self.sequencing_type and self.design not in compatible[self.sequencing_type]:
-            raise ValueError("sequencing_type is incompatible with assay.design")
-        if self.sequencing_type == "SELECTIVE_WGS" and self.amplification_route != Route.SWGA:
-            raise ValueError("SELECTIVE_WGS requires amplification_route: SWGA")
-        targeted = self.design in (Design.TARGETED_NON_UMI, Design.TARGETED_UMI)
-        if targeted and (self.targets_bed is None or self.primers_tsv is None):
-            raise ValueError("targeted designs require assay.targets_bed and assay.primers_tsv")
-        if targeted and self.amplification_route != Route.AMPLICON:
-            raise ValueError("targeted designs require amplification_route: AMPLICON")
-        if self.design == Design.WGS and self.amplification_route == Route.AMPLICON:
-            raise ValueError("WGS cannot use amplification_route: AMPLICON")
-        if self.design == Design.TARGETED_UMI and not self.read_structure:
-            raise ValueError("TARGETED_UMI requires assay.read_structure")
-        if self.design != Design.TARGETED_UMI and self.read_structure:
-            raise ValueError("assay.read_structure is only valid for TARGETED_UMI")
-        return self
 
 
 class ReferenceConfig(Strict):
@@ -139,7 +111,8 @@ class ProjectConfig(Strict):
     project_id: str = Field(pattern=r"^[A-Za-z0-9][A-Za-z0-9_-]{0,63}$")
     input_type: InputType
     final_output: FinalOutput
-    assay: AssayConfig
+    assay_design: Design = Field(description="Selects the processing branch: wgs | targeted_umi | targeted_no_umi")
+    assay: AssayConfig = Field(default_factory=AssayConfig)
     reference: ReferenceConfig
     samples_tsv: Path
     analyses: AnalysesConfig = Field(default_factory=AnalysesConfig)
@@ -155,6 +128,19 @@ class ProjectConfig(Strict):
             raise ValueError(f"config schema_version must be {CONFIG_SCHEMA}")
         return value
 
+    @field_validator("assay_design", mode="before")
+    @classmethod
+    def _design(cls, value: object) -> Design:
+        try:
+            return Design.parse(value)
+        except ValueError:
+            raise ValueError("assay_design must be wgs, targeted_umi or targeted_no_umi") from None
+
+    @field_validator("input_type", mode="before")
+    @classmethod
+    def _input(cls, value: object) -> object:
+        return value.upper() if isinstance(value, str) else value  # fastq, bam and cram are accepted
+
     @model_validator(mode="after")
     def _mode(self) -> ProjectConfig:
         if self.final_output == FinalOutput.FO004 and self.analyses.selection == "explicit" and not self.analyses.requested:
@@ -167,8 +153,8 @@ class ProjectConfig(Strict):
             raise ValueError("BAM/CRAM enter at Layer 2. Choose FO002, FO003 or FO004.")
         if self.input_type == InputType.VCF:
             raise ValueError("VCF entry is not implemented; supply FASTQ, BAM or CRAM")
-        if self.assay.design != Design.WGS and set(self.analyses.requested) & {"DA005", "DA006"}:
-            raise ValueError("DA005/DA006 require WGS; remove them or choose the actual WGS assay")
+        if self.assay_design.targeted and self.assay.library_catalog is None:
+            raise ValueError("targeted designs require assay.library_catalog (panels and library protocols)")
         return self
 
 

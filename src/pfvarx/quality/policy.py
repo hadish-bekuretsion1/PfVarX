@@ -7,7 +7,7 @@ from typing import Any
 
 import yaml
 
-from pfvarx.constants import QC, ParameterSource, Reason
+from pfvarx.constants import QC, Design, ParameterSource, Reason
 
 
 def load_policy(root: Path, policy_id: str) -> dict[str, Any]:
@@ -33,7 +33,7 @@ def evaluate_gate(gate: dict[str, Any], metrics: dict[str, Any], design: str,
                                                        ParameterSource.FRAMEWORK_POLICY,
                                                        ParameterSource.LITERATURE_SUPPORTED),
            "reason": None}
-    if design not in gate["designs"]:
+    if Design.parse(design) not in [Design.parse(d) for d in gate["designs"]]:
         rec["status"] = QC.NOT_APPLICABLE
         return rec
     obs = rec["observed"]

@@ -2,65 +2,73 @@
 # FastqToBam -> align -> ZipperBams -> template-coordinate sort -> GroupReadsByUmi ->
 # CallMolecularConsensusReads -> FilterConsensusReads -> realign -> ZipperBams ->
 # coordinate sort -> pre-clipping metrics -> TrimPrimers -> index.
+#
+# FASTQ entry runs every step. An imported BAM of raw UMI reads (processing_state aligned)
+# enters at the template-coordinate sort; an imported consensus BAM skips this file entirely
+# (see l1_align.smk). UMI extraction and consensus settings come from each sample's library
+# protocol, falling back to the layer-1 defaults.
 
-if DESIGN == "TARGETED_UMI" and PLAN["input_type"] == "FASTQ":
+if DESIGN == "targeted_umi":
 
     from pfvarx.inputs.validate import runtime_read_structures
 
-    # A fixed final template segment is relaxed to +T: fastp shortens reads at the 3' end.
-    RUNTIME_READ_STRUCTURES = runtime_read_structures(CFG["assay"]["read_structure"])[0]
+    def read_structures(wc):
+        # A fixed final template segment is relaxed to +T: fastp shortens reads at the 3' end.
+        return " ".join(runtime_read_structures(umi(wc.sample, "read_structure"))[0])
 
-    rule umi_fastq_to_bam:
-        input:
-            r1=str(R / "work" / "trimmed" / "{sample}.{lane}.R1.fastq.gz"),
-            r2=str(R / "work" / "trimmed" / "{sample}.{lane}.R2.fastq.gz"),
-        output:
-            temp(str(R / "work" / "umi" / "lanes" / "{sample}.{lane}.unmapped.bam")),
-        params:
-            rs=RUNTIME_READ_STRUCTURES,
-            lib=lambda wc: next(x for x in SAMPLES[wc.sample]["lanes"] if x["lane"] == wc.lane)["library_id"],
-        resources:
-            mem_mb=mem(2000),
-            runtime=RUNTIME,
-        log:
-            str(LOGS / "umi" / "{sample}.{lane}.fastqtobam.log"),
-        shell:
-            "fgbio -Djava.io.tmpdir={resources.tmpdir:q} -Xmx{resources.mem_mb}m FastqToBam -i {input.r1:q} {input.r2:q} -r {params.rs:q} "
-            "-o {output:q} --sample {wildcards.sample} --library {params.lib:q} "
-            "--read-group-id {wildcards.sample}.{wildcards.lane} --sort=true > {log:q} 2>&1"
+    if PLAN["input_type"] == "FASTQ":
 
-    rule umi_align_zipper:
-        input:
-            str(R / "work" / "umi" / "lanes" / "{sample}.{lane}.unmapped.bam"),
-        output:
-            temp(str(R / "work" / "umi" / "lanes" / "{sample}.{lane}.mapped.bam")),
-        params:
-            ref=REF,
-            K=P["layer1.bwa_mem2_fixed_batch_K"],
-            # ZipperBams shares the job with bwa-mem2: a third of the (retry-scaled) allowance.
-            zipper_mb=lambda wc, resources: max(1000, resources.mem_mb // 3),
-        threads: threads(4)
-        resources:
-            mem_mb=mem(6000),
-            runtime=RUNTIME,
-        log:
-            str(LOGS / "umi" / "{sample}.{lane}.align.log"),
-        shell:
-            "(samtools fastq {input:q} | bwa-mem2 mem -p -t {threads} -K {params.K} -Y {params.ref:q} - "
-            "| fgbio -Djava.io.tmpdir={resources.tmpdir:q} -Xmx{params.zipper_mb}m --compression 0 ZipperBams -i /dev/stdin --unmapped {input:q} --ref {params.ref:q} "
-            "--output {output:q}) 2> {log:q}"
+        rule umi_fastq_to_bam:
+            input:
+                r1=str(R / "work" / "trimmed" / "{sample}.{lane}.R1.fastq.gz"),
+                r2=str(R / "work" / "trimmed" / "{sample}.{lane}.R2.fastq.gz"),
+            output:
+                temp(str(R / "work" / "umi" / "lanes" / "{sample}.{lane}.unmapped.bam")),
+            params:
+                rs=read_structures,
+                lib=lambda wc: next(x for x in SAMPLES[wc.sample]["lanes"] if x["lane"] == wc.lane)["library_id"],
+            resources:
+                mem_mb=mem(2000),
+                runtime=RUNTIME,
+            log:
+                str(LOGS / "umi" / "{sample}.{lane}.fastqtobam.log"),
+            shell:
+                "fgbio -Djava.io.tmpdir={resources.tmpdir:q} -Xmx{resources.mem_mb}m FastqToBam -i {input.r1:q} {input.r2:q} "
+                "-r {params.rs} -o {output:q} --sample {wildcards.sample} --library {params.lib:q} "
+                "--read-group-id {wildcards.sample}.{wildcards.lane} --sort=true > {log:q} 2>&1"
+
+        rule umi_align_zipper:
+            input:
+                str(R / "work" / "umi" / "lanes" / "{sample}.{lane}.unmapped.bam"),
+            output:
+                temp(str(R / "work" / "umi" / "lanes" / "{sample}.{lane}.mapped.bam")),
+            params:
+                ref=REF,
+                K=P["layer1.bwa_mem2_fixed_batch_K"],
+                # ZipperBams shares the job with bwa-mem2: a third of the (retry-scaled) allowance.
+                zipper_mb=lambda wc, resources: max(1000, resources.mem_mb // 3),
+            threads: threads(4)
+            resources:
+                mem_mb=mem(6000),
+                runtime=RUNTIME,
+            log:
+                str(LOGS / "umi" / "{sample}.{lane}.align.log"),
+            shell:
+                "(samtools fastq {input:q} | bwa-mem2 mem -p -t {threads} -K {params.K} -Y {params.ref:q} - "
+                "| fgbio -Djava.io.tmpdir={resources.tmpdir:q} -Xmx{params.zipper_mb}m --compression 0 ZipperBams -i /dev/stdin --unmapped {input:q} --ref {params.ref:q} "
+                "--output {output:q}) 2> {log:q}"
 
     rule umi_group:
         input:
-            lambda wc: [str(R / "work" / "umi" / "lanes" / f"{wc.sample}.{x['lane']}.mapped.bam") for x in SAMPLES[wc.sample]["lanes"]],
+            umi_group_input,
         output:
             bam=temp(str(R / "work" / "umi" / "{sample}.grouped.bam")),
             hist=str(R / "qc" / "samples" / "{sample}" / "{sample}.umi_family_sizes.txt"),
             metrics=str(R / "qc" / "samples" / "{sample}" / "{sample}.umi_grouping_metrics.txt"),
         params:
-            strategy=P["layer1.fgbio_group_strategy"],
-            edits=P["layer1.fgbio_group_edits"],
-            mapq=P["layer1.fgbio_group_min_map_q"],
+            strategy=lambda wc: umi(wc.sample, "group_strategy"),
+            edits=lambda wc: umi(wc.sample, "group_edits"),
+            mapq=lambda wc: umi(wc.sample, "group_min_map_q"),
         threads: threads(2)
         resources:
             mem_mb=mem(4000),
@@ -79,16 +87,16 @@ if DESIGN == "TARGETED_UMI" and PLAN["input_type"] == "FASTQ":
         output:
             temp(str(R / "work" / "umi" / "{sample}.consensus.unmapped.bam")),
         params:
-            minr=P["layer1.fgbio_consensus_min_reads"],
-            pre=P["layer1.fgbio_consensus_error_pre_umi"],
-            post=P["layer1.fgbio_consensus_error_post_umi"],
-            minq=P["layer1.fgbio_consensus_min_input_base_quality"],
+            minr=lambda wc: umi(wc.sample, "consensus_min_reads"),
+            pre=lambda wc: umi(wc.sample, "consensus_error_pre_umi"),
+            post=lambda wc: umi(wc.sample, "consensus_error_post_umi"),
+            minq=lambda wc: umi(wc.sample, "consensus_min_input_base_quality"),
             ref=REF,
-            fminr=P["layer1.fgbio_filter_min_reads"],
-            fminq=P["layer1.fgbio_filter_min_base_quality"],
-            E=P["layer1.fgbio_filter_max_read_error_rate"],
-            e=P["layer1.fgbio_filter_max_base_error_rate"],
-            nc=P["layer1.fgbio_filter_max_no_call_fraction"],
+            fminr=lambda wc: umi(wc.sample, "filter_min_reads"),
+            fminq=lambda wc: umi(wc.sample, "filter_min_base_quality"),
+            E=lambda wc: umi(wc.sample, "filter_max_read_error_rate"),
+            e=lambda wc: umi(wc.sample, "filter_max_base_error_rate"),
+            nc=lambda wc: umi(wc.sample, "filter_max_no_call_fraction"),
         threads: threads(2)
         resources:
             mem_mb=mem(4000),
@@ -126,22 +134,23 @@ if DESIGN == "TARGETED_UMI" and PLAN["input_type"] == "FASTQ":
             "--tags-to-reverse Consensus --tags-to-revcomp Consensus "
             "| samtools sort -@ {threads} -o {output:q} - && rm {output:q}.qn.bam) 2> {log:q}"
 
-    rule umi_preclip_and_trim:
-        input:
-            str(R / "work" / "umi" / "{sample}.consensus.mapped.bam"),
-        output:
-            bam=str(R / "alignments" / "{sample}.bam"),
-            stats=str(R / "qc" / "samples" / "{sample}" / "{sample}.preclip.stats.txt"),
-        params:
-            primers=str(ROOT / CFG["assay"]["primers_tsv"]) if CFG["assay"]["primers_tsv"] else "",
-            slop=P["layer1.fgbio_trimprimers_slop"],
-            ref=REF,
-        resources:
-            mem_mb=mem(3000),
-            runtime=RUNTIME,
-        log:
-            str(LOGS / "umi" / "{sample}.trim.log"),
-        shell:
-            "(samtools stats {input:q} > {output.stats:q} && fgbio -Djava.io.tmpdir={resources.tmpdir:q} -Xmx{resources.mem_mb}m TrimPrimers -i {input:q} "
-            "-o {output.bam:q} -p {params.primers:q} -S {params.slop} -r {params.ref:q} --first-of-pair=false "
-            "&& samtools index {output.bam:q}) > {log:q} 2>&1"
+    if PLAN["input_type"] == "FASTQ":
+
+        rule umi_preclip_and_trim:
+            input:
+                bam=str(R / "work" / "umi" / "{sample}.consensus.mapped.bam"),
+            output:
+                bam=str(R / "alignments" / "{sample}.bam"),
+                stats=str(R / "qc" / "samples" / "{sample}" / "{sample}.preclip.stats.txt"),
+            params:
+                primers=PRIMERS,
+                slop=P["layer1.fgbio_trimprimers_slop"],
+                ref=REF,
+            resources:
+                mem_mb=mem(3000),
+                runtime=RUNTIME,
+            log:
+                str(LOGS / "umi" / "{sample}.trim.log"),
+            shell:
+                "(samtools stats {input.bam:q} > {output.stats:q} && " + TRIM_PRIMERS + " "
+                "&& samtools index {output.bam:q}) > {log:q} 2>&1"

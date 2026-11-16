@@ -32,13 +32,11 @@ def _ws(tmp: Path, design: str, fo: str, depth: int = 15, fixture_args: tuple[st
     assert run("config-init", "--purpose", "analysis").returncode == 0
     cfg = yaml.safe_load((ws / "config/config.yaml").read_text())
     cfg["final_output"] = fo
-    cfg["assay"]["design"] = design
+    cfg["assay_design"] = design
     cfg["reference"]["release_label"] = "synthetic"
-    if design != "WGS":
-        cfg["assay"].update(amplification_route="AMPLICON", targets_bed="inputs/targets/targets.bed",
-                            primers_tsv="inputs/targets/primers.tsv")
-    if design == "TARGETED_UMI":
-        cfg["assay"]["read_structure"] = "8M+T 8M+T"
+    if design != "wgs":
+        # The fixture writes the panel and UMI protocol into the library catalog.
+        cfg["assay"]["library_catalog"] = "inputs/metadata/library_catalog.yaml"
     (ws / "config/config.yaml").write_text(yaml.safe_dump(cfg))
     assert run("init").returncode == 0
     assert run("fixture", "--design", design, "--depth", str(depth), *fixture_args).returncode == 0
@@ -47,7 +45,7 @@ def _ws(tmp: Path, design: str, fo: str, depth: int = 15, fixture_args: tuple[st
     return ws
 
 
-@pytest.mark.parametrize("design", ["WGS", "TARGETED_NON_UMI", "TARGETED_UMI"])
+@pytest.mark.parametrize("design", ["wgs", "targeted_no_umi", "targeted_umi"])
 def test_dry_run_creates_no_outputs(tmp_path: Path, design: str) -> None:
     ws = _ws(tmp_path, design, "FO001")
     r = subprocess.run(["pfvarx", "dry-run"], cwd=ws, capture_output=True, text=True)
@@ -61,7 +59,7 @@ def test_end_to_end_annotated_run_writes_indexed_bgzf(tmp_path: Path) -> None:
 
     if shutil.which("snpEff") is None:
         pytest.skip("snpEff not on PATH (annotation feature not installed)")
-    ws = _ws(tmp_path, "WGS", "FO002")
+    ws = _ws(tmp_path, "wgs", "FO002")
     cfg = yaml.safe_load((ws / "config/config.yaml").read_text())
     cfg["final_output"] = "FO004"
     cfg["reference"]["gff"] = "inputs/reference/Pf3D7.gff"
@@ -94,10 +92,11 @@ def test_umi_route_survives_fixed_read_structure_and_short_reads(tmp_path: Path)
 
     if shutil.which("fgbio") is None:
         pytest.skip("fgbio not on PATH (targeted feature not installed)")
-    ws = _ws(tmp_path, "TARGETED_UMI", "FO001")
-    cfg = yaml.safe_load((ws / "config/config.yaml").read_text())
-    cfg["assay"]["read_structure"] = "8M100T 8M100T"
-    (ws / "config/config.yaml").write_text(yaml.safe_dump(cfg))
+    ws = _ws(tmp_path, "targeted_umi", "FO001")
+    catalog_path = ws / "inputs/metadata/library_catalog.yaml"
+    catalog = yaml.safe_load(catalog_path.read_text())
+    catalog["library_protocols"][0]["umi"]["read_structure"] = "8M100T 8M100T"
+    catalog_path.write_text(yaml.safe_dump(catalog))
     sheet = ws / "inputs/metadata/samples.tsv"
     sheet.write_text("\n".join(sheet.read_text().splitlines()[:2]) + "\n")
     for mate in ("R1", "R2"):
@@ -116,7 +115,7 @@ def _umi_to_resistance(tmp_path: Path, depth: int) -> tuple[Path, dict]:
 
     if shutil.which("fgbio") is None or shutil.which("snpEff") is None:
         pytest.skip("fgbio or snpEff not on PATH (targeted/annotation features not installed)")
-    ws = _ws(tmp_path, "TARGETED_UMI", "FO002", depth=depth)
+    ws = _ws(tmp_path, "targeted_umi", "FO002", depth=depth)
     cfg = yaml.safe_load((ws / "config/config.yaml").read_text())
     cfg["final_output"] = "FO004"
     cfg["reference"]["gff"] = "inputs/reference/Pf3D7.gff"
@@ -177,7 +176,7 @@ def test_every_downstream_analysis_executes(tmp_path: Path) -> None:
     tools = ("snpEff", "Rscript", "hmmIBD", "iqtree2")
     if any(shutil.which(t) is None for t in tools):
         pytest.skip("downstream method tools not on PATH (default environment needed)")
-    ws = _ws(tmp_path, "WGS", "FO002", depth=40, fixture_args=("--n-mono", "8", "--variant-scale", "4"))
+    ws = _ws(tmp_path, "wgs", "FO002", depth=40, fixture_args=("--n-mono", "8", "--variant-scale", "4"))
     layer5 = ws / "config/parameters/layer5.yaml"
     text, n = re.subn(r"^(  da001_thin_bp: \{value: )\d+", r"\g<1>100", layer5.read_text(), flags=re.M)
     assert n == 1

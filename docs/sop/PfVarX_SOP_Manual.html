@@ -13,7 +13,7 @@
   .audit-matrix h1{margin-top:0}
   main{overflow:visible!important;width:auto;max-width:none}
 }
-</style></head><body><a class="skip" href="#manual">Skip to manual</a><header><h1>PfVarX operational SOPs</h1><p>50 supported procedures · Development · Routine analysis · Built-in benchmarking</p><div class="tools"><button onclick="window.print()">Print / Save as PDF</button></div></header><div class="banner">PfVarX 0.0.0 · Supported implementation only · Replace explicit input/sample/run placeholders · Software verification does not establish scientific validation.</div><div class="layout"><nav aria-label="Procedure navigation"><a href="#pfvarx-0-4-2-operational-sop-manual">PfVarX 0.0.0 — Operational SOP manual</a><a href="#section-4-unified-downstream-eligibility-and-output-matrix">Section 4 — Unified downstream eligibility and output matrix</a><a href="#part-i-development-and-implementation">PART I — Development and implementation</a><a href="#d01-initialize-an-isolated-development-checkout">D01 — Initialize an isolated development checkout</a><a href="#d02-install-the-locked-pixi-environment">D02 — Install the locked Pixi environment</a><a href="#d03-maintain-configuration-schemas-and-parameters">D03 — Maintain configuration schemas and parameters</a><a href="#d04-maintain-validators-and-select-entry-routes">D04 — Maintain validators and select entry routes</a><a href="#d05-develop-fastq-preprocessing-and-qc">D05 — Develop FASTQ preprocessing and QC</a><a href="#d06-develop-reference-and-annotation-preparation">D06 — Develop reference and annotation preparation</a><a href="#d07-maintain-alignment-and-bam-cram-processing">D07 — Maintain alignment and BAM/CRAM processing</a><a href="#d08-develop-the-custom-snp-and-indel-caller">D08 — Develop the custom SNP and indel caller</a><a href="#d09-maintain-filtering-status-classes-and-callability">D09 — Maintain filtering, status classes and callability</a><a href="#d10-develop-diversity-local-haplotypes-and-clonality">D10 — Develop diversity, local haplotypes and clonality</a><a href="#d11-maintain-resistance-marker-analysis">D11 — Maintain resistance marker analysis</a><a href="#d12-maintain-population-structure-relatedness-trees-and-spatial-analysis">D12 — Maintain population structure, relatedness, trees and spatial analysis</a><a href="#d13-integrate-and-execute-snakemake-changes">D13 — Integrate and execute Snakemake changes</a><a href="#d14-maintain-diagnostics-and-reproducibility">D14 — Maintain diagnostics and reproducibility</a><a href="#d15-maintain-the-offline-reporting-dashboard">D15 — Maintain the offline reporting dashboard</a><a href="#d16-test-package-and-prepare-a-release">D16 — Test, package and prepare a release</a><a href="#part-ii-routine-sample-analysis">PART II — Routine sample analysis</a><a href="#r01-create-and-install-a-routine-analysis-workspace">R01 — Create and install a routine-analysis workspace</a><a href="#r02-register-one-sample-or-a-cohort">R02 — Register one sample or a cohort</a><a href="#r03-register-and-prepare-the-exact-reference-resources">R03 — Register and prepare the exact reference resources</a><a href="#r04-preflight-resources-validation-and-the-workflow">R04 — Preflight resources, validation and the workflow</a><a href="#r05-execute-paired-end-wgs-fastq-analysis">R05 — Execute paired-end WGS FASTQ analysis</a><a href="#r06-execute-targeted-non-umi-fastq-analysis">R06 — Execute targeted non-UMI FASTQ analysis</a><a href="#r07-execute-targeted-umi-fastq-analysis">R07 — Execute targeted UMI FASTQ analysis</a><a href="#r08-enter-an-existing-wgs-bam">R08 — Enter an existing WGS BAM</a><a href="#r09-qualify-existing-targeted-alignments">R09 — Qualify existing targeted alignments</a><a href="#r10-qualify-existing-cram-input">R10 — Qualify existing CRAM input</a><a href="#r11-select-automatic-or-explicit-downstream-analyses">R11 — Select automatic or explicit downstream analyses</a><a href="#r12-validate-every-final-output-mode-and-review-qc">R12 — Validate every final-output mode and review QC</a><a href="#r13-diagnose-resume-or-extend-safely">R13 — Diagnose, resume or extend safely</a><a href="#r14-operate-and-export-the-reporting-dashboard">R14 — Operate and export the reporting dashboard</a><a href="#r15-archive-a-study-and-maintain-the-software-boundary">R15 — Archive a study and maintain the software boundary</a><a href="#r16-discover-and-register-inputs-without-copying-originals">R16 — Discover and register inputs without copying originals</a><a href="#r17-verify-prepared-artifacts-before-execution">R17 — Verify prepared artifacts before execution</a><a href="#r18-orchestrate-the-complete-chain-and-apply-retention-safely">R18 — Orchestrate the complete chain and apply retention safely</a><a href="#part-iii-built-in-benchmarking-and-performance-evaluation">PART III — Built-in benchmarking and performance evaluation</a><a href="#b01-create-a-separate-benchmark-workspace-and-select-inputs">B01 — Create a separate benchmark workspace and select inputs</a><a href="#b02-run-the-supported-synthetic-software-smoke-test">B02 — Run the supported synthetic software smoke test</a><a href="#b03-prepare-independent-truth-and-confidence-regions">B03 — Prepare independent truth and confidence regions</a><a href="#b04-freeze-the-protocol-and-lock-the-development-held-out-partition">B04 — Freeze the protocol and lock the development/held-out partition</a><a href="#b05-execute-the-benchmark-pipeline-and-score-development-once">B05 — Execute the benchmark pipeline and score development once</a><a href="#b06-review-snp-detection-accuracy">B06 — Review SNP detection accuracy</a><a href="#b07-review-indel-accuracy-and-complex-region-limitations">B07 — Review indel accuracy and complex-region limitations</a><a href="#b08-review-low-frequency-detection-and-wsaf-calibration">B08 — Review low-frequency detection and WSAF calibration</a><a href="#b09-evaluate-technical-mixture-k-agreement">B09 — Evaluate technical mixture K agreement</a><a href="#b10-review-implemented-diversity-and-clonality-outputs-in-benchmarks">B10 — Review implemented diversity and clonality outputs in benchmarks</a><a href="#b11-audit-exact-matching-confidence-and-callable-denominators">B11 — Audit exact matching, confidence and callable denominators</a><a href="#b12-review-built-in-summary-metrics-and-uncertainty">B12 — Review built-in summary metrics and uncertainty</a><a href="#b13-measure-resources-and-generate-the-supported-profile">B13 — Measure resources and generate the supported profile</a><a href="#b14-measure-sample-count-scaling-using-ordinary-supported-runs">B14 — Measure sample-count scaling using ordinary supported runs</a><a href="#b15-verify-repeatability-and-frozen-identity">B15 — Verify repeatability and frozen identity</a><a href="#b16-perform-one-held-out-evaluation-and-archive-the-experiment">B16 — Perform one held-out evaluation and archive the experiment</a><a href="#appendix-a-runtime-output-map-and-acceptance-checklist">Appendix A — Runtime output map and acceptance checklist</a><a href="#appendix-b-current-parameters-inspect-before-use">Appendix B — Current parameters: inspect before use</a><a href="#appendix-c-concise-troubleshooting-decision-table">Appendix C — Concise troubleshooting decision table</a><a href="#appendix-d-documentation-basis-and-verification-of-this-manual">Appendix D — Documentation basis and verification of this manual</a><a href="#appendix-e-replaceable-layer-2-caller">Appendix E — Replaceable Layer 2 caller</a><a href="#appendix-f-configure-inputs-validate-and-prepare">Appendix F — Configure inputs, validate and prepare</a><a href="#appendix-g-sequencing-design-and-conditional-analysis">Appendix G — Sequencing design and conditional analysis</a><a href="#appendix-h-reproduce-the-dry-run-checks">Appendix H — Reproduce the dry-run checks</a></nav><main id="manual"><h1 id="pfvarx-0-4-2-operational-sop-manual">PfVarX 0.0.0 — Operational SOP manual</h1>
+</style></head><body><a class="skip" href="#manual">Skip to manual</a><header><h1>PfVarX operational SOPs</h1><p>50 supported procedures · Development · Routine analysis · Built-in benchmarking</p><div class="tools"><button onclick="window.print()">Print / Save as PDF</button></div></header><div class="banner">PfVarX 0.0.0 · Supported implementation only · Replace explicit input/sample/run placeholders · Software verification does not establish scientific validation.</div><div class="layout"><nav aria-label="Procedure navigation"><a href="#pfvarx-0-4-2-operational-sop-manual">PfVarX 0.0.0 — Operational SOP manual</a><a href="#section-4-unified-downstream-eligibility-and-output-matrix">Section 4 — Unified downstream eligibility and output matrix</a><a href="#part-i-development-and-implementation">PART I — Development and implementation</a><a href="#d01-initialize-an-isolated-development-checkout">D01 — Initialize an isolated development checkout</a><a href="#d02-install-the-locked-pixi-environment">D02 — Install the locked Pixi environment</a><a href="#d03-maintain-configuration-schemas-and-parameters">D03 — Maintain configuration schemas and parameters</a><a href="#d04-maintain-validators-and-select-entry-routes">D04 — Maintain validators and select entry routes</a><a href="#d05-develop-fastq-preprocessing-and-qc">D05 — Develop FASTQ preprocessing and QC</a><a href="#d06-develop-reference-and-annotation-preparation">D06 — Develop reference and annotation preparation</a><a href="#d07-maintain-alignment-and-bam-cram-processing">D07 — Maintain alignment and BAM/CRAM processing</a><a href="#d08-develop-the-custom-snp-and-indel-caller">D08 — Develop the custom SNP and indel caller</a><a href="#d09-maintain-filtering-status-classes-and-callability">D09 — Maintain filtering, status classes and callability</a><a href="#d10-develop-diversity-local-haplotypes-and-clonality">D10 — Develop diversity, local haplotypes and clonality</a><a href="#d11-maintain-resistance-marker-analysis">D11 — Maintain resistance marker analysis</a><a href="#d12-maintain-population-structure-relatedness-trees-and-spatial-analysis">D12 — Maintain population structure, relatedness, trees and spatial analysis</a><a href="#d13-integrate-and-execute-snakemake-changes">D13 — Integrate and execute Snakemake changes</a><a href="#d14-maintain-diagnostics-and-reproducibility">D14 — Maintain diagnostics and reproducibility</a><a href="#d15-maintain-the-offline-reporting-dashboard">D15 — Maintain the offline reporting dashboard</a><a href="#d16-test-package-and-prepare-a-release">D16 — Test, package and prepare a release</a><a href="#part-ii-routine-sample-analysis">PART II — Routine sample analysis</a><a href="#r01-create-and-install-a-routine-analysis-workspace">R01 — Create and install a routine-analysis workspace</a><a href="#r02-register-one-sample-or-a-cohort">R02 — Register one sample or a cohort</a><a href="#r03-register-and-prepare-the-exact-reference-resources">R03 — Register and prepare the exact reference resources</a><a href="#r04-preflight-resources-validation-and-the-workflow">R04 — Preflight resources, validation and the workflow</a><a href="#r05-execute-paired-end-wgs-fastq-analysis">R05 — Execute paired-end WGS FASTQ analysis</a><a href="#r06-execute-targeted-non-umi-fastq-analysis">R06 — Execute targeted non-UMI FASTQ analysis</a><a href="#r07-execute-targeted-umi-fastq-analysis">R07 — Execute targeted UMI FASTQ analysis</a><a href="#r08-enter-an-existing-wgs-bam">R08 — Enter an existing WGS BAM</a><a href="#r09-qualify-existing-targeted-alignments">R09 — Qualify existing targeted alignments</a><a href="#r10-qualify-existing-cram-input">R10 — Qualify existing CRAM input</a><a href="#r11-select-automatic-or-explicit-downstream-analyses">R11 — Select automatic or explicit downstream analyses</a><a href="#r12-validate-every-final-output-mode-and-review-qc">R12 — Validate every final-output mode and review QC</a><a href="#r13-diagnose-resume-or-extend-safely">R13 — Diagnose, resume or extend safely</a><a href="#r14-operate-and-export-the-reporting-dashboard">R14 — Operate and export the reporting dashboard</a><a href="#r15-archive-a-study-and-maintain-the-software-boundary">R15 — Archive a study and maintain the software boundary</a><a href="#r16-discover-and-register-inputs-without-copying-originals">R16 — Discover and register inputs without copying originals</a><a href="#r17-verify-prepared-artifacts-before-execution">R17 — Verify prepared artifacts before execution</a><a href="#r18-orchestrate-the-complete-chain-and-apply-retention-safely">R18 — Orchestrate the complete chain and apply retention safely</a><a href="#part-iii-built-in-benchmarking-and-performance-evaluation">PART III — Built-in benchmarking and performance evaluation</a><a href="#b01-create-a-separate-benchmark-workspace-and-select-inputs">B01 — Create a separate benchmark workspace and select inputs</a><a href="#b02-run-the-supported-synthetic-software-smoke-test">B02 — Run the supported synthetic software smoke test</a><a href="#b03-prepare-independent-truth-and-confidence-regions">B03 — Prepare independent truth and confidence regions</a><a href="#b04-freeze-the-protocol-and-lock-the-development-held-out-partition">B04 — Freeze the protocol and lock the development/held-out partition</a><a href="#b05-execute-the-benchmark-pipeline-and-score-development-once">B05 — Execute the benchmark pipeline and score development once</a><a href="#b06-review-snp-detection-accuracy">B06 — Review SNP detection accuracy</a><a href="#b07-review-indel-accuracy-and-complex-region-limitations">B07 — Review indel accuracy and complex-region limitations</a><a href="#b08-review-low-frequency-detection-and-wsaf-calibration">B08 — Review low-frequency detection and WSAF calibration</a><a href="#b09-evaluate-technical-mixture-k-agreement">B09 — Evaluate technical mixture K agreement</a><a href="#b10-review-implemented-diversity-and-clonality-outputs-in-benchmarks">B10 — Review implemented diversity and clonality outputs in benchmarks</a><a href="#b11-audit-exact-matching-confidence-and-callable-denominators">B11 — Audit exact matching, confidence and callable denominators</a><a href="#b12-review-built-in-summary-metrics-and-uncertainty">B12 — Review built-in summary metrics and uncertainty</a><a href="#b13-measure-resources-and-generate-the-supported-profile">B13 — Measure resources and generate the supported profile</a><a href="#b14-measure-sample-count-scaling-using-ordinary-supported-runs">B14 — Measure sample-count scaling using ordinary supported runs</a><a href="#b15-verify-repeatability-and-frozen-identity">B15 — Verify repeatability and frozen identity</a><a href="#b16-perform-one-held-out-evaluation-and-archive-the-experiment">B16 — Perform one held-out evaluation and archive the experiment</a><a href="#appendix-a-runtime-output-map-and-acceptance-checklist">Appendix A — Runtime output map and acceptance checklist</a><a href="#appendix-b-current-parameters-inspect-before-use">Appendix B — Current parameters: inspect before use</a><a href="#appendix-c-concise-troubleshooting-decision-table">Appendix C — Concise troubleshooting decision table</a><a href="#appendix-d-documentation-basis-and-verification-of-this-manual">Appendix D — Documentation basis and verification of this manual</a><a href="#appendix-e-replaceable-layer-2-caller">Appendix E — Replaceable Layer 2 caller</a><a href="#appendix-f-configure-inputs-validate-and-prepare">Appendix F — Configure inputs, validate and prepare</a><a href="#appendix-g-assay-design-library-records-and-conditional-analysis">Appendix G — Assay design, library records and conditional analysis</a><a href="#appendix-h-reproduce-the-dry-run-checks">Appendix H — Reproduce the dry-run checks</a></nav><main id="manual"><h1 id="pfvarx-0-4-2-operational-sop-manual">PfVarX 0.0.0 — Operational SOP manual</h1>
 <p><strong>Document:</strong> PFVARX-SOP-001 · <strong>Revision:</strong> 3.2 · <strong>Prepared:</strong> 12 November 2026.
 <strong>Audience:</strong> Linux bioinformatics researchers, developers and benchmark analysts.
 <strong>Authority:</strong> finalized local 0.0.0 implementation, workflow rules, parameter/policy
@@ -685,7 +685,7 @@ cat results/downstream/DA002/catalog_provenance.json
 <p><strong>Module:</strong> downstream/{relatedness,structure,phylogeny,spatial}.py. <strong>Workflow:</strong> development.</p>
 <p><strong>Purpose and scope:</strong> Integrate actual haploid PCA/FST, eligibility-specific relatedness, monoclonal phylogeny and supported spatial outcomes.</p>
 <h3>2. Prerequisites and requirements</h3>
-<p>D10–D11; WGS population metadata for DA005, monoclonal evidence for DA006, actual country/date/coordinates and source outcome for DA007.</p>
+<p>D10–D11; population metadata for DA005, monoclonal evidence for DA006, actual country/date/coordinates and source outcome for DA007.</p>
 <h3>3. Detailed operational procedure</h3>
 <p><strong>Step 1. Inspect method ownership and prerequisites</strong></p>
 <pre><code class="language-bash">cd &quot;$DEV&quot;
@@ -1011,12 +1011,9 @@ cat &quot;$RECORDS/analysis/dry-run.json&quot;
 <pre><code class="language-bash">cd &quot;$ANALYSIS&quot;
 nano config/config.yaml
 </code></pre>
-<pre><code class="language-yaml">assay:
-  design: WGS
-  amplification_route: DIRECT
-  read_structure: null
-  targets_bed: null
-  primers_tsv: null
+<pre><code class="language-yaml">assay_design: wgs
+assay:
+  library_catalog: null
   two_colour_chemistry: false
   platform: ILLUMINA
 </code></pre>
@@ -1046,28 +1043,25 @@ cat &quot;results/qc/samples/$SAMPLE/$SAMPLE.caller_qc.json&quot;
 <p>Record exact run ID and all per-sample acceptance/exclusion decisions before interpretation or downstream promotion.</p>
 <h2 id="r06-execute-targeted-non-umi-fastq-analysis">R06 — Execute targeted non-UMI FASTQ analysis</h2>
 <h3>1. Procedure identification</h3>
-<p><strong>Module:</strong> TARGETED_NON_UMI branch. <strong>Workflow:</strong> routine analysis.</p>
+<p><strong>Module:</strong> targeted_no_umi branch (assay_design). <strong>Workflow:</strong> routine analysis.</p>
 <p><strong>Purpose and scope:</strong> Apply amplicon alignment/primer clipping without imposing WGS duplicate assumptions.</p>
 <h3>2. Prerequisites and requirements</h3>
 <p>Use a new <code>$LAB/analysis-targeted-non-umi</code> workspace: set <code>ANALYSIS</code> to it and complete R01–R03 there. Actual target BED and fgbio primer TSV required; no UMIs in the library.</p>
 <h3>3. Detailed operational procedure</h3>
 <p><strong>Step 1. Declare the real targeted assay</strong></p>
 <pre><code class="language-bash">export ANALYSIS=&quot;$LAB/analysis-targeted-non-umi&quot;
-BOOTSTRAP_ARGS=(--profile sample --design TARGETED_NON_UMI --input-type FASTQ)
+BOOTSTRAP_ARGS=(--profile sample --design targeted_no_umi --input-type FASTQ)
 # Complete R01–R03 in this new workspace before the next command.
 cd &quot;$ANALYSIS&quot;
 nano config/config.yaml
 </code></pre>
-<pre><code class="language-yaml">assay:
-  design: TARGETED_NON_UMI
-  amplification_route: AMPLICON
-  read_structure: null
-  targets_bed: inputs/targets/targets.bed
-  primers_tsv: inputs/targets/primers.tsv
+<pre><code class="language-yaml">assay_design: targeted_no_umi
+assay:
+  library_catalog: inputs/metadata/library_catalog.yaml
   two_colour_chemistry: false
   platform: ILLUMINA
 </code></pre>
-<p>Run <code>./pfvarx init</code> after setting the assay, then supply the actual panel files. Targets are zero-based half-open. Primer header must be <code>chrom</code>, <code>left_start</code>, <code>left_end</code>, <code>right_start</code>, <code>right_end</code> with one-based inclusive coordinates and <code>left_start &lt;= left_end &lt; right_start &lt;= right_end</code>. Example primer rows are not provided as substitute biology.</p>
+<p>Run <code>./pfvarx init</code> after setting the assay design; it places the library catalog template at <code>inputs/metadata/library_catalog.yaml</code>. Define the panel there (<code>panel_id</code>, <code>panel_version</code>, <code>targets_bed</code>, <code>primers_tsv</code>), supply the actual panel files, and give every manifest row its <code>panel_id</code> and <code>panel_version</code> (optional <code>technique</code>: <code>AMPLICON</code> or <code>TBS_NON_UMI</code>). Targets are zero-based half-open. Primer header must be <code>chrom</code>, <code>left_start</code>, <code>left_end</code>, <code>right_start</code>, <code>right_end</code> with one-based inclusive coordinates and <code>left_start &lt;= left_end &lt; right_start &lt;= right_end</code>. Example primer rows are not provided as substitute biology.</p>
 <p><strong>Step 2. Validate the panel and execute after R04</strong></p>
 <pre><code class="language-bash">./pfvarx init
 ./pfvarx validate
@@ -1087,35 +1081,32 @@ find runs -path &quot;*/logs/trim_primers/*&quot; -type f -print
 <h3>4. Expected outputs</h3>
 <p>Primer-clipped BAM/BAI, preclip/coverage QC, sample variants and evidence for callable assayed regions, and report. Panel outputs are not whole-genome observations.</p>
 <h3>5. Verification and quality control</h3>
-<p>Require primer coordinate validity and real TrimPrimers execution. Review target-specific callability/uneven depth and amplicon bias. Do not request WGS-only DA005 or DA006.</p>
+<p>Require primer coordinate validity and real TrimPrimers execution. Review target-specific callability/uneven depth and amplicon bias. DA005 and DA006 run on a panel only when it has at least 10 separate target regions; their results then describe the panel loci, not the genome.</p>
 <h3>6. Error handling and troubleshooting</h3>
 <p>Panel/reference mismatch or absent primers: stop. Do not reuse a WGS workspace merely by changing its assay after a run. Do not deduplicate amplicon reads using WGS assumptions.</p>
 <h3>7. Completion criteria</h3>
 <p>Panel and preprocessing provenance verified; accepted targets/codons and inaccessible regions are explicitly documented.</p>
 <h2 id="r07-execute-targeted-umi-fastq-analysis">R07 — Execute targeted UMI FASTQ analysis</h2>
 <h3>1. Procedure identification</h3>
-<p><strong>Module:</strong> TARGETED_UMI branch. <strong>Workflow:</strong> routine analysis.</p>
+<p><strong>Module:</strong> targeted_umi branch (assay_design). <strong>Workflow:</strong> routine analysis.</p>
 <p><strong>Purpose and scope:</strong> Preserve inline tags and run genuine molecular consensus processing before calling.</p>
 <h3>2. Prerequisites and requirements</h3>
 <p>New <code>$LAB/analysis-targeted-umi</code> workspace with R01–R03; actual read structure, target BED and primer TSV; original FASTQ retains inline UMIs.</p>
 <h3>3. Detailed operational procedure</h3>
 <p><strong>Step 1. Declare UMI structure from the library design</strong></p>
 <pre><code class="language-bash">export ANALYSIS=&quot;$LAB/analysis-targeted-umi&quot;
-BOOTSTRAP_ARGS=(--profile sample --design TARGETED_UMI --input-type FASTQ)
+BOOTSTRAP_ARGS=(--profile sample --design targeted_umi --input-type FASTQ)
 # Complete R01–R03 before continuing.
 cd &quot;$ANALYSIS&quot;
 nano config/config.yaml
 </code></pre>
-<pre><code class="language-yaml">assay:
-  design: TARGETED_UMI
-  amplification_route: AMPLICON
-  read_structure: &quot;8M+T 8M+T&quot;
-  targets_bed: inputs/targets/targets.bed
-  primers_tsv: inputs/targets/primers.tsv
+<pre><code class="language-yaml">assay_design: targeted_umi
+assay:
+  library_catalog: inputs/metadata/library_catalog.yaml
   two_colour_chemistry: false
   platform: ILLUMINA
 </code></pre>
-<p><code>8M+T</code> is illustrative only for exactly eight inline molecular bases at each read start followed by template. Use actual fgbio structures; never infer them from read filenames or copy this setting for a different library.</p>
+<p>Define the panel and a library protocol in <code>inputs/metadata/library_catalog.yaml</code>; the protocol's <code>umi.read_structure</code> (for example <code>8M+T</code>) and any consensus settings that differ from <code>layer1.yaml</code> are used for every manifest row that names it in <code>library_protocol_id</code>. <code>8M+T</code> is illustrative only for exactly eight inline molecular bases at each read start followed by template. Use actual fgbio structures; never infer them from read filenames or copy this setting for a different library. Allele counts and depths of this design count consensus molecules (<code>count_unit</code> in QC and the VCF header).</p>
 <p><strong>Step 2. Validate and execute the UMI branch</strong></p>
 <pre><code class="language-bash">./pfvarx init
 ./pfvarx validate
@@ -1156,7 +1147,7 @@ cd &quot;$ANALYSIS&quot;
 nano config/config.yaml
 nano inputs/metadata/samples.tsv
 </code></pre>
-<p>Set <code>input_type: BAM</code>, WGS/DIRECT (or actual amplification route), and FO002 or later. In the TSV fill <code>bam</code>, <code>sample_id</code>, <code>lane</code>, <code>library_id</code>; leave FASTQ/VCF fields empty. Every read-group SM must equal the registered sample ID. All read groups need ID/SM/LB/PL.</p>
+<p>Set <code>input_type: BAM</code>, <code>assay_design: wgs</code>, and FO002 or later. In the TSV fill <code>bam</code>, <code>sample_id</code>, <code>lane</code>, <code>library_id</code>, the actual <code>amplification_route</code> (<code>DIRECT</code> or <code>SWGA</code>) and <code>processing_state</code> (<code>aligned</code> to mark duplicates, <code>duplicates_marked</code> to use the file as is; empty marks duplicates unless the header records it); leave FASTQ/VCF fields empty. Every read-group SM must equal the registered sample ID. All read groups need ID/SM/LB/PL.</p>
 <p><strong>Step 2. Inspect the supplied BAM read-only</strong></p>
 <pre><code class="language-bash">export INPUT_BAM=/absolute/path/to/S01.bam
 ./pfvarx tool samtools quickcheck -v &quot;$INPUT_BAM&quot;
@@ -1193,13 +1184,13 @@ nano inputs/metadata/samples.tsv
 <h3>3. Detailed operational procedure</h3>
 <p><strong>Step 1. Declare targeted BAM configuration and inspect provenance</strong></p>
 <pre><code class="language-bash">export ANALYSIS=&quot;$LAB/analysis-targeted-bam&quot;
-BOOTSTRAP_ARGS=(--profile sample --design TARGETED_NON_UMI --input-type BAM)
+BOOTSTRAP_ARGS=(--profile sample --design targeted_no_umi --input-type BAM)
 # Complete R01 in this new directory and register real reference/panel paths.
 cd &quot;$ANALYSIS&quot;
 nano config/config.yaml
 ./pfvarx tool samtools view -H /absolute/path/to/targeted.S01.bam
 </code></pre>
-<p>Set BAM plus the actual targeted design, AMPLICON, panel files and read_structure only for the genuine UMI design. Use a dedicated workspace, not the WGS BAM workspace. Inspect upstream producer logs and retained molecular/primer evidence.</p>
+<p>Set BAM plus the actual targeted <code>assay_design</code>, the library catalog panel, and each row's <code>processing_state</code>: <code>aligned</code> or <code>primers_trimmed</code> (<code>targeted_no_umi</code>); <code>aligned</code> (raw reads, UMI in <code>RX</code>), <code>consensus</code> (consensus is not generated again; primers are trimmed) or <code>consensus_primers_trimmed</code> (<code>targeted_umi</code>). Validation rejects a state the reads contradict (fgbio <code>cD</code> consensus tags, <code>RX</code> UMI tags, a TrimPrimers <code>@PG</code> record). Use a dedicated workspace, not the WGS BAM workspace. Inspect upstream producer logs and retained molecular/primer evidence.</p>
 <p><strong>Step 2. Apply the gate before executing</strong></p>
 <pre><code class="language-bash">./pfvarx validate
 ./pfvarx prepare
@@ -1261,7 +1252,7 @@ cat &quot;results/qc/samples/$SAMPLE/$SAMPLE.entry_contract.json&quot;
 Appendix G lists the candidates, gates, expected artifacts and skip reasons.
 Use explicit selection for a subset or a particular analysis scale.</p>
 <p><strong>Step 2. Configure explicit selections when needed</strong></p>
-<p>Before R01 choose, for example, <code>BOOTSTRAP_ARGS=(--profile downstream --design WGS --analyses DA003 DA001 DA004 DA005 DA006)</code>. For DA003 only, select just DA003. If a sample-only workspace already exists, bootstrap a new matching downstream workspace and register the same original read paths; do not edit installation metadata to bypass its capability guard.</p>
+<p>Before R01 choose, for example, <code>BOOTSTRAP_ARGS=(--profile downstream --design wgs --analyses DA003 DA001 DA004 DA005 DA006)</code>. For DA003 only, select just DA003. If a sample-only workspace already exists, bootstrap a new matching downstream workspace and register the same original read paths; do not edit installation metadata to bypass its capability guard.</p>
 <p>From the relevant workspace, preserve all generated keys and edit:</p>
 <pre><code class="language-bash">cd &quot;$ANALYSIS&quot;
 nano config/config.yaml
@@ -2584,80 +2575,134 @@ and inputs. Example from the workspace root:</p>
 <p>Adjust resources and partition to your site. Per-rule SLURM scheduling has no
 qualified execution profile in this release. The single-node example requires a
 site-specific smoke test.</p>
-<h1 id="appendix-g-sequencing-design-and-conditional-analysis">Appendix G — Sequencing design and conditional analysis</h1>
-<p>Declare the sequencing protocol in <code>assay.sequencing_type</code> and choose its processing
-branch in <code>assay.design</code>. The pipeline checks compatibility. Read depth and filenames
-alone cannot identify a laboratory protocol. Older configurations can omit the protocol
-label and continue to use their declared branch.</p>
-<p>Use Section 4 for the unified sequencing, clonality, inputs and outputs matrix.
-The candidate set depends on the declared processing branch and run configuration.</p>
+<h1 id="appendix-g-assay-design-library-records-and-conditional-analysis">Appendix G — Assay design, library records and conditional analysis</h1>
+<p>Paired-end short-read genomic DNA is fixed. One run setting selects the processing
+branch: <code>assay_design</code> (<code>wgs</code>, <code>targeted_umi</code> or <code>targeted_no_umi</code>). Each design accepts
+FASTQ and BAM/CRAM entry (<code>input_type</code>). Read depth and filenames alone cannot identify a
+laboratory protocol, so what each library *is* is recorded per sample in the manifest and
+in the library catalog, and the pipeline checks it against the design.</p>
+<h2 id="designs-and-their-branches">Designs and their branches</h2>
+<table><thead><tr><th><code>assay_design</code></th><th>Libraries</th><th>FASTQ entry</th><th>BAM/CRAM entry (by <code>processing_state</code>)</th><th>Counts</th></tr></thead><tbody>
+<tr><td><code>wgs</code></td><td>Direct WGS (<code>amplification_route: DIRECT</code>) and selective WGS (<code>SWGA</code>) share this branch</td><td>fastp, bwa-mem2, merge lanes, duplicate marking (Picard)</td><td><code>aligned</code>: duplicates marked; <code>duplicates_marked</code>: used as is; empty: duplicates marked unless the header records it</td><td>reads</td></tr>
+<tr><td><code>targeted_no_umi</code></td><td>Amplicon or panel libraries without UMIs (<code>AMPLICON</code>)</td><td>fastp, bwa-mem2, merge lanes, primer trimming (fgbio TrimPrimers)</td><td><code>aligned</code>: primers trimmed; <code>primers_trimmed</code>: used as is</td><td>reads</td></tr>
+<tr><td><code>targeted_umi</code></td><td>Amplicon libraries with UMIs (<code>AMPLICON</code>)</td><td>fastp, UMI extraction (FastqToBam), alignment, grouping, consensus, filtering, realignment, primer trimming</td><td><code>aligned</code> (raw reads, UMI in RX): grouping, consensus, realignment, trimming; <code>consensus</code>: trimming only, consensus is <strong>not</strong> generated again; <code>consensus_primers_trimmed</code>: used as is</td><td>UMI consensus molecules</td></tr>
+</tbody></table>
+<p>Primer trimming needs primers: a panel with only probe definitions (capture) is not
+trimmed. A documented state is compared with the file before anything runs: consensus
+reads carry the fgbio <code>cD</code> tag and raw UMI reads the <code>RX</code> tag, so a state the reads
+contradict is rejected. A file whose header records fgbio TrimPrimers cannot be
+documented as untrimmed (trimming twice would remove template bases). A claimed trim or
+duplicate marking that the header does not record gives a warning.</p>
+<p>Allele counts and depths of <code>targeted_umi</code> runs count consensus molecules, not sequenced
+reads. The unit is written as <code>##PfVarX_count_unit=</code> in every per-sample VCF, as
+<code>count_unit</code> in the caller QC and QC decision, and in DA002's method record.</p>
+<h2 id="the-sample-manifest">The sample manifest</h2>
+<p>Required columns stay <code>sample_id</code>, <code>lane</code>, <code>library_id</code> and the input files (<code>fastq_1</code> and
+<code>fastq_2</code>, or <code>bam</code>). Optional columns describe the library:</p>
+<table><thead><tr><th>Column</th><th>Values</th><th>Rule</th></tr></thead><tbody>
+<tr><td><code>technique</code></td><td><code>WGS</code>, <code>SELECTIVE_WGS</code>, <code>AMPLICON</code>, <code>TBS_UMI</code>, <code>TBS_NON_UMI</code>; empty, <code>null</code>, <code>NA</code> or <code>.</code> = unspecified</td><td><code>WGS</code> and <code>SELECTIVE_WGS</code> only with <code>wgs</code> (<code>SELECTIVE_WGS</code> records the SWGA route); <code>AMPLICON</code> with either targeted design; <code>TBS_UMI</code> only with <code>targeted_umi</code>; <code>TBS_NON_UMI</code> only with <code>targeted_no_umi</code></td></tr>
+<tr><td><code>amplification_route</code></td><td><code>DIRECT</code>, <code>SWGA</code>, <code>AMPLICON</code></td><td><code>DIRECT</code> or <code>SWGA</code> for <code>wgs</code>, <code>AMPLICON</code> for targeted designs. Recorded as provenance: <code>DIRECT</code> only when documented, <code>SWGA</code> when documented or implied by <code>SELECTIVE_WGS</code>, <code>AMPLICON</code> when documented or implied by the panel's primers</td></tr>
+<tr><td><code>panel_id</code>, <code>panel_version</code></td><td>IDs in the library catalog</td><td>Required for targeted designs; one panel per run</td></tr>
+<tr><td><code>library_protocol_id</code></td><td>ID in the library catalog</td><td>Required for <code>targeted_umi</code> FASTQ (UMI extraction); optional otherwise</td></tr>
+<tr><td><code>processing_state</code></td><td>see the table above</td><td>BAM/CRAM entry only; required for targeted designs</td></tr>
+</tbody></table>
+<p>The technique label, route, protocol and panel must agree with each other and with the
+design. A conflict is reported at input validation as
+<code>sample S1 (library LIB1): technique TBS_UMI requires assay_design targeted_umi, but the
+run's assay_design is targeted_no_umi</code>; only the affected sample is excluded. The resolved
+technique, route (with where it came from), panel, protocol, state, steps run on entry and
+count unit are frozen in the run plan and shown in the dashboard's input section.</p>
+<p>Example (<code>inputs/metadata/samples.tsv</code>, tab-separated; BAM columns left empty):</p>
+<pre><code class="language-text">sample_id	lane	fastq_1	fastq_2	bam	library_id	technique	amplification_route	panel_id	panel_version	library_protocol_id	processing_state
+PF001	L001	inputs/fastq/PF001_R1.fastq.gz	inputs/fastq/PF001_R2.fastq.gz		PF001_lib1	TBS_UMI	AMPLICON	MAD4HATTER	1	UMI8_DUAL
+PF002	L001	inputs/fastq/PF002_R1.fastq.gz	inputs/fastq/PF002_R2.fastq.gz		PF002_lib1	null		MAD4HATTER	1	UMI8_DUAL
+</code></pre>
+<p>An imported consensus BAM for the same panel:</p>
+<pre><code class="language-text">sample_id	lane	bam	library_id	technique	panel_id	panel_version	processing_state
+PF003	L001	inputs/alignments/PF003.consensus.bam	PF003_lib1	TBS_UMI	MAD4HATTER	1	consensus
+</code></pre>
+<h2 id="the-library-catalog">The library catalog</h2>
+<p><code>assay.library_catalog</code> (required for targeted designs) names a YAML file. The template
+is <code>config/templates/library_catalog.yaml</code>; <code>./pfvarx init</code> copies it into place for
+targeted workspaces.</p>
+<pre><code class="language-yaml">schema_version: pfvarx.library_catalog/1
+panels:
+  - panel_id: MAD4HATTER
+    panel_version: &quot;1&quot;
+    targets_bed: inputs/targets/targets.bed     # targeted intervals: target QC, territory
+    primers_tsv: inputs/targets/primers.tsv     # amplicon primers: trimmed
+    probes_bed: null                            # capture probes: recorded only
+library_protocols:
+  - library_protocol_id: UMI8_DUAL
+    technique: TBS_UMI                          # optional default label
+    amplification_route: AMPLICON               # optional default route
+    umi:
+      read_structure: &quot;8M+T 8M+T&quot;               # UMI extraction
+      filter_min_reads: 3                       # optional; omitted settings use layer1.yaml
+</code></pre>
+<p>UMI consensus settings a protocol does not give use the maintainer defaults in
+<code>config/parameters/layer1.yaml</code>; each resolved value is recorded with its source
+(<code>LIBRARY_PROTOCOL</code> or <code>PARAMETER_DEFAULT</code>).</p>
+<h2 id="downstream-eligibility-from-the-panel-and-callable-evidence">Downstream eligibility from the panel and callable evidence</h2>
+<p>Every analysis applies to every design; whether it runs is decided from what was
+sequenced (the <strong>territory</strong>: the core genome for <code>wgs</code>, the panel's targets for
+targeted designs) and from what is callable. Decisions record the territory facts.</p>
+<table><thead><tr><th>ID</th><th>Analysis</th><th>Panel and callable-evidence rule</th><th>Further run-time gates</th></tr></thead><tbody>
+<tr><td>DA001</td><td>Clone inference (COI, clonality)</td><td>—</td><td>≥ 10 informative loci per sample; MOIRE needs ≥ 10 informative samples, otherwise the caller's mixture test</td></tr>
+<tr><td>DA002</td><td>Resistance markers</td><td>The territory must contain a whole catalogue codon (<code>PANEL_LACKS_MARKERS</code>); each sample needs at least one whole catalogue codon in its callable regions (<code>NO_CALLABLE_MARKERS</code>)</td><td>Per-marker callability (<code>UNKNOWN</code>), WHO K13 flag needs ≥ 3 callable infections</td></tr>
+<tr><td>DA003</td><td>Diversity</td><td>—</td><td>Group sizes; Fws needs ≥ 10 samples</td></tr>
+<tr><td>DA004</td><td>Relatedness and IBD</td><td>—</td><td>200 informative markers per WGS pair, 20 per targeted pair (low precision below 200)</td></tr>
+<tr><td>DA005</td><td>Population structure</td><td>A panel needs ≥ 10 separate target regions (<code>da005_min_independent_loci</code>, <code>TOO_FEW_INDEPENDENT_LOCI</code>)</td><td>Population groups; ≥ 3 informative sites</td></tr>
+<tr><td>DA006</td><td>Phylogenetics</td><td>A panel needs ≥ 10 separate target regions (<code>da006_min_independent_loci</code>)</td><td>≥ 4 monoclonal samples, ≥ 10 parsimony-informative sites, missingness limits</td></tr>
+<tr><td>DA007</td><td>Spatial and temporal</td><td>Inherits DA002</td><td>Coordinates, dates, country</td></tr>
+</tbody></table>
+<p>A panel's loci are its separate target regions: sites inside one amplicon are linked, so
+DA005 and DA006 results from a panel carry a caveat that they describe the panel loci,
+not the genome. The 10-region minimums are provisional (no published standard).</p>
+<p>Outputs live under <code>runs/RUN_ID/results/downstream/DAxxx/</code>. Review each
+<code>status_manifest.json</code>, the eligibility matrix and cohort decisions before using
+scientific output.</p>
 <h2 id="select-automatic-execution">Select automatic execution</h2>
 <p>For a fresh targeted non-UMI workspace with the compatible dependencies:</p>
 <pre><code class="language-bash">python3 bootstrap.py --workspace ../targeted-study --profile downstream \
-  --design TARGETED_NON_UMI --auto-analyses
+  --design targeted_no_umi --auto-analyses
 cd ../targeted-study
 ./pfvarx configure --gui
 </code></pre>
-<p>Choose FO004 and automatic selection in the form, or edit the equivalent YAML.</p>
-<pre><code class="language-yaml">schema_version: pfvarx.config/3
+<p>Choose FO004 and automatic selection in the form, or edit the equivalent YAML:</p>
+<pre><code class="language-yaml">schema_version: pfvarx.config/4
 final_output: FO004
+assay_design: targeted_no_umi
+assay:
+  library_catalog: inputs/metadata/library_catalog.yaml
 analyses:
   selection: auto
   requested: []
   scales: {}
   population_column: population
 </code></pre>
-<p>This is a configuration excerpt. Complete the assay, input, reference and caller
-fields using the generated template. Supply a matching GFF to enable annotation and marker outcomes. In automatic mode,
-an unset GFF omits Layer 4 and blocks DA002 and DA007 with recorded reasons. An
-explicit FO004 configuration still requires a matching GFF. The plan
-selects all design-compatible methods, uses each registry default scale and resolves
-DA007's source to DA002. Use explicit selection to request other supported scales.
-An existing selective workspace must contain the dependencies for the full
-candidate set. Bootstrap a matching workspace when its capability set is smaller.</p>
-<p>With automatic selection, absent optional population and geographic fields do not
-invalidate the whole sample registry. Eligibility and method checks record their
-effect. Keep <code>CONTINUE_INDEPENDENT</code> to allow qualified independent analyses to
-continue. <code>STRICT</code> retains its stop behavior. FO001–FO003 retain their respective
-output boundaries. FO001 requires no caller. FO002–FO004 can use the native or a
-qualified external caller through the existing Layer 2 artifact contract.</p>
-<h2 id="upgrade-identifiers">Upgrade identifiers</h2>
-<table>
-<thead>
-<tr>
-<th>Method</th>
-<th>Config /2 and archived runs</th>
-<th>Config /3 and new runs</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td>COI and clonality</td>
-<td>DA003</td>
-<td>DA001</td>
-</tr>
-<tr>
-<td>Resistance markers</td>
-<td>DA001</td>
-<td>DA002</td>
-</tr>
-<tr>
-<td>Genetic diversity</td>
-<td>DA002</td>
-<td>DA003</td>
-</tr>
-<tr>
-<td>Relatedness, population structure, phylogeny, spatial/temporal</td>
-<td>DA004–DA007</td>
-<td>DA004–DA007</td>
-</tr>
-</tbody>
-</table>
-<p>Config /2 YAML is translated at load time, including requested IDs, scale keys
-and the spatial source. Leave the old schema marker in place unless you also
-translate those IDs. Start a NEW run for upgraded results. Keep archived result
-directories and dashboards with the original release. Dashboard JSON /2 uses the
-new identifier order. Use the original renderer for archived dashboard JSON /1.</p>
+<p>Automatic selection requests every analysis; eligibility then records which ones the
+panel and evidence support. Supply a matching GFF to enable annotation and marker
+outcomes; without one, Layer 4 is omitted and DA002 and DA007 are blocked with recorded
+reasons. Keep <code>CONTINUE_INDEPENDENT</code> to let qualified independent analyses continue.</p>
+<h2 id="upgrade-from-configuration-schema-3">Upgrade from configuration schema 3</h2>
+<p>Schema 3 kept the panel, UMI and technique settings in <code>config.yaml</code>. Run:</p>
+<pre><code class="language-bash">./pfvarx config-migrate           # report what would change
+./pfvarx config-migrate --apply   # write it, keeping .before-config4 backups
+</code></pre>
+<table><thead><tr><th>Schema 3 (<code>config.yaml</code>)</th><th>Schema 4</th></tr></thead><tbody>
+<tr><td><code>assay.design: WGS / TARGETED_NON_UMI / TARGETED_UMI</code></td><td><code>assay_design: wgs / targeted_no_umi / targeted_umi</code></td></tr>
+<tr><td><code>assay.sequencing_type</code> (<code>SWGS</code> becomes <code>SELECTIVE_WGS</code>)</td><td>manifest <code>technique</code></td></tr>
+<tr><td><code>assay.amplification_route</code></td><td>manifest <code>amplification_route</code></td></tr>
+<tr><td><code>assay.targets_bed</code>, <code>assay.primers_tsv</code></td><td>catalog panel <code>LEGACY_PANEL</code> version <code>config3</code>; manifest <code>panel_id</code>, <code>panel_version</code></td></tr>
+<tr><td><code>assay.read_structure</code></td><td>catalog protocol <code>LEGACY_UMI_PROTOCOL</code>; manifest <code>library_protocol_id</code></td></tr>
+<tr><td>targeted BAM/CRAM import (had to be trimmed, and for UMI consensus)</td><td>manifest <code>processing_state: primers_trimmed</code> or <code>consensus_primers_trimmed</code></td></tr>
+</tbody></table>
+<p>Only empty manifest cells are filled. Saving a schema-3 workspace in the configuration
+GUI runs the same migration first. Until it is migrated, a schema-3 <code>config.yaml</code> is
+refused with this instruction. Runs frozen under schema 3 still resume, report and verify:
+the workflow reads both spellings. Older identifier changes (config /2: DA001–DA003
+renumbered) are still translated at load time.</p>
 <h1 id="appendix-h-reproduce-the-dry-run-checks">Appendix H — Reproduce the dry-run checks</h1>
 <p>Run from the installed development source root with its locked environment.</p>
 <pre><code class="language-bash">pixi run python scripts/verify.py --dry-run-only --output &quot;/absolute/path/PfVarX preflight&quot;

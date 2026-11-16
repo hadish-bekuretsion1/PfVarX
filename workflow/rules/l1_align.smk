@@ -40,7 +40,7 @@ rule merge_lanes:
         "samtools merge -f -@ {threads} -o {output:q} {input:q} 2> {log:q}"
 
 
-if DESIGN == "WGS" and PLAN["input_type"] == "FASTQ":
+if DESIGN == "wgs" and PLAN["input_type"] == "FASTQ":
 
     rule mark_duplicates:
         input:
@@ -67,7 +67,17 @@ if DESIGN == "WGS" and PLAN["input_type"] == "FASTQ":
             "&& samtools index {output.bam:q} 2>> {log:q}"
 
 
-if DESIGN == "TARGETED_NON_UMI" and PLAN["input_type"] == "FASTQ":
+# Primer trimming (fgbio TrimPrimers) when the panel defines primers; a probe-only (capture)
+# panel has nothing to trim, so the reads pass through unchanged.
+TRIM_PRIMERS = (
+    "if [ -n {params.primers:q} ]; then "
+    "fgbio -Djava.io.tmpdir={resources.tmpdir:q} -Xmx{resources.mem_mb}m TrimPrimers -i {input.bam:q} "
+    "-o {output.bam:q} -p {params.primers:q} -S {params.slop} -r {params.ref:q} --first-of-pair=false; "
+    "else cp {input.bam:q} {output.bam:q}; fi"
+)
+
+
+if DESIGN == "targeted_no_umi" and PLAN["input_type"] == "FASTQ":
 
     rule insert_metrics_preclip:
         input:
@@ -84,9 +94,9 @@ if DESIGN == "TARGETED_NON_UMI" and PLAN["input_type"] == "FASTQ":
             bam=str(R / "work" / "merged" / "{sample}.bam"),
             stats=str(R / "qc" / "samples" / "{sample}" / "{sample}.preclip.stats.txt"),
         output:
-            str(R / "alignments" / "{sample}.bam"),
+            bam=str(R / "alignments" / "{sample}.bam"),
         params:
-            primers=str(ROOT / CFG["assay"]["primers_tsv"]) if CFG["assay"]["primers_tsv"] else "",
+            primers=PRIMERS,
             slop=P["layer1.fgbio_trimprimers_slop"],
             ref=REF,
         resources:
@@ -97,23 +107,25 @@ if DESIGN == "TARGETED_NON_UMI" and PLAN["input_type"] == "FASTQ":
         benchmark:
             str(BENCH / "trim_primers" / "{sample}.tsv")
         shell:
-            "fgbio -Djava.io.tmpdir={resources.tmpdir:q} -Xmx{resources.mem_mb}m TrimPrimers -i {input.bam:q} -o {output:q} -p {params.primers:q} "
-            "-S {params.slop} -r {params.ref:q} --first-of-pair=false > {log:q} 2>&1 "
-            "&& samtools index {output:q} 2>> {log:q}"
+            "(" + TRIM_PRIMERS + " && samtools index {output.bam:q}) > {log:q} 2>&1"
 
 
 if PLAN["input_type"] in ("BAM", "CRAM"):
 
     rule alignment_entry:
-        """L1.9: re-use a validated caller-ready alignment; never silently skip missing steps."""
+        """L1.9: re-check an imported alignment and do what its documented processing state
+        still needs before trimming or consensus (WGS: duplicate marking; raw UMI reads: mate
+        tags for UMI grouping). The state was checked against the reads at validation."""
         input:
             lambda wc: str(ROOT / SAMPLES[wc.sample]["bam"]),
         output:
-            bam=str(R / "alignments" / "{sample}.bam"),
+            bam=temp(str(R / "work" / "entry" / "{sample}.bam")),
             contract=str(R / "qc" / "samples" / "{sample}" / "{sample}.entry_contract.json"),
         params:
             ref=REF,
             design=DESIGN,
+            state=lambda wc: library(wc.sample).get("processing_state") or "",
+            steps=lambda wc: ",".join(entry_steps(wc.sample)),
         resources:
             mem_mb=mem(4000),
             runtime=RUNTIME,
@@ -121,4 +133,39 @@ if PLAN["input_type"] in ("BAM", "CRAM"):
             str(LOGS / "entry" / "{sample}.log"),
         shell:
             "python -m pfvarx.inputs.alignment_entry --input {input:q} --output {output.bam:q} "
-            "--contract {output.contract:q} --reference {params.ref:q} --design {params.design} > {log:q} 2>&1"
+            "--contract {output.contract:q} --reference {params.ref:q} --design {params.design} "
+            "--state={params.state} --steps={params.steps} > {log:q} 2>&1"
+
+    rule entry_trim_primers:
+        """Primer trimming for imported alignments documented as not yet trimmed."""
+        input:
+            bam=entry_trim_source,
+        output:
+            bam=temp(str(R / "work" / "entry" / "{sample}.trimmed.bam")),
+            stats=str(R / "qc" / "samples" / "{sample}" / "{sample}.preclip.stats.txt"),
+        params:
+            primers=PRIMERS,
+            slop=P["layer1.fgbio_trimprimers_slop"],
+            ref=REF,
+        resources:
+            mem_mb=mem(3000),
+            runtime=RUNTIME,
+        log:
+            str(LOGS / "trim_primers" / "{sample}.log"),
+        benchmark:
+            str(BENCH / "trim_primers" / "{sample}.tsv")
+        shell:
+            "(samtools stats {input.bam:q} > {output.stats:q} && " + TRIM_PRIMERS + ") > {log:q} 2>&1"
+
+    rule entry_finalize:
+        """The caller-ready alignment: the last step the documented state needed, coordinate-sorted
+        and indexed (trimming moves alignment starts)."""
+        input:
+            entry_final_source,
+        output:
+            str(R / "alignments" / "{sample}.bam"),
+        log:
+            str(LOGS / "entry" / "{sample}.finalize.log"),
+        shell:
+            "(samtools sort -@ 1 -o {output:q}.sorted.bam {input:q} && mv {output:q}.sorted.bam {output:q} "
+            "&& samtools index {output:q}) > {log:q} 2>&1"

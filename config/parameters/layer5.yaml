@@ -16,6 +16,8 @@ parameters:
   da005_ld_step: {value: 20, source: SOFTWARE_DEFAULT}
   da005_ld_threshold: {value: 0.1, source: SOFTWARE_DEFAULT}
   da005_min_group_size: {value: 3, source: UNCALIBRATED_PROVISIONAL}
+  da005_min_independent_loci: {value: 10, source: UNCALIBRATED_PROVISIONAL, note: "targeted panels: separate target regions needed for PCA/FST; the core genome is not limited. Same floor as da006 and DA001 informative loci"}
+  da006_min_independent_loci: {value: 10, source: UNCALIBRATED_PROVISIONAL, note: "targeted panels: separate target regions needed for a tree; equals da006_min_informative_sites"}
   da003_min_group_size: {value: 3, source: UNCALIBRATED_PROVISIONAL}
   da003_bootstrap_replicates: {value: 200, source: FRAMEWORK_POLICY, note: "bootstrap over samples for diversity intervals"}
   da004_dcifer_alpha: {value: 0.05, source: LITERATURE_SUPPORTED, note: "Dcifer significance level for the relatedness confidence interval (Gerlovina 2022)"}

@@ -20,7 +20,9 @@ verified; no automatic cluster/container deployment claim is made.
   failure and its fix, conditional preparation, QC policy with cited thresholds
   ([thresholds](thresholds.md)), resource planning, scientific eligibility, frozen runs,
   diagnostics and orchestration.
-- WGS, targeted non-UMI and targeted UMI branches, plus existing BAM/CRAM entry contracts.
+- WGS, targeted non-UMI and targeted UMI branches selected by `assay_design`, each with FASTQ and
+  BAM/CRAM entry; imported alignments run only the steps their documented `processing_state`
+  still needs (verified end to end on the synthetic fixture for every design and state).
 - PfVarX-Call read evidence, reduced per-sample beta-binomial error models, candidate
   screening, local pair-HMM indel rescoring, read-backed linkage, technical mixture/K
   selection, WSAF intervals, callability and six site-status classes.

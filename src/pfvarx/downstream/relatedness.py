@@ -34,7 +34,7 @@ def run(ctx: Context, threads: int = 1) -> None:
     clon = {r["sample_id"]: r for r in read_tsv(ctx.results / "downstream" / "DA001" / "clonality.tsv")}
     mono = [s for s in eligible if clon.get(s, {}).get("clonality") == "MONOCLONAL"]
     precise = int(ctx.params["da004_min_informative_markers"])
-    targeted = str(ctx.eff["config"]["assay"]["design"]).startswith("TARGETED")
+    targeted = ctx.design.targeted
     min_markers = int(ctx.params["da004_min_informative_markers_targeted"]) if targeted else precise
 
     def marker_status(n: int) -> str:

@@ -35,9 +35,24 @@ ROOT_FILES = {
 }
 
 
+DESIGNS = ("wgs", "targeted_umi", "targeted_no_umi")
+
+
+def design_of(value: str) -> str:
+    """The assay design (config ``assay_design``); the upper-case spellings of earlier releases are accepted."""
+    text = value.strip().lower()
+    text = {"targeted_non_umi": "targeted_no_umi"}.get(text, text)
+    if text not in DESIGNS:
+        raise ValueError("Unknown design; use wgs, targeted_umi or targeted_no_umi")
+    return text
+
+
 def environment_for(design: str, analyses: list[str], rtg: bool = False, input_type: str = "FASTQ") -> str:
     features = set()
-    if design != "WGS" and input_type == "FASTQ":
+    targeted = design_of(design) != "wgs"
+    if targeted:
+        # fgbio trims primers and builds UMI consensus for FASTQ and for imported BAMs whose
+        # documented state still needs it; consensus reads are realigned with bwa-mem2.
         features.add("targeted")
     if analyses:
         features.add("annotation")
@@ -55,7 +70,7 @@ def environment_for(design: str, analyses: list[str], rtg: bool = False, input_t
         features.add("bench")
     if not features:
         return "core" if input_type == "FASTQ" else "aligned"
-    if input_type == "FASTQ":
+    if input_type == "FASTQ" or targeted:
         features.add("reads")
     return "selected-" + "-".join(sorted(features))
 
@@ -90,16 +105,13 @@ def export_workspace(
         raise ValueError("Select FASTQ, BAM or CRAM; VCF entry is not implemented")
     if profile not in {"sample", "cohort", "downstream", "benchmark", "development"}:
         raise ValueError("Unknown profile")
-    if design not in {"WGS", "TARGETED_NON_UMI", "TARGETED_UMI"}:
-        raise ValueError("Unknown design")
+    design = design_of(design)
     if set(analyses) - set(METHODS):
         raise ValueError("Unknown analysis; choose DA001–DA007")
     if profile in {"sample", "cohort"} and analyses:
         raise ValueError("Select downstream or benchmark profile for analyses")
     if profile == "downstream" and not analyses:
         raise ValueError("Choose --analyses or --auto-analyses for the downstream profile")
-    if design != "WGS" and set(analyses) & {"DA005", "DA006"}:
-        raise ValueError("DA005/DA006 require WGS")
     if rtg and profile not in {"benchmark", "development"}:
         raise ValueError("--rtg requires benchmarking")
     if destination.exists():
@@ -175,7 +187,7 @@ def export_workspace(
                 continue
             if name.startswith(("workflow/rules/l4_", "workflow/rules/l5_")) and not selected:
                 continue
-            if name == "workflow/rules/l1_umi.smk" and (design != "TARGETED_UMI" or input_type != "FASTQ"):
+            if name == "workflow/rules/l1_umi.smk" and design != "targeted_umi":
                 continue
             if name.startswith("workflow/scripts/da") and Path(name).name not in {
                 R_SCRIPTS[d] for d in selected if d in R_SCRIPTS
@@ -219,7 +231,7 @@ def main() -> None:
     p.add_argument(
         "--profile", choices=["sample", "cohort", "downstream", "benchmark", "development"], default="sample"
     )
-    p.add_argument("--design", choices=["WGS", "TARGETED_NON_UMI", "TARGETED_UMI"], default="WGS")
+    p.add_argument("--design", type=design_of, default="wgs", help="wgs | targeted_umi | targeted_no_umi")
     selection = p.add_mutually_exclusive_group()
     selection.add_argument("--analyses", nargs="*", default=[])
     selection.add_argument("--auto-analyses", action="store_true")
@@ -230,7 +242,7 @@ def main() -> None:
     try:
         destination = a.workspace.expanduser().resolve()
         if a.auto_analyses:
-            a.analyses = [da for da in sorted(METHODS) if a.design == "WGS" or da not in {"DA005", "DA006"}]
+            a.analyses = sorted(METHODS)  # eligibility is decided per run from the panel and callable evidence
         meta = export_workspace(ROOT, destination, a.profile, a.design, a.analyses, a.rtg, a.input_type)
         if a.auto_analyses:
             meta["auto_analyses"] = True

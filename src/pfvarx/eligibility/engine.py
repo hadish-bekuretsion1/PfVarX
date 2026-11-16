@@ -16,6 +16,7 @@ import yaml
 from pfvarx.constants import (
     QC,
     Clonality,
+    Design,
     Eligibility,
     FailureClass,
     Reason,
@@ -24,7 +25,7 @@ from pfvarx.constants import (
 )
 from pfvarx.quality.policy import stage_permitted
 
-RULE_VERSION = "1.0.0"
+RULE_VERSION = "1.1.0"  # 1.1.0: panel territory and callable-marker evidence
 
 
 def load_registry(root: Path) -> dict[str, Any]:
@@ -80,9 +81,17 @@ def sample_eligibility(da: str, contract: dict[str, Any], s: SampleState, scale:
         status, failure = Eligibility.INELIGIBLE, FailureClass.QC_FAILURE
         reasons.append(Reason.QC_GATE_FAIL.value if s.qc.get("verdict") == QC.FAIL
                        else Reason.QC_GATE_WARNING.value)
-    if s.design not in contract["designs"]:
+    if Design.parse(s.design) not in [Design.parse(d) for d in contract["designs"]]:
         status, failure = Eligibility.UNSUPPORTED, FailureClass.SCIENTIFIC_EXCLUSION
         reasons.append(Reason.DESIGN_NOT_SUPPORTED.value)
+    needs = contract.get("needs") or {}
+    if needs.get("callable_markers"):
+        # Callable evidence: the sample must cover whole catalogue codons in its callable regions.
+        found = (ctx.get("callable_markers") or {}).get(s.sample_id)
+        evidence["callable_markers"] = found
+        if status == Eligibility.ELIGIBLE and found is not None and found < int(needs["callable_markers"]):
+            status, failure = Eligibility.INELIGIBLE, FailureClass.SCIENTIFIC_EXCLUSION
+            reasons.append(Reason.NO_CALLABLE_MARKERS.value)
     if status == Eligibility.ELIGIBLE and "DA001" in contract.get("prerequisites", []):
         if s.clonality is None:
             status = Eligibility.CONDITIONALLY_ELIGIBLE
@@ -128,6 +137,18 @@ def cohort_decision(da: str, contract: dict[str, Any], records: list[Eligibility
         decision = "PENDING_PREREQUISITE"
     else:
         decision = "EXECUTE"
+    # What was sequenced: the panel (or core genome) must be able to answer the question.
+    territory = ctx.get("territory") or {}
+    needs = contract.get("needs") or {}
+    if territory and needs.get("catalogue_markers_in_territory") is not None and \
+            territory.get("catalogue_markers_in_territory", 0) < int(needs["catalogue_markers_in_territory"]):
+        terminal = Terminal.SKIPPED_INELIGIBLE.value
+        reasons.append(Reason.PANEL_LACKS_MARKERS.value)
+    loci_param = needs.get("independent_loci_param")
+    if territory and loci_param and territory.get("independent_loci") is not None and \
+            territory["independent_loci"] < int(params[loci_param]):
+        terminal = Terminal.SKIPPED_INELIGIBLE.value
+        reasons.append(Reason.TOO_FEW_INDEPENDENT_LOCI.value)
     if da == "DA006" and not conditional:
         minimum = int(params["da006_min_monoclonal"])
         if len(eligible) < minimum:
@@ -159,6 +180,7 @@ def cohort_decision(da: str, contract: dict[str, Any], records: list[Eligibility
         decision = terminal
     return {"analysis_id": da, "scale": scale, "decision": decision, "reason_codes": reasons,
             "eligible": eligible, "excluded": excluded, "conditional": conditional,
+            "territory": {k: v for k, v in territory.items() if not k.startswith("_")} or None,
             "rule_id": f"{da}.cohort", "rule_version": RULE_VERSION}
 
 

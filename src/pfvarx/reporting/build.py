@@ -405,9 +405,11 @@ def harvest(root: Path, run: Path) -> dict[str, Any]:
     data = {
         "schema": "pfvarx.dashboard/2", "data_kind": origin, "data_origin_basis": origin_basis, "generated_at": dt.datetime.now(dt.UTC).isoformat(),
         "project_id": eff["config"]["project_id"], "run_id": run.name, "purpose": eff["config"]["purpose"],
-        "final_output": eff["config"]["final_output"], "design": eff["config"]["assay"]["design"],
+        "final_output": eff["config"]["final_output"],
+        "design": plan.get("design") or eff["config"].get("assay_design") or eff["config"]["assay"].get("design"),
         "input_type": eff["config"]["input_type"], "run_status": status, "layers": plan["layers"],
-        "sequencing_type": plan.get("sequencing_type"),
+        "panel": plan.get("panel"),
+        "libraries": {s["sample_id"]: s.get("assay", {}) for s in plan.get("samples", [])},
         "analysis_selection": plan.get("analysis_selection", "explicit"),
         "analyses_not_applicable": plan.get("analyses_not_applicable", {}),
         "requested_analyses": requested, "internal_analyses": internal, "samples": samples, "qc_matrix": qc_matrix,

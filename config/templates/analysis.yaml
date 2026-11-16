@@ -1,18 +1,14 @@
 # PfVarX project configuration (analysis workspace).
 # Tags: EDIT = you must set it; REVIEW = check the default; FIXED = do not change;
 # OPTIONAL = may be left as is. Scientific gates are NOT configurable here.
-schema_version: "pfvarx.config/3"          # FIXED
+schema_version: "pfvarx.config/4"          # FIXED
 purpose: analysis                          # FIXED
 project_id: MY_PROJECT                     # EDIT: letters, digits, _ or -
 final_output: FO002                        # EDIT: FO001 | FO002 | FO003 | FO004 (exactly one per run)
-input_type: FASTQ                          # EDIT: FASTQ | BAM | CRAM (VCF entry unsupported)
+input_type: FASTQ                          # EDIT: FASTQ | BAM | CRAM (fastq, bam accepted; VCF entry unsupported)
+assay_design: wgs                          # EDIT: wgs | targeted_umi | targeted_no_umi (selects the processing branch)
 assay:
-  design: WGS                              # EDIT: WGS | TARGETED_NON_UMI | TARGETED_UMI
-  sequencing_type: null                    # OPTIONAL: WGS | SWGS | SELECTIVE_WGS | AMPLICON | TBS_UMI | TBS_NON_UMI
-  amplification_route: DIRECT              # EDIT: DIRECT | SWGA (WGS) ; AMPLICON (targeted)
-  read_structure: null                     # EDIT for TARGETED_UMI only, e.g. "8M143T 8M143T"
-  targets_bed: null                        # EDIT for targeted designs: inputs/targets/targets.bed
-  primers_tsv: null                        # EDIT for targeted designs: inputs/targets/primers.tsv
+  library_catalog: null                    # EDIT for targeted designs: inputs/metadata/library_catalog.yaml (panels and library protocols)
   two_colour_chemistry: false              # REVIEW: true for NextSeq/NovaSeq (poly-G trimming)
   platform: ILLUMINA                       # REVIEW
 reference:

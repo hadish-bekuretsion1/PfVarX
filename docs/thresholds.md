@@ -31,8 +31,8 @@ protocol](benchmarking/README.md) is still the route to calibrated values.
 | --- | --- |
 | All runs | Reference FASTA; core-genome BED for the same assembly; exact reference release label; sample sheet with `sample_id`, `lane`, `library_id`. |
 | FASTQ entry | Paired `fastq_1`/`fastq_2`, Phred+33. For WGS, `flowcell_type` (`patterned` or `unpatterned`) sets the optical-duplicate distance. |
-| BAM/CRAM entry | Coordinate-sorted, indexed, `@RG` with ID, SM, LB, PL; contigs matching the reference. Targeted alignments must record primer clipping. |
-| Targeted designs | Target BED and primer table (1-based, inclusive). UMI designs also need the read structure. |
+| BAM/CRAM entry | Coordinate-sorted, indexed, `@RG` with ID, SM, LB, PL; contigs matching the reference. Each targeted row documents its `processing_state`; consensus states need fgbio `cD` tags in the reads, raw UMI reads need `RX` tags. |
+| Targeted designs | A library catalog with the panel (target BED; primer table, 1-based inclusive, or probe BED) named by `panel_id` + `panel_version` in every row; UMI FASTQ also needs a library protocol with the read structure. |
 | Annotation and DA002 | GFF matching the FASTA; a marker catalogue with status `MAINTAINER_VERIFIED`. |
 | DA003, DA005 by population | Population column in the sample sheet. |
 | DA007 | `latitude`, `longitude`, `collection_date`, `country`. |
@@ -164,6 +164,8 @@ A missing record is never counted as a reference call.
 | DA004 relatedness | Dcifer estimate grid (`nr`) | 1 000 | Dcifer default. |
 | DA005 structure | LD pruning window / step / r² | 100 / 20 / 0.1 | scikit-allel defaults. |
 | DA005 structure | Minimum group size | 3 | Provisional. |
+| DA005 / DA006 on a panel | Separate target regions (independent loci) | ≥ 10 (`da005_min_independent_loci`, `da006_min_independent_loci`); fewer: `TOO_FEW_INDEPENDENT_LOCI` | Provisional: the same floor as DA006 informative sites and DA001 informative loci. The core genome is not limited. |
+| DA002 resistance | Territory and callable evidence | The core genome or panel contains ≥ 1 whole catalogue codon (else `PANEL_LACKS_MARKERS`); each sample has ≥ 1 whole catalogue codon in its callable regions (else `NO_CALLABLE_MARKERS`) | Framework policy: a marker outside the sequenced territory has no denominator. |
 | DA006 phylogeny | Minimum monoclonal samples | 4 | Mathematical floor for an informative unrooted tree. |
 | DA006 phylogeny | Sample / site missingness allowed | ≤ 20% | Provisional. |
 | DA006 phylogeny | Bootstrap replicates | UFBoot 1 000, SH-aLRT 1 000 | IQ-TREE. |

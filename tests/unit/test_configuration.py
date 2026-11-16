@@ -38,15 +38,23 @@ def test_unknown_key_rejected_with_location(workspace: Path) -> None:
     assert any("disable_qc" in m for m in exc.value.problems)
 
 
-def test_targeted_requires_primers_and_amplicon(workspace: Path) -> None:
+def test_targeted_design_requires_the_library_catalog(workspace: Path) -> None:
     _init(workspace)
     p = workspace / "config" / "config.yaml"
     d = yaml.safe_load(p.read_text())
-    d["assay"]["design"] = "TARGETED_UMI"
+    d["assay_design"] = "targeted_umi"
     p.write_text(yaml.safe_dump(d))
     with pytest.raises(ConfigError) as exc:
         load_bundle(workspace)
-    assert any("targets_bed" in m or "read_structure" in m for m in exc.value.problems)
+    assert any("library_catalog" in m for m in exc.value.problems)
+    d["assay_design"] = "TARGETED_NON_UMI"  # schema-3 spelling is read as targeted_no_umi
+    d["assay"]["library_catalog"] = "inputs/metadata/library_catalog.yaml"
+    p.write_text(yaml.safe_dump(d))
+    assert load_bundle(workspace).config.assay_design.value == "targeted_no_umi"
+    d["assay_design"] = "amplicon"
+    p.write_text(yaml.safe_dump(d))
+    with pytest.raises(ConfigError, match="wgs, targeted_umi or targeted_no_umi"):
+        load_bundle(workspace)
 
 
 def test_fo004_requires_analyses_and_da007_source(workspace: Path) -> None:

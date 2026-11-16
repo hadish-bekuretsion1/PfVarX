@@ -82,7 +82,7 @@ def main():
     target.add_argument("--image", type=Path)
     target.add_argument("--emit-context", type=Path)
     p.add_argument("--profile", choices=["sample", "cohort", "downstream", "benchmark"], default="sample")
-    p.add_argument("--design", choices=["WGS", "TARGETED_NON_UMI", "TARGETED_UMI"], default="WGS")
+    p.add_argument("--design", choices=["wgs", "targeted_umi", "targeted_no_umi"], default="wgs")
     p.add_argument("--analyses", nargs="*", default=[])
     p.add_argument("--rtg", action="store_true")
     p.add_argument("--base", default=DEFAULT_BASE,

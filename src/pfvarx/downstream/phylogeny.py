@@ -13,7 +13,7 @@ import shutil
 import subprocess
 
 from pfvarx.constants import Reason, Terminal
-from pfvarx.downstream.common import Context, decisions, write_manifest
+from pfvarx.downstream.common import PANEL_CAVEAT, Context, decisions, write_manifest
 from pfvarx.io import write_json
 
 
@@ -123,7 +123,8 @@ def run(ctx: Context, threads: int = 1) -> None:
                    excluded=excluded, analysed=sorted(kept), outputs=[aln, out / "tree.treefile", out / "runtime_gates.json"],
                    caveats=[f"Branch support: UFBoot >= {p['da006_ufboot_support']} and SH-aLRT >= "
                             f"{p['da006_alrt_support']} are the developers' interpretation guides.",
-                            "Only MONOCLONAL samples are included; polyclonal and indeterminate samples are excluded."],
+                            "Only MONOCLONAL samples are included; polyclonal and indeterminate samples are excluded."]
+                   + ([PANEL_CAVEAT] if ctx.design.targeted else []),
                    method={"tool": "IQ-TREE 2", "model_selection": "ModelFinder restricted to +ASC", "best_model": model,
                            "ufboot": p["da006_ufboot"], "alrt": p["da006_alrt"],
                            "ufboot_support": p["da006_ufboot_support"], "alrt_support": p["da006_alrt_support"]}, results_summary=gates)

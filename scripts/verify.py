@@ -48,22 +48,19 @@ def verify(scenario: str, destination: Path, dry_run_only: bool = False) -> dict
         return json.loads(result.stdout)
 
     purpose = "benchmarking" if scenario == "benchmark" else "analysis"
-    design = {"targeted": "TARGETED_NON_UMI", "auto": "TARGETED_NON_UMI", "umi": "TARGETED_UMI"}.get(scenario, "WGS")
+    design = {"targeted": "targeted_no_umi", "auto": "targeted_no_umi", "umi": "targeted_umi"}.get(scenario, "wgs")
     run("config-init", "--purpose", purpose)
     cfgfile = ws / "config/config.yaml"
     cfg = yaml.safe_load(cfgfile.read_text())
     final_output = {"fo001": "FO001", "fo003": "FO003", "auto": "FO004"}.get(
-        scenario, "FO004" if design == "WGS" else "FO002")
+        scenario, "FO004" if design == "wgs" else "FO002")
     cfg.update(project_id=f"VERIFY_{scenario.upper()}", final_output=final_output)
-    cfg["assay"]["design"] = design
+    cfg["assay_design"] = design
     cfg["reference"]["release_label"] = "synthetic"
-    if design != "WGS":
-        cfg["assay"].update(amplification_route="AMPLICON", targets_bed="inputs/targets/targets.bed",
-                             primers_tsv="inputs/targets/primers.tsv")
-    if design == "TARGETED_UMI":
-        cfg["assay"]["read_structure"] = "8M+T 8M+T"
+    if design != "wgs":
+        # Panel and UMI protocol come from the library catalog the fixture writes.
+        cfg["assay"]["library_catalog"] = "inputs/metadata/library_catalog.yaml"
     if scenario == "auto":
-        cfg["assay"]["sequencing_type"] = "AMPLICON"
         cfg["analyses"]["selection"] = "auto"
     elif final_output == "FO004":
         cfg["reference"]["gff"] = "inputs/reference/Pf3D7.gff"
@@ -80,7 +77,7 @@ def verify(scenario: str, destination: Path, dry_run_only: bool = False) -> dict
     compfile.write_text(yaml.safe_dump(comp))
     run("init")
     fixture = ["fixture", "--design", design, "--purpose", purpose]
-    if design != "WGS" or scenario in ("fo001", "fo003"):
+    if design != "wgs" or scenario in ("fo001", "fo003"):
         fixture += ["--n-mono", "2", "--n-poly", "0"]
     if purpose == "benchmarking":
         fixture += ["--n-mono", "10", "--low-depth-sample"]

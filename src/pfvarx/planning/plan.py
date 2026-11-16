@@ -48,12 +48,15 @@ def layers_for(cfg_final: FinalOutput, input_type: InputType) -> list[int]:
 def jobs_for(layers: list[int], design: Design, input_type: InputType = InputType.FASTQ) -> list[str]:
     jobs = ["dashboard"]
     if input_type in (InputType.BAM, InputType.CRAM):
+        # Imported alignments may still need primer trimming or UMI consensus (by documented state).
         jobs += ["alignment_entry", "metrics"]
+        jobs += ["fgbio_umi"] if design == Design.TARGETED_UMI else []
+        jobs += ["fgbio_clip"] if design.targeted else []
     elif 1 in layers:
         jobs += ["fastp", "bwa_mem2_align", "metrics"]
         jobs += ["markdup"] if design == Design.WGS else []
         jobs += ["fgbio_umi"] if design == Design.TARGETED_UMI else []
-        jobs += ["fgbio_clip"] if design == Design.TARGETED_NON_UMI else []
+        jobs += ["fgbio_clip"] if design == Design.TARGETED_NO_UMI else []
     if 2 in layers:
         jobs.append("pfvarx_call")
     if 3 in layers:
@@ -75,7 +78,7 @@ def resource_plan(root: Path, bundle: Bundle, input_gb: float, n_samples: int) -
     layers = layers_for(bundle.config.final_output, bundle.config.input_type)
     if bundle.config.analyses.selection == "auto" and bundle.config.reference.gff is None and 4 in layers:
         layers.remove(4)
-    jobs = jobs_for(layers, bundle.config.assay.design, bundle.config.input_type)
+    jobs = jobs_for(layers, bundle.config.assay_design, bundle.config.input_type)
     profiles = measured_profiles(root).get("jobs", {})
     rows, blocked = [], []
     for name in jobs:

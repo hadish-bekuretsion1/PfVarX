@@ -27,6 +27,7 @@ KINDS = {
     "SAMPLE_SHEET": "sample sheet (TSV with sample_id)",
     "PRIMERS": "primer table (chrom, left_start, left_end, right_start, right_end)",
     "CATALOGUE": "resistance marker catalogue (TSV with marker_id)",
+    "LIBRARY_CATALOG": "library catalog (YAML with schema_version pfvarx.library_catalog/1)",
     "TSV": "tab-separated table",
     "JSON": "JSON",
     "EMPTY": "empty file",
@@ -38,8 +39,7 @@ SETTING_KINDS = {
     "reference.fasta": ("FASTA",),
     "reference.core_mask_bed": ("BED",),
     "reference.gff": ("GFF",),
-    "assay.targets_bed": ("BED",),
-    "assay.primers_tsv": ("PRIMERS",),
+    "assay.library_catalog": ("LIBRARY_CATALOG",),
     "samples_tsv": ("SAMPLE_SHEET",),
     "analyses.resistance_catalog": ("CATALOGUE",),
 }
@@ -48,7 +48,7 @@ SETTING_KINDS = {
 FOLDER_KINDS = {
     "reference": ("FASTA", "BED", "GFF"),
     "targets": ("BED", "PRIMERS"),
-    "metadata": ("SAMPLE_SHEET", "CATALOGUE", "TSV"),
+    "metadata": ("SAMPLE_SHEET", "CATALOGUE", "LIBRARY_CATALOG", "TSV"),
     "fastq": ("FASTQ",),
     "alignments": ("BAM", "CRAM", "ALIGNMENT_INDEX"),
     "truth": ("VCF", "BED", "JSON"),
@@ -57,7 +57,7 @@ ALIGNMENT_KINDS = {"BAM": ("BAM", "ALIGNMENT_INDEX"), "CRAM": ("CRAM", "ALIGNMEN
 
 PRIMER_HEADER = ["chrom", "left_start", "left_end", "right_start", "right_end"]
 # Inputs the pipeline reads or copies as plain text (FASTA is copied byte for byte before indexing).
-PLAIN_TEXT_ONLY = {"FASTA", "BED", "GFF", "PRIMERS", "SAMPLE_SHEET", "CATALOGUE"}
+PLAIN_TEXT_ONLY = {"FASTA", "BED", "GFF", "PRIMERS", "SAMPLE_SHEET", "CATALOGUE", "LIBRARY_CATALOG"}
 _SAMPLE = 65536
 
 
@@ -136,6 +136,9 @@ def detect(path: Path) -> str:
         return "JSON"
     if first.startswith("##gff-version"):
         return "GFF"
+    if any(line.split("#", 1)[0].strip().replace('"', "").replace("'", "")
+           == "schema_version: pfvarx.library_catalog/1" for line in lines[:50]):
+        return "LIBRARY_CATALOG"
     body = [line for line in lines if not line.startswith(("#", "track", "browser"))]
     rows = [line.split("\t") for line in body]
     if compressed and rows and all(len(r) == 6 and all(_int(c) for c in r) for r in rows[:50]):

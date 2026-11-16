@@ -11,7 +11,7 @@ rule fastp:
         json=str(R / "qc" / "samples" / "{sample}" / "{sample}.{lane}.fastp.json"),
         html=str(R / "qc" / "samples" / "{sample}" / "{sample}.{lane}.fastp.html"),
     params:
-        args=fastp_args(),
+        args=lambda wc: fastp_args(wc.sample),
     threads: threads(4)
     resources:
         mem_mb=mem(2000),

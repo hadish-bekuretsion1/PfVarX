@@ -157,6 +157,30 @@ selected-annotation-coi-reads-related-targeted = { features = ["annotation", "co
 selected-annotation-bench-coi-reads-related-targeted = { features = ["annotation", "bench", "coi", "reads", "related", "targeted"], solve-group = "main" }
 selected-annotation-coi-reads-related-spatial-targeted = { features = ["annotation", "coi", "reads", "related", "spatial", "targeted"], solve-group = "main" }
 selected-annotation-bench-coi-reads-related-spatial-targeted = { features = ["annotation", "bench", "coi", "reads", "related", "spatial", "targeted"], solve-group = "main" }
+selected-annotation-bench-coi-phylogeny-reads-related-spatial-structure-targeted = { features = ["annotation", "bench", "coi", "phylogeny", "reads", "related", "spatial", "structure", "targeted"], solve-group = "main" }
+selected-annotation-bench-coi-phylogeny-reads-related-spatial-targeted = { features = ["annotation", "bench", "coi", "phylogeny", "reads", "related", "spatial", "targeted"], solve-group = "main" }
+selected-annotation-bench-coi-phylogeny-reads-related-structure-targeted = { features = ["annotation", "bench", "coi", "phylogeny", "reads", "related", "structure", "targeted"], solve-group = "main" }
+selected-annotation-bench-coi-phylogeny-reads-related-targeted = { features = ["annotation", "bench", "coi", "phylogeny", "reads", "related", "targeted"], solve-group = "main" }
+selected-annotation-bench-coi-phylogeny-reads-spatial-structure-targeted = { features = ["annotation", "bench", "coi", "phylogeny", "reads", "spatial", "structure", "targeted"], solve-group = "main" }
+selected-annotation-bench-coi-phylogeny-reads-spatial-targeted = { features = ["annotation", "bench", "coi", "phylogeny", "reads", "spatial", "targeted"], solve-group = "main" }
+selected-annotation-bench-coi-phylogeny-reads-structure-targeted = { features = ["annotation", "bench", "coi", "phylogeny", "reads", "structure", "targeted"], solve-group = "main" }
+selected-annotation-bench-coi-phylogeny-reads-targeted = { features = ["annotation", "bench", "coi", "phylogeny", "reads", "targeted"], solve-group = "main" }
+selected-annotation-bench-coi-reads-related-spatial-structure-targeted = { features = ["annotation", "bench", "coi", "reads", "related", "spatial", "structure", "targeted"], solve-group = "main" }
+selected-annotation-bench-coi-reads-related-structure-targeted = { features = ["annotation", "bench", "coi", "reads", "related", "structure", "targeted"], solve-group = "main" }
+selected-annotation-bench-coi-reads-spatial-structure-targeted = { features = ["annotation", "bench", "coi", "reads", "spatial", "structure", "targeted"], solve-group = "main" }
+selected-annotation-bench-coi-reads-structure-targeted = { features = ["annotation", "bench", "coi", "reads", "structure", "targeted"], solve-group = "main" }
+selected-annotation-coi-phylogeny-reads-related-spatial-structure-targeted = { features = ["annotation", "coi", "phylogeny", "reads", "related", "spatial", "structure", "targeted"], solve-group = "main" }
+selected-annotation-coi-phylogeny-reads-related-spatial-targeted = { features = ["annotation", "coi", "phylogeny", "reads", "related", "spatial", "targeted"], solve-group = "main" }
+selected-annotation-coi-phylogeny-reads-related-structure-targeted = { features = ["annotation", "coi", "phylogeny", "reads", "related", "structure", "targeted"], solve-group = "main" }
+selected-annotation-coi-phylogeny-reads-related-targeted = { features = ["annotation", "coi", "phylogeny", "reads", "related", "targeted"], solve-group = "main" }
+selected-annotation-coi-phylogeny-reads-spatial-structure-targeted = { features = ["annotation", "coi", "phylogeny", "reads", "spatial", "structure", "targeted"], solve-group = "main" }
+selected-annotation-coi-phylogeny-reads-spatial-targeted = { features = ["annotation", "coi", "phylogeny", "reads", "spatial", "targeted"], solve-group = "main" }
+selected-annotation-coi-phylogeny-reads-structure-targeted = { features = ["annotation", "coi", "phylogeny", "reads", "structure", "targeted"], solve-group = "main" }
+selected-annotation-coi-phylogeny-reads-targeted = { features = ["annotation", "coi", "phylogeny", "reads", "targeted"], solve-group = "main" }
+selected-annotation-coi-reads-related-spatial-structure-targeted = { features = ["annotation", "coi", "reads", "related", "spatial", "structure", "targeted"], solve-group = "main" }
+selected-annotation-coi-reads-related-structure-targeted = { features = ["annotation", "coi", "reads", "related", "structure", "targeted"], solve-group = "main" }
+selected-annotation-coi-reads-spatial-structure-targeted = { features = ["annotation", "coi", "reads", "spatial", "structure", "targeted"], solve-group = "main" }
+selected-annotation-coi-reads-structure-targeted = { features = ["annotation", "coi", "reads", "structure", "targeted"], solve-group = "main" }
 
 [tasks]
 config-init = "pfvarx config-init"
