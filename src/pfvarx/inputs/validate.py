@@ -542,6 +542,34 @@ def validate_samples(path: Path, root: Path, input_type: InputType, design: Desi
                 rep.fail(Reason.METADATA_MISSING_FIELD,
                          f"sample {key[0]} mixes flowcell_type {first!r} and {row.get('flowcell_type', '')!r}; "
                          "register lanes from different flow-cell types as separate samples", i)
+    for problem in naming_problems(rows, input_type):
+        rep.warn(Reason.NAMING_CONVENTION, problem)
     rep.facts = {"samples": len({r['sample_id'] for r in rows}), "lanes": len(rows),
                  "design": design.value}
     return rep, rows
+
+
+LANE_PATTERN = re.compile(r"L\d{3}")
+
+
+def naming_problems(rows: list[dict[str, str]], input_type: InputType) -> list[str]:
+    """Departures from the naming standard (docs/configuration.md). Warnings only: files are
+    recognised by content, so a different name never stops a run; the standard keeps studies
+    readable and traceable."""
+    out: list[str] = []
+    for row in rows:
+        sid, lane = row.get("sample_id", ""), row.get("lane", "")
+        if lane and not LANE_PATTERN.fullmatch(lane):
+            out.append(f"sample {sid}: lane {lane!r}; the standard is L + 3 digits, e.g. L001")
+        if input_type == InputType.FASTQ:
+            for mate, column in (("R1", "fastq_1"), ("R2", "fastq_2")):
+                name = Path(row.get(column, "")).name
+                expected = f"{sid}_{lane}_{mate}.fastq.gz"
+                if name and name != expected and not (name.startswith(sid) and f"_{mate}" in name):
+                    out.append(f"sample {sid}: {column} {name!r}; the standard is {expected}")
+        elif input_type in (InputType.BAM, InputType.CRAM):
+            name = Path(row.get("bam", "")).name
+            if name and not name.startswith(sid):
+                suffix = ".cram" if input_type == InputType.CRAM else ".bam"
+                out.append(f"sample {sid}: bam {name!r}; the standard is {sid}{suffix}")
+    return out

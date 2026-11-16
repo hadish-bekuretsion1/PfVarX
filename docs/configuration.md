@@ -61,6 +61,21 @@ with a trailing slash. File fields still require filenames.
 | `inputs/targets/` | Reference-matched target BED and primer TSV for targeted assays. |
 | `inputs/truth/`, `inputs/partitions/` | Benchmark truth, confidence regions and partition resources for benchmark workspaces. |
 
+`inputs/` holds only the files you supply to start a run; PfVarX reads them and never
+writes there, except the sample sheet it drafts from paired FASTQ when none exists (yours to
+review and edit from then on). Everything it generates lives beside `inputs/`:
+
+| Folder | Written by | Contents | Safe to delete |
+| --- | --- | --- | --- |
+| `prepared/` | `./pfvarx prepare` | `reference/` (combined and parasite FASTA, `.fai`, `.dict`, bwa-mem2 index), `snpeff/` database, `manifest.json` sealing them | yes; `prepare` rebuilds it |
+| `metadata/` | `validate`, `prepare`, `ready` | validation and preparation reports, preparation logs | yes |
+| `runs/RUN_ID/` | `./pfvarx pipeline` | frozen configuration and plan, logs, `results/` | only when archiving |
+| `results` | `./pfvarx pipeline` | link to the latest run's `results/` | yes |
+
+Workspaces prepared by earlier versions kept the reference derivatives in
+`inputs/reference/prepared/`; the next `./pfvarx prepare` moves them to
+`prepared/reference/` without rebuilding.
+
 For conventionally named FASTQs, use the following and review the proposed sheet
 before registration. For other inputs, supply a reviewed manifest.
 
@@ -138,10 +153,21 @@ For older workspaces, remove the retired host reference setting from the referen
 
 ## Add study metadata
 
-Keep study metadata under `inputs/metadata/`. Join a separate metadata TSV
-to the configured sample registry by `sample_id` before validation. Preserve
-the read or alignment paths, lane and library IDs. Repeat consistent
-sample-level values across lanes.
+Keep study metadata in the sample sheet as extra columns, one value per sample,
+repeated on every lane row. If the study team keeps its own table (tab-separated, with a
+`sample_id` column), put it in `inputs/metadata/` and join it:
+
+```bash
+./pfvarx join-metadata --table inputs/metadata/study_metadata.tsv           # report only
+./pfvarx join-metadata --table inputs/metadata/study_metadata.tsv --apply   # write
+```
+
+Only empty cells are filled, on every lane of the sample. A cell that already holds a
+different value is reported and kept. File, lane, library and library-description columns
+are never taken from the study table. Sample IDs found in only one of the files are
+listed, and coordinates (decimal degrees) and dates (`YYYY-MM-DD`) are checked. The sheet is
+copied to `samples.tsv.before-join-<UTC time>` first. The GUI's Input files tab has the
+same step (**Join study metadata**).
 
 | Column | Example | Use |
 | --- | --- | --- |
@@ -153,6 +179,22 @@ sample-level values across lanes.
 | `age_group`, `study_arm` | Adult, Arm_A | Optional study records |
 
 Review the coordinates included in the dashboard before sharing it.
+
+### Naming standard
+
+Files are recognised by content, so names never decide anything, but a common standard keeps
+studies readable. `./pfvarx validate` warns (`NAMING_CONVENTION`, never a failure) when a row
+departs from it:
+
+| Item | Standard | Example |
+| --- | --- | --- |
+| Sample ID | letters, digits, `_`, `-` | `ETH001` |
+| Lane | `L` and 3 digits | `L001` |
+| Library ID | `<sample_id>_lib<n>` (recommended, not checked) | `ETH001_lib1` |
+| FASTQ | `<sample_id>_<lane>_R1.fastq.gz` and `_R2.fastq.gz`; names that start with the sample ID and name the mate (Illumina `ETH001_S1_L001_R1_001.fastq.gz`) are accepted | `ETH001_L001_R1.fastq.gz` |
+| Alignment | `<sample_id>.bam` (`.cram`) with its index | `ETH001.bam` |
+| Reference | `<genome>_PlasmoDB-<release>.fasta`, `.gff`, `_core.bed` (recommended) | `Pf3D7_PlasmoDB-68.fasta` |
+| Panel files | `<panel_id>_v<version>_targets.bed`, `_primers.tsv`, `_probes.bed` (recommended) | `MAD4HATTER_v1_targets.bed` |
 
 ### Library records
 

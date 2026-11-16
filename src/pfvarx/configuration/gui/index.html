@@ -54,6 +54,14 @@
 <button>Download file</button>
 </form>
 <pre id="transfer-status" role="status"></pre>
+<h3>Join study metadata</h3>
+<p>Fill the empty study columns of the sample sheet (population, country, latitude, longitude, collection_date and any other study fields) from your study table, matched by <code>sample_id</code>. Existing values are never overwritten; differences are listed. Upload the table to the metadata folder first. Terminal equivalent: <code>./pfvarx join-metadata --table PATH</code>, then <code>--apply</code>.</p>
+<form id="join-metadata">
+<label>Study table in this workspace <input name="table" placeholder="inputs/metadata/study_metadata.tsv" required></label>
+<button type="submit" name="mode" value="preview">Preview join</button>
+<button type="submit" name="mode" value="apply">Join into sample sheet</button>
+</form>
+<pre id="join-status" role="status"></pre>
 </section>
 <section id="validation-panel" hidden>
 <h2>Input Files Validation</h2>
@@ -65,7 +73,7 @@
 <section id="preparation-panel" hidden>
 <h2>Reference Preparation</h2>
 <p>Terminal equivalent: <code>./pfvarx prepare-reference</code>.</p>
-<p>For FASTQ input, PfVarX creates a missing sample sheet from paired reads during validation or preparation. Review inferred sample and library IDs before analysis. For BAM input, preparation creates a blank template if needed. Preparation rechecks input validity and writes derived reference files under <code>inputs/reference/prepared/</code>. It builds the FASTA indexes and sequence dictionary, and adds BWA-MEM2 indexes for FASTQ entry.</p>
+<p>For FASTQ input, PfVarX creates a missing sample sheet from paired reads during validation or preparation. Review inferred sample and library IDs before analysis. For BAM input, preparation creates a blank template if needed. Preparation rechecks input validity and writes derived reference files under <code>prepared/reference/</code>, beside <code>inputs/</code>, which keeps only your files. It builds the FASTA indexes and sequence dictionary, and adds BWA-MEM2 indexes for FASTQ entry and for UMI BAM entry.</p>
 <button type="button" id="run-preparation">Prepare and verify inputs</button>
 <p id="preparation-status" role="status"></p><pre id="preparation-results"></pre>
 </section>

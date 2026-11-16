@@ -94,6 +94,16 @@ def config_migrate(apply: bool = typer.Option(False, "--apply", help="write the 
     emit(res, 1 if res["status"] == "BLOCKED" else 0)
 
 
+@app.command("join-metadata")
+def join_metadata(table: str = typer.Option(..., "--table", help="tab-separated study table with sample_id"),
+                  apply: bool = typer.Option(False, "--apply", help="write the changes (default: report only)")) -> None:
+    """Fill empty study columns of the sample sheet from a study table, matched by sample_id."""
+    from pfvarx.inputs.metadata_join import join_for_workspace
+
+    res = guard(lambda: join_for_workspace(_root(), table, apply=apply))
+    emit(res, 1 if res["conflicts_not_overwritten"] else 0)
+
+
 @app.command()
 def init() -> None:
     """Create purpose- and assay-specific input folders only."""

@@ -195,7 +195,7 @@ function showInputFolders(directories) {
         "inputs/fastq": "Paired reads (.fastq or .fastq.gz), such as sample_R1.fastq.gz and sample_R2.fastq.gz.",
         "inputs/alignments": "Coordinate-sorted BAM files and their indexes (.bai or .csi). Record each file's processing_state in the sample registry so only the missing steps run.",
         "inputs/reference": "Reference FASTA and matching core-genome BED. Include matching GFF when annotation is needed.",
-        "inputs/metadata": "Sample registry TSV with input paths and study metadata (country, latitude, longitude, collection_date and population where applicable). Optional separate study metadata and verified marker catalogue TSV. Join study metadata to the configured sample registry by sample_id before validation. Library columns (technique, amplification_route, panel_id, panel_version, library_protocol_id) describe each library; targeted designs also need the library catalog YAML.",
+        "inputs/metadata": "Sample registry TSV with input paths and study metadata (country, latitude, longitude, collection_date and population where applicable). Optional separate study metadata and verified marker catalogue TSV. Join a separate study table into the sample registry with Join study metadata below (by sample_id). Library columns (technique, amplification_route, panel_id, panel_version, library_protocol_id) describe each library; targeted designs also need the library catalog YAML.",
         "inputs/targets": "Target regions BED and primer definitions TSV (or probe BED) matched to the reference, named by a panel in the library catalog.",
         "inputs/truth": "truth.json, confident_regions.bed, and <MONOCLONAL_SAMPLE_ID>.truth.vcf for each scored monoclonal sample.",
         "inputs/partitions": "partition.json, created by ./pfvarx benchmark-partition."
@@ -565,4 +565,30 @@ byId("start-workflow").addEventListener("click", async () => {
         return;
     }
     pollWorkflow();
+});
+
+byId("join-metadata").addEventListener("submit", async event => {
+    event.preventDefault();
+    const apply = event.submitter?.value === "apply";
+    const message = byId("join-status");
+    message.textContent = apply ? "Joining..." : "Checking...";
+    try {
+        const table = new FormData(event.target).get("table");
+        const result = await request("join-metadata", {table, apply});
+        const lines = [
+            (apply ? (result.status === "APPLIED" ? "Joined. " : "Nothing to write. ") : "Preview: ") +
+                result.cells_filled + " empty cell(s) " + (apply ? "filled" : "would be filled") +
+                " in " + result.sample_sheet + ".",
+            "Columns: " + (result.columns_joined.join(", ") || "none")
+        ];
+        if (result.backup) lines.push("Backup: " + result.backup);
+        if (result.columns_skipped_protected.length) lines.push("Not taken from the study table: " + result.columns_skipped_protected.join(", "));
+        if (result.samples_without_study_row.length) lines.push("Samples with no study row: " + result.samples_without_study_row.join(", "));
+        if (result.study_rows_without_sample.length) lines.push("Study rows with no sample: " + result.study_rows_without_sample.join(", "));
+        for (const c of result.conflicts_not_overwritten) lines.push("Kept " + c.column + " of " + c.sample_id + ": sample sheet has " + JSON.stringify(c.sample_sheet) + ", study table has " + JSON.stringify(c.study_table));
+        for (const w of result.warnings) lines.push("Warning: " + w);
+        message.textContent = lines.join("\n");
+    } catch (error) {
+        message.textContent = error.message;
+    }
 });

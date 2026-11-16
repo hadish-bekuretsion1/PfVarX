@@ -1,7 +1,9 @@
 """Conditional, idempotent derivation of reference indexes (L0.4).
 
-Raw inputs are never modified. Derivatives are written under ``inputs/reference/prepared/`` and
-built only when missing or when the source checksum changed.
+Raw inputs are never modified, and ``inputs/`` holds only the files a user supplies.
+Derivatives are written under ``prepared/reference/`` (sealed in ``prepared/manifest.json``)
+and built only when missing or when the source checksum changed. Workspaces prepared before
+this layout kept them in ``inputs/reference/prepared/``; ``prepare`` moves them once.
 """
 
 from __future__ import annotations
@@ -16,12 +18,37 @@ from pfvarx.constants import Design, InputType
 from pfvarx.io import read_json, sha256, write_json
 
 BWA_SUFFIXES = (".0123", ".amb", ".ann", ".bwt.2bit.64", ".pac")
-
+PREPARED_REFERENCE = "prepared/reference"
+LEGACY_PREPARED_REFERENCE = "inputs/reference/prepared"
 
 
 def needs_aligner_index(cfg: Any) -> bool:
     """FASTQ entry aligns reads; targeted_umi BAM entry may realign new consensus reads."""
     return cfg.input_type == InputType.FASTQ or cfg.assay_design == Design.TARGETED_UMI
+
+
+def legacy_location(root: Path) -> bool:
+    """Derivatives still in the pre-0.0.0-layout folder inside inputs/, not yet moved."""
+    return (root / LEGACY_PREPARED_REFERENCE).is_dir() and not (root / PREPARED_REFERENCE).exists()
+
+
+def relocate_legacy(root: Path) -> bool:
+    """Move derivatives from inputs/reference/prepared/ to prepared/reference/ (no rebuild)."""
+    if not legacy_location(root):
+        return False
+    (root / PREPARED_REFERENCE).parent.mkdir(parents=True, exist_ok=True)
+    shutil.move(str(root / LEGACY_PREPARED_REFERENCE), str(root / PREPARED_REFERENCE))
+    manifest_path = root / "prepared" / "manifest.json"
+    if manifest_path.is_file():
+        manifest = read_json(manifest_path)
+        old, new = LEGACY_PREPARED_REFERENCE + "/", PREPARED_REFERENCE + "/"
+        manifest["artifacts"] = {k.replace(old, new, 1): v for k, v in (manifest.get("artifacts") or {}).items()}
+        for key in ("combined_fasta", "parasite_fasta"):
+            if isinstance(manifest.get(key), str):
+                manifest[key] = manifest[key].replace(old, new, 1)
+        write_json(manifest_path, manifest)
+    return True
+
 
 def _tool(name: str) -> str:
     found = shutil.which(name)
@@ -40,7 +67,7 @@ def _source_key(root: Path, source: Path) -> str:
 def plan_preparation(root: Path, bundle: Bundle) -> dict[str, Any]:
     cfg = bundle.config
     src = root / cfg.reference.fasta
-    prep = root / "inputs/reference/prepared"
+    prep = root / PREPARED_REFERENCE
     manifest_path = root / "prepared" / "manifest.json"
     old = read_json(manifest_path) if manifest_path.is_file() else {}
     fingerprints = {_source_key(root, src): sha256(src)}
@@ -52,6 +79,10 @@ def plan_preparation(root: Path, bundle: Bundle) -> dict[str, Any]:
         return not path.is_file() or path.stat().st_size == 0 or (rel in sealed and sha256(path) != sealed[rel])
     target = prep / "combined.fasta"
     actions = []
+    if legacy_location(root):
+        # Moved first; prepare then re-plans, so only what is really missing gets rebuilt.
+        return {"stale": stale, "source_fingerprints": fingerprints, "manifest": str(manifest_path),
+                "actions": [{"action": "relocate_from_inputs", "output": PREPARED_REFERENCE + "/"}]}
     if stale or damaged(target):
         actions.append({"action": "write_combined_fasta", "output": str(target)})
     if stale or damaged(Path(f"{target}.fai")):
@@ -85,8 +116,13 @@ def prepare(root: Path, bundle: Bundle, dry_run: bool) -> dict[str, Any]:
     plan = plan_preparation(root, bundle)
     if dry_run or not plan["actions"]:
         return {"dry_run": dry_run, **plan}
+    moved = relocate_legacy(root)
+    if moved:
+        plan = plan_preparation(root, bundle)  # the moved derivatives are reused, not rebuilt
+        if not plan["actions"]:
+            return {"dry_run": False, **plan, "performed": ["relocate_from_inputs"]}
     cfg = bundle.config
-    prep = root / "inputs/reference/prepared"
+    prep = root / PREPARED_REFERENCE
     prep.mkdir(parents=True, exist_ok=True)
     combined = prep / "combined.fasta"
     parasite = prep / "parasite.fasta"
@@ -109,6 +145,8 @@ def prepare(root: Path, bundle: Bundle, dry_run: bool) -> dict[str, Any]:
         elif a == "bwa_mem2_index":
             _run_preparation(root, a, [_tool("bwa-mem2"), "index", str(combined)])
         done.append(a)
+    if moved:
+        done.insert(0, "relocate_from_inputs")
     manifest = {
         "schema": "pfvarx.prepared/2",
         "source_fingerprints": plan["source_fingerprints"],
@@ -126,7 +164,7 @@ def prepare(root: Path, bundle: Bundle, dry_run: bool) -> dict[str, Any]:
 
 
 def required_artifacts(root: Path, bundle: Bundle) -> list[Path]:
-    prep = root / "inputs/reference/prepared"
+    prep = root / PREPARED_REFERENCE
     paths = [prep / name for name in ("combined.fasta", "combined.fasta.fai", "combined.dict", "parasite.fasta", "parasite.fasta.fai")]
     if needs_aligner_index(bundle.config):
         paths += [Path(str(prep / "combined.fasta") + suffix) for suffix in BWA_SUFFIXES]
@@ -154,16 +192,16 @@ def verify_prepared(root: Path, bundle: Bundle) -> dict[str, Any]:
             elif manifest.get("artifacts", {}).get(rel) != sha256(artifact):
                 issues.append("Artifact hash mismatch or not sealed: " + rel)
         if not issues:
-            with pysam.FastaFile(str(root / "inputs/reference/prepared/combined.fasta")) as combined:
+            with pysam.FastaFile(str(root / PREPARED_REFERENCE / "combined.fasta")) as combined:
                 expected = dict(zip(combined.references, combined.lengths))
                 dictionary = {}
-                for line in (root / "inputs/reference/prepared/combined.dict").read_text().splitlines():
+                for line in (root / PREPARED_REFERENCE / "combined.dict").read_text().splitlines():
                     if line.startswith("@SQ\t"):
                         fields = dict(f.split(":", 1) for f in line.split("\t")[1:] if ":" in f)
                         dictionary[fields["SN"]] = int(fields["LN"])
                 if dictionary != expected:
                     issues.append("Combined FASTA index and sequence dictionary disagree")
-            with pysam.FastaFile(str(root / "inputs/reference/prepared/parasite.fasta")) as parasite:
+            with pysam.FastaFile(str(root / PREPARED_REFERENCE / "parasite.fasta")) as parasite:
                 if not parasite.references:
                     issues.append("Empty parasite FASTA index")
     except (OSError, ValueError, KeyError, TypeError) as exc:

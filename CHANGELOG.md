@@ -5,6 +5,25 @@
 The release version was reset to 0.0.0 after 0.4.2, as the baseline for the first reviewed
 release. The sections below 0.0.0 are the earlier development numbering, kept as history.
 
+### Study metadata join and naming standard
+
+- `./pfvarx join-metadata --table PATH [--apply]` (and **Join study metadata** in the GUI's
+  Input files tab) fills empty study columns of the sample sheet from a study table, matched
+  by `sample_id`, on every lane. Existing values are never overwritten (conflicts are
+  listed), file and library columns are never taken, unmatched IDs are listed, coordinates
+  and dates are checked, and a backup is kept.
+- `./pfvarx validate` warns (`NAMING_CONVENTION`) when lanes, FASTQ or alignment names depart
+  from the documented naming standard; files are still recognised by content.
+
+### `inputs/` holds only supplied files
+
+- Reference derivatives (combined and parasite FASTA, `.fai`, `.dict`, bwa-mem2 index) are
+  written to `prepared/reference/` beside their manifest and the SnpEff database, as the
+  documentation already stated; they used to go to `inputs/reference/prepared/`, so the
+  documented `prepared/reference/parasite.fasta` commands failed. `./pfvarx prepare` moves
+  an existing `inputs/reference/prepared/` once, without rebuilding the indexes; read-only
+  checks only report that the move is needed.
+
 ### Assay design selects the branch; libraries are described per sample (config schema 4)
 
 - `assay_design` (`wgs`, `targeted_umi`, `targeted_no_umi`) is the one run setting that

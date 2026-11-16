@@ -176,7 +176,7 @@ def test_prepared_verification_rejects_corruption_and_dictionary_mismatch(worksp
     source = workspace / bundle.config.reference.fasta
     source.parent.mkdir(parents=True)
     source.write_text(">chr1\nACGTACGT\n")
-    prep = workspace / "inputs/reference/prepared"
+    prep = workspace / "prepared/reference"
     prep.mkdir(parents=True)
     for name in ["combined", "parasite"]:
         p = prep / (name + ".fasta")
@@ -198,7 +198,7 @@ def test_prepared_verification_rejects_corruption_and_dictionary_mismatch(worksp
     dictionary.write_text("@SQ\tSN:chr1\tLN:99\n")
     assert verify_prepared(workspace, bundle)["status"] == "FAIL"
     assert any(a["action"] == "picard_dict" for a in plan_preparation(workspace, bundle)["actions"])
-    manifest["artifacts"]["inputs/reference/prepared/combined.dict"] = sha256(dictionary)
+    manifest["artifacts"]["prepared/reference/combined.dict"] = sha256(dictionary)
     mp.write_text(json.dumps(manifest))
     result = verify_prepared(workspace, bundle)
     assert result["status"] == "FAIL" and any("disagree" in s for s in result["issues"])
@@ -361,6 +361,52 @@ def test_aligned_resource_plan_contains_actual_entry_and_qc_not_fastq_jobs():
     jobs = jobs_for([0, 2, 6], Design.WGS, InputType.BAM)
     assert {"alignment_entry", "metrics", "pfvarx_call"} <= set(jobs)
     assert not {"fastp", "bwa_mem2_align", "fgbio_umi"} & set(jobs)
+
+
+def test_derivatives_inside_inputs_are_moved_to_prepared_not_rebuilt(workspace):
+    """inputs/ holds only supplied files: an older workspace's inputs/reference/prepared/ is
+    moved to prepared/reference/ by prepare, and its sealed artifacts stay valid."""
+    import pysam
+    import yaml
+
+    from pfvarx.configuration.loader import load_bundle
+    from pfvarx.initialization.layout import config_init
+    from pfvarx.io import sha256
+    from pfvarx.references.prepare import plan_preparation, prepare, verify_prepared
+
+    config_init(workspace, "analysis")
+    config = workspace / "config/config.yaml"
+    cfg = yaml.safe_load(config.read_text())
+    cfg["input_type"] = "BAM"
+    config.write_text(yaml.safe_dump(cfg))
+    bundle = load_bundle(workspace)
+    source = workspace / bundle.config.reference.fasta
+    source.parent.mkdir(parents=True)
+    source.write_text(">chr1\nACGTACGT\n")
+    legacy = workspace / "inputs/reference/prepared"
+    legacy.mkdir(parents=True)
+    for name in ("combined", "parasite"):
+        (legacy / f"{name}.fasta").write_text(source.read_text())
+        pysam.faidx(str(legacy / f"{name}.fasta"))
+    (legacy / "combined.dict").write_text("@HD\tVN:1.6\n@SQ\tSN:chr1\tLN:8\n")
+    files = [legacy / n for n in ("combined.fasta", "combined.fasta.fai", "combined.dict",
+                                  "parasite.fasta", "parasite.fasta.fai")]
+    manifest = {"schema": "pfvarx.prepared/2", "source_fingerprints": {str(source.resolve()): sha256(source)},
+                "combined_fasta": "inputs/reference/prepared/combined.fasta",
+                "parasite_fasta": "inputs/reference/prepared/parasite.fasta",
+                "artifacts": {str(f.relative_to(workspace)): sha256(f) for f in files}}
+    (workspace / "prepared").mkdir()
+    (workspace / "prepared/manifest.json").write_text(json.dumps(manifest))
+    assert [a["action"] for a in plan_preparation(workspace, bundle)["actions"]] == ["relocate_from_inputs"]
+    assert verify_prepared(workspace, bundle)["status"] == "FAIL"  # read-only checks never move files
+    assert legacy.is_dir()
+    result = prepare(workspace, bundle, dry_run=False)
+    assert result["performed"] == ["relocate_from_inputs"]  # moved, nothing rebuilt
+    assert not legacy.exists() and (workspace / "prepared/reference/combined.dict").is_file()
+    moved = json.loads((workspace / "prepared/manifest.json").read_text())
+    assert moved["combined_fasta"] == "prepared/reference/combined.fasta"
+    assert verify_prepared(workspace, bundle)["status"] == "PASS"
+    assert sorted(p.name for p in (workspace / "inputs/reference").iterdir()) == [source.name]
 
 
 def test_preparation_failure_retains_real_tool_diagnostics(tmp_path):

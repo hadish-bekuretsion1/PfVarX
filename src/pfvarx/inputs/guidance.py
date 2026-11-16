@@ -72,6 +72,11 @@ GENERIC: dict[str, list[str]] = {
         "The state must match the file: consensus reads carry the fgbio cD tag, raw UMI reads the RX tag, and a "
         "file whose header records fgbio TrimPrimers is already trimmed.",
     ],
+    "NAMING_CONVENTION": [
+        "Optional: rename to the standard (sample IDs like ETH001, lanes L001, FASTQ "
+        "<sample_id>_<lane>_R1.fastq.gz / _R2.fastq.gz, alignments <sample_id>.bam). This is only a warning; "
+        "the run is not affected.",
+    ],
     "TECHNIQUE_CONFLICT": [
         "Make the manifest agree with assay_design: WGS and SELECTIVE_WGS only with wgs; AMPLICON with either "
         "targeted design; TBS_UMI only with targeted_umi; TBS_NON_UMI only with targeted_no_umi. Leave technique "

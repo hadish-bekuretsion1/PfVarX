@@ -31,6 +31,7 @@ from pfvarx.configuration.models import Bundle
 from pfvarx.constants import Design
 from pfvarx.execution.retention import workspace_lock
 from pfvarx.initialization.layout import check_release_label, create_input_dirs, required_dirs
+from pfvarx.inputs.metadata_join import join_for_workspace
 from pfvarx.inputs.transfer import check_content, destination_for, download, folder_contents
 from pfvarx.io import atomic_write_text, read_json, within
 
@@ -299,6 +300,12 @@ class Handler(BaseHTTPRequestHandler):
                 return
             if name == "workflow-run":
                 self.respond(start_workflow(self.root))
+                return
+            if name == "join-metadata":
+                # Same step as './pfvarx join-metadata'; from the GUI the table must be in the workspace.
+                table = within(self.root, str(payload["table"]))
+                with workspace_lock(self.root):
+                    self.respond(join_for_workspace(self.root, str(table), apply=payload.get("apply") is True))
                 return
             checks = {
                 "preflight": PREFLIGHT_STAGES,

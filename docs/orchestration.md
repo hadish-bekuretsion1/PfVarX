@@ -50,6 +50,7 @@ Pixi/tool diagnostics go to stderr. `PFVARX_JSON_OUT` can save command JSON atom
 | `workspace-init` | Installed profile or full source | Three missing editable YAML files and, unless --config-only is set, input folders and an initialization report; never overwrite user config |
 | `config-init --purpose analysis|benchmarking` | Full source/compatible selection | Missing config/quality/compute templates only; legacy explicit setup |
 | `config-migrate [--apply]` | Workspace with a schema-3 `config/config.yaml` | Reports, then with `--apply` performs, the move to schema 4: `assay_design`, `inputs/metadata/library_catalog.yaml` (targeted panel and UMI protocol) and the manifest columns; keeps `.before-config4` backups |
+| `join-metadata --table PATH [--apply]` | Workspace with a sample sheet | Reports, then with `--apply` performs, the join of a tab-separated study table into `samples.tsv` by `sample_id`: only empty cells are filled, file and library columns are never taken, conflicts and unmatched IDs are listed, and coordinates and dates are checked. Keeps a `.before-join-<time>` backup. Exits 1 when conflicts remain |
 | `init` | Valid config | Assay/purpose-specific input directories only |
 | `discover-inputs --directory DIR` | Actual FASTQ folder | `metadata/discovered_samples.tsv`; REVIEW_REQUIRED, complete unambiguous pairs only |
 | `register-inputs --manifest FILE --mode reference|link` | Reviewed TSV and valid config | Registered sample sheet, optional organized symlinks, metadata/registration.json; refuses nonempty sheet overwrite |
