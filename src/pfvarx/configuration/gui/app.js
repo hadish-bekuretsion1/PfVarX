@@ -65,14 +65,26 @@ function draw(parent, object, schema, path = "") {
             "config.reference.host_removal": "Human DNA removal",
             "config.reference.host_fasta": "Human genome reference"
         };
-        label.textContent = (labels[id] || key.replaceAll("_", " ")) + " ";
+        // The setting name sits in its own element (left column); the input follows it.
+        label.className = "field";
+        row.className = "field-row";
+        const name = document.createElement("span");
+        name.className = "field-name";
+        name.textContent = labels[id] || key.replaceAll("_", " ");
+        label.append(name);
         row.append(label);
         parent.append(row);
         const guide = state.field_guide?.[id];
         if (guide || original.description) {
             const help = document.createElement("small");
             help.id = id + ".help";
-            help.textContent = guide ? guide.help + " Values or example: " + guide.example : original.description;
+            help.textContent = guide ? guide.help : original.description;
+            if (guide) {
+                const example = document.createElement("span");
+                example.className = "example";
+                example.textContent = "Values or example: " + guide.example;
+                help.append(example);
+            }
             row.append(help);
         }
         if (id === "config.analyses.requested") {
@@ -187,7 +199,7 @@ function draw(parent, object, schema, path = "") {
         requiredMark.textContent = " *";
         requiredMark.setAttribute("aria-hidden", "true");
         requiredMark.hidden = true;
-        label.insertBefore(requiredMark, input);
+        name.append(requiredMark);
         input.dataset.schemaRequired = String(
             (schema.required || []).includes(key) && !original.anyOf?.some(item => item.type === "null")
         );

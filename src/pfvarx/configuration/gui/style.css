@@ -1,47 +1,247 @@
-body{margin:0;background:#edf3f7;color:#173042;font:16px/1.5 system-ui,sans-serif}
-main{max-width:1000px;margin:auto;padding:2rem}
-fieldset,details,dialog{border:1px solid #aec5d4;border-radius:.45rem;background:white;margin:1rem 0;padding:1rem}
-legend{font-weight:700}label{display:block;margin:.6rem 0}small{display:block;color:#42596a}
-input,select,textarea,button{font:inherit;padding:.35rem;margin:.2rem;max-width:95%}
-input:not([type=checkbox]):not([type=radio]),textarea{width:26rem}
-button{background:#164963;color:white;border:0;border-radius:.25rem;padding:.5rem .8rem}
-button:disabled{opacity:.45}pre{white-space:pre-wrap;overflow-wrap:anywhere}dialog{margin:auto;max-width:90vw}
-#entries{max-height:55vh;overflow:auto}#entries button{display:block}
-
-[hidden]{display:none!important}
-*,*::before,*::after{box-sizing:border-box}
-fieldset{min-width:0}label,button{overflow-wrap:anywhere}
-@media(max-width:600px){main{padding:1rem}fieldset{padding:.65rem}button{max-width:100%}}
-
-[data-required-mark] { color: #b42318; font-weight: 700; }
-
-nav button[aria-pressed="true"] {
-    background: #e7f3ff;
-    color: #103c59;
-    box-shadow: inset 0 -3px #17658c;
-    font-weight: 700;
+/* PfVarX configuration editor.
+   Colours and sizes are defined once below and reused. Layout: a header band, one row of
+   numbered step tabs, then each settings group as a card in which every setting is a form-table
+   row: name on the left, input on the right, help underneath the input. */
+:root {
+    --bg: #f1f4f8;
+    --surface: #ffffff;
+    --surface-muted: #f7f9fc;
+    --text: #1b2733;
+    --text-muted: #5a6b7b;
+    --border: #d8e0e8;
+    --border-strong: #b9c6d3;
+    --primary: #1d4f7a;
+    --primary-hover: #163d5f;
+    --primary-soft: #e8f0f7;
+    --focus: #3b82c4;
+    --danger: #b42318;
+    --notice: #8a5100;
+    --notice-soft: #fff6e5;
+    --radius: .5rem;
+    --label-col: 15rem;
+    --shadow: 0 1px 2px rgba(16, 32, 48, .06), 0 1px 3px rgba(16, 32, 48, .08);
 }
 
-nav button[aria-pressed="true"]::before {
-    content: "✓ ";
-}
+*, *::before, *::after { box-sizing: border-box; }
+[hidden] { display: none !important; }
+/* Keep the colours when the page is printed or saved as PDF (browsers drop backgrounds otherwise). */
+html { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
 
-/* Tab bars (workflow steps and input file categories) stay on one horizontal line.
-   Tabs share the width by label length; on narrow screens the bar scrolls sideways instead of wrapping. */
+body { margin: 0; background: var(--bg); color: var(--text); font: 15px/1.5 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
+main { max-width: 1400px; margin: auto; padding: 0 2rem 3rem; }
+h2 { margin: 2rem 0 .5rem; font-size: 1.2rem; }
+h3 { margin: 1.5rem 0 .5rem; font-size: 1.02rem; }
+code { background: var(--primary-soft); color: var(--primary-hover); padding: .05rem .3rem; border-radius: .25rem; font-size: .88em; }
+
+/* Header band */
+.app-header {
+    margin: 0 -2rem 1.25rem;
+    padding: 1.6rem 2rem 1.2rem;
+    background: linear-gradient(135deg, var(--primary) 0%, #2a6a9c 100%);
+    color: #fff;
+}
+.app-header h1 { margin: 0 0 .35rem; font-size: 1.7rem; letter-spacing: -.01em; }
+.app-header p { margin: 0; max-width: 52rem; color: rgba(255, 255, 255, .88); }
+
+/* Cards: top-level settings groups (config, quality, compute) */
+fieldset, details, dialog {
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    background: var(--surface);
+    box-shadow: var(--shadow);
+    margin: 1.25rem 0;
+    padding: 0 1.25rem 1rem;
+    min-width: 0;
+}
+#editor > fieldset > legend {
+    float: left;                      /* turns the legend into a full-width card header */
+    width: calc(100% + 2.5rem);
+    margin: 0 -1.25rem .5rem;
+    padding: .7rem 1.25rem;
+    background: var(--surface-muted);
+    border-bottom: 1px solid var(--border);
+    border-radius: var(--radius) var(--radius) 0 0;
+    font-size: 1rem;
+}
+#editor > fieldset > legend + * { clear: both; }
+legend { font-weight: 700; color: var(--primary); text-transform: capitalize; }
+/* Nested groups (assay, reference, caller, retention, per job): a titled inner panel */
+fieldset fieldset { background: var(--surface-muted); box-shadow: none; padding: .25rem 1rem .75rem; margin: 1rem 0; }
+fieldset fieldset > legend { padding: 0 .4rem; font-size: .95rem; }
+details { padding: .8rem 1.25rem; }
+details > summary { cursor: pointer; font-weight: 600; color: var(--primary); }
+dialog { margin: auto; max-width: 90vw; padding: 1rem 1.25rem; }
+
+/* Form-table rows: name | input, help under the input */
+.field-row { padding: .7rem 0; border-top: 1px solid var(--border); }
+#editor > fieldset > .field-row:first-of-type,
+fieldset fieldset > .field-row:first-of-type { border-top: 0; }
+label.field {
+    display: grid;
+    grid-template-columns: var(--label-col) minmax(0, 1fr);
+    align-items: center;
+    column-gap: 1rem;
+    margin: 0;
+}
+.field-name { font-weight: 600; overflow-wrap: anywhere; }
+.field-name::first-letter { text-transform: uppercase; }
+.field-row > small, .field-row > input[type=search] { margin-left: calc(var(--label-col) + 1rem); }
+.field-row > label:not(.field) { margin: .35rem 0 0 calc(var(--label-col) + 1rem); font-weight: 400; }
+label { display: block; margin: .6rem 0 .2rem; }
+small { display: block; color: var(--text-muted); font-size: .84rem; margin-top: .35rem; max-width: 46rem; }
+small .example { display: block; margin-top: .2rem; color: var(--text); font-size: .8rem; }
+small.notice { color: var(--notice); background: var(--notice-soft); border-left: 3px solid var(--notice); padding: .3rem .6rem; font-weight: 600; border-radius: .25rem; }
+[data-required-mark] { color: var(--danger); font-weight: 700; }
+
+/* Form controls */
+input, select, textarea, button { font: inherit; max-width: 100%; }
+input:not([type=checkbox]):not([type=radio]), select, textarea {
+    width: 100%;
+    max-width: 30rem;
+    padding: .45rem .6rem;
+    margin: 0;
+    border: 1px solid var(--border-strong);
+    border-radius: .375rem;
+    background: var(--surface);
+    color: var(--text);
+}
+select { cursor: pointer; }
+label.field > input[type=checkbox] { justify-self: start; }
+input[type=checkbox], input[type=radio] { width: 1.1rem; height: 1.1rem; margin: 0 .4rem 0 0; vertical-align: -.15rem; accent-color: var(--primary); cursor: pointer; }
+input:disabled, select:disabled, textarea:disabled { background: var(--surface-muted); color: var(--text-muted); border-style: dashed; cursor: not-allowed; }
+input:focus-visible, select:focus-visible, textarea:focus-visible, button:focus-visible {
+    outline: 3px solid color-mix(in srgb, var(--focus) 40%, transparent);
+    outline-offset: 1px;
+    border-color: var(--focus);
+}
+pre { white-space: pre-wrap; overflow-wrap: anywhere; background: var(--surface-muted); border: 1px solid var(--border); border-radius: .375rem; padding: .6rem .8rem; font-size: .85rem; }
+pre:empty { display: none; }
+
+/* Buttons: one primary style, an outline style for secondary actions */
+button {
+    display: inline-flex;
+    align-items: center;
+    gap: .4rem;
+    margin: .35rem .5rem .35rem 0;
+    padding: .55rem 1.1rem;
+    border: 1px solid var(--primary);
+    border-radius: .375rem;
+    background: var(--primary);
+    color: #fff;
+    font-weight: 600;
+    line-height: 1.2;
+    cursor: pointer;
+    box-shadow: var(--shadow);
+    transition: background-color .15s ease, border-color .15s ease, box-shadow .15s ease, transform .05s ease;
+    overflow-wrap: anywhere;
+}
+button:hover:not(:disabled) { background: var(--primary-hover); border-color: var(--primary-hover); }
+button:active:not(:disabled) { transform: translateY(1px); box-shadow: none; }
+button:disabled { background: #c7d0da; border-color: #c7d0da; color: #fff; cursor: not-allowed; box-shadow: none; }
+#run-workflow-check, #join-metadata button[value=preview], #entries button {
+    background: var(--surface);
+    color: var(--primary);
+}
+#run-workflow-check:hover:not(:disabled), #join-metadata button[value=preview]:hover:not(:disabled), #entries button:hover {
+    background: var(--primary-soft);
+}
+#entries { max-height: 55vh; overflow: auto; }
+#entries button { display: flex; width: 100%; margin: .2rem 0; box-shadow: none; }
+
+/* One action area for saving: option, main button and the result message together */
+.action-bar {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: .5rem 1rem;
+    margin: 1.5rem 0;
+    padding: 1rem 1.25rem;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-left: 4px solid var(--primary);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+}
+.action-bar .inline-option { margin: 0; flex: 1 1 18rem; }
+.action-bar #save { margin: 0; padding: .7rem 1.4rem; font-size: 1rem; }
+.action-bar #status { flex-basis: 100%; margin: 0; font-weight: 600; }
+.action-bar #status:empty { display: none; }
+/* Install required tools: its own action area under the save area */
+#tools { margin-top: -.5rem; }
+#tools #install-tools { margin: 0; }
+#tools p { flex: 1 1 26rem; margin: 0; font-size: .9rem; color: var(--text-muted); }
+#tools #tools-status { flex-basis: 100%; color: var(--text); font-weight: 600; }
+#tools #tools-status:empty, #tools #tools-result:empty { display: none; }
+#tools #tools-result { flex-basis: 100%; margin: 0; }
+
+/* Step tabs: all six on one line in a wide bar, numbered in workflow order, each sized to its
+   label so no label is cut or broken. Windows too narrow for one line get an even 3 x 2 grid
+   (2 x 3 on phones); the bar never scrolls and no tab is hidden. */
 nav {
     display: flex;
     flex-wrap: nowrap;
-    gap: .3rem;
-    overflow-x: auto;
-    margin: 1rem 0;
-    padding-bottom: .2rem;
+    gap: .35rem;
+    margin: 0 0 1.5rem;
+    padding: .45rem;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: calc(var(--radius) + .25rem);
+    box-shadow: var(--shadow);
 }
-
+nav[aria-label="Workspace views"] { counter-reset: step; }
 nav button {
     flex: 1 1 auto;
-    min-width: 6.5rem;
-    max-width: none;
+    justify-content: center;
+    min-width: 0;
+    min-height: 3rem;
     margin: 0;
-    line-height: 1.25;
+    padding: .7rem .8rem;
+    white-space: nowrap;
     overflow-wrap: normal;
+    border: 1px solid transparent;
+    border-radius: var(--radius);
+    background: transparent;
+    color: var(--text-muted);
+    font-size: .93rem;
+    font-weight: 600;
+    box-shadow: none;
+}
+@media (max-width: 1319px) {
+    nav[aria-label="Workspace views"] { display: grid; grid-template-columns: repeat(3, 1fr); }
+    nav[aria-label="Workspace views"] button { justify-content: flex-start; }
+}
+@media (max-width: 900px) { nav[aria-label="Workspace views"] { grid-template-columns: repeat(2, 1fr); } }
+nav button:hover:not(:disabled) { background: var(--primary-soft); color: var(--primary); border-color: var(--border); }
+nav button[aria-pressed="true"],
+nav button[aria-pressed="true"]:hover:not(:disabled) { background: var(--primary); color: #fff; box-shadow: var(--shadow); }
+nav[aria-label="Workspace views"] button { counter-increment: step; }
+nav[aria-label="Workspace views"] button::before {
+    content: counter(step);
+    display: inline-grid;
+    place-items: center;
+    flex: none;
+    width: 1.55rem;
+    height: 1.55rem;
+    border-radius: 50%;
+    background: var(--primary-soft);
+    color: var(--primary);
+    font-size: .78rem;
+    font-weight: 700;
+}
+nav[aria-label="Workspace views"] button[aria-pressed="true"]::before { background: #fff; color: var(--primary); }
+
+/* Narrow screens: name above the input, help full width */
+@media (max-width: 720px) {
+    main { padding: 0 1rem 2rem; }
+    .app-header { margin: 0 -1rem 1rem; padding: 1.2rem 1rem 1rem; }
+    label.field { grid-template-columns: 1fr; row-gap: .35rem; }
+    .field-row > small, .field-row > input[type=search], .field-row > label:not(.field) { margin-left: 0; }
+    fieldset { padding: 0 .75rem .75rem; }
+    #editor > fieldset > legend { width: calc(100% + 1.5rem); margin: 0 -.75rem .5rem; padding: .6rem .75rem; }
+}
+
+/* Printed or saved as PDF: three tabs per row, slightly smaller. */
+@media print {
+    nav[aria-label="Workspace views"] { display: grid; grid-template-columns: repeat(3, 1fr); }
+    nav button { font-size: .8rem; padding: .5rem .6rem; }
 }

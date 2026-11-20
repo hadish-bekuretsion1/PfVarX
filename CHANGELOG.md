@@ -101,6 +101,19 @@ release. The sections below 0.0.0 are the earlier development numbering, kept as
   only for True, and **Study Metadata** a No/Yes drop-down with its folder shown only for Yes.
 - Workflow Readiness Checks now starts with `prepare-samples`.
 
+### Configuration editor: professional layout
+
+- The six workflow steps are numbered tabs (1-6), always visible as an even grid of horizontal
+  buttons (one row of six on wide screens, 3 x 2 on laptops, 2 x 3 on narrow windows); labels
+  no longer break inside a tab and the bar no longer scrolls. The tabs are the only step
+  navigation (no duplicate drop-down).
+- Every settings group is a card with a header; inside it each setting is a form-table row:
+  name on the left (with the required mark), input on the right, help and the example value
+  underneath. Narrow windows stack the name above the input.
+- A header band and one action area (backup option, Create Configuration button, result
+  message). One navy colour scheme defined once in `style.css`: primary and outline buttons,
+  a clear disabled state, focus outlines; colours are kept when the page is printed.
+
 ### Study metadata join and naming standard
 
 - `./pfvarx join-metadata --table PATH [--apply]` (and **Join study metadata** in the GUI's
