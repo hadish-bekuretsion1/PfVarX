@@ -38,8 +38,24 @@ def config_init(root: Path, purpose: str) -> list[Path]:
     return created
 
 
+def metadata_needed(cfg: ProjectConfig) -> bool:
+    """inputs/metadata/ is an input folder only when the user puts files there.
+
+    That is the study metadata table (Study Metadata: Yes), the library catalog of targeted
+    designs, or a marker catalogue named there. With Study Metadata: No and none of these, the
+    folder is not created; Inputs Preparation continues with the sample metadata built from
+    the input files (see pfvarx.inputs.preparation).
+    """
+    if cfg.study_metadata or cfg.assay_design.targeted:
+        return True
+    return any(p is not None and Path(p).parts[:2] == ("inputs", "metadata")
+               for p in (cfg.assay.library_catalog, cfg.analyses.resistance_catalog))
+
+
 def required_dirs(cfg: ProjectConfig) -> list[str]:
-    dirs = ["inputs/reference", "inputs/metadata"]
+    dirs = ["inputs/reference"] + (["inputs/metadata"] if metadata_needed(cfg) else [])
+    if cfg.study_metadata and Path(cfg.study_metadata_dir).as_posix().rstrip("/") not in dirs:
+        dirs.append(Path(cfg.study_metadata_dir).as_posix().rstrip("/"))
     if cfg.input_type == InputType.FASTQ:
         dirs.append("inputs/fastq")
     elif cfg.input_type in (InputType.BAM, InputType.CRAM):
@@ -51,6 +67,7 @@ def required_dirs(cfg: ProjectConfig) -> list[str]:
     if cfg.purpose == Purpose.BENCHMARKING:
         dirs += ["inputs/truth", "inputs/partitions"]
     return dirs
+
 
 
 def create_input_dirs(root: Path, directories: list[str]) -> list[str]:

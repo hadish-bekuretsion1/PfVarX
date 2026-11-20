@@ -68,7 +68,7 @@ def migrate_project(project: dict[str, Any]) -> dict[str, Any]:
 # Folder shortcuts (a setting that names only a folder) and the file name used when the
 # folder holds no single file with the right content (validation then reports it).
 FOLDER_SETTINGS = {
-    "samples_tsv": "inputs/metadata/samples.tsv",
+    "samples_tsv": "prepared/samples.tsv",
     "reference.fasta": "inputs/reference/Pf3D7.fasta",
     "reference.core_mask_bed": "inputs/reference/core_genome.bed",
     "reference.gff": "inputs/reference/Pf3D7.gff",
@@ -147,7 +147,7 @@ def validate_bundle(root: Path, parsed: dict[str, Any]) -> Bundle:
         from pfvarx.io import read_json
 
         metadata = read_json(installation)
-        if metadata["profile"] != "development":
+        if metadata["profile"] not in ("development", "on-demand"):  # on demand: tools follow the config
             available = metadata["analyses_available"]
             if metadata["schema"] == "pfvarx.installation/1":
                 available = [LEGACY_IDS.get(da, da) for da in available]
@@ -158,17 +158,22 @@ def validate_bundle(root: Path, parsed: dict[str, Any]) -> Bundle:
             unavailable = set(effective.requested + prerequisites) - set(available)
             installed_input = metadata.get("input_type", "FASTQ")
             supported_inputs = {"FASTQ", "BAM", "CRAM"} if installed_input == "FASTQ" else {installed_input}
-            if (
-                unavailable
-                or bundle.config.final_output.value > metadata["max_final_output"]
-                or bundle.config.assay_design != Design.parse(metadata["design"])
-                or bundle.config.input_type.value not in supported_inputs
-            ):
-                raise ConfigError(
-                    [
-                        "Configuration exceeds this selected installation. Bootstrap a new matching profile/assay with the required --analyses; do not delete installation metadata."
-                    ]
-                )
+            reasons = []
+            if bundle.config.final_output.value > metadata["max_final_output"]:
+                reasons.append(f"final_output {bundle.config.final_output.value} needs tools this workspace did not "
+                               f"install (installed for {metadata['max_final_output']}); bootstrap a new workspace with "
+                               f"--final-output {bundle.config.final_output.value}")
+            if unavailable:
+                reasons.append(f"analyses {sorted(unavailable)} are not installed; bootstrap with --analyses for them")
+            if bundle.config.assay_design != Design.parse(metadata["design"]):
+                reasons.append(f"assay_design {bundle.config.assay_design.value} differs from the installed design "
+                               f"{metadata['design']}; bootstrap with --design {bundle.config.assay_design.value}")
+            if bundle.config.input_type.value not in supported_inputs:
+                reasons.append(f"input_type {bundle.config.input_type.value} is not installed; bootstrap with "
+                               f"--input-type {bundle.config.input_type.value}")
+            if reasons:
+                raise ConfigError(["Configuration exceeds this selected installation: " + "; ".join(reasons)
+                                   + ". Do not delete installation metadata."])
     return bundle
 
 

@@ -30,6 +30,13 @@ if "fastp" in inp.keys():
     values.update({"reads_before": before, "reads_after": after,
                    "reads_retained_fraction": after / before if before else None,
                    "mean_read_length_after": sum(lengths) / len(lengths), "q30_fraction_after": min(q30)})
+if "host" in inp.keys():
+    # Host-read removal: read pairs (templates) whose best alignment was on the host genome.
+    host = [json.loads(Path(f).read_text()) for f in inp.host]
+    total = sum(h["templates"] for h in host)
+    removed = sum(h["host_templates"] for h in host)
+    values.update({"host_templates_removed": removed, "templates_before_host_removal": total,
+                   "host_fraction": removed / total if total else 0.0})
 if "markdup" in inp.keys():
     values.update(m.picard_duplicates(Path(inp.markdup)))
 if "mosdepth" in inp.keys():
@@ -51,5 +58,6 @@ qc["metrics"] = values
 # Depths and counts of a UMI consensus BAM are consensus molecules, not sequenced reads.
 qc["count_unit"] = library.get("count_unit") or ("consensus_molecules" if design == "targeted_umi" else "reads")
 qc["library"] = {k: library.get(k) for k in ("technique", "amplification_route", "route_source", "panel_id",
-                                             "panel_version", "library_protocol_id", "processing_state")}
+                                             "panel_version", "library_protocol_id", "processing_state",
+                                             "adapters")}
 Path(sm.output[0]).write_text(json.dumps(qc, indent=2, default=str))

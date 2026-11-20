@@ -14,7 +14,7 @@ def test_save_creates_only_input_directories_and_preserves_yaml(workspace: Path)
         save(workspace, values, state["revision"], False)
     values["config"]["reference"]["release_label"] = "fixture"
     result = save(workspace, values, state["revision"], False)
-    assert set(result["directories"]) == {"inputs/fastq", "inputs/reference", "inputs/metadata"}
+    assert set(result["directories"]) == {"inputs/fastq", "inputs/reference"}
     assert not list((workspace / "inputs").rglob("*.*"))
     assert not (workspace / "prepared").exists()
     assert save(workspace, values, result["revision"], False)["saved"] == []
@@ -73,13 +73,14 @@ def test_prepare_refuses_when_all_registered_samples_fail(workspace: Path) -> No
     reads = workspace / "inputs/fastq"
     for mate in ("R1", "R2"):
         (reads / f"invalid_{mate}.fastq").write_text("invalid FASTQ\n")
-    (workspace / "inputs/metadata/samples.tsv").write_text(
+    (workspace / "prepared").mkdir()
+    (workspace / "prepared/samples.tsv").write_text(
         "sample_id\tlane\tlibrary_id\tfastq_1\tfastq_2\n"
         "test\tL001\tlib\tinputs/fastq/invalid_R1.fastq\tinputs/fastq/invalid_R2.fastq\n"
     )
     with pytest.raises(ValueError, match="validation failed"):
         prepare_inputs(workspace)
-    assert not (workspace / "prepared").exists()
+    assert not (workspace / "prepared/reference").exists()  # no reference derivatives were built
 
 
 def test_bam_save_creates_alignment_folders(workspace: Path) -> None:
@@ -93,7 +94,7 @@ def test_bam_save_creates_alignment_folders(workspace: Path) -> None:
     values["config"]["input_type"] = "BAM"
     values["config"]["reference"]["release_label"] = "fixture"
     result = save(workspace, values, state["revision"], False)
-    assert set(result["directories"]) == {"inputs/alignments", "inputs/reference", "inputs/metadata"}
+    assert set(result["directories"]) == {"inputs/alignments", "inputs/reference"}
     assert all((workspace / folder).is_dir() for folder in result["directories"])
     assert not (workspace / "inputs/fastq").exists()
 
@@ -108,7 +109,7 @@ def test_validation_discovers_fastq_sample_sheet(workspace: Path) -> None:
     for mate in (1, 2):
         (workspace / f"inputs/fastq/sample_{mate}.fastq").write_text("@read\nACGT\n+\nIIII\n")
     validate_inputs(workspace)
-    sheet = workspace / "inputs/metadata/samples.tsv"
+    sheet = workspace / "prepared/samples.tsv"
     row, = read_tsv(sheet)
     assert row["sample_id"] == "sample"
     assert row["fastq_1"].endswith("/sample_1.fastq")
@@ -130,7 +131,7 @@ def test_validation_continues_after_missing_sample_read(workspace: Path) -> None
     for mate in (1, 2):
         (workspace / f"inputs/fastq/good_{mate}.fastq").write_text("@read\nACGT\n+\nIIII\n")
     validate_inputs(workspace)
-    sheet = workspace / "inputs/metadata/samples.tsv"
+    sheet = workspace / "prepared/samples.tsv"
     text = sheet.read_text()
     sheet.write_text(text + text.splitlines()[1].replace("good", "missing") + "\n")
 
@@ -211,7 +212,7 @@ def test_cli_stage_commands_match_the_gui_stages(workspace: Path, monkeypatch: p
 
     commands = {c.name or c.callback.__name__.replace("_", "-") for c in app.registered_commands}
     assert {"input-directories", "input-files", "add-input", "fetch-input", "validate-input-files",
-            "prepare-reference", "workflow-readiness-checks", "workflow-check", "workflow-run"} <= commands
+            "prepare-reference", "inputs-preparation", "prepare-samples", "workflow-readiness-checks", "workflow-check", "workflow-run"} <= commands
     monkeypatch.chdir(workspace)
     runner = CliRunner()
     assert runner.invoke(app, ["config-init", "--purpose", "analysis"]).exit_code == 0

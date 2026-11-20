@@ -5,7 +5,7 @@
 <style>body{font:16px/1.6 system-ui;color:#193247;max-width:780px;margin:2rem auto;padding:0 1rem}pre{background:#edf3f7;padding:1rem;overflow:auto}a{color:#17658c}</style>
 <main>
 <h1>Run PfVarX 0.0.0</h1>
-<p>This example uses paired-end WGS FASTQ and the sample profile for per-sample variant calls. Use a Linux x86-64 host with Python 3.11+ and Pixi on PATH. On Windows, use WSL2 with a Linux distribution; macOS and Linux ARM64 are not supported.</p>
+<p>This example uses paired-end WGS FASTQ for per-sample variant calls. The tools are installed on demand for the saved configuration (use <code>bootstrap.py --final-output FO002</code> to install them up front on an offline machine). Use a Linux x86-64 host with Python 3.11+ and Pixi on PATH. On Windows, use WSL2 with a Linux distribution; macOS and Linux ARM64 are not supported.</p>
 <h2>1. Download and install</h2>
 <p>Sign in to GitHub with access to the private repository. Run these commands from the parent directory. The clone creates <code>PfVarX-source/</code>, and bootstrap creates <code>pfvarx-analysis/</code> beside it.</p>
 <pre>~/demo/
@@ -14,7 +14,7 @@
 <pre>mkdir -p ~/demo
 cd ~/demo
 git clone https://github.com/hadish-bekuretsion1/PfVarX.git PfVarX-source
-python3 PfVarX-source/bootstrap.py --profile sample
+python3 PfVarX-source/bootstrap.py
 cd pfvarx-analysis
 ./pfvarx version</pre>
 <h2>2. Configure your study</h2>
@@ -24,27 +24,25 @@ cd pfvarx-analysis
 ./pfvarx init</pre>
 <h3>Optional GUI configuration</h3>
 <pre>./pfvarx configure --gui</pre>
-<p>Open the printed local URL if needed. Review the form and click <strong>Create Configuration and Input Directories</strong>.</p>
+<p>Open the printed local URL if needed. Review the form and click <strong>Create Configuration and Input Directories</strong>. It creates only the folders you put input files into; set <strong>Study Metadata</strong> to <strong>Yes</strong> if you have a study table (country, latitude, longitude, collection_date, population, ...), and <code>inputs/metadata/</code> is created for it. Then click <strong>Install required tools</strong> (<code>./pfvarx install-tools</code>): it installs only the tools the saved configuration needs.</p>
 <p><a href="configuration-guide.html" target="_blank" rel="noopener noreferrer">Configuration guide for every setting</a></p>
 <h2>3. Transfer and register reads</h2>
 <p>After saving, open <strong>Input files</strong> to upload reads or alignments
 or download them using an HTTPS link and destination filename. Trusted SHA-256
 is optional. When provided, PfVarX checks it before saving. Otherwise, PfVarX
 records the computed checksum and marks the download unverified. Put reference
-files in <code>inputs/reference/</code>.</p>
-<p>Register the files before running <strong>Workflow Readiness Checks → Run readiness checks</strong>.
-The tab runs <code>validate</code>, <code>prepare</code>, <code>verify-prepared</code>,
+files in <code>inputs/reference/</code>, and with Study Metadata: Yes your study table in <code>inputs/metadata/</code>.</p>
+<p><strong>Inputs Preparation → Prepare inputs</strong> (<code>./pfvarx inputs-preparation</code>) then builds the sample metadata <code>prepared/samples.tsv</code> from your input files, merges the study table into it if there is one, prepares the references and checks readiness. <strong>Workflow Readiness Checks → Run readiness checks</strong>
+runs <code>prepare-samples</code>, <code>validate</code>, <code>prepare</code>, <code>verify-prepared</code>
 and <code>ready</code> in that order and stops on failure.</p>
 
-<p>Replace the example path with your FASTQ directory. Review sample identities, libraries and paired files before registration. Use a reviewed TSV manifest directly when the filenames do not match the discovery convention.</p>
+<p>Alternatively, register reads by hand: replace the example path with your FASTQ directory. Review sample identities, libraries and paired files before registration. Use a reviewed TSV manifest directly when the filenames do not match the discovery convention.</p>
 <pre>./pfvarx discover-inputs --directory /absolute/path/to/fastq
 nano metadata/discovered_samples.tsv
 ./pfvarx register-inputs --manifest metadata/discovered_samples.tsv --mode reference</pre>
 <h2>4. Validate and prepare</h2>
 <pre>./pfvarx validate &amp;&amp;
-./pfvarx prepare &amp;&amp;
-./pfvarx verify-prepared &amp;&amp;
-./pfvarx ready &amp;&amp;
+./pfvarx inputs-preparation &amp;&amp;
 ./pfvarx dry-run</pre>
 <p>If validation fails, its <code>summary</code> names each problem, why it failed and the numbered steps that fix it; the full record is in <code>metadata/validation_report.json</code>. Resolve failures and review warnings before running. Confirm that readiness is true and the dry run reports OK.</p>
 <h2>5. Execute and review</h2>

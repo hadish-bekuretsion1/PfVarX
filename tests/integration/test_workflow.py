@@ -68,7 +68,7 @@ def test_end_to_end_annotated_run_writes_indexed_bgzf(tmp_path: Path) -> None:
     cfg["analyses"].update(requested=["DA002"], resistance_catalog="inputs/metadata/test_resistance_catalog.tsv")
     (ws / "config/config.yaml").write_text(yaml.safe_dump(cfg))
     # Keep three samples: enough for a cohort, quick enough for continuous integration.
-    sheet = ws / "inputs/metadata/samples.tsv"
+    sheet = ws / "prepared/samples.tsv"
     sheet.write_text("\n".join(sheet.read_text().splitlines()[:4]) + "\n")
     r = subprocess.run(["pfvarx", "pipeline"], cwd=ws, capture_output=True, text=True)
     assert r.returncode == 0, r.stdout[-3000:] + r.stderr[-3000:]
@@ -97,7 +97,7 @@ def test_umi_route_survives_fixed_read_structure_and_short_reads(tmp_path: Path)
     catalog = yaml.safe_load(catalog_path.read_text())
     catalog["library_protocols"][0]["umi"]["read_structure"] = "8M100T 8M100T"
     catalog_path.write_text(yaml.safe_dump(catalog))
-    sheet = ws / "inputs/metadata/samples.tsv"
+    sheet = ws / "prepared/samples.tsv"
     sheet.write_text("\n".join(sheet.read_text().splitlines()[:2]) + "\n")
     for mate in ("R1", "R2"):
         with gzip.open(ws / f"inputs/fastq/PF001_L001_{mate}.fastq.gz", "at") as handle:
@@ -121,7 +121,7 @@ def _umi_to_resistance(tmp_path: Path, depth: int) -> tuple[Path, dict]:
     cfg["reference"]["gff"] = "inputs/reference/Pf3D7.gff"
     cfg["analyses"].update(requested=["DA002"], resistance_catalog="inputs/metadata/test_resistance_catalog.tsv")
     (ws / "config/config.yaml").write_text(yaml.safe_dump(cfg))
-    sheet = ws / "inputs/metadata/samples.tsv"
+    sheet = ws / "prepared/samples.tsv"
     sheet.write_text("\n".join(sheet.read_text().splitlines()[:4]) + "\n")
     r = subprocess.run(["pfvarx", "pipeline"], cwd=ws, capture_output=True, text=True)
     assert r.returncode == 0, r.stdout[-3000:] + r.stderr[-3000:]
@@ -208,3 +208,54 @@ def test_every_downstream_analysis_executes(tmp_path: Path) -> None:
     assert (res / "downstream/DA006/tree.treefile").is_file()
     report = (res / "report/clonality_report.txt").read_text()
     assert all(f"Sample PF{i:03d} is" in report for i in range(1, 12)), report
+
+
+def test_human_dna_removal_drops_host_pairs_and_keeps_a_parasite_header(tmp_path: Path) -> None:
+    """host_removal: true aligns to parasite+host, removes host pairs and counts them in QC."""
+    import gzip
+    import json
+    import random
+
+    ws = _ws(tmp_path, "wgs", "FO001")
+    rng = random.Random(3)
+    genome = "".join(rng.choices("ACGT", weights=[29.5, 20.5, 20.5, 29.5], k=40_000))
+    (ws / "inputs/reference/host.fasta").write_text(">chr1\n" + genome + "\n")
+    comp = str.maketrans("ACGT", "TGCA")
+    sheet = ws / "prepared/samples.tsv"
+    sheet.write_text("\n".join(sheet.read_text().splitlines()[:3]) + "\n")  # two samples
+    for r1 in sorted((ws / "inputs/fastq").glob("PF00[12]_*_R1.fastq.gz")):
+        r2 = Path(str(r1).replace("_R1.", "_R2."))
+        old1, old2 = gzip.open(r1, "rt").read(), gzip.open(r2, "rt").read()
+        n = len(old1.splitlines()[1])
+        with gzip.open(r1, "wt") as h1, gzip.open(r2, "wt") as h2:
+            h1.write(old1)
+            h2.write(old2)
+            for i in range(300):
+                start = rng.randrange(0, len(genome) - 400)
+                frag = genome[start:start + 300]
+                h1.write(f"@host{i} 1:N:0:1\n{frag[:n]}\n+\n{'I' * n}\n")
+                h2.write(f"@host{i} 2:N:0:1\n{frag[::-1].translate(comp)[:n]}\n+\n{'I' * n}\n")
+    cfg = yaml.safe_load((ws / "config/config.yaml").read_text())
+    cfg["reference"].update(host_removal=True, host_fasta="inputs/reference/host.fasta")
+    (ws / "config/config.yaml").write_text(yaml.safe_dump(cfg))
+    # The tiny synthetic host index needs no extra memory (a human index does).
+    params = ws / "config/parameters/layer1.yaml"
+    params.write_text(params.read_text().replace("bwa_mem2_host_extra_mem_mb: {value: 12000",
+                                                 "bwa_mem2_host_extra_mem_mb: {value: 0"))
+    run = lambda *a: subprocess.run(["pfvarx", *a], cwd=ws, capture_output=True, text=True)  # noqa: E731
+    assert run("validate").returncode == 0
+    first = run("prepare")  # PfVarX never builds the host index itself
+    assert first.returncode != 0 and "HOST_INDEX_REQUIRED" in first.stdout
+    subprocess.run(["bwa-mem2", "index", "combined.fasta"], cwd=ws / "prepared/reference",
+                   capture_output=True, check=True)
+    assert run("prepare").returncode == 0
+    assert json.loads(run("verify-prepared").stdout)["status"] == "PASS"
+    r = run("pipeline")
+    assert r.returncode == 0, r.stdout[-3000:] + r.stderr[-3000:]
+    res = ws / "runs" / json.loads(r.stdout)["run_id"] / "results"
+    for sample in ("PF001", "PF002"):
+        metrics = json.loads((res / f"qc/samples/{sample}/qc_decision.json").read_text())["metrics"]
+        assert metrics["host_templates_removed"] == 300
+        header = subprocess.run(["samtools", "view", "-H", str(res / f"alignments/{sample}.bam")],
+                                capture_output=True, text=True, check=True).stdout
+        assert [line.split("\t")[1] for line in header.splitlines() if line.startswith("@SQ")] == ["SN:ctg1", "SN:ctg2"]

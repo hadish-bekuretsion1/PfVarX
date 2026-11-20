@@ -5,6 +5,115 @@
 The release version was reset to 0.0.0 after 0.4.2, as the baseline for the first reviewed
 release. The sections below 0.0.0 are the earlier development numbering, kept as history.
 
+### Optional Human DNA removal for whole-genome sequencing (`reference.host_removal: true | false`)
+
+- New true/false setting `reference.host_removal` (GUI: **Human DNA removal**, default
+  false) with `reference.host_fasta`. When true, FASTQ read pairs are aligned once to the
+  parasite plus human genome (`prepared/reference/combined.fasta`, human contigs prefixed
+  `host_`), and pairs whose primary alignment is on the human genome are removed before
+  duplicate marking. The BAM header keeps the parasite contigs only; later steps use
+  `parasite.fasta` (with a new `parasite.dict`).
+- Eligible only for `assay_design: wgs`. `targeted_no_umi` and `targeted_umi` are
+  ineligible: `host_removal: true` with a targeted design is refused when the
+  configuration is loaded, in the CLI and the GUI.
+- GUI: for a targeted design the Human DNA removal checkbox is switched off and greyed out
+  with the reason shown; the Human genome FASTA field appears only when removal is on.
+- QC records `host_templates_removed`, `templates_before_host_removal` and `host_fraction`
+  (descriptive gate `G2.host_fraction`; QC policy 1.2.0). `G2.mapped` is measured after removal.
+- The human-sized bwa-mem2 index is supplied, not built: `prepare` stops with
+  `HOST_INDEX_REQUIRED` and the steps, then checks a supplied index against
+  `combined.fasta` (`.ann` against `.fai`) and seals it. `ready` adds
+  `layer1.bwa_mem2_host_extra_mem_mb` (12 000 MB, provisional) to the bwa-mem2 request.
+- Files of 1 GiB or more under `prepared/reference/` are sealed by size and modification time.
+
+### SOP manual kept in step with the guides
+
+- SOP appendices E, F and G copy `docs/caller.md`, `docs/configuration.md` and
+  `docs/sequencing.md`. They had fallen behind (the adapter kits, Human DNA removal and most of
+  the current configuration chapter were missing) and are now regenerated, in `.md` and
+  `.html`, by `scripts/sync_sop.py`; `tests/unit/test_sop_mirrors.py` fails when they differ.
+- Install examples across the README, guides, quick start and SOP use `--final-output`.
+
+### Install required tools on demand
+
+- `bootstrap.py` without `--final-output` or `--profile` now creates an on-demand workspace:
+  all pipeline code, but only the small `control` environment (Python, pydantic, typer,
+  pyyaml, pysam, htslib; no Snakemake, samtools, Picard or Java). Snakemake, samtools, Picard
+  and mosdepth moved to the pixi feature `pipeline`, part of every tools environment.
+- **Install required tools** on the Input directories tab, and `./pfvarx install-tools
+  [--check]`, install the locked environment the saved configuration needs (final output,
+  design, input type, analyses with prerequisites; the same rules as `--final-output`) and
+  record it; later steps run in it. Inputs Preparation, readiness, dry run and pipeline stop
+  with `TOOLS_NOT_INSTALLED` until it is installed; after a configuration change it installs
+  only the newly needed environment. Up-front workspaces (`--final-output`, `--profile`) work
+  as before.
+
+### Installation follows the final output
+
+- `bootstrap.py --final-output FO001|FO002|FO003|FO004` installs only the tools that final
+  output uses and records it as the installation's maximum final output. FO001 (alignment
+  and QC) gets the new `alignment-qc` environments: no variant caller code, bcftools, numpy
+  or scipy (now the pixi feature `calling`, added to every FO002+ environment). The earlier
+  `--profile` options still work; the two must agree when both are given.
+- Picard comes from `picard-slim` (the same 3.5.0, without its R dependency; PfVarX runs only
+  MarkDuplicates and CreateSequenceDictionary) and fgbio from `fgbio-minimal` (the same 4.1.1,
+  without R, ggplot2 and scales; PfVarX runs no plotting fgbio tool), so R is installed only for
+  the analyses that use it. An FO001 environment is about 1.0 GB instead of 1.9 GB.
+- `scripts/check_installs.py` compares each kind of installation with the tools its final
+  output runs, from `pixi.lock`, and reports anything missing or extra.
+- A configuration above the installed final output, design, input type or analyses is refused
+  with the reason and the bootstrap option to use; the GUI greys out final outputs that need
+  a new installation.
+
+### Adapters are set per library, not detected
+
+- fastp's adapter detection (`--detect_adapter_for_pe`) was on for every library. On AT-rich
+  reads it chose fastp's built-in poly-T `FlowCell1` sequence: on the synthetic WGS fixture,
+  which has no adapters, 19% of reads lost about 10 bases of real sequence at T runs.
+- Each library now names its kit: the manifest column `adapter_kit` (`TRUSEQ`, `NEXTERA`,
+  `AUTO`, `CUSTOM`) or the library protocol's `adapters` (with `read1`/`read2` for `CUSTOM`),
+  else `layer1.fastp_adapter_kit_default` (`TRUSEQ`, replacing
+  `layer1.fastp_detect_adapter_for_pe`). fastp gets the sequences explicitly; `AUTO` keeps
+  the old detection for libraries whose kit is unknown. Conflicting sources fail input
+  validation for that sample (`ADAPTER_UNRESOLVED`). The resolved kit, sequences and source
+  are frozen in the plan, written to each sample's QC decision and shown in the dashboard.
+
+### Inputs Preparation: sample metadata from the input files, optional Study Metadata
+
+- The GUI tab **Reference Preparation** is now **Inputs Preparation**, with the terminal
+  command `./pfvarx inputs-preparation [--metadata-table PATH]`. It runs `prepare-samples`,
+  `prepare`, `verify-prepared` and `ready` in order. `prepare` and `prepare-reference` work as
+  before.
+- `prepare-samples` builds the sample metadata from the input files when it is missing (a
+  blank template for BAM/CRAM input) and creates its folder. New settings **Study
+  Metadata** (`study_metadata`, No/Yes, default No) and **Study Metadata folder**
+  (`study_metadata_dir`, default `inputs/metadata`): with Yes the study table there is merged
+  (empty cells filled, nothing overwritten; several tables stop and ask; none continues with
+  a warning), with No preparation continues with the sample metadata only. The result is
+  written to `metadata/inputs_preparation.json`.
+- The sample metadata now defaults to `prepared/samples.tsv`, a fixed path that is no longer
+  shown in the configuration form. Existing workspaces keep the `samples_tsv` path in their
+  configuration.
+- **Input directories** creates only folders for files the user supplies; `inputs/metadata/`
+  only with Study Metadata: Yes or a targeted design's library catalog. Later folders are
+  created on demand.
+- GUI: **Human DNA removal** is a False/True drop-down with **Human genome reference** shown
+  only for True, and **Study Metadata** a No/Yes drop-down with its folder shown only for Yes.
+- Workflow Readiness Checks now starts with `prepare-samples`.
+
+### Configuration editor: professional layout
+
+- The six workflow steps are numbered tabs (1-6), always visible as an even grid of horizontal
+  buttons (one row of six on wide screens, 3 x 2 on laptops, 2 x 3 on narrow windows); labels
+  no longer break inside a tab and the bar no longer scrolls. The tabs are the only step
+  navigation (no duplicate drop-down).
+- Every settings group is a card with a header; inside it each setting is a form-table row:
+  name on the left (with the required mark), input on the right, help and the example value
+  underneath. Narrow windows stack the name above the input.
+- A header band and one action area (backup option, Create Configuration button, result
+  message). One navy colour scheme defined once in `style.css`: primary and outline buttons,
+  a clear disabled state, focus outlines; colours are kept when the page is printed.
+
 ### Study metadata join and naming standard
 
 - `./pfvarx join-metadata --table PATH [--apply]` (and **Join study metadata** in the GUI's

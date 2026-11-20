@@ -13,14 +13,14 @@ See [scientific status](docs/status.md) before interpreting results.
 
 You need Linux x86-64, Git, Python 3.11+, Pixi on PATH, and access to the private
 GitHub repository. On Windows, use WSL2 with a Linux distribution; macOS and Linux ARM64
-are not supported. This example installs the paired-end WGS sample profile.
+are not supported. This example creates a workspace whose tools are installed on demand.
 Run each step in order and resolve any errors before continuing.
 
 ```bash
 mkdir -p ~/demo
 cd ~/demo
 git clone https://github.com/hadish-bekuretsion1/PfVarX.git PfVarX-source
-python3 PfVarX-source/bootstrap.py --profile sample
+python3 PfVarX-source/bootstrap.py
 cd pfvarx-analysis
 ./pfvarx version
 ```
@@ -31,17 +31,40 @@ cd pfvarx-analysis
 └── pfvarx-analysis/   # study workspace
 ```
 
-Bootstrap installs the locked environment and writes configuration templates.
+Bootstrap installs the locked control environment (or, with `--final-output`, the tools too)
+and writes configuration templates.
 If the source is already cloned, reuse it. If the study workspace is already
 initialized, enter it directly. Bootstrap requires a new destination.
 
-| Goal | Bootstrap option |
-| --- | --- |
-| Alignment/QC or per-sample calls | `--profile sample` |
-| Cohort integration | `--profile cohort` |
-| Downstream analyses | `--profile downstream --analyses DA003` for diversity, or `--profile downstream --auto-analyses` |
-| Benchmarking | `--profile benchmark` |
-| Full development environment | `--profile development` |
+The tools are installed for the final output you choose, in one of two ways:
+
+- **On demand (default).** `bootstrap.py` without options installs only a small control
+  environment (configuration, GUI, validation; no pipeline tools). After saving the
+  configuration, click **Install required tools** on the Input directories tab (or run
+  `./pfvarx install-tools`): it installs exactly what the saved final output, design, input
+  type and analyses need. Change the configuration later and click it again to add what is
+  newly needed. Steps that run tools stop with that instruction until the tools are
+  installed. This needs internet access (or a filled Pixi cache) at that step.
+- **Up front.** `--final-output FO00N` installs the tools at bootstrap, for machines without
+  internet access later, such as HPC compute nodes. A later final output then needs a new
+  workspace; the configuration and the GUI refuse one above the installed final output and
+  name the bootstrap option.
+
+Either way each final output gets only the tools it uses:
+
+| Final output | Bootstrap option (up front) | Installed beyond the shared base* |
+| --- | --- | --- |
+| FO001 alignment and QC | `--final-output FO001` | fastp, bwa-mem2 (and fgbio for targeted designs, as `fgbio-minimal` without R). No variant caller, bcftools, numpy, scipy or R |
+| FO002 per-sample calls | `--final-output FO002` | adds the variant caller (numpy, scipy) and bcftools |
+| FO003 cohort | `--final-output FO003` | same tools as FO002, plus the cohort step |
+| FO004 annotation and analyses | `--final-output FO004 --analyses DA003` (or `--auto-analyses`) | adds SnpEff and only the requested analyses' tools: R with MOIRE (DA001), Dcifer and hmmIBD (DA004), scikit-allel (DA005), IQ-TREE (DA006), mgcv (DA007) |
+| Benchmarking | `--profile benchmark` | as FO002, plus RTG Tools with `--rtg` |
+| Full development environment | `--profile development` | everything, plus the test tools |
+
+\* Snakemake, samtools, Picard (`picard-slim`, without R) and mosdepth, with the Python,
+pysam and htslib of the control environment: every final output uses them. To see what each installation gets, run
+`pixi run python scripts/check_installs.py` ([details](docs/deployment.md#check-what-an-installation-contains)). The earlier `--profile sample`, `--profile cohort` and
+`--profile downstream` options still work and match FO002, FO003 and FO004.
 
 For aligned input, add `--input-type BAM` or `--input-type CRAM`. For targeted
 libraries, add `--design targeted_no_umi` or `--design targeted_umi`. The design
@@ -85,8 +108,16 @@ them using an HTTPS link and a destination filename. A trusted SHA-256 is
 optional. When provided, PfVarX checks it before saving. Otherwise, PfVarX
 records the computed checksum and marks the download unverified. Put reference
 files in `inputs/reference/`. Register your reads or alignments before running
-**Workflow Readiness Checks → Run readiness checks**. The tab runs `validate`, `prepare`,
-`verify-prepared`, and `ready` in that order and stops on failure.
+**Workflow Readiness Checks → Run readiness checks**. The tab runs `prepare-samples`,
+`validate`, `prepare`, `verify-prepared`, and `ready` in that order and stops on failure.
+
+Study metadata is optional. Set **Study Metadata: Yes** (`study_metadata: true`) if you
+have a study table with a `sample_id` column (country, latitude, longitude,
+collection_date, population, ...); Input directories then creates `inputs/metadata/` for
+it. **Inputs Preparation** (`./pfvarx inputs-preparation`) builds the sample metadata
+`prepared/samples.tsv` from your input files and merges the study table into it. With
+Study Metadata: No it continues with the sample metadata only. See
+[Inputs Preparation](docs/configuration.md#inputs-preparation).
 
 ## 4. Check and run
 
@@ -95,9 +126,7 @@ equivalents for the GUI tabs.
 
 ```bash
 ./pfvarx validate &&
-./pfvarx prepare &&
-./pfvarx verify-prepared &&
-./pfvarx ready &&
+./pfvarx inputs-preparation &&
 ./pfvarx dry-run
 ```
 

@@ -1,6 +1,6 @@
 version: "1.0.0"
 parameters:
-  fastp_detect_adapter_for_pe: {value: true, source: FRAMEWORK_POLICY, note: "short inserts from DBS DNA"}
+  fastp_adapter_kit_default: {value: TRUSEQ, source: FRAMEWORK_POLICY, note: "adapters for libraries whose manifest row and protocol name none (TRUSEQ | NEXTERA | AUTO); fastp auto-detection can mistake AT-rich poly-T runs for its FlowCell1 adapter"}
   fastp_qualified_quality_phred: {value: 15, source: SOFTWARE_DEFAULT, note: "fastp default (Chen 2018); verified in the pinned fastp 1.1.0 --help"}
   fastp_unqualified_percent_limit: {value: 40, source: SOFTWARE_DEFAULT}
   fastp_n_base_limit: {value: 5, source: SOFTWARE_DEFAULT}
@@ -11,6 +11,7 @@ parameters:
   fastp_low_complexity_filter: {value: false, source: FRAMEWORK_POLICY, note: "would bias against AT-rich reads"}
   fastp_dedup: {value: false, source: FRAMEWORK_POLICY}
   bwa_mem2_fixed_batch_K: {value: 100000000, source: FRAMEWORK_POLICY, note: "thread-count-independent output"}
+  bwa_mem2_host_extra_mem_mb: {value: 12000, source: UNCALIBRATED_PROVISIONAL, note: "added to the bwa-mem2 request when reference.host_fasta is set: a human-sized index is loaded into memory (commonly reported 10-16 GB in total); replace with a measured profile"}
   picard_optical_pixel_distance_unpatterned: {value: 100, source: SOFTWARE_DEFAULT}
   picard_optical_pixel_distance_patterned: {value: 2500, source: SOFTWARE_DEFAULT, note: "Picard documentation for patterned flow cells"}
   mosdepth_exclude_flag: {value: 1796, source: SOFTWARE_DEFAULT}

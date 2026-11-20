@@ -158,6 +158,7 @@ def test_documented_state_is_checked_against_the_reads(design: Design, state: st
 def schema3(design: str, input_type: str = "FASTQ", **assay_cfg: Any) -> dict[str, Any]:
     cfg = yaml.safe_load((REPO / "config/templates/analysis.yaml").read_text())
     cfg["schema_version"] = "pfvarx.config/3"
+    cfg["samples_tsv"] = "inputs/metadata/samples.tsv"  # where schema-3 workspaces kept the sheet
     cfg["input_type"] = input_type
     cfg.pop("assay_design")
     cfg["assay"] = {"design": design, "sequencing_type": None, "amplification_route": "DIRECT",
@@ -222,3 +223,66 @@ def test_migration_without_a_manifest_reports_the_values_to_record(tmp_path: Pat
     report = migrate_workspace(tmp_path, apply=True)
     assert report["status"] == "APPLIED" and report["manifest_cells_filled"] == 0
     assert "'amplification_route': 'SWGA'" in report["manifest_not_found"]
+
+
+ADAPTER_CATALOG = LibraryCatalog.model_validate({
+    "schema_version": CATALOG_SCHEMA,
+    "library_protocols": [
+        {"library_protocol_id": "NXT", "adapters": {"kit": "NEXTERA"}},
+        {"library_protocol_id": "OWN", "adapters": {"kit": "CUSTOM", "read1": "ACGTACGTAC", "read2": "TGCATGCATG"}},
+        {"library_protocol_id": "BARE"},
+    ],
+})
+
+
+def resolve_adapters(rows: list[dict[str, str]]) -> tuple[list[str], dict[str, Any]]:
+    rep, facts, _ = assay.resolve(Design.WGS, InputType.FASTQ, rows, ADAPTER_CATALOG, PARAMS)
+    return [f.detail for f in rep.findings if f.level == "FAIL"], facts
+
+
+def test_default_adapter_kit_is_explicit_not_detected() -> None:
+    # fastp detection picks its poly-T FlowCell1 adapter on AT-rich reads; never the default.
+    assert PARAMS["layer1.fastp_adapter_kit_default"]["value"] == "TRUSEQ"
+    failures, facts = resolve_adapters([row()])
+    assert failures == []
+    assert facts["S1"].adapters == {"kit": "TRUSEQ", "read1": "AGATCGGAAGAGCACACGTCTGAACTCCAGTCA",
+                                    "read2": "AGATCGGAAGAGCGTCGTGTAGGGAAAGAGTGT", "source": "PARAMETER_DEFAULT"}
+
+
+def test_adapters_come_from_the_manifest_or_the_protocol() -> None:
+    _, facts = resolve_adapters([row(adapter_kit="nextera")])
+    assert facts["S1"].adapters["kit"] == "NEXTERA" and facts["S1"].adapters["source"] == "manifest"
+    _, facts = resolve_adapters([row(library_protocol_id="OWN")])
+    assert facts["S1"].adapters == {"kit": "CUSTOM", "read1": "ACGTACGTAC", "read2": "TGCATGCATG",
+                                    "source": "library protocol"}
+    _, facts = resolve_adapters([row(adapter_kit="AUTO")])
+    assert facts["S1"].adapters == {"kit": "AUTO", "read1": None, "read2": None, "source": "manifest"}
+    _, facts = resolve_adapters([row(library_protocol_id="BARE", adapter_kit=".")])
+    assert facts["S1"].adapters["source"] == "PARAMETER_DEFAULT"
+
+
+@pytest.mark.parametrize("cells, message", [
+    ({"adapter_kit": "SMARTER"}, "unknown adapter_kit 'SMARTER'"),
+    ({"adapter_kit": "TRUSEQ", "library_protocol_id": "NXT"}, "adapter kits disagree"),
+    ({"adapter_kit": "CUSTOM"}, "adapter_kit CUSTOM needs a library_protocol_id"),
+])
+def test_adapter_problems_fail_the_sample(cells: dict[str, str], message: str) -> None:
+    failures, facts = resolve_adapters([row(**cells)])
+    assert any(message in f and f.startswith("sample S1 (library S1_lib)") for f in failures), failures
+    assert facts["S1"].adapters is None
+
+
+def test_libraries_of_one_sample_must_share_a_kit() -> None:
+    failures, _ = resolve_adapters([row(adapter_kit="TRUSEQ"), {**row(adapter_kit="NEXTERA"), "lane": "L2"}])
+    assert any("libraries disagree on adapter_kit" in f for f in failures)
+
+
+@pytest.mark.parametrize("adapters, message", [
+    ({"kit": "CUSTOM", "read1": "ACGTACGTAC"}, "needs read1 and read2"),
+    ({"kit": "TRUSEQ", "read1": "ACGTACGTAC"}, "only for kit CUSTOM"),
+    ({"kit": "CUSTOM", "read1": "ACGTNNNNAC", "read2": "ACGTACGTAC"}, "pattern"),
+])
+def test_catalog_adapter_definitions_are_checked(adapters: dict[str, str], message: str) -> None:
+    with pytest.raises(ValueError, match=message):
+        LibraryCatalog.model_validate({"schema_version": CATALOG_SCHEMA,
+                                       "library_protocols": [{"library_protocol_id": "X", "adapters": adapters}]})

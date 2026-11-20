@@ -64,7 +64,7 @@ def test_registration_rejects_path_traversal_without_partial_sheet(workspace, tm
     sheet.write_text("sample_id\tlane\tlibrary_id\tfastq_1\tfastq_2\n../escape\tL1\tLIB\tmissing\tmissing\n")
     with pytest.raises(ValueError):
         register(workspace, sheet, "link")
-    assert not (workspace / "inputs/metadata/samples.tsv").exists()
+    assert not (workspace / "prepared/samples.tsv").exists()
 
 
 def test_cleanup_preview_and_apply_preserve_scientific_and_original_files(tmp_path):
@@ -119,7 +119,7 @@ def test_discovery_requires_complete_pairs_and_explicit_registration(tmp_path):
     (source / "S_L001_R2_001.fastq.gz").touch()
     result = discover(root, source)
     assert result["status"] == "REVIEW_REQUIRED" and result["samples"] == 1
-    assert not (root / "inputs/metadata/samples.tsv").exists()
+    assert not (root / "prepared/samples.tsv").exists()
 
 
 def test_fetch_checks_hash_and_never_overwrites(tmp_path, monkeypatch):

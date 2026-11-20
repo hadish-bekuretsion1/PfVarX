@@ -400,11 +400,51 @@ def validate_input_files() -> None:
     validate()
 
 
-def _run_checks(stages: tuple[str, ...]) -> None:
+def _run_checks(stages: tuple[str | tuple[str, ...], ...]) -> None:
     from pfvarx.configuration.web import run_preflight
 
     result = guard(lambda: run_preflight(_root(), stages))
     emit(result, 0 if result["passed"] else 1)
+
+
+@app.command("install-tools")
+def install_tools(check: bool = typer.Option(False, "--check", help="report only: are the tools installed?")) -> None:
+    """Install the tools the saved configuration needs (GUI: Install required tools)."""
+    from pfvarx.installation import install, status
+
+    root = _root()
+    if check:
+        result = guard(lambda: status(root))
+        emit(result, 0 if result["current"] else 1)
+        return
+    emit(guard(lambda: install(root)))
+
+
+@app.command("prepare-samples")
+def prepare_samples_command(metadata_table: str | None = typer.Option(
+        None, "--metadata-table", help="study metadata table to merge when inputs/metadata/ holds several")) -> None:
+    """Inputs Preparation steps 1-2: build the sample sheet from the input files, merge study metadata if any."""
+    from pfvarx.execution.retention import workspace_lock
+    from pfvarx.inputs.preparation import prepare_samples
+
+    root = _root()
+
+    def run() -> dict:
+        with workspace_lock(root):
+            return prepare_samples(root, metadata_table)
+    emit(guard(run))
+
+
+@app.command("inputs-preparation")
+def inputs_preparation(metadata_table: str | None = typer.Option(
+        None, "--metadata-table", help="study metadata table to merge when inputs/metadata/ holds several")) -> None:
+    """Sample sheet, optional metadata merge, references from the input files and final output, then checks."""
+    from pfvarx.configuration.web import INPUTS_PREPARATION_STAGES
+
+    stages: tuple[str | tuple[str, ...], ...] = INPUTS_PREPARATION_STAGES
+    if metadata_table:
+        stages = (("prepare-samples", "--metadata-table", metadata_table),) + INPUTS_PREPARATION_STAGES[1:]
+    _run_checks(stages)
 
 
 @app.command("prepare-reference")

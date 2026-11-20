@@ -45,11 +45,31 @@ class ReferenceConfig(Strict):
     fasta: Path
     gff: Path | None = None
     core_mask_bed: Path
+    host_removal: bool = Field(
+        default=False,
+        description="Human DNA removal (wgs only): true aligns to the parasite and host genomes together and removes host reads",
+    )
+    host_fasta: Path | None = Field(
+        default=None,
+        description="Host (human) genome FASTA used when host_removal is true; its bwa-mem2 index is supplied, not built",
+    )
     release_label: str = Field(description="PlasmoDB release, e.g. '68'; recorded in provenance")
     snpeff_genome_id: str | None = Field(
         default=None, pattern=r"^[A-Za-z0-9][A-Za-z0-9._-]*$",
         description="SnpEff database ID: letters, digits, dots, underscores and hyphens only",
     )
+
+    @model_validator(mode="after")
+    def _host(self) -> ReferenceConfig:
+        if self.host_removal and self.host_fasta is None:
+            raise ValueError("reference.host_removal is true: set reference.host_fasta to the human genome FASTA "
+                             "(or set host_removal to false)")
+        return self
+
+    @property
+    def host_fasta_used(self) -> Path | None:
+        """The host FASTA when host-read removal is switched on, else None."""
+        return self.host_fasta if self.host_removal else None
 
 
 class AnalysesConfig(Strict):
@@ -115,6 +135,14 @@ class ProjectConfig(Strict):
     assay: AssayConfig = Field(default_factory=AssayConfig)
     reference: ReferenceConfig
     samples_tsv: Path
+    study_metadata: bool = Field(
+        default=False,
+        description="Study Metadata: true merges a study table from study_metadata_dir into the sample metadata",
+    )
+    study_metadata_dir: Path = Field(
+        default=Path("inputs/metadata"),
+        description="Folder holding the study metadata table, used when study_metadata is true",
+    )
     analyses: AnalysesConfig = Field(default_factory=AnalysesConfig)
     run_policy: Literal["CONTINUE_INDEPENDENT", "STRICT"] = "CONTINUE_INDEPENDENT"
     random_seed: int = Field(default=20261106, ge=0)
@@ -155,6 +183,9 @@ class ProjectConfig(Strict):
             raise ValueError("VCF entry is not implemented; supply FASTQ, BAM or CRAM")
         if self.assay_design.targeted and self.assay.library_catalog is None:
             raise ValueError("targeted designs require assay.library_catalog (panels and library protocols)")
+        if self.reference.host_removal and self.assay_design != Design.WGS:
+            raise ValueError(f"Human DNA removal (reference.host_removal: true) is eligible only for assay_design "
+                             f"wgs, not {self.assay_design.value}; set reference.host_removal to false")
         return self
 
 

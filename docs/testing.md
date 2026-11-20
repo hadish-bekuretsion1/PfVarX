@@ -36,6 +36,13 @@ Consistency checks that fail when one part changes without another:
 | `tests/unit/test_cli_gui_parity.py` | A setting lacks GUI help, a template entry or a guide row; guide text differs from the GUI; or a GUI tab or stage has no CLI command |
 | `tests/unit/test_validation_guidance.py` | A validation failure stops explaining its cause and fix, or a gene list passes as a core mask |
 
+`pixi run python scripts/check_installs.py` compares each kind of installation with the tools
+its final output runs, from `pixi.lock` (see [deployment](deployment.md#check-what-an-installation-contains)).
+
+After editing `docs/caller.md`, `docs/configuration.md` or `docs/sequencing.md`, run
+`python scripts/sync_sop.py`: SOP appendices E, F and G copy them, and
+`tests/unit/test_sop_mirrors.py` fails while they differ.
+
 After changing setting help in `src/pfvarx/configuration/gui/field-guide.json`, run
 `python scripts/configuration_guide.py` to regenerate the configuration guide
 (`--check` only reports whether it is out of date).
@@ -140,7 +147,7 @@ From full source/development installation:
 
 ```bash
 pixi run pytest -q tests/unit/test_orchestration.py
-python3 bootstrap.py --profile sample --workspace /absolute/path/to/new-sample
+python3 bootstrap.py --final-output FO002 --workspace /absolute/path/to/new-sample
 cd /absolute/path/to/new-sample
 ./pfvarx fixture --n-mono 1 --n-poly 0 --depth 20
 # Set an explicitly synthetic reference release label before this smoke run.

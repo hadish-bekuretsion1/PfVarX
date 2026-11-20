@@ -10,7 +10,9 @@ alone cannot run setup; use an explicit post-clone command:
 
 ```bash
 git clone --filter=blob:none --sparse https://github.com/hadish-bekuretsion1/PfVarX.git PfVarX-source
-python3 PfVarX-source/bootstrap.py --profile sample
+python3 PfVarX-source/bootstrap.py                    # tools on demand: ./pfvarx install-tools
+# or, for a machine without internet access later:
+# python3 PfVarX-source/bootstrap.py --final-output FO002
 cd pfvarx-analysis
 ./pfvarx --help
 ```
@@ -19,8 +21,40 @@ Full extraction/clone also works. Bootstrap fetches/exports required blobs and i
 the matching locked environment. A selected workspace contains required source,
 templates/static metadata, its launcher and installation capability declaration. It
 initializes actual input/metadata folders, not artificial empty run/output trees.
-Choose profile/design/input type/analyses before installation. See
+Without options the workspace installs only the control environment, and `./pfvarx
+install-tools` (GUI: **Install required tools**) later installs what the saved configuration
+needs; this step needs internet access or a filled Pixi cache. For offline machines choose the
+final output (`--final-output FO001`–`FO004`; it installs only the tools that final output
+uses), design, input type and analyses before installation. See
 [orchestration](orchestration.md) for every option, stage and input/output contract.
+
+## Check what an installation contains
+
+Before installing, compare every kind of installation with what its final output runs,
+from `pixi.lock` alone (nothing is installed or downloaded):
+
+```bash
+pixi run python scripts/check_installs.py
+```
+
+Each line names the installation, its environment and `ok`, `EXTRA` (installed but not run
+by that final output) or `MISSING` (run but not installed; the command then exits 1), with
+the tools installed and not installed and the parts of the pipeline code copied.
+
+After installing, look inside the workspace itself:
+
+```bash
+cat config/installation.json                     # environment and max_final_output
+pixi list -e "$(python3 -c 'import json;print(json.load(open("config/installation.json"))["environment"])')"
+ls src/pfvarx                                    # caller/, cohort/, annotation/, downstream/ only when needed
+for t in fastp bwa-mem2 fgbio bcftools snpEff Rscript iqtree2 rtg; do
+  [ -x .pixi/envs/*/bin/$t ] && echo "installed $t" || echo "absent    $t"
+done
+```
+
+An FO001 workspace lists fastp and bwa-mem2 (and fgbio for targeted designs) and no
+bcftools, SnpEff or R; setting a later `final_output` in it is refused with the bootstrap
+option to use.
 
 Use `--profile development` for all methods/tests/scripts. A standalone Python wheel
 is not a complete pipeline: workflow, policy, resource and tool dependencies are
@@ -32,8 +66,12 @@ workspaces rather than accidentally installing the full default with plain `pixi
 
 `pixi.toml` declares direct feature requirements; `pixi.lock` pins Linux package URLs,
 versions and hashes. The one source manifest declares valid combinations; only the
-selected environment is installed. Base dependencies include the Python control plane,
-NumPy/SciPy/pysam, Snakemake, SAMtools/BCFtools/HTSlib, Picard and mosdepth. FASTQ adds
+selected environment is installed. The `control` environment (on-demand workspaces before
+`install-tools`) has the Python control plane, pysam and HTSlib only. Every tools environment
+adds the `pipeline` feature: Snakemake, SAMtools, Picard (`picard-slim`, without R) and mosdepth.
+FO002 and later add the `calling` feature (NumPy/SciPy for the caller, BCFtools); FO001 has neither.
+Targeted designs add fgbio (`fgbio-minimal`, without R). R is installed only for the analyses
+that run R scripts (DA001, DA004, DA005, DA006 through MOIRE, and DA007). FASTQ adds
 BWA-MEM2/fastp; targeted FASTQ adds fgbio. FO004 adds SnpEff, then exactly selected
 method feature closures: MOIRE/R/jsonlite, Dcifer/hmmIBD, scikit-allel, IQ-TREE and/or
 mgcv/R. Optional `--rtg` adds RTG; dev adds testing/lint/type tools. Transitive packages

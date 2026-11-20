@@ -13,11 +13,31 @@ ELIG = R / "eligibility"
 # --- Resources and the per-sample QC gates ---
 
 
-def mem(base):
-    """Attempt-scaled memory within the per-job ceiling (retries only on memory-scalable rules)."""
+def mem(base, host=False):
+    """Attempt-scaled memory within the per-job ceiling (retries only on memory-scalable rules).
+
+    ``host=True`` marks a bwa-mem2 job: with Human DNA removal (wgs only) it loads the
+    combined parasite+host index, so the request grows by ``layer1.bwa_mem2_host_extra_mem_mb``.
+    """
     cap = COMPUTE["per_job"]["max_mem_mb"]
     factor = COMPUTE["retry_memory_factor"]
+    if host and HOST:
+        base += P["layer1.bwa_mem2_host_extra_mem_mb"]
     return lambda wc, attempt: int(min(base * factor ** (attempt - 1), cap))
+
+
+def host_filter(counts):
+    """Shell pipe stage after bwa-mem2 that removes host read pairs (empty without a host FASTA).
+
+    *counts* is a path pattern with {sample} and optionally {lane}; the stage is a params
+    function so the wildcards are filled in.
+    """
+    def stage(wc):
+        if not HOST:
+            return ""
+        path = counts.format(sample=wc.sample, lane=getattr(wc, "lane", ""))
+        return f"| python -m pfvarx.references.host --counts '{path}' "
+    return stage
 
 
 def threads(n):
@@ -97,14 +117,25 @@ def lane(wc):
     return next(x for x in SAMPLES[wc.sample]["lanes"] if x["lane"] == wc.lane)
 
 
+def adapter_args(sample):
+    """fastp adapter options for the sample's library kit (resolved at validation).
+
+    Known kits are passed explicitly: fastp's detection can choose its poly-T FlowCell1
+    sequence on AT-rich reads and trim real T runs. Paired-end overlap trimming stays on.
+    """
+    adapters = library(sample).get("adapters") or {}
+    if adapters.get("kit", "AUTO") == "AUTO" or not adapters.get("read1"):
+        return ["--detect_adapter_for_pe"]
+    return [f"--adapter_sequence {adapters['read1']}", f"--adapter_sequence_r2 {adapters['read2']}"]
+
+
 def fastp_args(sample):
     a = []
     if P["layer1.fastp_low_complexity_filter"]:
         a.append("--low_complexity_filter")
     if P["layer1.fastp_dedup"]:
         a.append("--dedup")
-    if P["layer1.fastp_detect_adapter_for_pe"]:
-        a.append("--detect_adapter_for_pe")
+    a += adapter_args(sample)
     a += [f"--qualified_quality_phred {P['layer1.fastp_qualified_quality_phred']}",
           f"--unqualified_percent_limit {P['layer1.fastp_unqualified_percent_limit']}",
           f"--n_base_limit {P['layer1.fastp_n_base_limit']}",
@@ -128,7 +159,8 @@ def fastp_args(sample):
         a += ["--disable_quality_filtering", f"--length_required {min_len}"]
         if not trim_safe:
             # A fixed non-template segment ends the read: 3' trimming would corrupt it.
-            a = [x for x in a if x not in ("--detect_adapter_for_pe", "--trim_poly_g", "--disable_trim_poly_g")]
+            a = [x for x in a if x not in ("--detect_adapter_for_pe", "--trim_poly_g", "--disable_trim_poly_g")
+                 and not x.startswith("--adapter_sequence")]
             a += ["--disable_adapter_trimming", "--disable_trim_poly_g"]
     return " ".join(a)
 
@@ -174,6 +206,8 @@ def entry_final_source(wc):
 def gate_inputs(wc):
     d = R / "qc" / "samples" / wc.sample
     files = {"flagstat": str(d / f"{wc.sample}.flagstat.json")}
+    if HOST and PLAN["input_type"] == "FASTQ":
+        files["host"] = [str(d / f"{wc.sample}.{x['lane']}.host.json") for x in SAMPLES[wc.sample]["lanes"]]
     if PLAN["input_type"] == "FASTQ":
         files["fastp"] = [str(d / f"{wc.sample}.{x['lane']}.fastp.json") for x in SAMPLES[wc.sample]["lanes"]]
     if DESIGN == "wgs":

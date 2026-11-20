@@ -21,12 +21,19 @@ function resolveSchema(spec) {
     return base.$ref ? state.schema.$defs[base.$ref.split("/").pop()] : base;
 }
 
+// Yes/no settings drawn as drop-downs: [label for false, label for true].
+const BOOLEAN_CHOICES = {
+    "config.reference.host_removal": ["False", "True"],
+    "config.study_metadata": ["No", "Yes"],
+};
+
 const filePlaceholders = {
     "config.assay.library_catalog": "inputs/metadata/",
-    "config.samples_tsv": "inputs/metadata/",
     "config.reference.fasta": "inputs/reference/",
     "config.reference.core_mask_bed": "inputs/reference/",
     "config.reference.gff": "inputs/reference/",
+    "config.reference.host_fasta": "inputs/reference/",
+    "config.study_metadata_dir": "inputs/metadata/",
     "config.analyses.resistance_catalog": "inputs/metadata/",
 };
 
@@ -49,19 +56,35 @@ function draw(parent, object, schema, path = "") {
         row.dataset.field = id;
         const label = document.createElement("label");
         const labels = {
-            "config.samples_tsv": "Study metadata and catalogue",
+            "config.samples_tsv": "Sample metadata (built by Inputs Preparation)",
+            "config.study_metadata": "Study Metadata",
+            "config.study_metadata_dir": "Study Metadata folder",
             "config.assay_design": "Assay design",
             "config.assay.library_catalog": "Library catalog: panels and library protocols (YAML)",
-            "config.reference.core_mask_bed": "Core-genome mask (BED)"
+            "config.reference.core_mask_bed": "Core-genome mask (BED)",
+            "config.reference.host_removal": "Human DNA removal",
+            "config.reference.host_fasta": "Human genome reference"
         };
-        label.textContent = (labels[id] || key.replaceAll("_", " ")) + " ";
+        // The setting name sits in its own element (left column); the input follows it.
+        label.className = "field";
+        row.className = "field-row";
+        const name = document.createElement("span");
+        name.className = "field-name";
+        name.textContent = labels[id] || key.replaceAll("_", " ");
+        label.append(name);
         row.append(label);
         parent.append(row);
         const guide = state.field_guide?.[id];
         if (guide || original.description) {
             const help = document.createElement("small");
             help.id = id + ".help";
-            help.textContent = guide ? guide.help + " Values or example: " + guide.example : original.description;
+            help.textContent = guide ? guide.help : original.description;
+            if (guide) {
+                const example = document.createElement("span");
+                example.className = "example";
+                example.textContent = "Values or example: " + guide.example;
+                help.append(example);
+            }
             row.append(help);
         }
         if (id === "config.analyses.requested") {
@@ -98,6 +121,22 @@ function draw(parent, object, schema, path = "") {
             continue;
         }
         let input;
+        const choices = BOOLEAN_CHOICES[id];
+        if (choices) {
+            // A yes/no setting shown as a two-choice drop-down; the YAML keeps true/false.
+            input = document.createElement("select");
+            input.append(new Option(choices[0], "false"), new Option(choices[1], "true"));
+            input.value = String(object[key] === true);
+            input.id = id;
+            label.htmlFor = id;
+            label.append(input);
+            if (guide || original.description) input.setAttribute("aria-describedby", id + ".help");
+            input.addEventListener("change", () => {
+                object[key] = input.value === "true";
+                changed(id);
+            });
+            continue;
+        }
         let options = spec.enum || ({
             "config.analyses.spatial_outcome_source": ["DA002"],
             "config.purpose": ["analysis", "benchmarking"]
@@ -117,6 +156,17 @@ function draw(parent, object, schema, path = "") {
             }
             input.value = object[key] ?? "";
             const installation = state.installation;
+            if (id === "config.final_output" && installation && installation.profile !== "development") {
+                // Tools are installed by final output: later outputs need a new installation.
+                for (const option of input.options) option.disabled = option.value > installation.max_final_output;
+                if (installation.max_final_output !== "FO004") {
+                    const note = document.createElement("small");
+                    note.className = "notice";
+                    note.textContent = "This workspace installed the tools for final outputs up to " + installation.max_final_output +
+                        ". For a later final output, install a new workspace: python3 bootstrap.py --final-output FO00N.";
+                    row.append(note);
+                }
+            }
             if (id === "config.input_type" && installation && installation.profile !== "development" && installation.input_type !== "FASTQ") {
                 for (const option of input.options) option.disabled = option.value !== installation.input_type;
                 const note = document.createElement("small");
@@ -149,7 +199,7 @@ function draw(parent, object, schema, path = "") {
         requiredMark.textContent = " *";
         requiredMark.setAttribute("aria-hidden", "true");
         requiredMark.hidden = true;
-        label.insertBefore(requiredMark, input);
+        name.append(requiredMark);
         input.dataset.schemaRequired = String(
             (schema.required || []).includes(key) && !original.anyOf?.some(item => item.type === "null")
         );
@@ -190,12 +240,34 @@ function toggle(id, visible) {
     for (const input of row.querySelectorAll("input,select,textarea,button")) input.disabled = !visible;
 }
 
+function hostRemovalEligibility(targeted, design) {
+    // Shown for every design, usable only for wgs: targeted designs see why it is off.
+    const row = editor.querySelector('[data-field="config.reference.host_removal"]');
+    if (!row) return;
+    const choice = byId("config.reference.host_removal");
+    if (choice) {
+        choice.disabled = targeted;
+        if (targeted) choice.value = "false";
+    }
+    let note = row.querySelector("[data-host-eligibility]");
+    if (!note) {
+        note = document.createElement("small");
+        note.dataset.hostEligibility = "true";
+        note.className = "notice";
+        row.append(note);
+    }
+    note.hidden = !targeted;
+    note.textContent = targeted
+        ? "Not available for " + design + ": Human DNA removal is eligible only for the wgs design."
+        : "";
+}
+
 function showInputFolders(directories) {
     const contents = {
         "inputs/fastq": "Paired reads (.fastq or .fastq.gz), such as sample_R1.fastq.gz and sample_R2.fastq.gz.",
         "inputs/alignments": "Coordinate-sorted BAM files and their indexes (.bai or .csi). Record each file's processing_state in the sample registry so only the missing steps run.",
         "inputs/reference": "Reference FASTA and matching core-genome BED. Include matching GFF when annotation is needed.",
-        "inputs/metadata": "Sample registry TSV with input paths and study metadata (country, latitude, longitude, collection_date and population where applicable). Optional separate study metadata and verified marker catalogue TSV. Join a separate study table into the sample registry with Join study metadata below (by sample_id). Library columns (technique, amplification_route, panel_id, panel_version, library_protocol_id) describe each library; targeted designs also need the library catalog YAML.",
+        "inputs/metadata": "Study Metadata: one study table (tab-separated, with sample_id: country, latitude, longitude, collection_date, population and any other study fields), merged into the sample metadata by Inputs Preparation. For targeted designs also the library catalog YAML, and optionally a verified marker catalogue TSV.",
         "inputs/targets": "Target regions BED and primer definitions TSV (or probe BED) matched to the reference, named by a panel in the library catalog.",
         "inputs/truth": "truth.json, confident_regions.bed, and <MONOCLONAL_SAMPLE_ID>.truth.vcf for each scored monoclonal sample.",
         "inputs/partitions": "partition.json, created by ./pfvarx benchmark-partition."
@@ -228,15 +300,34 @@ function changed(id) {
         : "Example: inputs/alignments/sample.bam and inputs/alignments/sample.bam.bai. Place the BAM and its index here after saving, or register their existing paths.";
     const outputs = byId("config.final_output");
     for (const option of outputs.options) {
-        option.disabled = option.value === "FO001" && config.input_type !== "FASTQ";
+        const installed = state.installation && state.installation.profile !== "development"
+            ? state.installation.max_final_output : "FO004";
+        option.disabled = (option.value === "FO001" && config.input_type !== "FASTQ") || option.value > installed;
     }
     const full = config.final_output === "FO004";
     const targeted = config.assay_design !== "wgs";
+    const reference = config.reference;
     if (id === "config.assay_design") {
         // Panels and library protocols live in the library catalog; manifest rows name them.
         assay.library_catalog = targeted ? assay.library_catalog || filePlaceholders["config.assay.library_catalog"] : null;
+        // Human DNA removal is eligible only for wgs; the configuration model refuses it otherwise.
+        if (targeted) {
+            reference.host_removal = false;
+            reference.host_fasta = null;
+        }
         analyses.requested = (analyses.requested || []).filter(da => state.analyses[da].designs.includes(config.assay_design));
         analyses.scales = Object.fromEntries(Object.entries(analyses.scales || {}).filter(([da]) => analyses.requested.includes(da)));
+        render();
+        return;
+    }
+    if (id === "config.study_metadata") {
+        config.study_metadata_dir = config.study_metadata
+            ? config.study_metadata_dir || filePlaceholders["config.study_metadata_dir"] : config.study_metadata_dir;
+        render();
+        return;
+    }
+    if (id === "config.reference.host_removal") {
+        reference.host_fasta = reference.host_removal ? reference.host_fasta || filePlaceholders["config.reference.host_fasta"] : null;
         render();
         return;
     }
@@ -270,6 +361,10 @@ function changed(id) {
     toggle("config.analyses.scales", full && analyses.selection !== "auto");
     toggle("config.reference.gff", full);
     toggle("config.assay.library_catalog", targeted);
+    hostRemovalEligibility(targeted, config.assay_design);
+    toggle("config.reference.host_fasta", !targeted && reference.host_removal === true);
+    toggle("config.study_metadata_dir", config.study_metadata === true);
+    toggle("config.samples_tsv", false);  // fixed path written by Inputs Preparation, not chosen here
     toggle("config.caller.executable", config.caller.backend === "external");
     toggle("config.caller.sha256", config.caller.backend === "external");
     toggle("compute.slurm_partition", false);
@@ -278,6 +373,8 @@ function changed(id) {
     }
     const conditionalRequirements = {
         "config.assay.library_catalog": targeted,
+        "config.reference.host_fasta": !targeted && reference.host_removal === true,
+        "config.study_metadata_dir": config.study_metadata === true,
         "config.reference.gff": full && analyses.selection !== "auto",
         "config.analyses.spatial_outcome_source": full && (analyses.requested || []).includes("DA007"),
         "config.caller.executable": config.caller.backend === "external",
@@ -340,7 +437,6 @@ async function load() {
         if (!state.input_folders_created) {
             const defaults = [
                 [values.config.assay, "library_catalog", "inputs/metadata/library_catalog.yaml"],
-                [values.config, "samples_tsv", "inputs/metadata/samples.tsv"],
                 [values.config.reference, "fasta", "inputs/reference/Pf3D7.fasta"],
                 [values.config.reference, "core_mask_bed", "inputs/reference/core_genome.bed"]
             ];
@@ -382,7 +478,8 @@ saveButton.addEventListener("click", async () => {
         byId("result").textContent = "Input directories are successfully created\n\nInput folders:\n" + result.directories.map(path => path + "/").join("\n") +
             "\n\nSaved: " + (result.saved.join(", ") || "already current") +
             (result.backups.length ? "\nBackups: " + result.backups.join(", ") : "") +
-            "\n\nNext: add files on the Input files tab (or ./pfvarx add-input / fetch-input), then validate.";
+            "\n\nNext: click Install required tools, then add files on the Input files tab (or ./pfvarx add-input / fetch-input) and validate.";
+        refreshTools();
     } catch (error) {
         status.textContent = error.message;
         const field = error.message.match(/config\/(config|quality|compute)\.yaml: ([\w.]+):/);
@@ -402,6 +499,46 @@ editor.addEventListener("submit", event => event.preventDefault());
 byId("purpose").addEventListener("change", load);
 load();
 
+// Required tools: what the saved configuration needs, and the Install required tools button.
+async function refreshTools() {
+    const message = byId("tools-status");
+    const button = byId("install-tools");
+    try {
+        const tools = await request("tools-status");
+        message.textContent = tools.detail;
+        button.hidden = tools.mode !== "on-demand";
+        button.disabled = tools.current;
+        button.textContent = tools.current ? "Required tools installed" : "Install required tools";
+    } catch (error) {
+        message.textContent = "Save the configuration first; then install the tools it needs.";
+        button.disabled = true;
+    }
+}
+
+byId("install-tools").addEventListener("click", async () => {
+    const button = byId("install-tools");
+    const message = byId("tools-status");
+    button.disabled = true;
+    message.textContent = "Installing the tools for the saved configuration. This can take several minutes...";
+    try {
+        const result = await request("install-tools", {});
+        const stage = result.stages[0];
+        let detail = stage.stdout || stage.stderr;
+        try {
+            const parsed = JSON.parse(stage.stdout);
+            detail = parsed.status === "INSTALLED" ? "Installed environment " + parsed.environment + " for " +
+                parsed.required_for.final_output + ", " + parsed.required_for.design + ", " + parsed.required_for.input_type + "."
+                : parsed.status === "ALREADY_INSTALLED" ? "Already installed: environment " + parsed.environment + "."
+                : (parsed.error || stage.stdout);
+        } catch { /* keep the raw output */ }
+        byId("tools-result").textContent = detail;
+    } catch (error) {
+        byId("tools-result").textContent = error.message;
+    }
+    refreshTools();
+});
+refreshTools();
+
 for (const view of ["configuration", "inputs", "validation", "preparation", "preflight", "workflow"]) {
     byId(view + "-tab").addEventListener("click", () => {
         for (const panel of ["configuration", "inputs", "validation", "preparation", "preflight", "workflow"]) {
@@ -415,7 +552,7 @@ for (const view of ["configuration", "inputs", "validation", "preparation", "pre
 
 for (const [panel, endpoint, title] of [
     ["validation", "validate-inputs", "Input Files Validation"],
-    ["preparation", "prepare-inputs", "Reference Preparation"],
+    ["preparation", "prepare-inputs", "Inputs Preparation"],
     ["preflight", "preflight", "Workflow Readiness Checks"],
     ["workflow-check", "workflow-check", "Workflow check"]
 ]) {
@@ -565,30 +702,4 @@ byId("start-workflow").addEventListener("click", async () => {
         return;
     }
     pollWorkflow();
-});
-
-byId("join-metadata").addEventListener("submit", async event => {
-    event.preventDefault();
-    const apply = event.submitter?.value === "apply";
-    const message = byId("join-status");
-    message.textContent = apply ? "Joining..." : "Checking...";
-    try {
-        const table = new FormData(event.target).get("table");
-        const result = await request("join-metadata", {table, apply});
-        const lines = [
-            (apply ? (result.status === "APPLIED" ? "Joined. " : "Nothing to write. ") : "Preview: ") +
-                result.cells_filled + " empty cell(s) " + (apply ? "filled" : "would be filled") +
-                " in " + result.sample_sheet + ".",
-            "Columns: " + (result.columns_joined.join(", ") || "none")
-        ];
-        if (result.backup) lines.push("Backup: " + result.backup);
-        if (result.columns_skipped_protected.length) lines.push("Not taken from the study table: " + result.columns_skipped_protected.join(", "));
-        if (result.samples_without_study_row.length) lines.push("Samples with no study row: " + result.samples_without_study_row.join(", "));
-        if (result.study_rows_without_sample.length) lines.push("Study rows with no sample: " + result.study_rows_without_sample.join(", "));
-        for (const c of result.conflicts_not_overwritten) lines.push("Kept " + c.column + " of " + c.sample_id + ": sample sheet has " + JSON.stringify(c.sample_sheet) + ", study table has " + JSON.stringify(c.study_table));
-        for (const w of result.warnings) lines.push("Warning: " + w);
-        message.textContent = lines.join("\n");
-    } catch (error) {
-        message.textContent = error.message;
-    }
 });

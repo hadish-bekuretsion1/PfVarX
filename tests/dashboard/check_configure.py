@@ -94,7 +94,7 @@ with tempfile.TemporaryDirectory(prefix="pfvarx040-gui-") as directory:
             expect(page.locator("#result")).to_contain_text("Input directories are successfully created")
             expect(page.locator("#result")).to_contain_text("inputs/targets")
             assert (ws / "inputs/targets").is_dir()
-            assert not (ws / "inputs/metadata/samples.tsv").exists()
+            assert not (ws / "prepared/samples.tsv").exists()
             assert not (ws / "prepared").exists()
             save.click()
             expect(page.locator("#result")).to_contain_text("already current")

@@ -14,6 +14,9 @@ from typing import Any
 ROLES: dict[str, tuple[str, str, str, tuple[str, ...]]] = {
     "FASTA": ("Reference genome FASTA", "reference.fasta",
               "Reads are aligned to it and every variant is described against it.", ("FASTA",)),
+    "HOST_FASTA": ("Host (human) genome FASTA", "reference.host_fasta",
+                   "Reads are aligned to the parasite and host genomes together; pairs that align best to the host "
+                   "are removed before duplicate marking and counted in sample QC.", ("FASTA",)),
     "CORE_MASK": ("Core-genome mask BED", "reference.core_mask_bed",
                   "Variants are called, and depth and callability QC are measured, only inside these regions: the "
                   "accessible core of the genome, without the subtelomeric and internal hypervariable regions "
@@ -31,8 +34,8 @@ ROLES: dict[str, tuple[str, str, str, tuple[str, ...]]] = {
                         "Defines the targeted panels (intervals, primers or probes) and the library protocols "
                         "(UMI extraction and consensus settings) that manifest rows refer to.", ("LIBRARY_CATALOG",)),
     "LIBRARY_ASSAY": ("Library descriptions in the sample manifest", "samples_tsv technique, amplification_route, "
-                      "panel_id, panel_version, library_protocol_id, processing_state",
-                      "Say what each library is, so the right branch, panel and UMI settings are used.", ()),
+                      "panel_id, panel_version, library_protocol_id, processing_state, adapter_kit",
+                      "Say what each library is, so the right branch, panel, adapters and UMI settings are used.", ()),
     "SAMPLE_METADATA": ("Sample sheet", "samples_tsv",
                         "Lists every sample and lane with its input files and study metadata.", ("SAMPLE_SHEET",)),
     "CATALOGUE": ("Resistance marker catalogue", "analyses.resistance_catalog",
@@ -92,6 +95,14 @@ GENERIC: dict[str, list[str]] = {
                          "defines; a run uses one panel."],
     "PROTOCOL_UNRESOLVED": ["Give the row a library_protocol_id that the library catalog defines; UMI FASTQ needs a "
                             "protocol with umi.read_structure."],
+    "ADAPTER_UNRESOLVED": [
+        "Set adapter_kit in the manifest to TRUSEQ, NEXTERA or AUTO, or leave it empty to use the library "
+        "protocol's adapters, else the default (layer1.fastp_adapter_kit_default).",
+        "For other adapters, give the library a library_protocol_id whose protocol sets adapters.kit: CUSTOM "
+        "with read1 and read2 sequences (A, C, G, T only).",
+        "Every library of a sample, and the manifest and its protocol, must name the same kit; register "
+        "libraries made with different kits as separate samples.",
+    ],
     "FASTQ_TRUNCATED": ["The file ends inside a read: copy or download it again and check its checksum."],
     "FASTQ_MATE_COUNT_MISMATCH": ["Read 1 and read 2 must come from the same sample and lane, with equal read counts."],
     "FASTQ_MATE_NAME_MISMATCH": ["Read 1 and read 2 must list the same read names in the same order."],
@@ -180,7 +191,8 @@ def explain(finding: dict[str, Any], kind: str, root: Path, raw_config: dict[str
                            "if you do not need annotation or drug-resistance analysis.")
         elif kind == "SAMPLE_METADATA":
             actions.append("Register samples with ./pfvarx register-inputs (or the GUI Input files tab), or write "
-                           "inputs/metadata/samples.tsv with sample_id, lane and library_id columns.")
+                           "run Inputs Preparation (./pfvarx inputs-preparation), which builds prepared/samples.tsv from "
+                           "the input files.")
     else:
         if reason == "CORE_MASK_SUSPECT":
             why = f"{name} may be the wrong file: {detail}."

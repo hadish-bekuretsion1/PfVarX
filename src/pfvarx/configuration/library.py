@@ -23,7 +23,7 @@ from typing import Any, Literal
 import yaml
 from pydantic import BaseModel, ConfigDict, Field, ValidationError, field_validator, model_validator
 
-from pfvarx.constants import Route, Technique
+from pfvarx.constants import ADAPTER_SEQUENCES, AdapterKit, Route, Technique
 
 CATALOG_SCHEMA = "pfvarx.library_catalog/1"
 ID_PATTERN = r"^[A-Za-z0-9][A-Za-z0-9._-]{0,63}$"
@@ -84,10 +84,31 @@ class UmiSettings(_Strict):
     filter_max_no_call_fraction: float | None = Field(default=None, ge=0, le=1)
 
 
+ADAPTER_PATTERN = r"^[ACGT]{8,64}$"
+
+
+class Adapters(_Strict):
+    """3' adapters fastp trims: a known kit, or CUSTOM with both sequences."""
+
+    kit: AdapterKit
+    read1: str | None = Field(default=None, pattern=ADAPTER_PATTERN)
+    read2: str | None = Field(default=None, pattern=ADAPTER_PATTERN)
+
+    @model_validator(mode="after")
+    def _sequences(self) -> Adapters:
+        given = self.read1 is not None or self.read2 is not None
+        if self.kit == AdapterKit.CUSTOM and (self.read1 is None or self.read2 is None):
+            raise ValueError("adapters.kit CUSTOM needs read1 and read2 sequences")
+        if self.kit != AdapterKit.CUSTOM and given:
+            raise ValueError(f"adapters.read1/read2 are only for kit CUSTOM; {self.kit.value} has fixed sequences")
+        return self
+
+
 class LibraryProtocol(_Strict):
     library_protocol_id: str = Field(pattern=ID_PATTERN)
     technique: Technique | None = None
     amplification_route: Route | None = None
+    adapters: Adapters | None = None
     umi: UmiSettings | None = None
     description: str | None = None
 
@@ -140,6 +161,16 @@ def load_catalog(path: Path) -> LibraryCatalog:
     except ValidationError as exc:
         problems = "; ".join(f"{'.'.join(str(p) for p in e['loc']) or '<root>'}: {e['msg']}" for e in exc.errors())
         raise CatalogError(f"{path}: {problems}") from exc
+
+
+def adapter_settings(kit: AdapterKit, source: str, protocol: LibraryProtocol | None = None) -> dict[str, Any]:
+    """The adapters fastp trims for one library: kit, read-1/read-2 sequences and their source."""
+    if kit == AdapterKit.CUSTOM:
+        assert protocol is not None and protocol.adapters is not None
+        read1, read2 = protocol.adapters.read1, protocol.adapters.read2
+    else:
+        read1, read2 = ADAPTER_SEQUENCES.get(kit, (None, None))
+    return {"kit": kit.value, "read1": read1, "read2": read2, "source": source}
 
 
 def umi_settings(protocol: LibraryProtocol | None, params: dict[str, dict[str, Any]]) -> dict[str, Any]:

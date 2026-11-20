@@ -40,7 +40,7 @@ export DEV=&quot;$LAB/development&quot;
 export ANALYSIS=&quot;$LAB/analysis&quot;
 export BENCH=&quot;$LAB/benchmarking&quot;
 export RECORDS=&quot;$LAB/records&quot;
-BOOTSTRAP_ARGS=(--profile sample --design WGS --input-type FASTQ)
+BOOTSTRAP_ARGS=(--final-output FO002 --design WGS --input-type FASTQ)
 mkdir -p &quot;$LAB&quot; &quot;$RECORDS&quot;
 test -f &quot;$PFVARX_SOURCE/workflow/Snakefile&quot;
 test -f &quot;$SOP_HOME/PfVarX_SOP_Manual.md&quot;
@@ -51,7 +51,7 @@ Use a full-source distribution or selected bootstrap export, not a wheel alone.
 <code>./pfvarx</code> selects the profile environment; <code>./pfvarx tool TOOL</code> runs a utility there.
 Plain <code>pixi run</code> installs the full default and is reserved here for full/development
 checks. Set BOOTSTRAP_ARGS before R01 for the actual profile/design/input type.
-For FO004 use <code>--profile downstream --analyses ...</code> with the exact requested methods;
+For FO004 use <code>--final-output FO004 --analyses ...</code> with the exact requested methods;
 for aligned entry add <code>--input-type BAM|CRAM</code>. Export a new workspace for a changed
 capability set. Browser QA dependencies are separate.
 Unix utilities used include Bash, Git, <code>find</code>, <code>sha256sum</code>, <code>gzip</code>, <code>awk</code>, <code>sed</code>, <code>grep</code>,
@@ -882,14 +882,14 @@ cat config/compute.yaml
 <p>Record source/lock identity and hardware; installation complete; proceed to R02.</p>
 <h2 id="r02-register-one-sample-or-a-cohort">R02 — Register one sample or a cohort</h2>
 <h3>1. Procedure identification</h3>
-<p><strong>Module:</strong> inputs/metadata/samples.tsv and config/config.yaml. <strong>Workflow:</strong> routine analysis.</p>
+<p><strong>Module:</strong> prepared/samples.tsv and config/config.yaml. <strong>Workflow:</strong> routine analysis.</p>
 <p><strong>Purpose and scope:</strong> Create a tab-separated manifest with explicit read pairing and library provenance.</p>
 <h3>2. Prerequisites and requirements</h3>
 <p>R01; actual paired FASTQ files and laboratory sample/lane/library mapping. gzip FASTQ must be intact; population/location values must come from verified metadata.</p>
 <h3>3. Detailed operational procedure</h3>
 <p><strong>Step 1. Edit an explicit registration list in the workspace</strong></p>
 <pre><code class="language-bash">cd &quot;$ANALYSIS&quot;
-nano inputs/metadata/samples.tsv
+nano prepared/samples.tsv
 </code></pre>
 <p>Use the generated columns, real tabs and one row per sample/lane. Do not infer identity from a filename alone. For a one-sample pilot write one data row; for a cohort add all verified rows. The following Python example creates a real tab-separated file; <strong>replace the sample IDs, paths and metadata before executing</strong>:</p>
 <pre><code class="language-bash">./pfvarx tool python - &lt;&lt;'PYCODE'
@@ -899,23 +899,23 @@ columns=['sample_id','lane','fastq_1','fastq_2','bam','vcf','library_id','flowce
 rows=[dict(sample_id='S01',lane='L001',fastq_1='/absolute/path/S01_R1.fastq.gz',fastq_2='/absolute/path/S01_R2.fastq.gz',library_id='LIB01'),
       dict(sample_id='S02',lane='L001',fastq_1='/absolute/path/S02_R1.fastq.gz',fastq_2='/absolute/path/S02_R2.fastq.gz',library_id='LIB02')]
 # Delete the second row for a one-sample pilot. Add verified metadata as needed.
-with Path('inputs/metadata/samples.tsv').open('w',newline='') as h:
+with Path('prepared/samples.tsv').open('w',newline='') as h:
     w=csv.DictWriter(h,fieldnames=columns,delimiter='	');w.writeheader();w.writerows(rows)
 PYCODE
 </code></pre>
 <p><strong>Step 2. Review the exact registered files</strong></p>
-<pre><code class="language-bash">column -t -s $'\t' inputs/metadata/samples.tsv
+<pre><code class="language-bash">column -t -s $'\t' prepared/samples.tsv
 ./pfvarx tool python - &lt;&lt;'PYCODE'
 import csv
 from pathlib import Path
-for r in csv.DictReader(open(&quot;inputs/metadata/samples.tsv&quot;), delimiter=&quot;\t&quot;):
+for r in csv.DictReader(open(&quot;prepared/samples.tsv&quot;), delimiter=&quot;\t&quot;):
     for k in (&quot;fastq_1&quot;,&quot;fastq_2&quot;):
         p=Path(r[k]); print(r[&quot;sample_id&quot;],r[&quot;lane&quot;],k,p,p.is_file())
 PYCODE
 </code></pre>
 <p>If <code>column</code> is unavailable, use <code>cat</code> instead. All path existence checks must be true before validation. IDs use schema-permitted letters/digits/underscore/hyphen; sample/lane pairs must be unique. Multiple lanes share a sample ID and retain accurate library IDs. For WGS, all lanes of one sample must share one <code>flowcell_type</code> (duplicates are marked once per sample with one optical distance); validation rejects a sample that mixes patterned and unpatterned lanes.</p>
 <h3>4. Expected outputs</h3>
-<p><code>inputs/metadata/samples.tsv</code>, containing required sample/lane/library fields and branch-specific file columns. Blank unused fields are preserved.</p>
+<p><code>prepared/samples.tsv</code>, containing required sample/lane/library fields and branch-specific file columns. Blank unused fields are preserved.</p>
 <h3>5. Verification and quality control</h3>
 <p>Confirm R1/R2 mapping with the wet-lab manifest. Do not use the analysis output as a source of truth for sample identity or population labels.</p>
 <h3>6. Error handling and troubleshooting</h3>
@@ -1050,7 +1050,7 @@ cat &quot;results/qc/samples/$SAMPLE/$SAMPLE.caller_qc.json&quot;
 <h3>3. Detailed operational procedure</h3>
 <p><strong>Step 1. Declare the real targeted assay</strong></p>
 <pre><code class="language-bash">export ANALYSIS=&quot;$LAB/analysis-targeted-non-umi&quot;
-BOOTSTRAP_ARGS=(--profile sample --design targeted_no_umi --input-type FASTQ)
+BOOTSTRAP_ARGS=(--final-output FO002 --design targeted_no_umi --input-type FASTQ)
 # Complete R01–R03 in this new workspace before the next command.
 cd &quot;$ANALYSIS&quot;
 nano config/config.yaml
@@ -1095,7 +1095,7 @@ find runs -path &quot;*/logs/trim_primers/*&quot; -type f -print
 <h3>3. Detailed operational procedure</h3>
 <p><strong>Step 1. Declare UMI structure from the library design</strong></p>
 <pre><code class="language-bash">export ANALYSIS=&quot;$LAB/analysis-targeted-umi&quot;
-BOOTSTRAP_ARGS=(--profile sample --design targeted_umi --input-type FASTQ)
+BOOTSTRAP_ARGS=(--final-output FO002 --design targeted_umi --input-type FASTQ)
 # Complete R01–R03 before continuing.
 cd &quot;$ANALYSIS&quot;
 nano config/config.yaml
@@ -1141,11 +1141,11 @@ cat &quot;results/qc/samples/$SAMPLE/qc_decision.json&quot;
 <h3>3. Detailed operational procedure</h3>
 <p><strong>Step 1. Set the workspace input route and BAM sample row</strong></p>
 <pre><code class="language-bash">export ANALYSIS=&quot;$LAB/analysis-bam&quot;
-BOOTSTRAP_ARGS=(--profile sample --design WGS --input-type BAM)
+BOOTSTRAP_ARGS=(--final-output FO002 --design WGS --input-type BAM)
 # Complete R01 and reference setup in this new workspace.
 cd &quot;$ANALYSIS&quot;
 nano config/config.yaml
-nano inputs/metadata/samples.tsv
+nano prepared/samples.tsv
 </code></pre>
 <p>Set <code>input_type: BAM</code>, <code>assay_design: wgs</code>, and FO002 or later. In the TSV fill <code>bam</code>, <code>sample_id</code>, <code>lane</code>, <code>library_id</code>, the actual <code>amplification_route</code> (<code>DIRECT</code> or <code>SWGA</code>) and <code>processing_state</code> (<code>aligned</code> to mark duplicates, <code>duplicates_marked</code> to use the file as is; empty marks duplicates unless the header records it); leave FASTQ/VCF fields empty. Every read-group SM must equal the registered sample ID. All read groups need ID/SM/LB/PL.</p>
 <p><strong>Step 2. Inspect the supplied BAM read-only</strong></p>
@@ -1184,7 +1184,7 @@ nano inputs/metadata/samples.tsv
 <h3>3. Detailed operational procedure</h3>
 <p><strong>Step 1. Declare targeted BAM configuration and inspect provenance</strong></p>
 <pre><code class="language-bash">export ANALYSIS=&quot;$LAB/analysis-targeted-bam&quot;
-BOOTSTRAP_ARGS=(--profile sample --design targeted_no_umi --input-type BAM)
+BOOTSTRAP_ARGS=(--final-output FO002 --design targeted_no_umi --input-type BAM)
 # Complete R01 in this new directory and register real reference/panel paths.
 cd &quot;$ANALYSIS&quot;
 nano config/config.yaml
@@ -1216,7 +1216,7 @@ nano config/config.yaml
 <h3>3. Detailed operational procedure</h3>
 <p><strong>Step 1. Check decoding with the correct reference</strong></p>
 <pre><code class="language-bash">export ANALYSIS=&quot;$LAB/analysis-cram&quot;
-BOOTSTRAP_ARGS=(--profile sample --design WGS --input-type CRAM)
+BOOTSTRAP_ARGS=(--final-output FO002 --design WGS --input-type CRAM)
 # Complete R01 in this new directory and register real reference paths.
 cd &quot;$ANALYSIS&quot;
 export INPUT_CRAM=/absolute/path/to/S01.cram
@@ -1252,7 +1252,7 @@ cat &quot;results/qc/samples/$SAMPLE/$SAMPLE.entry_contract.json&quot;
 Appendix G lists the candidates, gates, expected artifacts and skip reasons.
 Use explicit selection for a subset or a particular analysis scale.</p>
 <p><strong>Step 2. Configure explicit selections when needed</strong></p>
-<p>Before R01 choose, for example, <code>BOOTSTRAP_ARGS=(--profile downstream --design wgs --analyses DA003 DA001 DA004 DA005 DA006)</code>. For DA003 only, select just DA003. If a sample-only workspace already exists, bootstrap a new matching downstream workspace and register the same original read paths; do not edit installation metadata to bypass its capability guard.</p>
+<p>Before R01 choose, for example, <code>BOOTSTRAP_ARGS=(--final-output FO004 --design wgs --analyses DA003 DA001 DA004 DA005 DA006)</code>. For DA003 only, select just DA003. If a sample-only workspace already exists, bootstrap a new matching downstream workspace and register the same original read paths; do not edit installation metadata to bypass its capability guard.</p>
 <p>From the relevant workspace, preserve all generated keys and edit:</p>
 <pre><code class="language-bash">cd &quot;$ANALYSIS&quot;
 nano config/config.yaml
@@ -1950,7 +1950,7 @@ cat config/profiles/resources.yaml
 cd &quot;$BENCH&quot;
 ./pfvarx tool python - &lt;&lt;'PYCODE'
 import csv
-rows=list(csv.DictReader(open(&quot;inputs/metadata/samples.tsv&quot;),delimiter=&quot;\t&quot;))
+rows=list(csv.DictReader(open(&quot;prepared/samples.tsv&quot;),delimiter=&quot;\t&quot;))
 ids=sorted({r[&quot;sample_id&quot;] for r in rows})
 assert len(ids)==4, ids
 print(&quot;samples&quot;,ids,&quot;lanes&quot;,len(rows))
@@ -2055,7 +2055,7 @@ inventory of that run. Snakemake temporary intermediates may disappear after suc
 ├── inputs/
 │   ├── reference/                          optional local resources; absolute originals may be elsewhere
 │   ├── fastq/ OR alignments/                applicable entry route
-│   ├── metadata/samples.tsv
+│   ├── metadata/                           optional study metadata and catalogues
 │   ├── targets/                            targeted assays only
 │   ├── truth/                              benchmarking only
 │   │   ├── truth.json
@@ -2315,7 +2315,7 @@ This document itself does not claim a real study or new benchmark was executed.<
 lock controls installed versions; a current web manual is not permission to silently
 upgrade tools. Unsupported technologies/proposed methods from the original request
 have deliberately not been developed into SOPs.</p>
-<h1 id="appendix-e-replaceable-layer-2-caller">Appendix E — Replaceable Layer 2 caller</h1>
+<h1 id="appendix-e-select-qualify-and-replace-the-layer-2-caller">Appendix E — Select, qualify and replace the Layer 2 caller</h1>
 <h2 id="choose-the-caller-for-a-new-run">Choose the caller for a new run</h2>
 <p>The project configuration defaults to <code>caller.backend: native</code>, including older YAML files
 that omit the caller block. FO001 stops after alignment and QC. FO002–FO004 require
@@ -2476,12 +2476,27 @@ inspection and preparation.</p>
 workspace. In a full source copy run <code>pixi install --locked</code>. With a selective export,
 use bootstrap's <code>--no-install</code> option, then run its printed Pixi install command
 and launch the GUI in place of <code>workspace-init</code>.</p>
+<p>The editor shows the six workflow steps as numbered tabs, always visible: 1 Input
+directories, 2 Input files, 3 Input Files Validation, 4 the preparation step, 5 Workflow
+Readiness Checks and 6 Workflow Check and Run (one row on a wide window, rows of three or two
+on narrower ones). Each tab names its terminal command. On the first tab every setting is a
+row of a form table, grouped in cards (config, quality, compute): the name on the left, with a
+red mark when it is required, the input on the right and the help and an example underneath.
+<strong>Create Configuration and Input Directories</strong> and <strong>Save with backup</strong> sit together in the
+action area below the folder list. Printed or saved as PDF, the page keeps its colours.</p>
 <p>Choose the analysis or benchmarking template in a fresh workspace. If YAML exists,
 the form loads it. Complete project ID, input type, assay, reference release and
 paths. The form shows targeted BED/primer fields and the UMI read structure only
 where applicable. Choose an explicit analysis set or automatic selection for FO004.
 The form validates the compute envelope, caller options and dependent fields using
 the Python backend. The summary shows the YAML-equivalent settings.</p>
+<p>In an on-demand workspace (<code>bootstrap.py</code> without <code>--final-output</code>), click <strong>Install
+required tools</strong> after saving. It installs only the locked environment the saved
+configuration needs and shows which one; the status line under it says whether the tools for
+the current configuration are installed. Inputs Preparation, readiness, the dry run and the
+pipeline stop with <code>TOOLS_NOT_INSTALLED</code> and this instruction until they are. After changing
+the final output, design, input type or analyses, click it again: it installs only the newly
+needed environment. Workspaces installed up front (<code>--final-output</code>) do not show the button.</p>
 <p>Enter a workspace-relative or absolute file path. The form checks path configuration syntax.
 The <code>validate</code> command checks the actual files. Select <strong>Create Configuration and
 Input Directories</strong> when ready. Existing YAML with changes requires <strong>Save with
@@ -2496,7 +2511,10 @@ server. Treat the URL as a private session link.</p>
 </code></pre>
 <p>For headless configuration, use <code>./pfvarx config-init --purpose analysis</code>, edit
 <code>config/config.yaml</code>, <code>config/quality.yaml</code> and <code>config/compute.yaml</code>, then use
-<code>./pfvarx init</code> if you want a blank sample-sheet template. GUI saves create no sheet.</p>
+<code>./pfvarx init</code> to create input folders. GUI saves also create only folders.</p>
+<p>Both GUI save and CLI initialization use the same workspace-relative input
+folder layout. The GUI preview and the CLI <code>init</code> report show directory paths
+with a trailing slash. File fields still require filenames.</p>
 <h2 id="place-and-register-input-data">Place and register input data</h2>
 <table>
 <thead>
@@ -2508,7 +2526,7 @@ server. Treat the URL as a private session link.</p>
 <tbody>
 <tr>
 <td><code>inputs/reference/</code></td>
-<td>Parasite FASTA, and core BED. Add a matching GFF for explicit FO004 or to enable markers in automatic FO004.</td>
+<td>Parasite FASTA, and core BED. Add a matching GFF for explicit FO004 or to enable markers in automatic FO004. With Human DNA removal (<code>reference.host_removal: true</code>, wgs only), also the human genome FASTA.</td>
 </tr>
 <tr>
 <td><code>inputs/fastq/</code></td>
@@ -2520,7 +2538,7 @@ server. Treat the URL as a private session link.</p>
 </tr>
 <tr>
 <td><code>inputs/metadata/</code></td>
-<td>Reviewed sample TSV and optional population and geographic fields.</td>
+<td>Created only with Study Metadata: Yes, or for a targeted design's library catalog: the study metadata table (tab-separated, with <code>sample_id</code>: population, country, latitude, longitude, collection_date, ...), the library catalog YAML and an optional marker catalogue.</td>
 </tr>
 <tr>
 <td><code>inputs/targets/</code></td>
@@ -2532,12 +2550,62 @@ server. Treat the URL as a private session link.</p>
 </tr>
 </tbody>
 </table>
+<p><code>inputs/</code> holds only the files you supply to start a run; PfVarX reads them and never
+writes there. Everything it generates lives beside <code>inputs/</code>, in folders created on demand by
+the step that first writes them:</p>
+<table>
+<thead>
+<tr>
+<th>Folder</th>
+<th>Written by</th>
+<th>Contents</th>
+<th>Safe to delete</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>prepared/</code></td>
+<td>Inputs Preparation (<code>./pfvarx inputs-preparation</code>; <code>prepare</code> for the references)</td>
+<td><code>samples.tsv</code> (the sample metadata, built from the input files; review it and keep your edits), <code>reference/</code> (combined and parasite FASTA, <code>.fai</code>, <code>.dict</code>, bwa-mem2 index), <code>snpeff/</code> database, <code>manifest.json</code> sealing them</td>
+<td><code>reference/</code> and <code>snpeff/</code> yes, <code>prepare</code> rebuilds them; keep a reviewed <code>samples.tsv</code></td>
+</tr>
+<tr>
+<td><code>metadata/</code></td>
+<td><code>validate</code>, <code>prepare</code>, <code>ready</code></td>
+<td>validation and preparation reports, preparation logs</td>
+<td>yes</td>
+</tr>
+<tr>
+<td><code>runs/RUN_ID/</code></td>
+<td><code>./pfvarx pipeline</code></td>
+<td>frozen configuration and plan, logs, <code>results/</code></td>
+<td>only when archiving</td>
+</tr>
+<tr>
+<td><code>results</code></td>
+<td><code>./pfvarx pipeline</code></td>
+<td>link to the latest run's <code>results/</code></td>
+<td>yes</td>
+</tr>
+</tbody>
+</table>
+<p>Workspaces prepared by earlier versions kept the reference derivatives in
+<code>inputs/reference/prepared/</code>; the next <code>./pfvarx prepare</code> moves them to
+<code>prepared/reference/</code> without rebuilding.</p>
 <p>For conventionally named FASTQs, use the following and review the proposed sheet
 before registration. For other inputs, supply a reviewed manifest.</p>
 <pre><code class="language-bash">./pfvarx discover-inputs --directory inputs/fastq
 nano metadata/discovered_samples.tsv
 ./pfvarx register-inputs --manifest metadata/discovered_samples.tsv --mode reference
 </code></pre>
+<h2 id="transfer-raw-data-and-run-preflight">Transfer raw data and run preflight</h2>
+<p>After saving, open <strong>Input files</strong> to upload reads or alignments, or download
+them using an HTTPS link and a destination filename. A trusted SHA-256 is
+optional. When provided, PfVarX checks it before saving. Otherwise, PfVarX
+records the computed checksum and marks the download unverified. Put reference
+files in <code>inputs/reference/</code>. Register your reads or alignments before running
+<strong>Workflow Readiness Checks → Run readiness checks</strong>. The tab runs <code>validate</code>, <code>prepare</code>,
+<code>verify-prepared</code>, and <code>ready</code> in that order and stops on failure.</p>
 <h2 id="validate-prepare-and-execute">Validate, prepare and execute</h2>
 <pre><code class="language-bash">./pfvarx validate
 ./pfvarx prepare --dry-run
@@ -2575,18 +2643,469 @@ and inputs. Example from the workspace root:</p>
 <p>Adjust resources and partition to your site. Per-rule SLURM scheduling has no
 qualified execution profile in this release. The single-node example requires a
 site-specific smoke test.</p>
+<p>Select the input type before the final output. FASTQ and FASTQ.GZ enter at
+Layer 1 and can stop at FO001. BAM and CRAM enter at Layer 2 and start at
+FO002. Bootstrap a matching input profile when changing entry types in a
+selective installation.</p>
+<p>The executor menu records Local, HPC, Server or Cloud. These use the same
+single-host workflow engine. Submit HPC runs inside one allocated node using
+the deployment guide. Server and Cloud refer to Linux hosts and cloud VMs.</p>
+<h2 id="human-dna-removal-optional-whole-genome-sequencing-only">Human DNA removal (optional, whole-genome sequencing only)</h2>
+<p>Reads from blood or dried blood spots carry human DNA. With <code>reference.host_removal: true</code>
+(GUI: <strong>Human DNA removal</strong>) and <code>reference.host_fasta</code> set to a human primary-assembly
+FASTA without ALT contigs, each FASTQ read pair is aligned once with bwa-mem2 to the
+parasite and human genomes together. Pairs whose best (primary) alignment of either mate is
+on the human genome are removed before duplicate marking; secondary and supplementary hits
+on human contigs, and human entries in <code>SA</code>/<code>XA</code> tags, are removed from the pairs kept. The
+BAM keeps the parasite contigs only, so calling, cohort and annotation are unchanged. Each
+sample's QC records <code>host_templates_removed</code>, <code>templates_before_host_removal</code> and
+<code>host_fraction</code> (gate <code>G2.host_fraction</code>, reported, not gated). BAM/CRAM input is used as it
+is. With <code>host_removal: false</code> (the default) reads align to the parasite genome only and
+<code>host_fasta</code> is ignored.</p>
+<table>
+<thead>
+<tr>
+<th><code>assay_design</code></th>
+<th>Human DNA removal</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>wgs</code></td>
+<td>Eligible (optional)</td>
+</tr>
+<tr>
+<td><code>targeted_no_umi</code></td>
+<td>Ineligible</td>
+</tr>
+<tr>
+<td><code>targeted_umi</code></td>
+<td>Ineligible</td>
+</tr>
+</tbody>
+</table>
+<p>Targeted libraries are built from parasite-specific amplicons or probes, so human reads
+are a small off-target share that the on-target QC already measures. <code>host_removal: true</code>
+with a targeted design is refused when the configuration is loaded (CLI and GUI), with the
+message to set it to false.</p>
+<p>PfVarX does not build the bwa-mem2 index of a human-sized reference: building one is
+commonly reported to need about 64 GB of memory, and aligning against it 10–16 GB.</p>
+<pre><code class="language-bash">./pfvarx prepare                       # writes prepared/reference/combined.fasta, then stops:
+                                       # HOST_INDEX_REQUIRED, with these steps
+# on a machine with enough memory, in a folder holding a copy of combined.fasta:
+bwa-mem2 index combined.fasta          # bwa-mem2 2.2.1, as pinned here
+# copy combined.fasta.0123 .amb .ann .bwt.2bit.64 .pac back into prepared/reference/
+./pfvarx prepare                       # checks the index matches combined.fasta, then seals it
+./pfvarx verify-prepared &amp;&amp; ./pfvarx ready
+</code></pre>
+<p><code>ready</code> adds <code>layer1.bwa_mem2_host_extra_mem_mb</code> (12 000 MB, provisional) to the bwa-mem2
+request and reports <code>RESOURCE_MEMORY_EXCEEDED</code> when <code>compute.yaml</code> allows less. Files of
+1 GiB or more under <code>prepared/reference/</code> are sealed by size and modification time instead
+of SHA-256.</p>
+<p>The earlier <code>host_fasta</code> decoy (retired in November 2026) appended the host genome without
+removing reads; a workspace that still has <code>host_fasta</code> set keeps aligning to the parasite
+genome only until <code>host_removal</code> is set to true.</p>
+<h2 id="add-study-metadata">Add study metadata</h2>
+<p>Study metadata is optional. Set <strong>Study Metadata: Yes</strong> (<code>study_metadata: true</code>) in the
+configuration, put the study table (tab-separated, with a <code>sample_id</code> column) in
+<code>inputs/metadata/</code>, and <strong>Inputs Preparation</strong> merges it into the sample metadata
+(<code>prepared/samples.tsv</code>) it builds from the input files. With <strong>No</strong> it continues with the
+sample metadata alone. You can also type study values into <code>prepared/samples.tsv</code> as extra
+columns, one value per sample, repeated on every lane row. To join a table by hand, or to
+preview a join:</p>
+<pre><code class="language-bash">./pfvarx join-metadata --table inputs/metadata/study_metadata.tsv           # report only
+./pfvarx join-metadata --table inputs/metadata/study_metadata.tsv --apply   # write
+</code></pre>
+<p>Only empty cells are filled, on every lane of the sample. A cell that already holds a
+different value is reported and kept. File, lane, library and library-description columns
+are never taken from the study table. Sample IDs found in only one of the files are
+listed, and coordinates (decimal degrees) and dates (<code>YYYY-MM-DD</code>) are checked. The sheet is
+copied to <code>samples.tsv.before-join-&lt;UTC time&gt;</code> first. With Study Metadata: Yes, <strong>Inputs
+Preparation</strong> does this merge automatically, with the same rules.</p>
+<table>
+<thead>
+<tr>
+<th>Column</th>
+<th>Example</th>
+<th>Use</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>country</code></td>
+<td>Ethiopia</td>
+<td>DA007</td>
+</tr>
+<tr>
+<td><code>latitude</code></td>
+<td>13.50</td>
+<td>DA007, decimal degrees</td>
+</tr>
+<tr>
+<td><code>longitude</code></td>
+<td>39.47</td>
+<td>DA007, decimal degrees</td>
+</tr>
+<tr>
+<td><code>collection_date</code></td>
+<td>2025-07-18</td>
+<td>DA007, YYYY-MM-DD</td>
+</tr>
+<tr>
+<td><code>population</code></td>
+<td>Site_A</td>
+<td>Grouped analyses, or use the configured grouping column</td>
+</tr>
+<tr>
+<td><code>age_group</code>, <code>study_arm</code></td>
+<td>Adult, Arm_A</td>
+<td>Optional study records</td>
+</tr>
+</tbody>
+</table>
+<p>Review the coordinates included in the dashboard before sharing it.</p>
+<h3 id="naming-standard">Naming standard</h3>
+<p>Files are recognised by content, so names never decide anything, but a common standard keeps
+studies readable. <code>./pfvarx validate</code> warns (<code>NAMING_CONVENTION</code>, never a failure) when a row
+departs from it:</p>
+<table>
+<thead>
+<tr>
+<th>Item</th>
+<th>Standard</th>
+<th>Example</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Sample ID</td>
+<td>letters, digits, <code>_</code>, <code>-</code></td>
+<td><code>ETH001</code></td>
+</tr>
+<tr>
+<td>Lane</td>
+<td><code>L</code> and 3 digits</td>
+<td><code>L001</code></td>
+</tr>
+<tr>
+<td>Library ID</td>
+<td><code>&lt;sample_id&gt;_lib&lt;n&gt;</code> (recommended, not checked)</td>
+<td><code>ETH001_lib1</code></td>
+</tr>
+<tr>
+<td>FASTQ</td>
+<td><code>&lt;sample_id&gt;_&lt;lane&gt;_R1.fastq.gz</code> and <code>_R2.fastq.gz</code>; names that start with the sample ID and name the mate (Illumina <code>ETH001_S1_L001_R1_001.fastq.gz</code>) are accepted</td>
+<td><code>ETH001_L001_R1.fastq.gz</code></td>
+</tr>
+<tr>
+<td>Alignment</td>
+<td><code>&lt;sample_id&gt;.bam</code> (<code>.cram</code>) with its index</td>
+<td><code>ETH001.bam</code></td>
+</tr>
+<tr>
+<td>Reference</td>
+<td><code>&lt;genome&gt;_PlasmoDB-&lt;release&gt;.fasta</code>, <code>.gff</code>, <code>_core.bed</code> (recommended)</td>
+<td><code>Pf3D7_PlasmoDB-68.fasta</code></td>
+</tr>
+<tr>
+<td>Panel files</td>
+<td><code>&lt;panel_id&gt;_v&lt;version&gt;_targets.bed</code>, <code>_primers.tsv</code>, <code>_probes.bed</code> (recommended)</td>
+<td><code>MAD4HATTER_v1_targets.bed</code></td>
+</tr>
+</tbody>
+</table>
+<h3 id="library-records">Library records</h3>
+<p><code>assay_design</code> (<code>wgs</code>, <code>targeted_umi</code>, <code>targeted_no_umi</code>) is the only run setting that
+selects the processing branch. What each library is goes in the manifest columns
+<code>technique</code>, <code>amplification_route</code>, <code>panel_id</code>, <code>panel_version</code>,
+<code>library_protocol_id</code> and, for imported BAM/CRAM files, <code>processing_state</code>; panels and
+library protocols are defined in the library catalog (<code>assay.library_catalog</code>). The
+values, the agreement rules between technique labels and designs, and examples are in
+<a href="#appendix-g-assay-design-library-records-and-conditional-analysis">assay design and library records</a>.</p>
+<h3 id="migrating-a-schema-3-configuration">Migrating a schema-3 configuration</h3>
+<p>Configurations written before this release (<code>schema_version: pfvarx.config/3</code>) are
+refused with an instruction to migrate. <code>./pfvarx config-migrate</code> reports the change;
+<code>./pfvarx config-migrate --apply</code> writes it: <code>assay.design</code> becomes <code>assay_design</code>,
+<code>sequencing_type</code> and <code>amplification_route</code> become manifest columns, the targets and
+primers become the catalog panel <code>LEGACY_PANEL</code> (version <code>config3</code>), and the UMI read
+structure becomes the protocol <code>LEGACY_UMI_PROTOCOL</code>. Imported targeted BAM/CRAM rows
+get the processing state schema 3 assumed (<code>primers_trimmed</code>, or
+<code>consensus_primers_trimmed</code> for UMI). Only empty manifest cells are filled, comment lines
+in the manifest are not kept, and <code>config.yaml</code> and the manifest are copied to
+<code>*.before-config4</code> first. Saving the configuration in the GUI performs the same
+migration. Afterwards rename <code>LEGACY_PANEL</code> to the real panel name and version if you
+like, in the catalog and the manifest together.</p>
+<p>The standard folder prefixes shown for the sample registry, reference FASTA,
+core BED, GFF and library catalog are accepted in GUI and YAML. They
+resolve to the corresponding template filenames. Enter a complete path when
+your filename differs. Validation still checks that each required file exists.</p>
+<p>The <strong>Input directories</strong> tab saves configuration and creates folders. In
+<strong>Input files</strong>, select a file category to upload or download into its folder.
+Use the filenames in your saved configuration. Register sample files, then
+use <strong>Input Files Validation</strong> followed by <strong>Inputs Preparation</strong> (below). Assay-specific read
+processing and SnpEff annotation remain workflow stages. <strong>Workflow Readiness Checks</strong> runs
+the checks together.</p>
+<h2 id="inputs-preparation">Inputs Preparation</h2>
+<p>GUI tab <strong>Inputs Preparation</strong>; terminal <code>./pfvarx inputs-preparation [--metadata-table PATH]</code>.</p>
+<p><strong>Input directories</strong> creates only the folders you put input files into (by upload,
+download or browsing): the reads or alignments folder and <code>inputs/reference/</code>, plus
+<code>inputs/targets/</code> for targeted designs, <code>inputs/truth/</code> and <code>inputs/partitions/</code> for
+benchmarking, and the Study Metadata folder (<code>inputs/metadata/</code>) only when <strong>Study
+Metadata: Yes</strong> or a targeted design needs its library catalog there. Everything else
+(<code>prepared/</code>, <code>metadata/</code>, <code>runs/</code> and their subfolders) is created on demand by the step
+that writes it, from Inputs Preparation to the end of the pipeline.</p>
+<p>Two settings in the form control the metadata:</p>
+<table>
+<thead>
+<tr>
+<th>Setting (GUI)</th>
+<th>YAML</th>
+<th>Values</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Study Metadata</td>
+<td><code>study_metadata</code></td>
+<td>No (<code>false</code>, default) or Yes (<code>true</code>)</td>
+</tr>
+<tr>
+<td>Study Metadata folder (shown when Yes)</td>
+<td><code>study_metadata_dir</code></td>
+<td><code>inputs/metadata/</code></td>
+</tr>
+</tbody>
+</table>
+<p>Inputs Preparation runs four stages in order and stops at the first failure:</p>
+<ol>
+<li>
+<p><strong>Sample metadata</strong> (<code>prepare-samples</code>). When <code>prepared/samples.tsv</code> (the fixed
+<code>samples_tsv</code> setting) does not exist, it is built from the input files, with its folder:
+paired FASTQ names give one row per sample and lane, and <code>library_id</code> defaults to
+<code>sample_id</code>, so review them. BAM/CRAM names do not give sample identities, so a blank
+template is written and preparation stops until it is filled in. An existing file is used
+as it is and never overwritten.</p>
+</li>
+<li>
+<p><strong>Study metadata</strong> (<code>prepare-samples</code>).</p>
+<table>
+<thead>
+<tr>
+<th>Study Metadata</th>
+<th>Study Metadata folder holds</th>
+<th>Inputs Preparation</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>No</td>
+<td>(not created; ignored if present)</td>
+<td>continues with the sample metadata only (<code>NOT_USED</code>)</td>
+</tr>
+<tr>
+<td>Yes</td>
+<td>one study table (tab-separated, with <code>sample_id</code>)</td>
+<td>merges it into the sample metadata (<code>MERGED</code>): empty cells are filled, existing values are never overwritten, differences and unmatched IDs are listed</td>
+</tr>
+<tr>
+<td>Yes</td>
+<td>no study table yet</td>
+<td>continues with the sample metadata only and warns (<code>NO_STUDY_TABLE</code>); add the table and run it again</td>
+</tr>
+<tr>
+<td>Yes</td>
+<td>several study tables</td>
+<td>stops and lists them; keep one there or choose it with <code>--metadata-table PATH</code></td>
+</tr>
+</tbody>
+</table>
+<p>The library catalog, the marker catalogue, the sample metadata and earlier merge
+backups are never taken for study tables. Repeating the merge writes nothing new. The
+result is in <code>metadata/inputs_preparation.json</code>.</p>
+</li>
+<li>
+<p><strong>References</strong> (<code>prepare</code>). Revalidates the inputs and builds what the input files and
+final output need under <code>prepared/reference/</code>: the FASTA index and sequence dictionary,
+and the BWA-MEM2 index when reads are aligned (FASTQ input and UMI BAM input). Current
+files are reused.</p>
+</li>
+<li>
+<p><strong>Checks</strong> (<code>verify-prepared</code>, <code>ready</code>).</p>
+</li>
+</ol>
+<h2 id="terminal-workflow">Terminal workflow</h2>
+<p>From your study workspace, edit the three configuration YAML files and run
+the corresponding commands for the GUI stages.</p>
+<table>
+<thead>
+<tr>
+<th>GUI stage</th>
+<th>CLI equivalent</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Input directories</td>
+<td><code>./pfvarx input-directories</code></td>
+</tr>
+<tr>
+<td>Input directories: Install required tools</td>
+<td><code>./pfvarx install-tools</code> (<code>--check</code> reports only)</td>
+</tr>
+<tr>
+<td>Input files: upload from your computer</td>
+<td><code>./pfvarx add-input --file /path/to/file</code> (repeat <code>--file</code> for several)</td>
+</tr>
+<tr>
+<td>Input files: download from an HTTPS link</td>
+<td><code>./pfvarx fetch-input --url URL --name FILENAME</code></td>
+</tr>
+<tr>
+<td>Input Files Validation</td>
+<td><code>./pfvarx validate-input-files</code></td>
+</tr>
+<tr>
+<td>Inputs Preparation</td>
+<td><code>./pfvarx inputs-preparation</code></td>
+</tr>
+<tr>
+<td>Workflow Readiness Checks</td>
+<td><code>./pfvarx workflow-readiness-checks</code></td>
+</tr>
+<tr>
+<td>Workflow Check and Run: Check workflow</td>
+<td><code>./pfvarx workflow-check</code></td>
+</tr>
+<tr>
+<td>Workflow Check and Run: Run workflow</td>
+<td><code>./pfvarx workflow-run</code></td>
+</tr>
+</tbody>
+</table>
+<p>Each GUI stage and its command run the same code and apply the same rules, so
+you can switch between them at any stage. Both refuse to create input folders
+while <code>reference.release_label</code> is still the template placeholder.</p>
+<p><code>add-input</code> and <code>fetch-input</code> place reads or alignments by default. Add
+<code>--role reference</code>, <code>--role targets</code>, <code>--role metadata</code> or <code>--role truth</code> for the
+other folders, as the GUI file categories do. <code>./pfvarx input-files</code> lists the
+folders. Both routes need the folder to exist, accept only files whose content belongs
+in that folder (below), and never overwrite a file. <code>add-input</code> copies the file and leaves the original
+unchanged; to use large files in place without copying, register them by path
+with <code>register-inputs</code>.</p>
+<pre><code class="language-bash">./pfvarx add-input --file /data/run1/sample_R1.fastq.gz --file /data/run1/sample_R2.fastq.gz
+./pfvarx add-input --role reference --file /data/ref/Pf3D7.fasta --file /data/ref/core_genome.bed
+./pfvarx fetch-input --name sample_R1.fastq.gz --url 'https://example.org/sample_R1.fastq.gz'
+</code></pre>
+<p>Replace the example paths, URL and filename with your actual inputs. Add
+<code>--sha256</code> to <code>fetch-input</code> when you have a trusted checksum. For FASTQ input,
+Inputs Preparation (or validation, if it runs first) writes the sample metadata
+<code>prepared/samples.tsv</code> from the paired files in <code>inputs/fastq/</code> if none exists; review it
+before analysis. <code>workflow-run</code> repeats the workflow
+check and starts a new analysis only if it passes, exactly as the GUI <strong>Run
+workflow</strong> button does. <code>./pfvarx dry-run</code> and <code>./pfvarx pipeline --mode NEW</code>
+remain available as the separate steps.</p>
+<h3 id="supported-input-content">Supported input content</h3>
+<p>PfVarX recognises every input file by its content and structure, never by its name or
+extension. A file is accepted when its bytes show that it is the right kind (FASTA
+header lines, FASTQ records, BAM/CRAM headers, BED or GFF columns, a sample-sheet,
+primer or catalogue header), and refused, with an explanation, when they do not.</p>
+<table>
+<thead>
+<tr>
+<th>Folder</th>
+<th>Accepted content</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>inputs/reference/</td>
+<td>FASTA sequence, BED intervals (core mask), GFF3 annotation</td>
+</tr>
+<tr>
+<td>inputs/fastq/</td>
+<td>FASTQ reads, plain or gzip-compressed</td>
+</tr>
+<tr>
+<td>inputs/alignments/</td>
+<td>BAM or CRAM alignment (as configured) and its index (.bai, .csi or .crai content)</td>
+</tr>
+<tr>
+<td>inputs/targets/</td>
+<td>BED intervals (targets, probes) and the primer table, named by a panel in the library catalog</td>
+</tr>
+<tr>
+<td>inputs/metadata/</td>
+<td>Study metadata table (header with <code>sample_id</code>), marker catalogue (header with <code>marker_id</code>), library catalog (YAML with <code>schema_version: pfvarx.library_catalog/1</code>), other tab-separated tables</td>
+</tr>
+<tr>
+<td>inputs/truth/</td>
+<td>VCF variants, BED intervals, JSON</td>
+</tr>
+<tr>
+<td>inputs/partitions/</td>
+<td>partition.json, generated by the benchmark partition command</td>
+</tr>
+</tbody>
+</table>
+<p>Two naming rules remain because tools depend on them. fastp decides from the name
+whether reads are compressed, so a gzip-compressed FASTQ must end in <code>.gz</code> and a plain
+one must not; otherwise fastp reads no records without an error. Reference, BED, GFF,
+primer, sample-sheet and catalogue files must be uncompressed, because PfVarX reads
+them as plain text.</p>
+<p>When a setting in <code>config/config.yaml</code> names only a folder (for example
+<code>core_mask_bed: inputs/reference/</code>), PfVarX uses the one file in that folder whose
+content suits the setting. With no such file, or several, validation reports the
+problem and lists the candidates. Validation also checks the structure of each file:
+FASTA sequences, BED intervals within the contigs, GFF3 columns, contigs and gene/CDS
+features, the primer table, the catalogue columns and status, FASTQ record pairing and
+quality encoding, and alignment headers, sorting and read groups. The right content
+alone does not establish scientific suitability: check that the files match one
+reference release.</p>
+<p>The Input files categories follow the saved configuration and existing input
+folders. After changing input type, save before returning to Input files.
+Folders from earlier settings can remain on disk while their tabs are hidden.</p>
+<p>Inputs Preparation builds a missing sample sheet from the input files (a blank template for BAM/CRAM input). Fill or review it, or register a reviewed manifest, then rerun preparation. Existing sheets are preserved.</p>
 <h1 id="appendix-g-assay-design-library-records-and-conditional-analysis">Appendix G — Assay design, library records and conditional analysis</h1>
 <p>Paired-end short-read genomic DNA is fixed. One run setting selects the processing
 branch: <code>assay_design</code> (<code>wgs</code>, <code>targeted_umi</code> or <code>targeted_no_umi</code>). Each design accepts
 FASTQ and BAM/CRAM entry (<code>input_type</code>). Read depth and filenames alone cannot identify a
-laboratory protocol, so what each library *is* is recorded per sample in the manifest and
+laboratory protocol, so what each library <em>is</em> is recorded per sample in the manifest and
 in the library catalog, and the pipeline checks it against the design.</p>
 <h2 id="designs-and-their-branches">Designs and their branches</h2>
-<table><thead><tr><th><code>assay_design</code></th><th>Libraries</th><th>FASTQ entry</th><th>BAM/CRAM entry (by <code>processing_state</code>)</th><th>Counts</th></tr></thead><tbody>
-<tr><td><code>wgs</code></td><td>Direct WGS (<code>amplification_route: DIRECT</code>) and selective WGS (<code>SWGA</code>) share this branch</td><td>fastp, bwa-mem2, merge lanes, duplicate marking (Picard)</td><td><code>aligned</code>: duplicates marked; <code>duplicates_marked</code>: used as is; empty: duplicates marked unless the header records it</td><td>reads</td></tr>
-<tr><td><code>targeted_no_umi</code></td><td>Amplicon or panel libraries without UMIs (<code>AMPLICON</code>)</td><td>fastp, bwa-mem2, merge lanes, primer trimming (fgbio TrimPrimers)</td><td><code>aligned</code>: primers trimmed; <code>primers_trimmed</code>: used as is</td><td>reads</td></tr>
-<tr><td><code>targeted_umi</code></td><td>Amplicon libraries with UMIs (<code>AMPLICON</code>)</td><td>fastp, UMI extraction (FastqToBam), alignment, grouping, consensus, filtering, realignment, primer trimming</td><td><code>aligned</code> (raw reads, UMI in RX): grouping, consensus, realignment, trimming; <code>consensus</code>: trimming only, consensus is <strong>not</strong> generated again; <code>consensus_primers_trimmed</code>: used as is</td><td>UMI consensus molecules</td></tr>
-</tbody></table>
+<table>
+<thead>
+<tr>
+<th><code>assay_design</code></th>
+<th>Libraries</th>
+<th>FASTQ entry</th>
+<th>BAM/CRAM entry (by <code>processing_state</code>)</th>
+<th>Counts</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>wgs</code></td>
+<td>Direct WGS (<code>amplification_route: DIRECT</code>) and selective WGS (<code>SWGA</code>) share this branch</td>
+<td>fastp, bwa-mem2, optional Human DNA removal (<code>reference.host_removal</code>, wgs only), merge lanes, duplicate marking (Picard)</td>
+<td><code>aligned</code>: duplicates marked; <code>duplicates_marked</code>: used as is; empty: duplicates marked unless the header records it</td>
+<td>reads</td>
+</tr>
+<tr>
+<td><code>targeted_no_umi</code></td>
+<td>Amplicon or panel libraries without UMIs (<code>AMPLICON</code>)</td>
+<td>fastp, bwa-mem2, merge lanes, primer trimming (fgbio TrimPrimers)</td>
+<td><code>aligned</code>: primers trimmed; <code>primers_trimmed</code>: used as is</td>
+<td>reads</td>
+</tr>
+<tr>
+<td><code>targeted_umi</code></td>
+<td>Amplicon libraries with UMIs (<code>AMPLICON</code>)</td>
+<td>fastp, UMI extraction (FastqToBam), alignment, grouping, consensus, filtering, realignment, primer trimming</td>
+<td><code>aligned</code> (raw reads, UMI in RX): grouping, consensus, realignment, trimming; <code>consensus</code>: trimming only, consensus is <strong>not</strong> generated again; <code>consensus_primers_trimmed</code>: used as is</td>
+<td>UMI consensus molecules</td>
+</tr>
+</tbody>
+</table>
 <p>Primer trimming needs primers: a panel with only probe definitions (capture) is not
 trimmed. A documented state is compared with the file before anything runs: consensus
 reads carry the fgbio <code>cD</code> tag and raw UMI reads the <code>RX</code> tag, so a state the reads
@@ -2599,20 +3118,53 @@ reads. The unit is written as <code>##PfVarX_count_unit=</code> in every per-sam
 <h2 id="the-sample-manifest">The sample manifest</h2>
 <p>Required columns stay <code>sample_id</code>, <code>lane</code>, <code>library_id</code> and the input files (<code>fastq_1</code> and
 <code>fastq_2</code>, or <code>bam</code>). Optional columns describe the library:</p>
-<table><thead><tr><th>Column</th><th>Values</th><th>Rule</th></tr></thead><tbody>
-<tr><td><code>technique</code></td><td><code>WGS</code>, <code>SELECTIVE_WGS</code>, <code>AMPLICON</code>, <code>TBS_UMI</code>, <code>TBS_NON_UMI</code>; empty, <code>null</code>, <code>NA</code> or <code>.</code> = unspecified</td><td><code>WGS</code> and <code>SELECTIVE_WGS</code> only with <code>wgs</code> (<code>SELECTIVE_WGS</code> records the SWGA route); <code>AMPLICON</code> with either targeted design; <code>TBS_UMI</code> only with <code>targeted_umi</code>; <code>TBS_NON_UMI</code> only with <code>targeted_no_umi</code></td></tr>
-<tr><td><code>amplification_route</code></td><td><code>DIRECT</code>, <code>SWGA</code>, <code>AMPLICON</code></td><td><code>DIRECT</code> or <code>SWGA</code> for <code>wgs</code>, <code>AMPLICON</code> for targeted designs. Recorded as provenance: <code>DIRECT</code> only when documented, <code>SWGA</code> when documented or implied by <code>SELECTIVE_WGS</code>, <code>AMPLICON</code> when documented or implied by the panel's primers</td></tr>
-<tr><td><code>panel_id</code>, <code>panel_version</code></td><td>IDs in the library catalog</td><td>Required for targeted designs; one panel per run</td></tr>
-<tr><td><code>library_protocol_id</code></td><td>ID in the library catalog</td><td>Required for <code>targeted_umi</code> FASTQ (UMI extraction); optional otherwise</td></tr>
-<tr><td><code>processing_state</code></td><td>see the table above</td><td>BAM/CRAM entry only; required for targeted designs</td></tr>
-</tbody></table>
+<table>
+<thead>
+<tr>
+<th>Column</th>
+<th>Values</th>
+<th>Rule</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>technique</code></td>
+<td><code>WGS</code>, <code>SELECTIVE_WGS</code>, <code>AMPLICON</code>, <code>TBS_UMI</code>, <code>TBS_NON_UMI</code>; empty, <code>null</code>, <code>NA</code> or <code>.</code> = unspecified</td>
+<td><code>WGS</code> and <code>SELECTIVE_WGS</code> only with <code>wgs</code> (<code>SELECTIVE_WGS</code> records the SWGA route); <code>AMPLICON</code> with either targeted design; <code>TBS_UMI</code> only with <code>targeted_umi</code>; <code>TBS_NON_UMI</code> only with <code>targeted_no_umi</code></td>
+</tr>
+<tr>
+<td><code>amplification_route</code></td>
+<td><code>DIRECT</code>, <code>SWGA</code>, <code>AMPLICON</code></td>
+<td><code>DIRECT</code> or <code>SWGA</code> for <code>wgs</code>, <code>AMPLICON</code> for targeted designs. Recorded as provenance: <code>DIRECT</code> only when documented, <code>SWGA</code> when documented or implied by <code>SELECTIVE_WGS</code>, <code>AMPLICON</code> when documented or implied by the panel's primers</td>
+</tr>
+<tr>
+<td><code>panel_id</code>, <code>panel_version</code></td>
+<td>IDs in the library catalog</td>
+<td>Required for targeted designs; one panel per run</td>
+</tr>
+<tr>
+<td><code>library_protocol_id</code></td>
+<td>ID in the library catalog</td>
+<td>Required for <code>targeted_umi</code> FASTQ (UMI extraction); optional otherwise</td>
+</tr>
+<tr>
+<td><code>processing_state</code></td>
+<td>see the table above</td>
+<td>BAM/CRAM entry only; required for targeted designs</td>
+</tr>
+<tr>
+<td><code>adapter_kit</code></td>
+<td><code>TRUSEQ</code>, <code>NEXTERA</code>, <code>AUTO</code>, <code>CUSTOM</code>; empty = unspecified</td>
+<td>The 3' adapters fastp trims (FASTQ entry). Empty uses the library protocol's <code>adapters</code>, else <code>layer1.fastp_adapter_kit_default</code> (<code>TRUSEQ</code>). <code>CUSTOM</code> needs a protocol with the sequences. <code>AUTO</code> uses fastp's detection, which on AT-rich reads can pick its poly-T <code>FlowCell1</code> sequence and trim real T runs; use it only when the kit is unknown</td>
+</tr>
+</tbody>
+</table>
 <p>The technique label, route, protocol and panel must agree with each other and with the
 design. A conflict is reported at input validation as
-<code>sample S1 (library LIB1): technique TBS_UMI requires assay_design targeted_umi, but the
-run's assay_design is targeted_no_umi</code>; only the affected sample is excluded. The resolved
-technique, route (with where it came from), panel, protocol, state, steps run on entry and
-count unit are frozen in the run plan and shown in the dashboard's input section.</p>
-<p>Example (<code>inputs/metadata/samples.tsv</code>, tab-separated; BAM columns left empty):</p>
+<code>sample S1 (library LIB1): technique TBS_UMI requires assay_design targeted_umi, but the run's assay_design is targeted_no_umi</code>; only the affected sample is excluded. The resolved
+technique, route (with where it came from), panel, protocol, adapters (kit, sequences and
+source), state, steps run on entry and count unit are frozen in the run plan and shown in the dashboard's input section.</p>
+<p>Example (<code>prepared/samples.tsv</code>, tab-separated; BAM columns left empty):</p>
 <pre><code class="language-text">sample_id	lane	fastq_1	fastq_2	bam	library_id	technique	amplification_route	panel_id	panel_version	library_protocol_id	processing_state
 PF001	L001	inputs/fastq/PF001_R1.fastq.gz	inputs/fastq/PF001_R2.fastq.gz		PF001_lib1	TBS_UMI	AMPLICON	MAD4HATTER	1	UMI8_DUAL
 PF002	L001	inputs/fastq/PF002_R1.fastq.gz	inputs/fastq/PF002_R2.fastq.gz		PF002_lib1	null		MAD4HATTER	1	UMI8_DUAL
@@ -2636,6 +3188,10 @@ library_protocols:
   - library_protocol_id: UMI8_DUAL
     technique: TBS_UMI                          # optional default label
     amplification_route: AMPLICON               # optional default route
+    adapters:                                   # optional: 3' adapters fastp trims
+      kit: CUSTOM                               # TRUSEQ | NEXTERA | AUTO | CUSTOM
+      read1: AGATCGGAAGAGCACACGTCTGAACTCCAGTCA  # CUSTOM only
+      read2: AGATCGGAAGAGCGTCGTGTAGGGAAAGAGTGT  # CUSTOM only
     umi:
       read_structure: &quot;8M+T 8M+T&quot;               # UMI extraction
       filter_min_reads: 3                       # optional; omitted settings use layer1.yaml
@@ -2643,19 +3199,68 @@ library_protocols:
 <p>UMI consensus settings a protocol does not give use the maintainer defaults in
 <code>config/parameters/layer1.yaml</code>; each resolved value is recorded with its source
 (<code>LIBRARY_PROTOCOL</code> or <code>PARAMETER_DEFAULT</code>).</p>
+<p>Adapters are resolved the same way for every design: the manifest <code>adapter_kit</code>, else the
+protocol's <code>adapters</code>, else <code>layer1.fastp_adapter_kit_default</code>. The two sources must agree,
+and all libraries of a sample must use one kit. UMI libraries whose read structure ends in a
+fixed segment keep adapter trimming off, as before.</p>
 <h2 id="downstream-eligibility-from-the-panel-and-callable-evidence">Downstream eligibility from the panel and callable evidence</h2>
 <p>Every analysis applies to every design; whether it runs is decided from what was
 sequenced (the <strong>territory</strong>: the core genome for <code>wgs</code>, the panel's targets for
 targeted designs) and from what is callable. Decisions record the territory facts.</p>
-<table><thead><tr><th>ID</th><th>Analysis</th><th>Panel and callable-evidence rule</th><th>Further run-time gates</th></tr></thead><tbody>
-<tr><td>DA001</td><td>Clone inference (COI, clonality)</td><td>—</td><td>≥ 10 informative loci per sample; MOIRE needs ≥ 10 informative samples, otherwise the caller's mixture test</td></tr>
-<tr><td>DA002</td><td>Resistance markers</td><td>The territory must contain a whole catalogue codon (<code>PANEL_LACKS_MARKERS</code>); each sample needs at least one whole catalogue codon in its callable regions (<code>NO_CALLABLE_MARKERS</code>)</td><td>Per-marker callability (<code>UNKNOWN</code>), WHO K13 flag needs ≥ 3 callable infections</td></tr>
-<tr><td>DA003</td><td>Diversity</td><td>—</td><td>Group sizes; Fws needs ≥ 10 samples</td></tr>
-<tr><td>DA004</td><td>Relatedness and IBD</td><td>—</td><td>200 informative markers per WGS pair, 20 per targeted pair (low precision below 200)</td></tr>
-<tr><td>DA005</td><td>Population structure</td><td>A panel needs ≥ 10 separate target regions (<code>da005_min_independent_loci</code>, <code>TOO_FEW_INDEPENDENT_LOCI</code>)</td><td>Population groups; ≥ 3 informative sites</td></tr>
-<tr><td>DA006</td><td>Phylogenetics</td><td>A panel needs ≥ 10 separate target regions (<code>da006_min_independent_loci</code>)</td><td>≥ 4 monoclonal samples, ≥ 10 parsimony-informative sites, missingness limits</td></tr>
-<tr><td>DA007</td><td>Spatial and temporal</td><td>Inherits DA002</td><td>Coordinates, dates, country</td></tr>
-</tbody></table>
+<table>
+<thead>
+<tr>
+<th>ID</th>
+<th>Analysis</th>
+<th>Panel and callable-evidence rule</th>
+<th>Further run-time gates</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>DA001</td>
+<td>Clone inference (COI, clonality)</td>
+<td>—</td>
+<td>≥ 10 informative loci per sample; MOIRE needs ≥ 10 informative samples, otherwise the caller's mixture test</td>
+</tr>
+<tr>
+<td>DA002</td>
+<td>Resistance markers</td>
+<td>The territory must contain a whole catalogue codon (<code>PANEL_LACKS_MARKERS</code>); each sample needs at least one whole catalogue codon in its callable regions (<code>NO_CALLABLE_MARKERS</code>)</td>
+<td>Per-marker callability (<code>UNKNOWN</code>), WHO K13 flag needs ≥ 3 callable infections</td>
+</tr>
+<tr>
+<td>DA003</td>
+<td>Diversity</td>
+<td>—</td>
+<td>Group sizes; Fws needs ≥ 10 samples</td>
+</tr>
+<tr>
+<td>DA004</td>
+<td>Relatedness and IBD</td>
+<td>—</td>
+<td>200 informative markers per WGS pair, 20 per targeted pair (low precision below 200)</td>
+</tr>
+<tr>
+<td>DA005</td>
+<td>Population structure</td>
+<td>A panel needs ≥ 10 separate target regions (<code>da005_min_independent_loci</code>, <code>TOO_FEW_INDEPENDENT_LOCI</code>)</td>
+<td>Population groups; ≥ 3 informative sites</td>
+</tr>
+<tr>
+<td>DA006</td>
+<td>Phylogenetics</td>
+<td>A panel needs ≥ 10 separate target regions (<code>da006_min_independent_loci</code>)</td>
+<td>≥ 4 monoclonal samples, ≥ 10 parsimony-informative sites, missingness limits</td>
+</tr>
+<tr>
+<td>DA007</td>
+<td>Spatial and temporal</td>
+<td>Inherits DA002</td>
+<td>Coordinates, dates, country</td>
+</tr>
+</tbody>
+</table>
 <p>A panel's loci are its separate target regions: sites inside one amplicon are linked, so
 DA005 and DA006 results from a panel carry a caveat that they describe the panel loci,
 not the genome. The 10-region minimums are provisional (no published standard).</p>
@@ -2664,7 +3269,7 @@ not the genome. The 10-region minimums are provisional (no published standard).<
 scientific output.</p>
 <h2 id="select-automatic-execution">Select automatic execution</h2>
 <p>For a fresh targeted non-UMI workspace with the compatible dependencies:</p>
-<pre><code class="language-bash">python3 bootstrap.py --workspace ../targeted-study --profile downstream \
+<pre><code class="language-bash">python3 bootstrap.py --workspace ../targeted-study --final-output FO004 \
   --design targeted_no_umi --auto-analyses
 cd ../targeted-study
 ./pfvarx configure --gui
@@ -2690,14 +3295,40 @@ reasons. Keep <code>CONTINUE_INDEPENDENT</code> to let qualified independent ana
 <pre><code class="language-bash">./pfvarx config-migrate           # report what would change
 ./pfvarx config-migrate --apply   # write it, keeping .before-config4 backups
 </code></pre>
-<table><thead><tr><th>Schema 3 (<code>config.yaml</code>)</th><th>Schema 4</th></tr></thead><tbody>
-<tr><td><code>assay.design: WGS / TARGETED_NON_UMI / TARGETED_UMI</code></td><td><code>assay_design: wgs / targeted_no_umi / targeted_umi</code></td></tr>
-<tr><td><code>assay.sequencing_type</code> (<code>SWGS</code> becomes <code>SELECTIVE_WGS</code>)</td><td>manifest <code>technique</code></td></tr>
-<tr><td><code>assay.amplification_route</code></td><td>manifest <code>amplification_route</code></td></tr>
-<tr><td><code>assay.targets_bed</code>, <code>assay.primers_tsv</code></td><td>catalog panel <code>LEGACY_PANEL</code> version <code>config3</code>; manifest <code>panel_id</code>, <code>panel_version</code></td></tr>
-<tr><td><code>assay.read_structure</code></td><td>catalog protocol <code>LEGACY_UMI_PROTOCOL</code>; manifest <code>library_protocol_id</code></td></tr>
-<tr><td>targeted BAM/CRAM import (had to be trimmed, and for UMI consensus)</td><td>manifest <code>processing_state: primers_trimmed</code> or <code>consensus_primers_trimmed</code></td></tr>
-</tbody></table>
+<table>
+<thead>
+<tr>
+<th>Schema 3 (<code>config.yaml</code>)</th>
+<th>Schema 4</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>assay.design: WGS / TARGETED_NON_UMI / TARGETED_UMI</code></td>
+<td><code>assay_design: wgs / targeted_no_umi / targeted_umi</code></td>
+</tr>
+<tr>
+<td><code>assay.sequencing_type</code> (<code>SWGS</code> becomes <code>SELECTIVE_WGS</code>)</td>
+<td>manifest <code>technique</code></td>
+</tr>
+<tr>
+<td><code>assay.amplification_route</code></td>
+<td>manifest <code>amplification_route</code></td>
+</tr>
+<tr>
+<td><code>assay.targets_bed</code>, <code>assay.primers_tsv</code></td>
+<td>catalog panel <code>LEGACY_PANEL</code> version <code>config3</code>; manifest <code>panel_id</code>, <code>panel_version</code></td>
+</tr>
+<tr>
+<td><code>assay.read_structure</code></td>
+<td>catalog protocol <code>LEGACY_UMI_PROTOCOL</code>; manifest <code>library_protocol_id</code></td>
+</tr>
+<tr>
+<td>targeted BAM/CRAM import (had to be trimmed, and for UMI consensus)</td>
+<td>manifest <code>processing_state: primers_trimmed</code> or <code>consensus_primers_trimmed</code></td>
+</tr>
+</tbody>
+</table>
 <p>Only empty manifest cells are filled. Saving a schema-3 workspace in the configuration
 GUI runs the same migration first. Until it is migrated, a schema-3 <code>config.yaml</code> is
 refused with this instruction. Runs frozen under schema 3 still resume, report and verify:

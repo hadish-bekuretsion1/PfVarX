@@ -33,6 +33,8 @@ JOB_CLASSES: dict[str, dict[str, Any]] = {
     "downstream": {"layer": 5, "threads": 2, "mem_mb": 2000, "per_gb_mb": 0},
     "dashboard": {"layer": 6, "threads": 1, "mem_mb": 1000, "per_gb_mb": 0},
 }
+# Job classes whose bwa-mem2 step loads the combined parasite+host index (Human DNA removal, wgs only).
+HOST_INDEX_JOBS = ("bwa_mem2_align",)
 
 
 def layers_for(cfg_final: FinalOutput, input_type: InputType) -> list[int]:
@@ -80,11 +82,18 @@ def resource_plan(root: Path, bundle: Bundle, input_gb: float, n_samples: int) -
         layers.remove(4)
     jobs = jobs_for(layers, bundle.config.assay_design, bundle.config.input_type)
     profiles = measured_profiles(root).get("jobs", {})
+    host_extra = 0
+    if (bundle.config.reference.host_fasta_used is not None and bundle.config.input_type == InputType.FASTQ
+            and bundle.config.assay_design == Design.WGS):
+        from pfvarx.configuration.loader import load_parameters
+
+        host_extra = int(load_parameters(root)["layer1.bwa_mem2_host_extra_mem_mb"]["value"])
     rows, blocked = [], []
     for name in jobs:
         jc = JOB_CLASSES[name]
         threads = min(jc["threads"], comp.per_job.max_threads)
         mem = jc["mem_mb"] + int(jc["per_gb_mb"] * input_gb / max(n_samples, 1))
+        mem += host_extra if name in HOST_INDEX_JOBS else 0
         prof = profiles.get(name)
         if prof:
             mem = max(mem, int(prof["peak_rss_mb"] * 1.2))
@@ -100,7 +109,11 @@ def resource_plan(root: Path, bundle: Bundle, input_gb: float, n_samples: int) -
             blocked.append({"job": name, "reason": Reason.RESOURCE_MEMORY_EXCEEDED.value,
                             "requested_mb": mem, "limit_mb": comp.per_job.max_mem_mb,
                             "remedies": ["raise per_job.max_mem_mb and max_mem_mb if the machine has the memory",
-                                         "split inputs into smaller samples/lanes"]})
+                                         "split inputs into smaller samples/lanes"]
+                            + (["host-read removal loads the parasite+host bwa-mem2 index "
+                                f"(+{host_extra} MB, layer1.bwa_mem2_host_extra_mem_mb): run on a machine with more "
+                                "memory, or set reference.host_removal to false"] if host_extra and name in HOST_INDEX_JOBS
+                               else [])})
         rows.append(row)
     host_cpus = len(os.sched_getaffinity(0)) if hasattr(os, "sched_getaffinity") else (os.cpu_count() or 1)
     host_mem = _host_mem_mb()

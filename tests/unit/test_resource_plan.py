@@ -36,7 +36,7 @@ def rule_requests() -> dict[str, tuple[int, int]]:
         blocks = re.split(r"^\s*(?:rule|checkpoint) (\w+):", path.read_text(), flags=re.M)
         for name, body in zip(blocks[1::2], blocks[2::2], strict=True):
             t = re.search(r"threads:\s*(?:threads\()?(\d+)", body)
-            m = re.search(r"mem_mb=mem\((\d+)\)", body)
+            m = re.search(r"mem_mb=mem\((\d+)(?:, host=True)?\)", body)
             out[name] = (int(t.group(1)) if t else 1, int(m.group(1)) if m else 0)
     return out
 

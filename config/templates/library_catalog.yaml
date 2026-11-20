@@ -13,6 +13,10 @@ library_protocols:
   - library_protocol_id: MY_UMI_PROTOCOL          # EDIT: protocol name as written in the manifest
     technique: null                               # OPTIONAL: AMPLICON | TBS_UMI | TBS_NON_UMI (targeted) or WGS | SELECTIVE_WGS
     amplification_route: AMPLICON                 # OPTIONAL: DIRECT | SWGA (WGS) or AMPLICON (targeted)
+    adapters:                                     # OPTIONAL: 3' adapters fastp trims; omit to use the manifest adapter_kit or TRUSEQ
+      kit: TRUSEQ                                 # TRUSEQ | NEXTERA | AUTO (fastp detection) | CUSTOM
+      # read1: AGATCGGAAGAGCACACGTCTGAACTCCAGTCA  # CUSTOM only: read-1 adapter (A/C/G/T)
+      # read2: AGATCGGAAGAGCGTCGTGTAGGGAAAGAGTGT  # CUSTOM only: read-2 adapter (A/C/G/T)
     umi:                                          # targeted_umi only; delete this block for libraries without UMIs
       read_structure: "8M+T 8M+T"                 # EDIT: fgbio read structures of R1 and R2
       # Optional consensus settings; omitted ones use config/parameters/layer1.yaml:

@@ -31,7 +31,7 @@ KEY = "sample_id"
 # Never filled from a study table: they describe the files and libraries, not the study.
 PROTECTED = {"sample_id", "lane", "library_id", "fastq_1", "fastq_2", "bam", "vcf", "flowcell_type",
              "technique", "amplification_route", "panel_id", "panel_version", "library_protocol_id",
-             "processing_state"}
+             "processing_state", "adapter_kit"}
 NULLS = {"", "na", "n/a", "null", "none", "."}
 
 

@@ -9,11 +9,11 @@ resources and calibration experiments in a separate benchmarking workspace. Read
 From the reviewed source checkout (or the root files of a sparse Git clone):
 
 ```bash
-python3 bootstrap.py --profile sample --workspace ../pfvarx-analysis
+python3 bootstrap.py --final-output FO002 --workspace ../pfvarx-analysis
 cd ../pfvarx-analysis
 ```
 
-Use `--profile cohort` for FO003, or `--profile downstream --analyses DA003 DA001`
+Use `--final-output FO003` for FO003, or `--final-output FO004 --analyses DA003 DA001`
 for selected FO004 methods. Choose this before installation; a sample workspace cannot
 be promoted above its installed capabilities by editing a YAML file. Add the actual
 `--design targeted_no_umi|targeted_umi` and `--input-type BAM|CRAM` at bootstrap when
@@ -101,8 +101,9 @@ After editing the assay fields:
 ./pfvarx init
 ```
 
-`init` creates only the input directories needed for the chosen purpose/design and
-an empty `inputs/metadata/samples.tsv` header. It does not fabricate data, references,
+`init` creates only the input directories needed for the chosen purpose/design
+(`inputs/metadata/` only when a catalogue lives there). Inputs Preparation builds the sample
+sheet, `prepared/samples.tsv`, from the input files. It does not fabricate data, references,
 truth, results or masks. Populate the input paths from your own verified resources.
 
 | Resource | Requirements |
@@ -289,7 +290,7 @@ at generation time; they are not a live scheduler feed. See the [reporting manua
 
 ## 8. Request FO004 analyses
 
-For FO004, bootstrap a matching downstream profile with the intended `--analyses`
+For FO004, bootstrap with `--final-output FO004` and the intended `--analyses`
 before configuring it. Supply the exact matching GFF and select only installed analyses:
 
 ```yaml
