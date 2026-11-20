@@ -54,7 +54,7 @@ with a trailing slash. File fields still require filenames.
 
 | Folder | Place or reference these files |
 | --- | --- |
-| `inputs/reference/` | Parasite FASTA, and core BED. Add a matching GFF for explicit FO004 or to enable markers in automatic FO004. |
+| `inputs/reference/` | Parasite FASTA, and core BED. Add a matching GFF for explicit FO004 or to enable markers in automatic FO004. With Human DNA removal (`reference.host_removal: true`, wgs only), also the human genome FASTA. |
 | `inputs/fastq/` | Paired FASTQ for FASTQ entry. Register read pairs with their verified sample and lane identities. |
 | `inputs/alignments/` | BAM or CRAM with the appropriate index for aligned entry. |
 | `inputs/metadata/` | Reviewed sample TSV and optional population and geographic fields. |
@@ -149,7 +149,52 @@ The executor menu records Local, HPC, Server or Cloud. These use the same
 single-host workflow engine. Submit HPC runs inside one allocated node using
 the deployment guide. Server and Cloud refer to Linux hosts and cloud VMs.
 
-For older workspaces, remove the retired host reference setting from the reference block. Run preparation again before starting a new run.
+## Human DNA removal (optional, whole-genome sequencing only)
+
+Reads from blood or dried blood spots carry human DNA. With `reference.host_removal: true`
+(GUI: **Human DNA removal**) and `reference.host_fasta` set to a human primary-assembly
+FASTA without ALT contigs, each FASTQ read pair is aligned once with bwa-mem2 to the
+parasite and human genomes together. Pairs whose best (primary) alignment of either mate is
+on the human genome are removed before duplicate marking; secondary and supplementary hits
+on human contigs, and human entries in `SA`/`XA` tags, are removed from the pairs kept. The
+BAM keeps the parasite contigs only, so calling, cohort and annotation are unchanged. Each
+sample's QC records `host_templates_removed`, `templates_before_host_removal` and
+`host_fraction` (gate `G2.host_fraction`, reported, not gated). BAM/CRAM input is used as it
+is. With `host_removal: false` (the default) reads align to the parasite genome only and
+`host_fasta` is ignored.
+
+| `assay_design` | Human DNA removal |
+| --- | --- |
+| `wgs` | Eligible (optional) |
+| `targeted_no_umi` | Ineligible |
+| `targeted_umi` | Ineligible |
+
+Targeted libraries are built from parasite-specific amplicons or probes, so human reads
+are a small off-target share that the on-target QC already measures. `host_removal: true`
+with a targeted design is refused when the configuration is loaded (CLI and GUI), with the
+message to set it to false.
+
+PfVarX does not build the bwa-mem2 index of a human-sized reference: building one is
+commonly reported to need about 64 GB of memory, and aligning against it 10–16 GB.
+
+```bash
+./pfvarx prepare                       # writes prepared/reference/combined.fasta, then stops:
+                                       # HOST_INDEX_REQUIRED, with these steps
+# on a machine with enough memory, in a folder holding a copy of combined.fasta:
+bwa-mem2 index combined.fasta          # bwa-mem2 2.2.1, as pinned here
+# copy combined.fasta.0123 .amb .ann .bwt.2bit.64 .pac back into prepared/reference/
+./pfvarx prepare                       # checks the index matches combined.fasta, then seals it
+./pfvarx verify-prepared && ./pfvarx ready
+```
+
+`ready` adds `layer1.bwa_mem2_host_extra_mem_mb` (12 000 MB, provisional) to the bwa-mem2
+request and reports `RESOURCE_MEMORY_EXCEEDED` when `compute.yaml` allows less. Files of
+1 GiB or more under `prepared/reference/` are sealed by size and modification time instead
+of SHA-256.
+
+The earlier `host_fasta` decoy (retired in November 2026) appended the host genome without
+removing reads; a workspace that still has `host_fasta` set keeps aligning to the parasite
+genome only until `host_removal` is set to true.
 
 ## Add study metadata
 

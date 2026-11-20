@@ -65,7 +65,7 @@ def build_plan(root: Path) -> dict[str, Any]:
         "samples_failed_validation": failed_inputs,
         "validation_status": validation["status"],
         "reference": {"combined_fasta": ref.get("combined_fasta"), "parasite_fasta": ref.get("parasite_fasta"),
-                      "reference_sha256": ref.get("reference_sha256")},
+                      "reference_sha256": ref.get("reference_sha256"), "host": ref.get("host")},
         "preparation_current": prep["status"] == "PASS",
         "prepared_verification": prep,
         "analysis_selection": cfg.analyses.selection,

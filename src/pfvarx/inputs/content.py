@@ -39,6 +39,7 @@ SETTING_KINDS = {
     "reference.fasta": ("FASTA",),
     "reference.core_mask_bed": ("BED",),
     "reference.gff": ("GFF",),
+    "reference.host_fasta": ("FASTA",),
     "assay.library_catalog": ("LIBRARY_CATALOG",),
     "samples_tsv": ("SAMPLE_SHEET",),
     "analyses.resistance_catalog": ("CATALOGUE",),

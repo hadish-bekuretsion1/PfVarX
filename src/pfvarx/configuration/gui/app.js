@@ -27,6 +27,7 @@ const filePlaceholders = {
     "config.reference.fasta": "inputs/reference/",
     "config.reference.core_mask_bed": "inputs/reference/",
     "config.reference.gff": "inputs/reference/",
+    "config.reference.host_fasta": "inputs/reference/",
     "config.analyses.resistance_catalog": "inputs/metadata/",
 };
 
@@ -52,7 +53,9 @@ function draw(parent, object, schema, path = "") {
             "config.samples_tsv": "Study metadata and catalogue",
             "config.assay_design": "Assay design",
             "config.assay.library_catalog": "Library catalog: panels and library protocols (YAML)",
-            "config.reference.core_mask_bed": "Core-genome mask (BED)"
+            "config.reference.core_mask_bed": "Core-genome mask (BED)",
+            "config.reference.host_removal": "Human DNA removal (true / false; wgs design only)",
+            "config.reference.host_fasta": "Human genome FASTA (used when Human DNA removal is on)"
         };
         label.textContent = (labels[id] || key.replaceAll("_", " ")) + " ";
         row.append(label);
@@ -190,6 +193,28 @@ function toggle(id, visible) {
     for (const input of row.querySelectorAll("input,select,textarea,button")) input.disabled = !visible;
 }
 
+function hostRemovalEligibility(targeted, design) {
+    // Shown for every design, usable only for wgs: targeted designs see why it is off.
+    const row = editor.querySelector('[data-field="config.reference.host_removal"]');
+    if (!row) return;
+    const box = byId("config.reference.host_removal");
+    if (box) {
+        box.disabled = targeted;
+        if (targeted) box.checked = false;
+    }
+    let note = row.querySelector("[data-host-eligibility]");
+    if (!note) {
+        note = document.createElement("small");
+        note.dataset.hostEligibility = "true";
+        note.className = "notice";
+        row.append(note);
+    }
+    note.hidden = !targeted;
+    note.textContent = targeted
+        ? "Not available for " + design + ": Human DNA removal is eligible only for the wgs design."
+        : "";
+}
+
 function showInputFolders(directories) {
     const contents = {
         "inputs/fastq": "Paired reads (.fastq or .fastq.gz), such as sample_R1.fastq.gz and sample_R2.fastq.gz.",
@@ -232,11 +257,22 @@ function changed(id) {
     }
     const full = config.final_output === "FO004";
     const targeted = config.assay_design !== "wgs";
+    const reference = config.reference;
     if (id === "config.assay_design") {
         // Panels and library protocols live in the library catalog; manifest rows name them.
         assay.library_catalog = targeted ? assay.library_catalog || filePlaceholders["config.assay.library_catalog"] : null;
+        // Human DNA removal is eligible only for wgs; the configuration model refuses it otherwise.
+        if (targeted) {
+            reference.host_removal = false;
+            reference.host_fasta = null;
+        }
         analyses.requested = (analyses.requested || []).filter(da => state.analyses[da].designs.includes(config.assay_design));
         analyses.scales = Object.fromEntries(Object.entries(analyses.scales || {}).filter(([da]) => analyses.requested.includes(da)));
+        render();
+        return;
+    }
+    if (id === "config.reference.host_removal") {
+        reference.host_fasta = reference.host_removal ? reference.host_fasta || filePlaceholders["config.reference.host_fasta"] : null;
         render();
         return;
     }
@@ -270,6 +306,8 @@ function changed(id) {
     toggle("config.analyses.scales", full && analyses.selection !== "auto");
     toggle("config.reference.gff", full);
     toggle("config.assay.library_catalog", targeted);
+    hostRemovalEligibility(targeted, config.assay_design);
+    toggle("config.reference.host_fasta", !targeted && reference.host_removal === true);
     toggle("config.caller.executable", config.caller.backend === "external");
     toggle("config.caller.sha256", config.caller.backend === "external");
     toggle("compute.slurm_partition", false);
@@ -278,6 +316,7 @@ function changed(id) {
     }
     const conditionalRequirements = {
         "config.assay.library_catalog": targeted,
+        "config.reference.host_fasta": !targeted && reference.host_removal === true,
         "config.reference.gff": full && analyses.selection !== "auto",
         "config.analyses.spatial_outcome_source": full && (analyses.requested || []).includes("DA007"),
         "config.caller.executable": config.caller.backend === "external",

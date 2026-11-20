@@ -25,8 +25,13 @@ TARGETS = str(ROOT / PANEL["targets_bed"]) if PANEL.get("targets_bed") else ""
 PRIMERS = str(ROOT / PANEL["primers_tsv"]) if PANEL.get("primers_tsv") else ""
 P = {k: v["value"] for k, v in EFF["parameters"].items()}
 SAMPLES = {s["sample_id"]: s for s in PLAN["samples"]}
-REF = str(ROOT / PLAN["reference"]["combined_fasta"])
+# bwa-mem2 aligns to the combined reference. With host-read removal it also holds the host
+# contigs, which the host filter removes from the output, so every later step that needs a
+# FASTA (and its .dict) uses the parasite reference; without it the two are the same contigs.
+HOST = PLAN["reference"].get("host") if DESIGN == "wgs" else None  # Human DNA removal: wgs only
+ALIGN_REF = str(ROOT / PLAN["reference"]["combined_fasta"])
 PREF = str(ROOT / PLAN["reference"]["parasite_fasta"])
+REF = PREF if HOST else ALIGN_REF
 CORE = str(ROOT / CFG["reference"]["core_mask_bed"])
 LAYERS = PLAN["layers"]
 COMPUTE = EFF["compute"]

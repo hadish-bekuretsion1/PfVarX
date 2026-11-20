@@ -2,7 +2,7 @@
 
 Every numeric decision PfVarX makes is listed here with its three outcomes — accepted,
 accepted with warning, rejected or filtered out — and where the value comes from.
-The values live in `config/registry/qc_policy_pfvarx_qc_v1.yaml` (policy version 1.1.0) and
+The values live in `config/registry/qc_policy_pfvarx_qc_v1.yaml` (policy version 1.2.0) and
 `config/parameters/layer*.yaml`. Each entry there carries a source class:
 
 | Source class | Meaning |
@@ -47,7 +47,8 @@ which excludes subtelomeric and internal hypervariable regions.
 | G1.read_retention | Fraction of reads kept by fastp | ≥ 0.70 | 0.50–0.70 | < 0.50 | Provisional. No published standard. |
 | G1.mean_length | Mean read length after trimming | ≥ 70 bp | < 70 bp | never (warning only) | Li 2013: BWA-MEM is designed for reads of 70 bp and longer. |
 | G1.q30 | Fraction of bases ≥ Q30 | reported | — | — | Not gated: instrument specifications differ by platform and read length. |
-| G2.mapped | Fraction of reads mapped | ≥ 0.80 | 0.50–0.80 | < 0.50 | Provisional. Host DNA content varies with sample type (Oyola 2016). |
+| G2.mapped | Fraction of reads mapped | ≥ 0.80 | 0.50–0.80 | < 0.50 | Provisional. Host DNA content varies with sample type (Oyola 2016). With host-read removal, measured after host pairs are removed. |
+| G2.host_fraction | Fraction of read pairs removed as host (human) | reported | — | — | Only with `reference.host_fasta`. Not gated: the depth and callability gates decide whether enough parasite reads remain. |
 | G2.properly_paired | Fraction properly paired | reported | — | — | Unset. No published standard. |
 | G2.duplicates (WGS) | Duplicate fraction | ≤ 0.30 | 0.30–0.60 | > 0.60 | Provisional. Selective whole-genome amplification raises duplication. |
 | G2.depth (WGS) | Median depth over the core genome | ≥ 20 | 5–20 | < 5 | Rejection level: MalariaGEN Pf7 and Pf8. Warning level: framework policy. |

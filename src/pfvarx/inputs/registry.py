@@ -26,6 +26,27 @@ def required_metadata(bundle: Bundle) -> set[str]:
     return req
 
 
+def validate_host(root: Path, cfg: Any, contigs: dict[str, Any]) -> v.FileReport:
+    """Host FASTA for host-read removal: present, and no parasite contig named like a host one."""
+    from pfvarx.references.host import HOST_PREFIX
+
+    host = cfg.reference.host_fasta_used
+    assert host is not None
+    rep = v.FileReport(path=str(host), kind="HOST_FASTA")
+    if not (root / host).is_file():
+        rep.fail(v.Reason.FILE_MISSING, "host FASTA not found")
+        return rep
+    clash = sorted(c for c in contigs if c.startswith(HOST_PREFIX))
+    if clash:
+        rep.fail(v.Reason.REFERENCE_MISMATCH, f"parasite contig names may not start with {HOST_PREFIX!r} "
+                 f"(reserved for host contigs): {clash[:3]}")
+    if cfg.input_type != InputType.FASTQ:
+        rep.warn(v.Reason.REFERENCE_MISMATCH, "host-read removal runs only on FASTQ input; imported "
+                 f"{cfg.input_type.value} alignments are used as they are")
+    rep.facts = {"host_removal": cfg.input_type == InputType.FASTQ, "contig_prefix": HOST_PREFIX}
+    return rep
+
+
 def validate_all(root: Path, bundle: Bundle) -> dict[str, Any]:
     cfg = bundle.config
     params = load_parameters(root)
@@ -33,7 +54,8 @@ def validate_all(root: Path, bundle: Bundle) -> dict[str, Any]:
     # Each configured file must contain what its setting needs; the file name is not checked.
     for setting, path in (
         ("reference.fasta", cfg.reference.fasta), ("reference.core_mask_bed", cfg.reference.core_mask_bed),
-        ("reference.gff", cfg.reference.gff), ("assay.library_catalog", cfg.assay.library_catalog),
+        ("reference.gff", cfg.reference.gff), ("reference.host_fasta", cfg.reference.host_fasta_used),
+        ("assay.library_catalog", cfg.assay.library_catalog),
         ("samples_tsv", cfg.samples_tsv),
         ("analyses.resistance_catalog", cfg.analyses.resistance_catalog),
     ):
@@ -46,6 +68,8 @@ def validate_all(root: Path, bundle: Bundle) -> dict[str, Any]:
     fasta = v.validate_fasta(root / cfg.reference.fasta)
     reports.append(fasta)
     contigs = fasta.facts.get("contigs", {})
+    if cfg.reference.host_fasta_used is not None:
+        reports.append(validate_host(root, cfg, contigs))
     if contigs:
         reports.append(v.validate_bed(root / cfg.reference.core_mask_bed, contigs, "CORE_MASK"))
     catalog: LibraryCatalog | None = None

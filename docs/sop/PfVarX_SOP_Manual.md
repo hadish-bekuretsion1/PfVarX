@@ -3512,7 +3512,7 @@ For headless configuration, use `./pfvarx config-init --purpose analysis`, edit
 
 | Folder | Place or reference these files |
 | --- | --- |
-| `inputs/reference/` | Parasite FASTA, and core BED. Add a matching GFF for explicit FO004 or to enable markers in automatic FO004. |
+| `inputs/reference/` | Parasite FASTA, and core BED. Add a matching GFF for explicit FO004 or to enable markers in automatic FO004. With Human DNA removal (`reference.host_removal: true`, wgs only), also the human genome FASTA. |
 | `inputs/fastq/` | Paired FASTQ for FASTQ entry. Register read pairs with their verified sample and lane identities. |
 | `inputs/alignments/` | BAM or CRAM with the appropriate index for aligned entry. |
 | `inputs/metadata/` | Reviewed sample TSV and optional population and geographic fields. |
