@@ -18,16 +18,18 @@ release. The sections below 0.0.0 are the earlier development numbering, kept as
   validation for that sample (`ADAPTER_UNRESOLVED`). The resolved kit, sequences and source
   are frozen in the plan, written to each sample's QC decision and shown in the dashboard.
 
-### Configuration editor: visible steps, step drop-down and one colour scheme
+### Configuration editor: professional layout
 
-- The six workflow tabs are an even grid of horizontal buttons that are always visible (one
-  row of six on wide screens, 3 x 2 on laptops, 2 x 3 on narrow windows), numbered 1-6 in
-  workflow order; labels no longer break inside a tab and the bar no longer scrolls.
-- A **Go to step** drop-down lists the same six steps. Its choices are fixed in
-  `index.html` (no database or server call) and it stays in step with the tabs.
-- One navy colour scheme defined once in `style.css`: primary and outline buttons, clear
-  disabled state, card-style setting groups, focus outlines. Colours are kept when the page
-  is printed or saved as PDF.
+- The six workflow steps are numbered tabs (1-6), always visible as an even grid of horizontal
+  buttons (one row of six on wide screens, 3 x 2 on laptops, 2 x 3 on narrow windows); labels
+  no longer break inside a tab and the bar no longer scrolls. The tabs are the only step
+  navigation (no duplicate drop-down).
+- Every settings group is a card with a header; inside it each setting is a form-table row:
+  name on the left (with the required mark), input on the right, help and the example value
+  underneath. Narrow windows stack the name above the input.
+- A header band and one action area (backup option, Create Configuration button, result
+  message). One navy colour scheme defined once in `style.css`: primary and outline buttons,
+  a clear disabled state, focus outlines; colours are kept when the page is printed.
 
 ### Study metadata join and naming standard
 

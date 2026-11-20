@@ -16,6 +16,15 @@ workspace. In a full source copy run `pixi install --locked`. With a selective e
 use bootstrap's `--no-install` option, then run its printed Pixi install command
 and launch the GUI in place of `workspace-init`.
 
+The editor shows the six workflow steps as numbered tabs, always visible: 1 Input
+directories, 2 Input files, 3 Input Files Validation, 4 the preparation step, 5 Workflow
+Readiness Checks and 6 Workflow Check and Run (one row on a wide window, rows of three or two
+on narrower ones). Each tab names its terminal command. On the first tab every setting is a
+row of a form table, grouped in cards (config, quality, compute): the name on the left, with a
+red mark when it is required, the input on the right and the help and an example underneath.
+**Create Configuration and Input Directories** and **Save with backup** sit together in the
+action area below the folder list. Printed or saved as PDF, the page keeps its colours.
+
 Choose the analysis or benchmarking template in a fresh workspace. If YAML exists,
 the form loads it. Complete project ID, input type, assay, reference release and
 paths. The form shows targeted BED/primer fields and the UMI read structure only

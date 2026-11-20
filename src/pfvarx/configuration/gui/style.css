@@ -1,72 +1,120 @@
-/* PfVarX configuration editor. Colours are defined once here and reused. */
+/* PfVarX configuration editor.
+   Colours and sizes are defined once below and reused. Layout: a header band, one row of
+   numbered step tabs, then each settings group as a card in which every setting is a form-table
+   row: name on the left, input on the right, help underneath the input. */
 :root {
-    --bg: #f3f5f8;
+    --bg: #f1f4f8;
     --surface: #ffffff;
-    --surface-muted: #f8fafc;
+    --surface-muted: #f7f9fc;
     --text: #1b2733;
-    --text-muted: #556575;
-    --border: #d5dde6;
+    --text-muted: #5a6b7b;
+    --border: #d8e0e8;
+    --border-strong: #b9c6d3;
     --primary: #1d4f7a;
     --primary-hover: #163d5f;
     --primary-soft: #e8f0f7;
     --focus: #3b82c4;
     --danger: #b42318;
     --notice: #8a5100;
+    --notice-soft: #fff6e5;
     --radius: .5rem;
+    --label-col: 15rem;
     --shadow: 0 1px 2px rgba(16, 32, 48, .06), 0 1px 3px rgba(16, 32, 48, .08);
 }
 
 *, *::before, *::after { box-sizing: border-box; }
+[hidden] { display: none !important; }
 /* Keep the colours when the page is printed or saved as PDF (browsers drop backgrounds otherwise). */
 html { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-[hidden] { display: none !important; }
 
-body { margin: 0; background: var(--bg); color: var(--text); font: 16px/1.5 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
-main { max-width: 1100px; margin: auto; padding: 2rem; }
-h1 { margin: 0 0 .5rem; font-size: 1.9rem; letter-spacing: -.01em; color: var(--primary); }
-h2 { margin-top: 1.75rem; font-size: 1.3rem; }
-h3 { margin-top: 1.5rem; font-size: 1.05rem; }
-code { background: var(--primary-soft); color: var(--primary-hover); padding: .05rem .3rem; border-radius: .25rem; font-size: .9em; }
+body { margin: 0; background: var(--bg); color: var(--text); font: 15px/1.5 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
+main { max-width: 1400px; margin: auto; padding: 0 2rem 3rem; }
+h2 { margin: 2rem 0 .5rem; font-size: 1.2rem; }
+h3 { margin: 1.5rem 0 .5rem; font-size: 1.02rem; }
+code { background: var(--primary-soft); color: var(--primary-hover); padding: .05rem .3rem; border-radius: .25rem; font-size: .88em; }
 
-/* Panels and grouped settings */
+/* Header band */
+.app-header {
+    margin: 0 -2rem 1.25rem;
+    padding: 1.6rem 2rem 1.2rem;
+    background: linear-gradient(135deg, var(--primary) 0%, #2a6a9c 100%);
+    color: #fff;
+}
+.app-header h1 { margin: 0 0 .35rem; font-size: 1.7rem; letter-spacing: -.01em; }
+.app-header p { margin: 0; max-width: 52rem; color: rgba(255, 255, 255, .88); }
+
+/* Cards: top-level settings groups (config, quality, compute) */
 fieldset, details, dialog {
     border: 1px solid var(--border);
     border-radius: var(--radius);
     background: var(--surface);
     box-shadow: var(--shadow);
-    margin: 1rem 0;
-    padding: 1rem 1.25rem;
+    margin: 1.25rem 0;
+    padding: 0 1.25rem 1rem;
     min-width: 0;
 }
-fieldset fieldset { background: var(--surface-muted); box-shadow: none; }
-legend { font-weight: 700; color: var(--primary); padding: 0 .4rem; text-transform: capitalize; }
+#editor > fieldset > legend {
+    float: left;                      /* turns the legend into a full-width card header */
+    width: calc(100% + 2.5rem);
+    margin: 0 -1.25rem .5rem;
+    padding: .7rem 1.25rem;
+    background: var(--surface-muted);
+    border-bottom: 1px solid var(--border);
+    border-radius: var(--radius) var(--radius) 0 0;
+    font-size: 1rem;
+}
+#editor > fieldset > legend + * { clear: both; }
+legend { font-weight: 700; color: var(--primary); text-transform: capitalize; }
+/* Nested groups (assay, reference, caller, retention, per job): a titled inner panel */
+fieldset fieldset { background: var(--surface-muted); box-shadow: none; padding: .25rem 1rem .75rem; margin: 1rem 0; }
+fieldset fieldset > legend { padding: 0 .4rem; font-size: .95rem; }
+details { padding: .8rem 1.25rem; }
 details > summary { cursor: pointer; font-weight: 600; color: var(--primary); }
-dialog { margin: auto; max-width: 90vw; }
+dialog { margin: auto; max-width: 90vw; padding: 1rem 1.25rem; }
 
-label { display: block; margin: .75rem 0 .2rem; font-weight: 500; overflow-wrap: anywhere; }
-small { display: block; color: var(--text-muted); font-size: .85rem; margin-bottom: .4rem; }
-small.notice { color: var(--notice); font-weight: 600; }
+/* Form-table rows: name | input, help under the input */
+.field-row { padding: .7rem 0; border-top: 1px solid var(--border); }
+#editor > fieldset > .field-row:first-of-type,
+fieldset fieldset > .field-row:first-of-type { border-top: 0; }
+label.field {
+    display: grid;
+    grid-template-columns: var(--label-col) minmax(0, 1fr);
+    align-items: center;
+    column-gap: 1rem;
+    margin: 0;
+}
+.field-name { font-weight: 600; overflow-wrap: anywhere; }
+.field-name::first-letter { text-transform: uppercase; }
+.field-row > small, .field-row > input[type=search] { margin-left: calc(var(--label-col) + 1rem); }
+.field-row > label:not(.field) { margin: .35rem 0 0 calc(var(--label-col) + 1rem); font-weight: 400; }
+label { display: block; margin: .6rem 0 .2rem; }
+small { display: block; color: var(--text-muted); font-size: .84rem; margin-top: .35rem; max-width: 46rem; }
+small .example { display: block; margin-top: .2rem; color: var(--text); font-size: .8rem; }
+small.notice { color: var(--notice); background: var(--notice-soft); border-left: 3px solid var(--notice); padding: .3rem .6rem; font-weight: 600; border-radius: .25rem; }
 [data-required-mark] { color: var(--danger); font-weight: 700; }
 
 /* Form controls */
-input, select, textarea, button { font: inherit; max-width: 95%; }
+input, select, textarea, button { font: inherit; max-width: 100%; }
 input:not([type=checkbox]):not([type=radio]), select, textarea {
+    width: 100%;
+    max-width: 30rem;
     padding: .45rem .6rem;
-    margin: .2rem;
-    border: 1px solid var(--border);
+    margin: 0;
+    border: 1px solid var(--border-strong);
     border-radius: .375rem;
     background: var(--surface);
     color: var(--text);
 }
-input:not([type=checkbox]):not([type=radio]), textarea { width: 28rem; }
-input[type=checkbox], input[type=radio] { width: 1.05rem; height: 1.05rem; margin: 0 .35rem; vertical-align: -.15rem; accent-color: var(--primary); }
-input:disabled, select:disabled, textarea:disabled { background: var(--surface-muted); color: var(--text-muted); }
+select { cursor: pointer; }
+label.field > input[type=checkbox] { justify-self: start; }
+input[type=checkbox], input[type=radio] { width: 1.1rem; height: 1.1rem; margin: 0 .4rem 0 0; vertical-align: -.15rem; accent-color: var(--primary); cursor: pointer; }
+input:disabled, select:disabled, textarea:disabled { background: var(--surface-muted); color: var(--text-muted); border-style: dashed; cursor: not-allowed; }
 input:focus-visible, select:focus-visible, textarea:focus-visible, button:focus-visible {
-    outline: 3px solid color-mix(in srgb, var(--focus) 45%, transparent);
+    outline: 3px solid color-mix(in srgb, var(--focus) 40%, transparent);
     outline-offset: 1px;
     border-color: var(--focus);
 }
-pre { white-space: pre-wrap; overflow-wrap: anywhere; background: var(--surface-muted); border-radius: .375rem; padding: .25rem .75rem; }
+pre { white-space: pre-wrap; overflow-wrap: anywhere; background: var(--surface-muted); border: 1px solid var(--border); border-radius: .375rem; padding: .6rem .8rem; font-size: .85rem; }
 pre:empty { display: none; }
 
 /* Buttons: one primary style, an outline style for secondary actions */
@@ -97,60 +145,76 @@ button:disabled { background: #c7d0da; border-color: #c7d0da; color: #fff; curso
 #run-workflow-check:hover:not(:disabled), #join-metadata button[value=preview]:hover:not(:disabled), #entries button:hover {
     background: var(--primary-soft);
 }
-#save { padding: .7rem 1.4rem; font-size: 1.02rem; }
 #entries { max-height: 55vh; overflow: auto; }
 #entries button { display: flex; width: 100%; margin: .2rem 0; box-shadow: none; }
 
-/* Tab bars (workflow steps and input file categories): every tab is always visible, as an even
-   grid of horizontal buttons. Six in one row on wide screens, 3 x 2 on laptops, 2 x 3 on phones;
-   a label never breaks inside a tab and the bar never scrolls. */
-nav {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(9rem, 1fr));
-    gap: .25rem;
-    margin: 1.25rem 0;
-    padding: .3rem;
+/* One action area for saving: option, main button and the result message together */
+.action-bar {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: .5rem 1rem;
+    margin: 1.5rem 0;
+    padding: 1rem 1.25rem;
     background: var(--surface);
     border: 1px solid var(--border);
-    border-radius: calc(var(--radius) + .2rem);
+    border-left: 4px solid var(--primary);
+    border-radius: var(--radius);
     box-shadow: var(--shadow);
 }
-nav[aria-label="Workspace views"] { grid-template-columns: repeat(3, 1fr); }
-@media (min-width: 1500px) { nav[aria-label="Workspace views"] { grid-template-columns: repeat(6, 1fr); } }
-@media (max-width: 900px) { nav[aria-label="Workspace views"] { grid-template-columns: repeat(2, 1fr); } }
+.action-bar .inline-option { margin: 0; flex: 1 1 18rem; }
+.action-bar #save { margin: 0; padding: .7rem 1.4rem; font-size: 1rem; }
+.action-bar #status { flex-basis: 100%; margin: 0; font-weight: 600; }
+.action-bar #status:empty { display: none; }
+
+/* Step tabs: all six on one line in a wide bar, numbered in workflow order, each sized to its
+   label so no label is cut or broken. Windows too narrow for one line get an even 3 x 2 grid
+   (2 x 3 on phones); the bar never scrolls and no tab is hidden. */
+nav {
+    display: flex;
+    flex-wrap: nowrap;
+    gap: .35rem;
+    margin: 0 0 1.5rem;
+    padding: .45rem;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: calc(var(--radius) + .25rem);
+    box-shadow: var(--shadow);
+}
+nav[aria-label="Workspace views"] { counter-reset: step; }
 nav button {
-    justify-content: flex-start;
+    flex: 1 1 auto;
+    justify-content: center;
     min-width: 0;
+    min-height: 3rem;
     margin: 0;
-    padding: .6rem .9rem;
+    padding: .7rem .8rem;
     white-space: nowrap;
     overflow-wrap: normal;
-    max-width: none;
-    border: 0;
+    border: 1px solid transparent;
     border-radius: var(--radius);
     background: transparent;
     color: var(--text-muted);
-    font-size: .92rem;
+    font-size: .93rem;
     font-weight: 600;
     box-shadow: none;
 }
-nav button:hover:not(:disabled) { background: var(--primary-soft); color: var(--primary); }
-nav button[aria-pressed="true"],
-nav button[aria-pressed="true"]:hover:not(:disabled) {
-    background: var(--primary);
-    color: #fff;
-    box-shadow: var(--shadow);
+@media (max-width: 1319px) {
+    nav[aria-label="Workspace views"] { display: grid; grid-template-columns: repeat(3, 1fr); }
+    nav[aria-label="Workspace views"] button { justify-content: flex-start; }
 }
-
-/* Workflow steps are numbered in order: 1 Input directories ... 6 Workflow Check and Run. */
-nav[aria-label="Workspace views"] { counter-reset: step; }
+@media (max-width: 900px) { nav[aria-label="Workspace views"] { grid-template-columns: repeat(2, 1fr); } }
+nav button:hover:not(:disabled) { background: var(--primary-soft); color: var(--primary); border-color: var(--border); }
+nav button[aria-pressed="true"],
+nav button[aria-pressed="true"]:hover:not(:disabled) { background: var(--primary); color: #fff; box-shadow: var(--shadow); }
 nav[aria-label="Workspace views"] button { counter-increment: step; }
 nav[aria-label="Workspace views"] button::before {
     content: counter(step);
     display: inline-grid;
     place-items: center;
-    width: 1.45rem;
-    height: 1.45rem;
+    flex: none;
+    width: 1.55rem;
+    height: 1.55rem;
     border-radius: 50%;
     background: var(--primary-soft);
     color: var(--primary);
@@ -159,17 +223,18 @@ nav[aria-label="Workspace views"] button::before {
 }
 nav[aria-label="Workspace views"] button[aria-pressed="true"]::before { background: #fff; color: var(--primary); }
 
-@media (max-width: 600px) {
-    main { padding: 1rem; }
-    fieldset { padding: .75rem; }
-    input:not([type=checkbox]):not([type=radio]), textarea { width: 100%; }
-    button { max-width: 100%; }
+/* Narrow screens: name above the input, help full width */
+@media (max-width: 720px) {
+    main { padding: 0 1rem 2rem; }
+    .app-header { margin: 0 -1rem 1rem; padding: 1.2rem 1rem 1rem; }
+    label.field { grid-template-columns: 1fr; row-gap: .35rem; }
+    .field-row > small, .field-row > input[type=search], .field-row > label:not(.field) { margin-left: 0; }
+    fieldset { padding: 0 .75rem .75rem; }
+    #editor > fieldset > legend { width: calc(100% + 1.5rem); margin: 0 -.75rem .5rem; padding: .6rem .75rem; }
 }
 
-/* Step drop-down beside the tabs: label and list on one line. */
-.step-picker { display: flex; align-items: center; gap: .6rem; margin: -.5rem 0 1.25rem; font-weight: 600; color: var(--primary); }
-.step-picker select { width: 22rem; max-width: 100%; padding: .5rem .7rem; font-weight: 600; color: var(--text); cursor: pointer; }
-.step-picker select:hover { border-color: var(--primary); }
-
 /* Printed or saved as PDF: three tabs per row, slightly smaller. */
-@media print { nav[aria-label="Workspace views"] { grid-template-columns: repeat(3, 1fr); } nav button { font-size: .8rem; padding: .5rem .6rem; } }
+@media print {
+    nav[aria-label="Workspace views"] { display: grid; grid-template-columns: repeat(3, 1fr); }
+    nav button { font-size: .8rem; padding: .5rem .6rem; }
+}

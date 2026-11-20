@@ -54,14 +54,26 @@ function draw(parent, object, schema, path = "") {
             "config.assay.library_catalog": "Library catalog: panels and library protocols (YAML)",
             "config.reference.core_mask_bed": "Core-genome mask (BED)"
         };
-        label.textContent = (labels[id] || key.replaceAll("_", " ")) + " ";
+        // The setting name sits in its own element (left column); the input follows it.
+        label.className = "field";
+        row.className = "field-row";
+        const name = document.createElement("span");
+        name.className = "field-name";
+        name.textContent = labels[id] || key.replaceAll("_", " ");
+        label.append(name);
         row.append(label);
         parent.append(row);
         const guide = state.field_guide?.[id];
         if (guide || original.description) {
             const help = document.createElement("small");
             help.id = id + ".help";
-            help.textContent = guide ? guide.help + " Values or example: " + guide.example : original.description;
+            help.textContent = guide ? guide.help : original.description;
+            if (guide) {
+                const example = document.createElement("span");
+                example.className = "example";
+                example.textContent = "Values or example: " + guide.example;
+                help.append(example);
+            }
             row.append(help);
         }
         if (id === "config.analyses.requested") {
@@ -149,7 +161,7 @@ function draw(parent, object, schema, path = "") {
         requiredMark.textContent = " *";
         requiredMark.setAttribute("aria-hidden", "true");
         requiredMark.hidden = true;
-        label.insertBefore(requiredMark, input);
+        name.append(requiredMark);
         input.dataset.schemaRequired = String(
             (schema.required || []).includes(key) && !original.anyOf?.some(item => item.type === "null")
         );
@@ -408,13 +420,10 @@ for (const view of ["configuration", "inputs", "validation", "preparation", "pre
             byId(panel + "-panel").hidden = panel !== view;
             byId(panel + "-tab").setAttribute("aria-pressed", String(panel === view));
         }
-        byId("step-select").value = view;  // keep the drop-down on the open step
         if (view === "inputs") loadFileTabs();
         if (view === "workflow") pollWorkflow();
     });
 }
-// Choosing a step in the drop-down opens it exactly as clicking its tab does.
-byId("step-select").addEventListener("change", event => byId(event.target.value + "-tab").click());
 
 for (const [panel, endpoint, title] of [
     ["validation", "validate-inputs", "Input Files Validation"],
