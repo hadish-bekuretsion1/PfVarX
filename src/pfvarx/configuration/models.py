@@ -135,6 +135,14 @@ class ProjectConfig(Strict):
     assay: AssayConfig = Field(default_factory=AssayConfig)
     reference: ReferenceConfig
     samples_tsv: Path
+    study_metadata: bool = Field(
+        default=False,
+        description="Study Metadata: true merges a study table from study_metadata_dir into the sample metadata",
+    )
+    study_metadata_dir: Path = Field(
+        default=Path("inputs/metadata"),
+        description="Folder holding the study metadata table, used when study_metadata is true",
+    )
     analyses: AnalysesConfig = Field(default_factory=AnalysesConfig)
     run_policy: Literal["CONTINUE_INDEPENDENT", "STRICT"] = "CONTINUE_INDEPENDENT"
     random_seed: int = Field(default=20261106, ge=0)

@@ -39,6 +39,29 @@ release. The sections below 0.0.0 are the earlier development numbering, kept as
   validation for that sample (`ADAPTER_UNRESOLVED`). The resolved kit, sequences and source
   are frozen in the plan, written to each sample's QC decision and shown in the dashboard.
 
+### Inputs Preparation: sample metadata from the input files, optional Study Metadata
+
+- The GUI tab **Reference Preparation** is now **Inputs Preparation**, with the terminal
+  command `./pfvarx inputs-preparation [--metadata-table PATH]`. It runs `prepare-samples`,
+  `prepare`, `verify-prepared` and `ready` in order. `prepare` and `prepare-reference` work as
+  before.
+- `prepare-samples` builds the sample metadata from the input files when it is missing (a
+  blank template for BAM/CRAM input) and creates its folder. New settings **Study
+  Metadata** (`study_metadata`, No/Yes, default No) and **Study Metadata folder**
+  (`study_metadata_dir`, default `inputs/metadata`): with Yes the study table there is merged
+  (empty cells filled, nothing overwritten; several tables stop and ask; none continues with
+  a warning), with No preparation continues with the sample metadata only. The result is
+  written to `metadata/inputs_preparation.json`.
+- The sample metadata now defaults to `prepared/samples.tsv`, a fixed path that is no longer
+  shown in the configuration form. Existing workspaces keep the `samples_tsv` path in their
+  configuration.
+- **Input directories** creates only folders for files the user supplies; `inputs/metadata/`
+  only with Study Metadata: Yes or a targeted design's library catalog. Later folders are
+  created on demand.
+- GUI: **Human DNA removal** is a False/True drop-down with **Human genome reference** shown
+  only for True, and **Study Metadata** a No/Yes drop-down with its folder shown only for Yes.
+- Workflow Readiness Checks now starts with `prepare-samples`.
+
 ### Study metadata join and naming standard
 
 - `./pfvarx join-metadata --table PATH [--apply]` (and **Join study metadata** in the GUI's

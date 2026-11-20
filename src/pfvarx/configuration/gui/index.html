@@ -14,7 +14,7 @@
 <button type="button" id="configuration-tab" aria-controls="configuration-panel" aria-pressed="true">Input directories</button>
 <button type="button" id="inputs-tab" aria-controls="inputs-panel" aria-pressed="false">Input files</button>
 <button type="button" id="validation-tab" aria-controls="validation-panel" aria-pressed="false">Input Files Validation</button>
-<button type="button" id="preparation-tab" aria-controls="preparation-panel" aria-pressed="false">Reference Preparation</button>
+<button type="button" id="preparation-tab" aria-controls="preparation-panel" aria-pressed="false">Inputs Preparation</button>
 <button type="button" id="preflight-tab" aria-controls="preflight-panel" aria-pressed="false">Workflow Readiness Checks</button>
 <button type="button" id="workflow-tab" aria-controls="workflow-panel" aria-pressed="false">Workflow Check and Run</button>
 </nav>
@@ -54,14 +54,7 @@
 <button>Download file</button>
 </form>
 <pre id="transfer-status" role="status"></pre>
-<h3>Join study metadata</h3>
-<p>Fill the empty study columns of the sample sheet (population, country, latitude, longitude, collection_date and any other study fields) from your study table, matched by <code>sample_id</code>. Existing values are never overwritten; differences are listed. Upload the table to the metadata folder first. Terminal equivalent: <code>./pfvarx join-metadata --table PATH</code>, then <code>--apply</code>.</p>
-<form id="join-metadata">
-<label>Study table in this workspace <input name="table" placeholder="inputs/metadata/study_metadata.tsv" required></label>
-<button type="submit" name="mode" value="preview">Preview join</button>
-<button type="submit" name="mode" value="apply">Join into sample sheet</button>
-</form>
-<pre id="join-status" role="status"></pre>
+<p>With <em>Study Metadata: Yes</em>, upload your study table to the metadata category above. <strong>Inputs Preparation</strong> merges it into the sample metadata it builds from the input files.</p>
 </section>
 <section id="validation-panel" hidden>
 <h2>Input Files Validation</h2>
@@ -71,10 +64,16 @@
 <p id="validation-status" role="status"></p><pre id="validation-results"></pre>
 </section>
 <section id="preparation-panel" hidden>
-<h2>Reference Preparation</h2>
-<p>Terminal equivalent: <code>./pfvarx prepare-reference</code>.</p>
-<p>For FASTQ input, PfVarX creates a missing sample sheet from paired reads during validation or preparation. Review inferred sample and library IDs before analysis. For BAM input, preparation creates a blank template if needed. Preparation rechecks input validity and writes derived reference files under <code>prepared/reference/</code>, beside <code>inputs/</code>, which keeps only your files. It builds the FASTA indexes and sequence dictionary, and adds BWA-MEM2 indexes for FASTQ entry and for UMI BAM entry.</p>
-<button type="button" id="run-preparation">Prepare and verify inputs</button>
+<h2>Inputs Preparation</h2>
+<p>Terminal equivalent: <code>./pfvarx inputs-preparation</code> (add <code>--metadata-table PATH</code> to choose the study table when the Study Metadata folder holds several).</p>
+<p>Every folder this step and the rest of the pipeline write is created when it is first needed; <strong>Input directories</strong> creates only the folders you put input files into.</p>
+<ol class="preparation-steps">
+<li><strong>Sample metadata.</strong> Built from your input files as <code>prepared/samples.tsv</code>, with its folder: paired FASTQ names give the sample and lane IDs, and library_id defaults to sample_id, so review them. For BAM input a blank template is written for you to fill in. An existing file is never overwritten.</li>
+<li><strong>Study metadata.</strong> <em>Study Metadata: Yes</em>: the study table in the Study Metadata folder (tab-separated, with a <code>sample_id</code> column) is merged into the sample metadata; empty cells are filled, existing values are never overwritten and differences are listed. If the folder has no table yet, preparation continues with the sample metadata and says so. <em>Study Metadata: No</em>: preparation continues with the sample metadata only.</li>
+<li><strong>References.</strong> Built under <code>prepared/reference/</code> for what your input files and final output need: the FASTA index and sequence dictionary always, and the BWA-MEM2 index when reads are aligned (FASTQ input, and UMI BAM input). Files that are already current are reused. The annotation database for FO004 is built from the GFF during the run.</li>
+<li><strong>Checks.</strong> The prepared files are verified and the workflow readiness is checked.</li>
+</ol>
+<button type="button" id="run-preparation">Prepare inputs</button>
 <p id="preparation-status" role="status"></p><pre id="preparation-results"></pre>
 </section>
 <section id="preflight-panel" hidden>

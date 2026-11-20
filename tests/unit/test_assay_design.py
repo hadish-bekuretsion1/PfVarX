@@ -158,6 +158,7 @@ def test_documented_state_is_checked_against_the_reads(design: Design, state: st
 def schema3(design: str, input_type: str = "FASTQ", **assay_cfg: Any) -> dict[str, Any]:
     cfg = yaml.safe_load((REPO / "config/templates/analysis.yaml").read_text())
     cfg["schema_version"] = "pfvarx.config/3"
+    cfg["samples_tsv"] = "inputs/metadata/samples.tsv"  # where schema-3 workspaces kept the sheet
     cfg["input_type"] = input_type
     cfg.pop("assay_design")
     cfg["assay"] = {"design": design, "sequencing_type": None, "amplification_route": "DIRECT",

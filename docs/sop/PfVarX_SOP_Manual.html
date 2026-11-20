@@ -882,14 +882,14 @@ cat config/compute.yaml
 <p>Record source/lock identity and hardware; installation complete; proceed to R02.</p>
 <h2 id="r02-register-one-sample-or-a-cohort">R02 — Register one sample or a cohort</h2>
 <h3>1. Procedure identification</h3>
-<p><strong>Module:</strong> inputs/metadata/samples.tsv and config/config.yaml. <strong>Workflow:</strong> routine analysis.</p>
+<p><strong>Module:</strong> prepared/samples.tsv and config/config.yaml. <strong>Workflow:</strong> routine analysis.</p>
 <p><strong>Purpose and scope:</strong> Create a tab-separated manifest with explicit read pairing and library provenance.</p>
 <h3>2. Prerequisites and requirements</h3>
 <p>R01; actual paired FASTQ files and laboratory sample/lane/library mapping. gzip FASTQ must be intact; population/location values must come from verified metadata.</p>
 <h3>3. Detailed operational procedure</h3>
 <p><strong>Step 1. Edit an explicit registration list in the workspace</strong></p>
 <pre><code class="language-bash">cd &quot;$ANALYSIS&quot;
-nano inputs/metadata/samples.tsv
+nano prepared/samples.tsv
 </code></pre>
 <p>Use the generated columns, real tabs and one row per sample/lane. Do not infer identity from a filename alone. For a one-sample pilot write one data row; for a cohort add all verified rows. The following Python example creates a real tab-separated file; <strong>replace the sample IDs, paths and metadata before executing</strong>:</p>
 <pre><code class="language-bash">./pfvarx tool python - &lt;&lt;'PYCODE'
@@ -899,23 +899,23 @@ columns=['sample_id','lane','fastq_1','fastq_2','bam','vcf','library_id','flowce
 rows=[dict(sample_id='S01',lane='L001',fastq_1='/absolute/path/S01_R1.fastq.gz',fastq_2='/absolute/path/S01_R2.fastq.gz',library_id='LIB01'),
       dict(sample_id='S02',lane='L001',fastq_1='/absolute/path/S02_R1.fastq.gz',fastq_2='/absolute/path/S02_R2.fastq.gz',library_id='LIB02')]
 # Delete the second row for a one-sample pilot. Add verified metadata as needed.
-with Path('inputs/metadata/samples.tsv').open('w',newline='') as h:
+with Path('prepared/samples.tsv').open('w',newline='') as h:
     w=csv.DictWriter(h,fieldnames=columns,delimiter='	');w.writeheader();w.writerows(rows)
 PYCODE
 </code></pre>
 <p><strong>Step 2. Review the exact registered files</strong></p>
-<pre><code class="language-bash">column -t -s $'\t' inputs/metadata/samples.tsv
+<pre><code class="language-bash">column -t -s $'\t' prepared/samples.tsv
 ./pfvarx tool python - &lt;&lt;'PYCODE'
 import csv
 from pathlib import Path
-for r in csv.DictReader(open(&quot;inputs/metadata/samples.tsv&quot;), delimiter=&quot;\t&quot;):
+for r in csv.DictReader(open(&quot;prepared/samples.tsv&quot;), delimiter=&quot;\t&quot;):
     for k in (&quot;fastq_1&quot;,&quot;fastq_2&quot;):
         p=Path(r[k]); print(r[&quot;sample_id&quot;],r[&quot;lane&quot;],k,p,p.is_file())
 PYCODE
 </code></pre>
 <p>If <code>column</code> is unavailable, use <code>cat</code> instead. All path existence checks must be true before validation. IDs use schema-permitted letters/digits/underscore/hyphen; sample/lane pairs must be unique. Multiple lanes share a sample ID and retain accurate library IDs. For WGS, all lanes of one sample must share one <code>flowcell_type</code> (duplicates are marked once per sample with one optical distance); validation rejects a sample that mixes patterned and unpatterned lanes.</p>
 <h3>4. Expected outputs</h3>
-<p><code>inputs/metadata/samples.tsv</code>, containing required sample/lane/library fields and branch-specific file columns. Blank unused fields are preserved.</p>
+<p><code>prepared/samples.tsv</code>, containing required sample/lane/library fields and branch-specific file columns. Blank unused fields are preserved.</p>
 <h3>5. Verification and quality control</h3>
 <p>Confirm R1/R2 mapping with the wet-lab manifest. Do not use the analysis output as a source of truth for sample identity or population labels.</p>
 <h3>6. Error handling and troubleshooting</h3>
@@ -1145,7 +1145,7 @@ BOOTSTRAP_ARGS=(--profile sample --design WGS --input-type BAM)
 # Complete R01 and reference setup in this new workspace.
 cd &quot;$ANALYSIS&quot;
 nano config/config.yaml
-nano inputs/metadata/samples.tsv
+nano prepared/samples.tsv
 </code></pre>
 <p>Set <code>input_type: BAM</code>, <code>assay_design: wgs</code>, and FO002 or later. In the TSV fill <code>bam</code>, <code>sample_id</code>, <code>lane</code>, <code>library_id</code>, the actual <code>amplification_route</code> (<code>DIRECT</code> or <code>SWGA</code>) and <code>processing_state</code> (<code>aligned</code> to mark duplicates, <code>duplicates_marked</code> to use the file as is; empty marks duplicates unless the header records it); leave FASTQ/VCF fields empty. Every read-group SM must equal the registered sample ID. All read groups need ID/SM/LB/PL.</p>
 <p><strong>Step 2. Inspect the supplied BAM read-only</strong></p>
@@ -1950,7 +1950,7 @@ cat config/profiles/resources.yaml
 cd &quot;$BENCH&quot;
 ./pfvarx tool python - &lt;&lt;'PYCODE'
 import csv
-rows=list(csv.DictReader(open(&quot;inputs/metadata/samples.tsv&quot;),delimiter=&quot;\t&quot;))
+rows=list(csv.DictReader(open(&quot;prepared/samples.tsv&quot;),delimiter=&quot;\t&quot;))
 ids=sorted({r[&quot;sample_id&quot;] for r in rows})
 assert len(ids)==4, ids
 print(&quot;samples&quot;,ids,&quot;lanes&quot;,len(rows))
@@ -2055,7 +2055,7 @@ inventory of that run. Snakemake temporary intermediates may disappear after suc
 ├── inputs/
 │   ├── reference/                          optional local resources; absolute originals may be elsewhere
 │   ├── fastq/ OR alignments/                applicable entry route
-│   ├── metadata/samples.tsv
+│   ├── metadata/                           optional study metadata and catalogues
 │   ├── targets/                            targeted assays only
 │   ├── truth/                              benchmarking only
 │   │   ├── truth.json
@@ -2612,7 +2612,7 @@ design. A conflict is reported at input validation as
 run's assay_design is targeted_no_umi</code>; only the affected sample is excluded. The resolved
 technique, route (with where it came from), panel, protocol, state, steps run on entry and
 count unit are frozen in the run plan and shown in the dashboard's input section.</p>
-<p>Example (<code>inputs/metadata/samples.tsv</code>, tab-separated; BAM columns left empty):</p>
+<p>Example (<code>prepared/samples.tsv</code>, tab-separated; BAM columns left empty):</p>
 <pre><code class="language-text">sample_id	lane	fastq_1	fastq_2	bam	library_id	technique	amplification_route	panel_id	panel_version	library_protocol_id	processing_state
 PF001	L001	inputs/fastq/PF001_R1.fastq.gz	inputs/fastq/PF001_R2.fastq.gz		PF001_lib1	TBS_UMI	AMPLICON	MAD4HATTER	1	UMI8_DUAL
 PF002	L001	inputs/fastq/PF002_R1.fastq.gz	inputs/fastq/PF002_R2.fastq.gz		PF002_lib1	null		MAD4HATTER	1	UMI8_DUAL

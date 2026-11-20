@@ -31,7 +31,6 @@ from pfvarx.configuration.models import Bundle
 from pfvarx.constants import Design
 from pfvarx.execution.retention import workspace_lock
 from pfvarx.initialization.layout import check_release_label, create_input_dirs, required_dirs
-from pfvarx.inputs.metadata_join import join_for_workspace
 from pfvarx.inputs.transfer import check_content, destination_for, download, folder_contents
 from pfvarx.io import atomic_write_text, read_json, within
 
@@ -145,20 +144,25 @@ def save(root: Path, values: dict[str, Any], expected: str, replace: bool) -> di
                 "backups": backups, "revision": revision(root), "migration": migration}
 
 
-PREFLIGHT_STAGES = ("validate", "prepare", "verify-prepared", "ready")
+PREFLIGHT_STAGES = ("prepare-samples", "validate", "prepare", "verify-prepared", "ready")
+# Inputs Preparation: sample sheet and optional metadata merge, then references from the input
+# files and final output, verification and readiness (the same as ./pfvarx inputs-preparation).
+INPUTS_PREPARATION_STAGES = ("prepare-samples", "prepare", "verify-prepared", "ready")
 
 
-def run_preflight(root: Path, stages_to_run: tuple[str, ...] = PREFLIGHT_STAGES) -> dict[str, Any]:
+def run_preflight(root: Path, stages_to_run: tuple[str | tuple[str, ...], ...] = PREFLIGHT_STAGES) -> dict[str, Any]:
+    """Run CLI stages in order and stop at the first failure; a stage may carry its own options."""
     stages = []
     env = os.environ.copy()
     env.pop("PFVARX_JSON_OUT", None)
     for stage in stages_to_run:
+        args = [stage] if isinstance(stage, str) else list(stage)
         result = subprocess.run(
-            [sys.executable, "-m", "pfvarx.cli", stage],
+            [sys.executable, "-m", "pfvarx.cli", *args],
             cwd=root, env=env, capture_output=True, text=True, check=False,
         )
         stages.append({
-            "command": stage, "exit_code": result.returncode,
+            "command": " ".join(args), "exit_code": result.returncode,
             "stdout": result.stdout, "stderr": result.stderr,
         })
         if result.returncode:
@@ -301,16 +305,10 @@ class Handler(BaseHTTPRequestHandler):
             if name == "workflow-run":
                 self.respond(start_workflow(self.root))
                 return
-            if name == "join-metadata":
-                # Same step as './pfvarx join-metadata'; from the GUI the table must be in the workspace.
-                table = within(self.root, str(payload["table"]))
-                with workspace_lock(self.root):
-                    self.respond(join_for_workspace(self.root, str(table), apply=payload.get("apply") is True))
-                return
             checks = {
                 "preflight": PREFLIGHT_STAGES,
                 "validate-inputs": ("validate",),
-                "prepare-inputs": ("prepare", "verify-prepared", "ready"),
+                "prepare-inputs": INPUTS_PREPARATION_STAGES,
                 "workflow-check": ("dry-run",),
             }
             if name in checks:

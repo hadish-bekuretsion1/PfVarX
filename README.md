@@ -85,8 +85,16 @@ them using an HTTPS link and a destination filename. A trusted SHA-256 is
 optional. When provided, PfVarX checks it before saving. Otherwise, PfVarX
 records the computed checksum and marks the download unverified. Put reference
 files in `inputs/reference/`. Register your reads or alignments before running
-**Workflow Readiness Checks → Run readiness checks**. The tab runs `validate`, `prepare`,
-`verify-prepared`, and `ready` in that order and stops on failure.
+**Workflow Readiness Checks → Run readiness checks**. The tab runs `prepare-samples`,
+`validate`, `prepare`, `verify-prepared`, and `ready` in that order and stops on failure.
+
+Study metadata is optional. Set **Study Metadata: Yes** (`study_metadata: true`) if you
+have a study table with a `sample_id` column (country, latitude, longitude,
+collection_date, population, ...); Input directories then creates `inputs/metadata/` for
+it. **Inputs Preparation** (`./pfvarx inputs-preparation`) builds the sample metadata
+`prepared/samples.tsv` from your input files and merges the study table into it. With
+Study Metadata: No it continues with the sample metadata only. See
+[Inputs Preparation](docs/configuration.md#inputs-preparation).
 
 ## 4. Check and run
 
@@ -95,9 +103,7 @@ equivalents for the GUI tabs.
 
 ```bash
 ./pfvarx validate &&
-./pfvarx prepare &&
-./pfvarx verify-prepared &&
-./pfvarx ready &&
+./pfvarx inputs-preparation &&
 ./pfvarx dry-run
 ```
 

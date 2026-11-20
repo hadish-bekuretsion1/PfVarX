@@ -1157,7 +1157,7 @@ Record source/lock identity and hardware; installation complete; proceed to R02.
 
 ### 1. Procedure identification
 
-**Module:** inputs/metadata/samples.tsv and config/config.yaml. **Workflow:** routine analysis.
+**Module:** prepared/samples.tsv and config/config.yaml. **Workflow:** routine analysis.
 
 **Purpose and scope:** Create a tab-separated manifest with explicit read pairing and library provenance.
 
@@ -1171,7 +1171,7 @@ R01; actual paired FASTQ files and laboratory sample/lane/library mapping. gzip 
 
 ```bash
 cd "$ANALYSIS"
-nano inputs/metadata/samples.tsv
+nano prepared/samples.tsv
 ```
 
 Use the generated columns, real tabs and one row per sample/lane. Do not infer identity from a filename alone. For a one-sample pilot write one data row; for a cohort add all verified rows. The following Python example creates a real tab-separated file; **replace the sample IDs, paths and metadata before executing**:
@@ -1184,7 +1184,7 @@ columns=['sample_id','lane','fastq_1','fastq_2','bam','vcf','library_id','flowce
 rows=[dict(sample_id='S01',lane='L001',fastq_1='/absolute/path/S01_R1.fastq.gz',fastq_2='/absolute/path/S01_R2.fastq.gz',library_id='LIB01'),
       dict(sample_id='S02',lane='L001',fastq_1='/absolute/path/S02_R1.fastq.gz',fastq_2='/absolute/path/S02_R2.fastq.gz',library_id='LIB02')]
 # Delete the second row for a one-sample pilot. Add verified metadata as needed.
-with Path('inputs/metadata/samples.tsv').open('w',newline='') as h:
+with Path('prepared/samples.tsv').open('w',newline='') as h:
     w=csv.DictWriter(h,fieldnames=columns,delimiter='	');w.writeheader();w.writerows(rows)
 PYCODE
 ```
@@ -1192,11 +1192,11 @@ PYCODE
 **Step 2. Review the exact registered files**
 
 ```bash
-column -t -s $'\t' inputs/metadata/samples.tsv
+column -t -s $'\t' prepared/samples.tsv
 ./pfvarx tool python - <<'PYCODE'
 import csv
 from pathlib import Path
-for r in csv.DictReader(open("inputs/metadata/samples.tsv"), delimiter="\t"):
+for r in csv.DictReader(open("prepared/samples.tsv"), delimiter="\t"):
     for k in ("fastq_1","fastq_2"):
         p=Path(r[k]); print(r["sample_id"],r["lane"],k,p,p.is_file())
 PYCODE
@@ -1206,7 +1206,7 @@ If `column` is unavailable, use `cat` instead. All path existence checks must be
 
 ### 4. Expected outputs
 
-`inputs/metadata/samples.tsv`, containing required sample/lane/library fields and branch-specific file columns. Blank unused fields are preserved.
+`prepared/samples.tsv`, containing required sample/lane/library fields and branch-specific file columns. Blank unused fields are preserved.
 
 ### 5. Verification and quality control
 
@@ -1602,7 +1602,7 @@ BOOTSTRAP_ARGS=(--profile sample --design WGS --input-type BAM)
 # Complete R01 and reference setup in this new workspace.
 cd "$ANALYSIS"
 nano config/config.yaml
-nano inputs/metadata/samples.tsv
+nano prepared/samples.tsv
 ```
 
 Set `input_type: BAM`, `assay_design: wgs`, and FO002 or later. In the TSV fill `bam`, `sample_id`, `lane`, `library_id`, the actual `amplification_route` (`DIRECT` or `SWGA`) and `processing_state` (`aligned` to mark duplicates, `duplicates_marked` to use the file as is; empty marks duplicates unless the header records it); leave FASTQ/VCF fields empty. Every read-group SM must equal the registered sample ID. All read groups need ID/SM/LB/PL.
@@ -3014,7 +3014,7 @@ export BENCH="$LAB/benchmark-scale-N4"
 cd "$BENCH"
 ./pfvarx tool python - <<'PYCODE'
 import csv
-rows=list(csv.DictReader(open("inputs/metadata/samples.tsv"),delimiter="\t"))
+rows=list(csv.DictReader(open("prepared/samples.tsv"),delimiter="\t"))
 ids=sorted({r["sample_id"] for r in rows})
 assert len(ids)==4, ids
 print("samples",ids,"lanes",len(rows))
@@ -3187,7 +3187,7 @@ WORKSPACE/
 ├── inputs/
 │   ├── reference/                          optional local resources; absolute originals may be elsewhere
 │   ├── fastq/ OR alignments/                applicable entry route
-│   ├── metadata/samples.tsv
+│   ├── metadata/                           optional study metadata and catalogues
 │   ├── targets/                            targeted assays only
 │   ├── truth/                              benchmarking only
 │   │   ├── truth.json
@@ -3620,7 +3620,7 @@ run's assay_design is targeted_no_umi`; only the affected sample is excluded. Th
 technique, route (with where it came from), panel, protocol, state, steps run on entry and
 count unit are frozen in the run plan and shown in the dashboard's input section.
 
-Example (`inputs/metadata/samples.tsv`, tab-separated; BAM columns left empty):
+Example (`prepared/samples.tsv`, tab-separated; BAM columns left empty):
 
 ```text
 sample_id	lane	fastq_1	fastq_2	bam	library_id	technique	amplification_route	panel_id	panel_version	library_protocol_id	processing_state

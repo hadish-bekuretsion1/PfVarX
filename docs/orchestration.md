@@ -85,8 +85,10 @@ GUI and the terminal at any stage. `tests/unit/test_cli_gui_parity.py` keeps the
 | Input directories | `input-directories` | Create the input folders for the saved configuration (after editing the YAML) |
 | Input files | `input-files`, `add-input --file PATH`, `fetch-input --url URL --name NAME` | List input folders; copy files from disk or download over HTTPS into them, with the same checks as the GUI |
 | Input Files Validation | `validate-input-files` | Run `validate` on the saved configuration |
-| Reference Preparation | `prepare-reference` | Run `prepare`, `verify-prepared` and `ready` |
-| Workflow Readiness Checks | `workflow-readiness-checks` | Run `validate`, `prepare`, `verify-prepared` and `ready` in order |
+| Inputs Preparation | `inputs-preparation [--metadata-table PATH]` | Run `prepare-samples`, `prepare`, `verify-prepared` and `ready` in order |
+| Inputs Preparation (steps 1–2 only) | `prepare-samples [--metadata-table PATH]` | Build the sample metadata `prepared/samples.tsv` from the input files if it is missing; with Study Metadata: Yes, merge the study table from `study_metadata_dir` (none: continue with a warning; several: stop and ask); with No, continue with the sample metadata only |
+| (earlier name) | `prepare-reference` | Run `prepare`, `verify-prepared` and `ready` (references only, no sample sheet or merge) |
+| Workflow Readiness Checks | `workflow-readiness-checks` | Run `prepare-samples`, `validate`, `prepare`, `verify-prepared` and `ready` in order |
 | Workflow Check and Run: Check workflow | `workflow-check` | Run `dry-run`; no outputs are created |
 | Workflow Check and Run: Run workflow | `workflow-run` | Check the workflow, then run it as a new analysis |
 
@@ -184,4 +186,4 @@ failed/empty artifacts are not accepted as a verified preparation.
 See the [configuration editor and input procedure](configuration.md) and the
 [sequencing and downstream eligibility matrix](sequencing.md).
 
-Reference Preparation creates a blank sample sheet if it is missing. Fill it or register a reviewed manifest, then rerun preparation. Existing sheets are preserved. To use combined readiness checks, register samples first.
+Inputs Preparation builds the missing sample metadata (`prepared/samples.tsv`) from the input files, or a blank template for BAM/CRAM input, and with Study Metadata: Yes merges the study table into it. Existing files are preserved.

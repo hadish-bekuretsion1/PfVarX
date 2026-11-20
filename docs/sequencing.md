@@ -46,7 +46,7 @@ run's assay_design is targeted_no_umi`; only the affected sample is excluded. Th
 technique, route (with where it came from), panel, protocol, adapters (kit, sequences and
 source), state, steps run on entry and count unit are frozen in the run plan and shown in the dashboard's input section.
 
-Example (`inputs/metadata/samples.tsv`, tab-separated; BAM columns left empty):
+Example (`prepared/samples.tsv`, tab-separated; BAM columns left empty):
 
 ```text
 sample_id	lane	fastq_1	fastq_2	bam	library_id	technique	amplification_route	panel_id	panel_version	library_protocol_id	processing_state
