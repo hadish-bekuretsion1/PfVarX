@@ -5,6 +5,19 @@
 The release version was reset to 0.0.0 after 0.4.2, as the baseline for the first reviewed
 release. The sections below 0.0.0 are the earlier development numbering, kept as history.
 
+### Adapters are set per library, not detected
+
+- fastp's adapter detection (`--detect_adapter_for_pe`) was on for every library. On AT-rich
+  reads it chose fastp's built-in poly-T `FlowCell1` sequence: on the synthetic WGS fixture,
+  which has no adapters, 19% of reads lost about 10 bases of real sequence at T runs.
+- Each library now names its kit: the manifest column `adapter_kit` (`TRUSEQ`, `NEXTERA`,
+  `AUTO`, `CUSTOM`) or the library protocol's `adapters` (with `read1`/`read2` for `CUSTOM`),
+  else `layer1.fastp_adapter_kit_default` (`TRUSEQ`, replacing
+  `layer1.fastp_detect_adapter_for_pe`). fastp gets the sequences explicitly; `AUTO` keeps
+  the old detection for libraries whose kit is unknown. Conflicting sources fail input
+  validation for that sample (`ADAPTER_UNRESOLVED`). The resolved kit, sequences and source
+  are frozen in the plan, written to each sample's QC decision and shown in the dashboard.
+
 ### Study metadata join and naming standard
 
 - `./pfvarx join-metadata --table PATH [--apply]` (and **Join study metadata** in the GUI's

@@ -1,6 +1,6 @@
 version: "1.0.0"
 parameters:
-  fastp_detect_adapter_for_pe: {value: true, source: FRAMEWORK_POLICY, note: "short inserts from DBS DNA"}
+  fastp_adapter_kit_default: {value: TRUSEQ, source: FRAMEWORK_POLICY, note: "adapters for libraries whose manifest row and protocol name none (TRUSEQ | NEXTERA | AUTO); fastp auto-detection can mistake AT-rich poly-T runs for its FlowCell1 adapter"}
   fastp_qualified_quality_phred: {value: 15, source: SOFTWARE_DEFAULT, note: "fastp default (Chen 2018); verified in the pinned fastp 1.1.0 --help"}
   fastp_unqualified_percent_limit: {value: 40, source: SOFTWARE_DEFAULT}
   fastp_n_base_limit: {value: 5, source: SOFTWARE_DEFAULT}

@@ -37,13 +37,14 @@ Required columns stay `sample_id`, `lane`, `library_id` and the input files (`fa
 | `panel_id`, `panel_version` | IDs in the library catalog | Required for targeted designs; one panel per run |
 | `library_protocol_id` | ID in the library catalog | Required for `targeted_umi` FASTQ (UMI extraction); optional otherwise |
 | `processing_state` | see the table above | BAM/CRAM entry only; required for targeted designs |
+| `adapter_kit` | `TRUSEQ`, `NEXTERA`, `AUTO`, `CUSTOM`; empty = unspecified | The 3' adapters fastp trims (FASTQ entry). Empty uses the library protocol's `adapters`, else `layer1.fastp_adapter_kit_default` (`TRUSEQ`). `CUSTOM` needs a protocol with the sequences. `AUTO` uses fastp's detection, which on AT-rich reads can pick its poly-T `FlowCell1` sequence and trim real T runs; use it only when the kit is unknown |
 
 The technique label, route, protocol and panel must agree with each other and with the
 design. A conflict is reported at input validation as
 `sample S1 (library LIB1): technique TBS_UMI requires assay_design targeted_umi, but the
 run's assay_design is targeted_no_umi`; only the affected sample is excluded. The resolved
-technique, route (with where it came from), panel, protocol, state, steps run on entry and
-count unit are frozen in the run plan and shown in the dashboard's input section.
+technique, route (with where it came from), panel, protocol, adapters (kit, sequences and
+source), state, steps run on entry and count unit are frozen in the run plan and shown in the dashboard's input section.
 
 Example (`inputs/metadata/samples.tsv`, tab-separated; BAM columns left empty):
 
@@ -78,6 +79,10 @@ library_protocols:
   - library_protocol_id: UMI8_DUAL
     technique: TBS_UMI                          # optional default label
     amplification_route: AMPLICON               # optional default route
+    adapters:                                   # optional: 3' adapters fastp trims
+      kit: CUSTOM                               # TRUSEQ | NEXTERA | AUTO | CUSTOM
+      read1: AGATCGGAAGAGCACACGTCTGAACTCCAGTCA  # CUSTOM only
+      read2: AGATCGGAAGAGCGTCGTGTAGGGAAAGAGTGT  # CUSTOM only
     umi:
       read_structure: "8M+T 8M+T"               # UMI extraction
       filter_min_reads: 3                       # optional; omitted settings use layer1.yaml
@@ -86,6 +91,11 @@ library_protocols:
 UMI consensus settings a protocol does not give use the maintainer defaults in
 `config/parameters/layer1.yaml`; each resolved value is recorded with its source
 (`LIBRARY_PROTOCOL` or `PARAMETER_DEFAULT`).
+
+Adapters are resolved the same way for every design: the manifest `adapter_kit`, else the
+protocol's `adapters`, else `layer1.fastp_adapter_kit_default`. The two sources must agree,
+and all libraries of a sample must use one kit. UMI libraries whose read structure ends in a
+fixed segment keep adapter trimming off, as before.
 
 ## Downstream eligibility from the panel and callable evidence
 

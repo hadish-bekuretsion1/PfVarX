@@ -70,6 +70,26 @@ class Technique(StrEnum):
     TBS_NON_UMI = "TBS_NON_UMI"
 
 
+class AdapterKit(StrEnum):
+    """Adapter family of a library, given to fastp explicitly (per library, not per run).
+
+    fastp's own adapter detection is not used by default: on AT-rich *P. falciparum* reads it
+    can pick its built-in poly-T ``FlowCell1`` sequence and trim genuine T runs.
+    """
+
+    TRUSEQ = "TRUSEQ"  # Illumina TruSeq / most ligation kits (AGATCGGAAGAGC...)
+    NEXTERA = "NEXTERA"  # Illumina Nextera / tagmentation kits (CTGTCTCTTATACACATCT)
+    CUSTOM = "CUSTOM"  # sequences given in the library protocol (adapters.read1 / read2)
+    AUTO = "AUTO"  # fastp --detect_adapter_for_pe (only when the kit is unknown)
+
+
+# Read-1 and read-2 3' adapter sequences fastp trims for each kit.
+ADAPTER_SEQUENCES: dict[AdapterKit, tuple[str, str]] = {
+    AdapterKit.TRUSEQ: ("AGATCGGAAGAGCACACGTCTGAACTCCAGTCA", "AGATCGGAAGAGCGTCGTGTAGGGAAAGAGTGT"),
+    AdapterKit.NEXTERA: ("CTGTCTCTTATACACATCT", "CTGTCTCTTATACACATCT"),
+}
+
+
 # Designs each technique label may be used with, and the route a label documents.
 TECHNIQUE_DESIGNS = {
     Technique.WGS: (Design.WGS,),
@@ -224,6 +244,7 @@ class Reason(StrEnum):
     LIBRARY_CATALOG_INVALID = "LIBRARY_CATALOG_INVALID"
     PANEL_UNRESOLVED = "PANEL_UNRESOLVED"
     PROTOCOL_UNRESOLVED = "PROTOCOL_UNRESOLVED"
+    ADAPTER_UNRESOLVED = "ADAPTER_UNRESOLVED"
     VCF_INCOMPATIBLE = "VCF_INCOMPATIBLE"
     # QC
     QC_GATE_FAIL = "QC_GATE_FAIL"

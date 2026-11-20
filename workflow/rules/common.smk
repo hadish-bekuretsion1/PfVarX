@@ -97,14 +97,25 @@ def lane(wc):
     return next(x for x in SAMPLES[wc.sample]["lanes"] if x["lane"] == wc.lane)
 
 
+def adapter_args(sample):
+    """fastp adapter options for the sample's library kit (resolved at validation).
+
+    Known kits are passed explicitly: fastp's detection can choose its poly-T FlowCell1
+    sequence on AT-rich reads and trim real T runs. Paired-end overlap trimming stays on.
+    """
+    adapters = library(sample).get("adapters") or {}
+    if adapters.get("kit", "AUTO") == "AUTO" or not adapters.get("read1"):
+        return ["--detect_adapter_for_pe"]
+    return [f"--adapter_sequence {adapters['read1']}", f"--adapter_sequence_r2 {adapters['read2']}"]
+
+
 def fastp_args(sample):
     a = []
     if P["layer1.fastp_low_complexity_filter"]:
         a.append("--low_complexity_filter")
     if P["layer1.fastp_dedup"]:
         a.append("--dedup")
-    if P["layer1.fastp_detect_adapter_for_pe"]:
-        a.append("--detect_adapter_for_pe")
+    a += adapter_args(sample)
     a += [f"--qualified_quality_phred {P['layer1.fastp_qualified_quality_phred']}",
           f"--unqualified_percent_limit {P['layer1.fastp_unqualified_percent_limit']}",
           f"--n_base_limit {P['layer1.fastp_n_base_limit']}",
@@ -128,7 +139,8 @@ def fastp_args(sample):
         a += ["--disable_quality_filtering", f"--length_required {min_len}"]
         if not trim_safe:
             # A fixed non-template segment ends the read: 3' trimming would corrupt it.
-            a = [x for x in a if x not in ("--detect_adapter_for_pe", "--trim_poly_g", "--disable_trim_poly_g")]
+            a = [x for x in a if x not in ("--detect_adapter_for_pe", "--trim_poly_g", "--disable_trim_poly_g")
+                 and not x.startswith("--adapter_sequence")]
             a += ["--disable_adapter_trimming", "--disable_trim_poly_g"]
     return " ".join(a)
 
