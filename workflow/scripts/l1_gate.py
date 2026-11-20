@@ -51,5 +51,6 @@ qc["metrics"] = values
 # Depths and counts of a UMI consensus BAM are consensus molecules, not sequenced reads.
 qc["count_unit"] = library.get("count_unit") or ("consensus_molecules" if design == "targeted_umi" else "reads")
 qc["library"] = {k: library.get(k) for k in ("technique", "amplification_route", "route_source", "panel_id",
-                                             "panel_version", "library_protocol_id", "processing_state")}
+                                             "panel_version", "library_protocol_id", "processing_state",
+                                             "adapters")}
 Path(sm.output[0]).write_text(json.dumps(qc, indent=2, default=str))

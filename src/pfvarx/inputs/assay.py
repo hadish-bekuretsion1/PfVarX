@@ -9,6 +9,8 @@ documents its library with optional columns:
 ``panel_id``, ``panel_version``  the targeted panel (targeted designs; one panel per run)
 ``library_protocol_id``  a protocol in the library catalog (UMI extraction and consensus)
 ``processing_state``     imported BAM/CRAM only: what has already been done
+``adapter_kit``          TRUSEQ | NEXTERA | AUTO | CUSTOM: the 3' adapters fastp trims (empty = the
+                         library protocol's ``adapters``, else ``layer1.fastp_adapter_kit_default``)
 
 Every conflict between the design, a technique label, the route, the protocol and the panel
 is reported with the sample and library ID, as an input-validation failure for that sample.
@@ -20,11 +22,12 @@ from __future__ import annotations
 from dataclasses import asdict, dataclass, field
 from typing import Any
 
-from pfvarx.configuration.library import LibraryCatalog, Panel, umi_settings
+from pfvarx.configuration.library import LibraryCatalog, Panel, adapter_settings, umi_settings
 from pfvarx.constants import (
     DESIGN_STATES,
     TECHNIQUE_DESIGNS,
     TECHNIQUE_ROUTE,
+    AdapterKit,
     CountUnit,
     Design,
     InputType,
@@ -62,6 +65,7 @@ class LibraryFacts:
     entry_steps: list[str] = field(default_factory=list)
     count_unit: str = CountUnit.READS.value
     umi: dict[str, Any] | None = None
+    adapters: dict[str, Any] | None = None
 
     def as_dict(self) -> dict[str, Any]:
         return asdict(self)
@@ -97,7 +101,7 @@ def resolve(design: Design, input_type: InputType, rows: list[dict[str, str]],
             rep.fail(code, f"{where}: {text}", line)
 
         for column in ("technique", "amplification_route", "panel_id", "panel_version",
-                       "library_protocol_id", "processing_state"):
+                       "library_protocol_id", "processing_state", "adapter_kit"):
             values = {(r.get(column) or "").strip() for _, r in members if not blank(r.get(column))}
             if len(values) > 1:
                 fail(Reason.TECHNIQUE_CONFLICT, f"libraries disagree on {column}: {sorted(values)}; "
@@ -182,6 +186,32 @@ def resolve(design: Design, input_type: InputType, rows: list[dict[str, str]],
         if panel is not None and panel.primers_tsv is None and fact.amplification_route == Route.AMPLICON:
             fail(Reason.TECHNIQUE_CONFLICT, f"amplicon library but panel {panel_id} {version} defines no primers "
                  "(primers_tsv) to trim", line, library)
+        # Adapters: manifest, else protocol, else the parameter default; sources must agree.
+        kits: dict[str, str] = {}
+        given_kit = next((r["adapter_kit"].strip().upper() for _, r in members
+                          if not blank(r.get("adapter_kit"))), None)
+        if given_kit:
+            kits["manifest"] = given_kit
+        if protocol and protocol.adapters:
+            kits["library protocol"] = protocol.adapters.kit.value
+        known = {k.value for k in AdapterKit}
+        for source, value in kits.items():
+            if value not in known:
+                fail(Reason.ADAPTER_UNRESOLVED, f"unknown adapter_kit {value!r} ({source}); use TRUSEQ, NEXTERA, "
+                     "AUTO, or CUSTOM with sequences in the library protocol", line, library)
+        if len(set(kits.values())) > 1:
+            fail(Reason.ADAPTER_UNRESOLVED, f"adapter kits disagree: {kits}", line, library)
+        elif kits and next(iter(kits.values())) in known:
+            source, value = next(iter(kits.items()))
+            kit = AdapterKit(value)
+            if kit == AdapterKit.CUSTOM and not (protocol and protocol.adapters):
+                fail(Reason.ADAPTER_UNRESOLVED, "adapter_kit CUSTOM needs a library_protocol_id whose protocol "
+                     "gives adapters.read1 and adapters.read2", line, library)
+            else:
+                fact.adapters = adapter_settings(kit, source, protocol)
+        elif not kits:
+            default = AdapterKit(str(params["layer1.fastp_adapter_kit_default"]["value"]).upper())
+            fact.adapters = adapter_settings(default, "PARAMETER_DEFAULT")
         # UMI settings and the count unit.
         if design == Design.TARGETED_UMI:
             fact.count_unit = CountUnit.CONSENSUS_MOLECULES.value

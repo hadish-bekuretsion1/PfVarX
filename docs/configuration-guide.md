@@ -32,7 +32,7 @@ The editor shows project settings from `config/config.yaml`, quality settings fr
 | Setting | Accepted values or example | When to use it |
 | --- | --- | --- |
 | `assay_design` | `wgs, targeted_umi, targeted_no_umi` | Selects the processing branch. Use wgs for direct and selective (sWGA) whole-genome libraries, targeted_no_umi for amplicon or panel libraries without UMIs, and targeted_umi when reads carry UMIs or imported BAMs are UMI consensus reads. FASTQ and BAM entry work with every design. The technique label, amplification route, panel and library protocol of each library go in the sample manifest. |
-| `assay.library_catalog` | `inputs/metadata/library_catalog.yaml or null` | Required for targeted designs. A YAML file listing panels (panel_id, panel_version, targets BED, primers or probes) and library protocols (library_protocol_id, UMI read structure and consensus settings). Manifest rows name their panel and protocol by these IDs. |
+| `assay.library_catalog` | `inputs/metadata/library_catalog.yaml or null` | Required for targeted designs. A YAML file listing panels (panel_id, panel_version, targets BED, primers or probes) and library protocols (library_protocol_id, adapters, UMI read structure and consensus settings). Manifest rows name their panel and protocol by these IDs. |
 | `assay.two_colour_chemistry` | `false or true` | Enable only for documented two-colour chemistry when poly-G trimming applies. |
 | `assay.platform` | `ILLUMINA` | Record the real sequencing platform. This field does not install additional assay support. |
 

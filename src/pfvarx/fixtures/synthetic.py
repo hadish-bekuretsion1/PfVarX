@@ -295,7 +295,7 @@ def build(dest: Path, design: str = "wgs", seed: int = 7, depth: int = 40, n_mon
                         "technique": FIXTURE_TECHNIQUE[design], "amplification_route": "AMPLICON" if targeted else "DIRECT",
                         "panel_id": FIXTURE_PANEL[0] if targeted else "", "panel_version": FIXTURE_PANEL[1] if targeted else "",
                         "library_protocol_id": FIXTURE_PROTOCOL if design == Design.TARGETED_UMI else "",
-                        "processing_state": "",
+                        "processing_state": "", "adapter_kit": "",
                         "country": country, "latitude": f"{lat + 0.01 * idx:.3f}",
                         "longitude": f"{lon + 0.01 * idx:.3f}",
                         "collection_date": f"2025-{(idx % 12) + 1:02d}-15"})
@@ -304,7 +304,7 @@ def build(dest: Path, design: str = "wgs", seed: int = 7, depth: int = 40, n_mon
                                  "clonality": "MONOCLONAL" if len(comp) == 1 else "POLYCLONAL"}
     cols = ["sample_id", "lane", "fastq_1", "fastq_2", "bam", "vcf", "library_id", "flowcell_type",
             "technique", "amplification_route", "panel_id", "panel_version", "library_protocol_id",
-            "processing_state", "population", "country", "latitude", "longitude", "collection_date"]
+            "processing_state", "adapter_kit", "population", "country", "latitude", "longitude", "collection_date"]
     if targeted:
         # Library catalog: the synthetic panel and, for UMI libraries, the UMI protocol.
         catalog_doc = {"schema_version": CATALOG_SCHEMA,

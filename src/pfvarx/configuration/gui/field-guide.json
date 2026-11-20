@@ -37,7 +37,7 @@
   },
   "config.assay.library_catalog": {
     "example": "inputs/metadata/library_catalog.yaml or null",
-    "help": "Required for targeted designs. A YAML file listing panels (panel_id, panel_version, targets BED, primers or probes) and library protocols (library_protocol_id, UMI read structure and consensus settings). Manifest rows name their panel and protocol by these IDs."
+    "help": "Required for targeted designs. A YAML file listing panels (panel_id, panel_version, targets BED, primers or probes) and library protocols (library_protocol_id, adapters, UMI read structure and consensus settings). Manifest rows name their panel and protocol by these IDs."
   },
   "config.assay.two_colour_chemistry": {
     "example": "false or true",
