@@ -16,6 +16,8 @@ release. The sections below 0.0.0 are the earlier development numbering, kept as
 - Eligible only for `assay_design: wgs`. `targeted_no_umi` and `targeted_umi` are
   ineligible: `host_removal: true` with a targeted design is refused when the
   configuration is loaded, in the CLI and the GUI.
+- GUI: for a targeted design the Human DNA removal checkbox is switched off and greyed out
+  with the reason shown; the Human genome FASTA field appears only when removal is on.
 - QC records `host_templates_removed`, `templates_before_host_removal` and `host_fraction`
   (descriptive gate `G2.host_fraction`; QC policy 1.2.0). `G2.mapped` is measured after removal.
 - The human-sized bwa-mem2 index is supplied, not built: `prepare` stops with
