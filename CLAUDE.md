@@ -16,6 +16,15 @@ in `docs/architecture.md` ("CLI and GUI parity"):
 
 `pixi run pytest -q tests/unit/test_cli_gui_parity.py` must pass.
 
+## Documentation goes with every change
+
+Update all documentation in the same change: README.md, docs/*.md and docs/*.html (quick
+start, configuration guide, SOP manual), docs/analysis, docs/benchmarking, docs/reporting and
+CHANGELOG.md. Grep the md and html files for every name, path, command or setting the change
+replaces. Appendices E, F and G of the SOP copy docs/caller.md, docs/configuration.md and
+docs/sequencing.md: run `python scripts/sync_sop.py` after editing those guides
+(`tests/unit/test_sop_mirrors.py` must pass).
+
 ## Before committing
 
 `pixi run lint`, `pixi run typecheck` and `pixi run pytest -q tests` (about 13 minutes).

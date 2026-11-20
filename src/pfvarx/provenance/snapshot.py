@@ -68,7 +68,7 @@ def tool_versions() -> dict[str, str]:
 # Conda packages whose versions decide scientific results. Read from the environment's own
 # package records, so a tool that is never probed on the command line is still recorded.
 SCIENTIFIC_PACKAGES = (
-    "samtools", "bcftools", "htslib", "pysam", "fastp", "bwa-mem2", "mosdepth", "picard", "fgbio",
+    "samtools", "bcftools", "htslib", "pysam", "fastp", "bwa-mem2", "mosdepth", "picard", "picard-slim", "fgbio", "fgbio-minimal",
     "snpeff", "snakemake-minimal", "iqtree", "hmmibd", "rtg-tools", "scikit-allel", "numpy", "scipy",
     "r-base", "r-moire", "r-dcifer", "r-mgcv",
 )

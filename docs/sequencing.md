@@ -126,7 +126,7 @@ scientific output.
 For a fresh targeted non-UMI workspace with the compatible dependencies:
 
 ```bash
-python3 bootstrap.py --workspace ../targeted-study --profile downstream \
+python3 bootstrap.py --workspace ../targeted-study --final-output FO004 \
   --design targeted_no_umi --auto-analyses
 cd ../targeted-study
 ./pfvarx configure --gui

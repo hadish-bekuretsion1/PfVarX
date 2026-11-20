@@ -18,7 +18,9 @@ def initialize(root: Path, *, config_only: bool = False) -> dict[str, Any]:
     metadata = read_json(path) if path.exists() else None
     purpose = metadata["purpose"] if metadata else "analysis"
     created = config_init(root, purpose)
-    if metadata and root / "config/config.yaml" in created:
+    # An on-demand workspace has no installed final output or design: the template decides,
+    # and ./pfvarx install-tools installs what the saved configuration needs.
+    if metadata and metadata.get("profile") != "on-demand" and root / "config/config.yaml" in created:
         config_path = root / "config/config.yaml"
         config = yaml.safe_load(config_path.read_text())
         config["final_output"] = metadata["max_final_output"]

@@ -23,6 +23,14 @@ where applicable. Choose an explicit analysis set or automatic selection for FO0
 The form validates the compute envelope, caller options and dependent fields using
 the Python backend. The summary shows the YAML-equivalent settings.
 
+In an on-demand workspace (`bootstrap.py` without `--final-output`), click **Install
+required tools** after saving. It installs only the locked environment the saved
+configuration needs and shows which one; the status line under it says whether the tools for
+the current configuration are installed. Inputs Preparation, readiness, the dry run and the
+pipeline stop with `TOOLS_NOT_INSTALLED` and this instruction until they are. After changing
+the final output, design, input type or analyses, click it again: it installs only the newly
+needed environment. Workspaces installed up front (`--final-output`) do not show the button.
+
 Enter a workspace-relative or absolute file path. The form checks path configuration syntax.
 The `validate` command checks the actual files. Select **Create Configuration and
 Input Directories** when ready. Existing YAML with changes requires **Save with
@@ -287,6 +295,7 @@ the corresponding commands for the GUI stages.
 | GUI stage | CLI equivalent |
 | --- | --- |
 | Input directories | `./pfvarx input-directories` |
+| Input directories: Install required tools | `./pfvarx install-tools` (`--check` reports only) |
 | Input files: upload from your computer | `./pfvarx add-input --file /path/to/file` (repeat `--file` for several) |
 | Input files: download from an HTTPS link | `./pfvarx fetch-input --url URL --name FILENAME` |
 | Input Files Validation | `./pfvarx validate-input-files` |

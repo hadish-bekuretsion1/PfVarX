@@ -9,10 +9,11 @@ post-clone installation entry point. Review it before running it.
 
 ```bash
 # Run these from the source checkout, each into a NEW directory.
-python3 bootstrap.py --profile sample --workspace ../sample-wgs
-python3 bootstrap.py --profile cohort --workspace ../cohort-wgs
-python3 bootstrap.py --profile downstream --analyses DA005 --workspace ../population
-python3 bootstrap.py --profile sample --design targeted_umi --workspace ../targeted-umi
+python3 bootstrap.py --final-output FO001 --workspace ../alignment-qc  # alignment and QC tools only
+python3 bootstrap.py --final-output FO002 --workspace ../sample-wgs
+python3 bootstrap.py --final-output FO003 --workspace ../cohort-wgs
+python3 bootstrap.py --final-output FO004 --analyses DA005 --workspace ../population
+python3 bootstrap.py --final-output FO002 --design targeted_umi --workspace ../targeted-umi
 python3 bootstrap.py --profile benchmark --workspace ../benchmark
 python3 bootstrap.py --profile benchmark --analyses DA002 DA001 DA007 --rtg --workspace ../benchmark-full
 ```
@@ -83,6 +84,7 @@ GUI and the terminal at any stage. `tests/unit/test_cli_gui_parity.py` keeps the
 | --- | --- | --- |
 | (open the GUI) | `configure --gui` | Local configuration form at 127.0.0.1 with a session token; the YAML files stay usable |
 | Input directories | `input-directories` | Create the input folders for the saved configuration (after editing the YAML) |
+| Input directories: Install required tools | `install-tools [--check]` | On-demand workspaces: install the locked environment the saved configuration needs (final output, design, input type, analyses and their prerequisites) and record it; nothing when it is installed. `--check` reports whether it is (exit 1 if not) |
 | Input files | `input-files`, `add-input --file PATH`, `fetch-input --url URL --name NAME` | List input folders; copy files from disk or download over HTTPS into them, with the same checks as the GUI |
 | Input Files Validation | `validate-input-files` | Run `validate` on the saved configuration |
 | Reference Preparation | `prepare-reference` | Run `prepare`, `verify-prepared` and `ready` |

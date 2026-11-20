@@ -26,6 +26,45 @@ release. The sections below 0.0.0 are the earlier development numbering, kept as
   `layer1.bwa_mem2_host_extra_mem_mb` (12 000 MB, provisional) to the bwa-mem2 request.
 - Files of 1 GiB or more under `prepared/reference/` are sealed by size and modification time.
 
+### SOP manual kept in step with the guides
+
+- SOP appendices E, F and G copy `docs/caller.md`, `docs/configuration.md` and
+  `docs/sequencing.md`. They had fallen behind (the adapter kits, Human DNA removal and most of
+  the current configuration chapter were missing) and are now regenerated, in `.md` and
+  `.html`, by `scripts/sync_sop.py`; `tests/unit/test_sop_mirrors.py` fails when they differ.
+- Install examples across the README, guides, quick start and SOP use `--final-output`.
+
+### Install required tools on demand
+
+- `bootstrap.py` without `--final-output` or `--profile` now creates an on-demand workspace:
+  all pipeline code, but only the small `control` environment (Python, pydantic, typer,
+  pyyaml, pysam, htslib; no Snakemake, samtools, Picard or Java). Snakemake, samtools, Picard
+  and mosdepth moved to the pixi feature `pipeline`, part of every tools environment.
+- **Install required tools** on the Input directories tab, and `./pfvarx install-tools
+  [--check]`, install the locked environment the saved configuration needs (final output,
+  design, input type, analyses with prerequisites; the same rules as `--final-output`) and
+  record it; later steps run in it. Inputs Preparation, readiness, dry run and pipeline stop
+  with `TOOLS_NOT_INSTALLED` until it is installed; after a configuration change it installs
+  only the newly needed environment. Up-front workspaces (`--final-output`, `--profile`) work
+  as before.
+
+### Installation follows the final output
+
+- `bootstrap.py --final-output FO001|FO002|FO003|FO004` installs only the tools that final
+  output uses and records it as the installation's maximum final output. FO001 (alignment
+  and QC) gets the new `alignment-qc` environments: no variant caller code, bcftools, numpy
+  or scipy (now the pixi feature `calling`, added to every FO002+ environment). The earlier
+  `--profile` options still work; the two must agree when both are given.
+- Picard comes from `picard-slim` (the same 3.5.0, without its R dependency; PfVarX runs only
+  MarkDuplicates and CreateSequenceDictionary) and fgbio from `fgbio-minimal` (the same 4.1.1,
+  without R, ggplot2 and scales; PfVarX runs no plotting fgbio tool), so R is installed only for
+  the analyses that use it. An FO001 environment is about 1.0 GB instead of 1.9 GB.
+- `scripts/check_installs.py` compares each kind of installation with the tools its final
+  output runs, from `pixi.lock`, and reports anything missing or extra.
+- A configuration above the installed final output, design, input type or analyses is refused
+  with the reason and the bootstrap option to use; the GUI greys out final outputs that need
+  a new installation.
+
 ### Adapters are set per library, not detected
 
 - fastp's adapter detection (`--detect_adapter_for_pe`) was on for every library. On AT-rich

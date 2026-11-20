@@ -53,7 +53,8 @@ include: "rules/l1_align.smk"
 if DESIGN == "targeted_umi":
     include: "rules/l1_umi.smk"
 include: "rules/l1_metrics.smk"
-include: "rules/l2_caller.smk"
+if 2 in LAYERS:  # FO001 installations ship without the caller
+    include: "rules/l2_caller.smk"
 if 3 in LAYERS:
     include: "rules/l3_cohort.smk"
 if 4 in LAYERS:

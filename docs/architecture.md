@@ -23,7 +23,7 @@ and execution are separate entry points.
 
 ## Selection and dependency closure
 
-Sample and cohort profiles need no downstream implementation. Selected FO004 analyses
+FO001–FO003 installations need no downstream implementation (FO001 also leaves out the caller and its tools). Selected FO004 analyses
 add annotation and requested modules plus genuine prerequisites/shared helpers. DA004,
 DA005 and DA006 depend on DA001; DA007 currently uses DA002 outcomes. Registry/policy
 metadata remains shared because control/provenance code reads it. Tool feature groups
