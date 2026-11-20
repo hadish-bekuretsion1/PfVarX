@@ -68,7 +68,7 @@ def test_end_to_end_annotated_run_writes_indexed_bgzf(tmp_path: Path) -> None:
     cfg["analyses"].update(requested=["DA002"], resistance_catalog="inputs/metadata/test_resistance_catalog.tsv")
     (ws / "config/config.yaml").write_text(yaml.safe_dump(cfg))
     # Keep three samples: enough for a cohort, quick enough for continuous integration.
-    sheet = ws / "inputs/metadata/samples.tsv"
+    sheet = ws / "prepared/samples.tsv"
     sheet.write_text("\n".join(sheet.read_text().splitlines()[:4]) + "\n")
     r = subprocess.run(["pfvarx", "pipeline"], cwd=ws, capture_output=True, text=True)
     assert r.returncode == 0, r.stdout[-3000:] + r.stderr[-3000:]
@@ -97,7 +97,7 @@ def test_umi_route_survives_fixed_read_structure_and_short_reads(tmp_path: Path)
     catalog = yaml.safe_load(catalog_path.read_text())
     catalog["library_protocols"][0]["umi"]["read_structure"] = "8M100T 8M100T"
     catalog_path.write_text(yaml.safe_dump(catalog))
-    sheet = ws / "inputs/metadata/samples.tsv"
+    sheet = ws / "prepared/samples.tsv"
     sheet.write_text("\n".join(sheet.read_text().splitlines()[:2]) + "\n")
     for mate in ("R1", "R2"):
         with gzip.open(ws / f"inputs/fastq/PF001_L001_{mate}.fastq.gz", "at") as handle:
@@ -121,7 +121,7 @@ def _umi_to_resistance(tmp_path: Path, depth: int) -> tuple[Path, dict]:
     cfg["reference"]["gff"] = "inputs/reference/Pf3D7.gff"
     cfg["analyses"].update(requested=["DA002"], resistance_catalog="inputs/metadata/test_resistance_catalog.tsv")
     (ws / "config/config.yaml").write_text(yaml.safe_dump(cfg))
-    sheet = ws / "inputs/metadata/samples.tsv"
+    sheet = ws / "prepared/samples.tsv"
     sheet.write_text("\n".join(sheet.read_text().splitlines()[:4]) + "\n")
     r = subprocess.run(["pfvarx", "pipeline"], cwd=ws, capture_output=True, text=True)
     assert r.returncode == 0, r.stdout[-3000:] + r.stderr[-3000:]
@@ -221,7 +221,7 @@ def test_human_dna_removal_drops_host_pairs_and_keeps_a_parasite_header(tmp_path
     genome = "".join(rng.choices("ACGT", weights=[29.5, 20.5, 20.5, 29.5], k=40_000))
     (ws / "inputs/reference/host.fasta").write_text(">chr1\n" + genome + "\n")
     comp = str.maketrans("ACGT", "TGCA")
-    sheet = ws / "inputs/metadata/samples.tsv"
+    sheet = ws / "prepared/samples.tsv"
     sheet.write_text("\n".join(sheet.read_text().splitlines()[:3]) + "\n")  # two samples
     for r1 in sorted((ws / "inputs/fastq").glob("PF00[12]_*_R1.fastq.gz")):
         r2 = Path(str(r1).replace("_R1.", "_R2."))

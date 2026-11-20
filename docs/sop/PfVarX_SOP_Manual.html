@@ -882,14 +882,14 @@ cat config/compute.yaml
 <p>Record source/lock identity and hardware; installation complete; proceed to R02.</p>
 <h2 id="r02-register-one-sample-or-a-cohort">R02 — Register one sample or a cohort</h2>
 <h3>1. Procedure identification</h3>
-<p><strong>Module:</strong> inputs/metadata/samples.tsv and config/config.yaml. <strong>Workflow:</strong> routine analysis.</p>
+<p><strong>Module:</strong> prepared/samples.tsv and config/config.yaml. <strong>Workflow:</strong> routine analysis.</p>
 <p><strong>Purpose and scope:</strong> Create a tab-separated manifest with explicit read pairing and library provenance.</p>
 <h3>2. Prerequisites and requirements</h3>
 <p>R01; actual paired FASTQ files and laboratory sample/lane/library mapping. gzip FASTQ must be intact; population/location values must come from verified metadata.</p>
 <h3>3. Detailed operational procedure</h3>
 <p><strong>Step 1. Edit an explicit registration list in the workspace</strong></p>
 <pre><code class="language-bash">cd &quot;$ANALYSIS&quot;
-nano inputs/metadata/samples.tsv
+nano prepared/samples.tsv
 </code></pre>
 <p>Use the generated columns, real tabs and one row per sample/lane. Do not infer identity from a filename alone. For a one-sample pilot write one data row; for a cohort add all verified rows. The following Python example creates a real tab-separated file; <strong>replace the sample IDs, paths and metadata before executing</strong>:</p>
 <pre><code class="language-bash">./pfvarx tool python - &lt;&lt;'PYCODE'
@@ -899,23 +899,23 @@ columns=['sample_id','lane','fastq_1','fastq_2','bam','vcf','library_id','flowce
 rows=[dict(sample_id='S01',lane='L001',fastq_1='/absolute/path/S01_R1.fastq.gz',fastq_2='/absolute/path/S01_R2.fastq.gz',library_id='LIB01'),
       dict(sample_id='S02',lane='L001',fastq_1='/absolute/path/S02_R1.fastq.gz',fastq_2='/absolute/path/S02_R2.fastq.gz',library_id='LIB02')]
 # Delete the second row for a one-sample pilot. Add verified metadata as needed.
-with Path('inputs/metadata/samples.tsv').open('w',newline='') as h:
+with Path('prepared/samples.tsv').open('w',newline='') as h:
     w=csv.DictWriter(h,fieldnames=columns,delimiter='	');w.writeheader();w.writerows(rows)
 PYCODE
 </code></pre>
 <p><strong>Step 2. Review the exact registered files</strong></p>
-<pre><code class="language-bash">column -t -s $'\t' inputs/metadata/samples.tsv
+<pre><code class="language-bash">column -t -s $'\t' prepared/samples.tsv
 ./pfvarx tool python - &lt;&lt;'PYCODE'
 import csv
 from pathlib import Path
-for r in csv.DictReader(open(&quot;inputs/metadata/samples.tsv&quot;), delimiter=&quot;\t&quot;):
+for r in csv.DictReader(open(&quot;prepared/samples.tsv&quot;), delimiter=&quot;\t&quot;):
     for k in (&quot;fastq_1&quot;,&quot;fastq_2&quot;):
         p=Path(r[k]); print(r[&quot;sample_id&quot;],r[&quot;lane&quot;],k,p,p.is_file())
 PYCODE
 </code></pre>
 <p>If <code>column</code> is unavailable, use <code>cat</code> instead. All path existence checks must be true before validation. IDs use schema-permitted letters/digits/underscore/hyphen; sample/lane pairs must be unique. Multiple lanes share a sample ID and retain accurate library IDs. For WGS, all lanes of one sample must share one <code>flowcell_type</code> (duplicates are marked once per sample with one optical distance); validation rejects a sample that mixes patterned and unpatterned lanes.</p>
 <h3>4. Expected outputs</h3>
-<p><code>inputs/metadata/samples.tsv</code>, containing required sample/lane/library fields and branch-specific file columns. Blank unused fields are preserved.</p>
+<p><code>prepared/samples.tsv</code>, containing required sample/lane/library fields and branch-specific file columns. Blank unused fields are preserved.</p>
 <h3>5. Verification and quality control</h3>
 <p>Confirm R1/R2 mapping with the wet-lab manifest. Do not use the analysis output as a source of truth for sample identity or population labels.</p>
 <h3>6. Error handling and troubleshooting</h3>
@@ -1145,7 +1145,7 @@ BOOTSTRAP_ARGS=(--final-output FO002 --design WGS --input-type BAM)
 # Complete R01 and reference setup in this new workspace.
 cd &quot;$ANALYSIS&quot;
 nano config/config.yaml
-nano inputs/metadata/samples.tsv
+nano prepared/samples.tsv
 </code></pre>
 <p>Set <code>input_type: BAM</code>, <code>assay_design: wgs</code>, and FO002 or later. In the TSV fill <code>bam</code>, <code>sample_id</code>, <code>lane</code>, <code>library_id</code>, the actual <code>amplification_route</code> (<code>DIRECT</code> or <code>SWGA</code>) and <code>processing_state</code> (<code>aligned</code> to mark duplicates, <code>duplicates_marked</code> to use the file as is; empty marks duplicates unless the header records it); leave FASTQ/VCF fields empty. Every read-group SM must equal the registered sample ID. All read groups need ID/SM/LB/PL.</p>
 <p><strong>Step 2. Inspect the supplied BAM read-only</strong></p>
@@ -1950,7 +1950,7 @@ cat config/profiles/resources.yaml
 cd &quot;$BENCH&quot;
 ./pfvarx tool python - &lt;&lt;'PYCODE'
 import csv
-rows=list(csv.DictReader(open(&quot;inputs/metadata/samples.tsv&quot;),delimiter=&quot;\t&quot;))
+rows=list(csv.DictReader(open(&quot;prepared/samples.tsv&quot;),delimiter=&quot;\t&quot;))
 ids=sorted({r[&quot;sample_id&quot;] for r in rows})
 assert len(ids)==4, ids
 print(&quot;samples&quot;,ids,&quot;lanes&quot;,len(rows))
@@ -2055,7 +2055,7 @@ inventory of that run. Snakemake temporary intermediates may disappear after suc
 ├── inputs/
 │   ├── reference/                          optional local resources; absolute originals may be elsewhere
 │   ├── fastq/ OR alignments/                applicable entry route
-│   ├── metadata/samples.tsv
+│   ├── metadata/                           optional study metadata and catalogues
 │   ├── targets/                            targeted assays only
 │   ├── truth/                              benchmarking only
 │   │   ├── truth.json
@@ -2530,7 +2530,7 @@ with a trailing slash. File fields still require filenames.</p>
 </tr>
 <tr>
 <td><code>inputs/metadata/</code></td>
-<td>Reviewed sample TSV and optional population and geographic fields.</td>
+<td>Created only with Study Metadata: Yes, or for a targeted design's library catalog: the study metadata table (tab-separated, with <code>sample_id</code>: population, country, latitude, longitude, collection_date, ...), the library catalog YAML and an optional marker catalogue.</td>
 </tr>
 <tr>
 <td><code>inputs/targets/</code></td>
@@ -2543,8 +2543,8 @@ with a trailing slash. File fields still require filenames.</p>
 </tbody>
 </table>
 <p><code>inputs/</code> holds only the files you supply to start a run; PfVarX reads them and never
-writes there, except the sample sheet it drafts from paired FASTQ when none exists (yours to
-review and edit from then on). Everything it generates lives beside <code>inputs/</code>:</p>
+writes there. Everything it generates lives beside <code>inputs/</code>, in folders created on demand by
+the step that first writes them:</p>
 <table>
 <thead>
 <tr>
@@ -2557,9 +2557,9 @@ review and edit from then on). Everything it generates lives beside <code>inputs
 <tbody>
 <tr>
 <td><code>prepared/</code></td>
-<td><code>./pfvarx prepare</code></td>
-<td><code>reference/</code> (combined and parasite FASTA, <code>.fai</code>, <code>.dict</code>, bwa-mem2 index), <code>snpeff/</code> database, <code>manifest.json</code> sealing them</td>
-<td>yes; <code>prepare</code> rebuilds it</td>
+<td>Inputs Preparation (<code>./pfvarx inputs-preparation</code>; <code>prepare</code> for the references)</td>
+<td><code>samples.tsv</code> (the sample metadata, built from the input files; review it and keep your edits), <code>reference/</code> (combined and parasite FASTA, <code>.fai</code>, <code>.dict</code>, bwa-mem2 index), <code>snpeff/</code> database, <code>manifest.json</code> sealing them</td>
+<td><code>reference/</code> and <code>snpeff/</code> yes, <code>prepare</code> rebuilds them; keep a reviewed <code>samples.tsv</code></td>
 </tr>
 <tr>
 <td><code>metadata/</code></td>
@@ -2698,9 +2698,13 @@ of SHA-256.</p>
 removing reads; a workspace that still has <code>host_fasta</code> set keeps aligning to the parasite
 genome only until <code>host_removal</code> is set to true.</p>
 <h2 id="add-study-metadata">Add study metadata</h2>
-<p>Keep study metadata in the sample sheet as extra columns, one value per sample,
-repeated on every lane row. If the study team keeps its own table (tab-separated, with a
-<code>sample_id</code> column), put it in <code>inputs/metadata/</code> and join it:</p>
+<p>Study metadata is optional. Set <strong>Study Metadata: Yes</strong> (<code>study_metadata: true</code>) in the
+configuration, put the study table (tab-separated, with a <code>sample_id</code> column) in
+<code>inputs/metadata/</code>, and <strong>Inputs Preparation</strong> merges it into the sample metadata
+(<code>prepared/samples.tsv</code>) it builds from the input files. With <strong>No</strong> it continues with the
+sample metadata alone. You can also type study values into <code>prepared/samples.tsv</code> as extra
+columns, one value per sample, repeated on every lane row. To join a table by hand, or to
+preview a join:</p>
 <pre><code class="language-bash">./pfvarx join-metadata --table inputs/metadata/study_metadata.tsv           # report only
 ./pfvarx join-metadata --table inputs/metadata/study_metadata.tsv --apply   # write
 </code></pre>
@@ -2708,8 +2712,8 @@ repeated on every lane row. If the study team keeps its own table (tab-separated
 different value is reported and kept. File, lane, library and library-description columns
 are never taken from the study table. Sample IDs found in only one of the files are
 listed, and coordinates (decimal degrees) and dates (<code>YYYY-MM-DD</code>) are checked. The sheet is
-copied to <code>samples.tsv.before-join-&lt;UTC time&gt;</code> first. The GUI's Input files tab has the
-same step (<strong>Join study metadata</strong>).</p>
+copied to <code>samples.tsv.before-join-&lt;UTC time&gt;</code> first. With Study Metadata: Yes, <strong>Inputs
+Preparation</strong> does this merge automatically, with the same rules.</p>
 <table>
 <thead>
 <tr>
@@ -2830,10 +2834,97 @@ your filename differs. Validation still checks that each required file exists.</
 <p>The <strong>Input directories</strong> tab saves configuration and creates folders. In
 <strong>Input files</strong>, select a file category to upload or download into its folder.
 Use the filenames in your saved configuration. Register sample files, then
-use <strong>Input Files Validation</strong> followed by <strong>Reference Preparation</strong>. Preparation revalidates inputs,
-generates FASTA indexes and the sequence dictionary under <code>prepared/reference/</code>,
-and builds BWA-MEM2 indexes for FASTQ entry. Assay-specific read processing and
-SnpEff annotation remain workflow stages. <strong>Workflow Readiness Checks</strong> runs the checks together.</p>
+use <strong>Input Files Validation</strong> followed by <strong>Inputs Preparation</strong> (below). Assay-specific read
+processing and SnpEff annotation remain workflow stages. <strong>Workflow Readiness Checks</strong> runs
+the checks together.</p>
+<h2 id="inputs-preparation">Inputs Preparation</h2>
+<p>GUI tab <strong>Inputs Preparation</strong>; terminal <code>./pfvarx inputs-preparation [--metadata-table PATH]</code>.</p>
+<p><strong>Input directories</strong> creates only the folders you put input files into (by upload,
+download or browsing): the reads or alignments folder and <code>inputs/reference/</code>, plus
+<code>inputs/targets/</code> for targeted designs, <code>inputs/truth/</code> and <code>inputs/partitions/</code> for
+benchmarking, and the Study Metadata folder (<code>inputs/metadata/</code>) only when <strong>Study
+Metadata: Yes</strong> or a targeted design needs its library catalog there. Everything else
+(<code>prepared/</code>, <code>metadata/</code>, <code>runs/</code> and their subfolders) is created on demand by the step
+that writes it, from Inputs Preparation to the end of the pipeline.</p>
+<p>Two settings in the form control the metadata:</p>
+<table>
+<thead>
+<tr>
+<th>Setting (GUI)</th>
+<th>YAML</th>
+<th>Values</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Study Metadata</td>
+<td><code>study_metadata</code></td>
+<td>No (<code>false</code>, default) or Yes (<code>true</code>)</td>
+</tr>
+<tr>
+<td>Study Metadata folder (shown when Yes)</td>
+<td><code>study_metadata_dir</code></td>
+<td><code>inputs/metadata/</code></td>
+</tr>
+</tbody>
+</table>
+<p>Inputs Preparation runs four stages in order and stops at the first failure:</p>
+<ol>
+<li>
+<p><strong>Sample metadata</strong> (<code>prepare-samples</code>). When <code>prepared/samples.tsv</code> (the fixed
+<code>samples_tsv</code> setting) does not exist, it is built from the input files, with its folder:
+paired FASTQ names give one row per sample and lane, and <code>library_id</code> defaults to
+<code>sample_id</code>, so review them. BAM/CRAM names do not give sample identities, so a blank
+template is written and preparation stops until it is filled in. An existing file is used
+as it is and never overwritten.</p>
+</li>
+<li>
+<p><strong>Study metadata</strong> (<code>prepare-samples</code>).</p>
+<table>
+<thead>
+<tr>
+<th>Study Metadata</th>
+<th>Study Metadata folder holds</th>
+<th>Inputs Preparation</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>No</td>
+<td>(not created; ignored if present)</td>
+<td>continues with the sample metadata only (<code>NOT_USED</code>)</td>
+</tr>
+<tr>
+<td>Yes</td>
+<td>one study table (tab-separated, with <code>sample_id</code>)</td>
+<td>merges it into the sample metadata (<code>MERGED</code>): empty cells are filled, existing values are never overwritten, differences and unmatched IDs are listed</td>
+</tr>
+<tr>
+<td>Yes</td>
+<td>no study table yet</td>
+<td>continues with the sample metadata only and warns (<code>NO_STUDY_TABLE</code>); add the table and run it again</td>
+</tr>
+<tr>
+<td>Yes</td>
+<td>several study tables</td>
+<td>stops and lists them; keep one there or choose it with <code>--metadata-table PATH</code></td>
+</tr>
+</tbody>
+</table>
+<p>The library catalog, the marker catalogue, the sample metadata and earlier merge
+backups are never taken for study tables. Repeating the merge writes nothing new. The
+result is in <code>metadata/inputs_preparation.json</code>.</p>
+</li>
+<li>
+<p><strong>References</strong> (<code>prepare</code>). Revalidates the inputs and builds what the input files and
+final output need under <code>prepared/reference/</code>: the FASTA index and sequence dictionary,
+and the BWA-MEM2 index when reads are aligned (FASTQ input and UMI BAM input). Current
+files are reused.</p>
+</li>
+<li>
+<p><strong>Checks</strong> (<code>verify-prepared</code>, <code>ready</code>).</p>
+</li>
+</ol>
 <h2 id="terminal-workflow">Terminal workflow</h2>
 <p>From your study workspace, edit the three configuration YAML files and run
 the corresponding commands for the GUI stages.</p>
@@ -2866,8 +2957,8 @@ the corresponding commands for the GUI stages.</p>
 <td><code>./pfvarx validate-input-files</code></td>
 </tr>
 <tr>
-<td>Reference Preparation</td>
-<td><code>./pfvarx prepare-reference</code></td>
+<td>Inputs Preparation</td>
+<td><code>./pfvarx inputs-preparation</code></td>
 </tr>
 <tr>
 <td>Workflow Readiness Checks</td>
@@ -2899,8 +2990,9 @@ with <code>register-inputs</code>.</p>
 </code></pre>
 <p>Replace the example paths, URL and filename with your actual inputs. Add
 <code>--sha256</code> to <code>fetch-input</code> when you have a trusted checksum. For FASTQ input,
-validation writes the sample sheet from the paired files in <code>inputs/fastq/</code>
-if none exists; review it before analysis. <code>workflow-run</code> repeats the workflow
+Inputs Preparation (or validation, if it runs first) writes the sample metadata
+<code>prepared/samples.tsv</code> from the paired files in <code>inputs/fastq/</code> if none exists; review it
+before analysis. <code>workflow-run</code> repeats the workflow
 check and starts a new analysis only if it passes, exactly as the GUI <strong>Run
 workflow</strong> button does. <code>./pfvarx dry-run</code> and <code>./pfvarx pipeline --mode NEW</code>
 remain available as the separate steps.</p>
@@ -2935,7 +3027,7 @@ primer or catalogue header), and refused, with an explanation, when they do not.
 </tr>
 <tr>
 <td>inputs/metadata/</td>
-<td>Sample sheet (header with <code>sample_id</code>), marker catalogue (header with <code>marker_id</code>), library catalog (YAML with <code>schema_version: pfvarx.library_catalog/1</code>), other tab-separated tables</td>
+<td>Study metadata table (header with <code>sample_id</code>), marker catalogue (header with <code>marker_id</code>), library catalog (YAML with <code>schema_version: pfvarx.library_catalog/1</code>), other tab-separated tables</td>
 </tr>
 <tr>
 <td>inputs/truth/</td>
@@ -2964,7 +3056,7 @@ reference release.</p>
 <p>The Input files categories follow the saved configuration and existing input
 folders. After changing input type, save before returning to Input files.
 Folders from earlier settings can remain on disk while their tabs are hidden.</p>
-<p>Reference Preparation creates a blank sample sheet if it is missing. Fill it or register a reviewed manifest, then rerun preparation. Existing sheets are preserved. To use combined readiness checks, register samples first.</p>
+<p>Inputs Preparation builds a missing sample sheet from the input files (a blank template for BAM/CRAM input). Fill or review it, or register a reviewed manifest, then rerun preparation. Existing sheets are preserved.</p>
 <h1 id="appendix-g-assay-design-library-records-and-conditional-analysis">Appendix G — Assay design, library records and conditional analysis</h1>
 <p>Paired-end short-read genomic DNA is fixed. One run setting selects the processing
 branch: <code>assay_design</code> (<code>wgs</code>, <code>targeted_umi</code> or <code>targeted_no_umi</code>). Each design accepts
@@ -3064,7 +3156,7 @@ design. A conflict is reported at input validation as
 <code>sample S1 (library LIB1): technique TBS_UMI requires assay_design targeted_umi, but the run's assay_design is targeted_no_umi</code>; only the affected sample is excluded. The resolved
 technique, route (with where it came from), panel, protocol, adapters (kit, sequences and
 source), state, steps run on entry and count unit are frozen in the run plan and shown in the dashboard's input section.</p>
-<p>Example (<code>inputs/metadata/samples.tsv</code>, tab-separated; BAM columns left empty):</p>
+<p>Example (<code>prepared/samples.tsv</code>, tab-separated; BAM columns left empty):</p>
 <pre><code class="language-text">sample_id	lane	fastq_1	fastq_2	bam	library_id	technique	amplification_route	panel_id	panel_version	library_protocol_id	processing_state
 PF001	L001	inputs/fastq/PF001_R1.fastq.gz	inputs/fastq/PF001_R2.fastq.gz		PF001_lib1	TBS_UMI	AMPLICON	MAD4HATTER	1	UMI8_DUAL
 PF002	L001	inputs/fastq/PF002_R1.fastq.gz	inputs/fastq/PF002_R2.fastq.gz		PF002_lib1	null		MAD4HATTER	1	UMI8_DUAL

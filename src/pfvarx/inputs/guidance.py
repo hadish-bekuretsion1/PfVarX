@@ -191,7 +191,8 @@ def explain(finding: dict[str, Any], kind: str, root: Path, raw_config: dict[str
                            "if you do not need annotation or drug-resistance analysis.")
         elif kind == "SAMPLE_METADATA":
             actions.append("Register samples with ./pfvarx register-inputs (or the GUI Input files tab), or write "
-                           "inputs/metadata/samples.tsv with sample_id, lane and library_id columns.")
+                           "run Inputs Preparation (./pfvarx inputs-preparation), which builds prepared/samples.tsv from "
+                           "the input files.")
     else:
         if reason == "CORE_MASK_SUSPECT":
             why = f"{name} may be the wrong file: {detail}."

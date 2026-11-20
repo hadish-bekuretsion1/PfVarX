@@ -318,7 +318,12 @@ def build(dest: Path, design: str = "wgs", seed: int = 7, depth: int = 40, n_mon
                                                "description": "8-base inline UMI on both reads"}]
                                              if design == Design.TARGETED_UMI else [])}
         (dest / "inputs/metadata/library_catalog.yaml").write_text(yaml.safe_dump(catalog_doc, sort_keys=False))
-    with (dest / "inputs/metadata/samples.tsv").open("w") as h:
+    # The sample sheet goes where the workspace configuration expects it (prepared/samples.tsv by default).
+    config = dest / "config/config.yaml"
+    sheet_path = dest / ((yaml.safe_load(config.read_text()) or {}).get("samples_tsv", "prepared/samples.tsv")
+                         if config.is_file() else "prepared/samples.tsv")
+    sheet_path.parent.mkdir(parents=True, exist_ok=True)
+    with sheet_path.open("w") as h:
         h.write("\t".join(cols) + "\n")
         for s in samples:
             h.write("\t".join(s[c] for c in cols) + "\n")

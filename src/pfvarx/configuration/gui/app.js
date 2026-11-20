@@ -21,13 +21,19 @@ function resolveSchema(spec) {
     return base.$ref ? state.schema.$defs[base.$ref.split("/").pop()] : base;
 }
 
+// Yes/no settings drawn as drop-downs: [label for false, label for true].
+const BOOLEAN_CHOICES = {
+    "config.reference.host_removal": ["False", "True"],
+    "config.study_metadata": ["No", "Yes"],
+};
+
 const filePlaceholders = {
     "config.assay.library_catalog": "inputs/metadata/",
-    "config.samples_tsv": "inputs/metadata/",
     "config.reference.fasta": "inputs/reference/",
     "config.reference.core_mask_bed": "inputs/reference/",
     "config.reference.gff": "inputs/reference/",
     "config.reference.host_fasta": "inputs/reference/",
+    "config.study_metadata_dir": "inputs/metadata/",
     "config.analyses.resistance_catalog": "inputs/metadata/",
 };
 
@@ -50,12 +56,14 @@ function draw(parent, object, schema, path = "") {
         row.dataset.field = id;
         const label = document.createElement("label");
         const labels = {
-            "config.samples_tsv": "Study metadata and catalogue",
+            "config.samples_tsv": "Sample metadata (built by Inputs Preparation)",
+            "config.study_metadata": "Study Metadata",
+            "config.study_metadata_dir": "Study Metadata folder",
             "config.assay_design": "Assay design",
             "config.assay.library_catalog": "Library catalog: panels and library protocols (YAML)",
             "config.reference.core_mask_bed": "Core-genome mask (BED)",
-            "config.reference.host_removal": "Human DNA removal (true / false; wgs design only)",
-            "config.reference.host_fasta": "Human genome FASTA (used when Human DNA removal is on)"
+            "config.reference.host_removal": "Human DNA removal",
+            "config.reference.host_fasta": "Human genome reference"
         };
         label.textContent = (labels[id] || key.replaceAll("_", " ")) + " ";
         row.append(label);
@@ -101,6 +109,22 @@ function draw(parent, object, schema, path = "") {
             continue;
         }
         let input;
+        const choices = BOOLEAN_CHOICES[id];
+        if (choices) {
+            // A yes/no setting shown as a two-choice drop-down; the YAML keeps true/false.
+            input = document.createElement("select");
+            input.append(new Option(choices[0], "false"), new Option(choices[1], "true"));
+            input.value = String(object[key] === true);
+            input.id = id;
+            label.htmlFor = id;
+            label.append(input);
+            if (guide || original.description) input.setAttribute("aria-describedby", id + ".help");
+            input.addEventListener("change", () => {
+                object[key] = input.value === "true";
+                changed(id);
+            });
+            continue;
+        }
         let options = spec.enum || ({
             "config.analyses.spatial_outcome_source": ["DA002"],
             "config.purpose": ["analysis", "benchmarking"]
@@ -208,10 +232,10 @@ function hostRemovalEligibility(targeted, design) {
     // Shown for every design, usable only for wgs: targeted designs see why it is off.
     const row = editor.querySelector('[data-field="config.reference.host_removal"]');
     if (!row) return;
-    const box = byId("config.reference.host_removal");
-    if (box) {
-        box.disabled = targeted;
-        if (targeted) box.checked = false;
+    const choice = byId("config.reference.host_removal");
+    if (choice) {
+        choice.disabled = targeted;
+        if (targeted) choice.value = "false";
     }
     let note = row.querySelector("[data-host-eligibility]");
     if (!note) {
@@ -231,7 +255,7 @@ function showInputFolders(directories) {
         "inputs/fastq": "Paired reads (.fastq or .fastq.gz), such as sample_R1.fastq.gz and sample_R2.fastq.gz.",
         "inputs/alignments": "Coordinate-sorted BAM files and their indexes (.bai or .csi). Record each file's processing_state in the sample registry so only the missing steps run.",
         "inputs/reference": "Reference FASTA and matching core-genome BED. Include matching GFF when annotation is needed.",
-        "inputs/metadata": "Sample registry TSV with input paths and study metadata (country, latitude, longitude, collection_date and population where applicable). Optional separate study metadata and verified marker catalogue TSV. Join a separate study table into the sample registry with Join study metadata below (by sample_id). Library columns (technique, amplification_route, panel_id, panel_version, library_protocol_id, adapter_kit) describe each library; targeted designs also need the library catalog YAML.",
+        "inputs/metadata": "Study Metadata: one study table (tab-separated, with sample_id: country, latitude, longitude, collection_date, population and any other study fields), merged into the sample metadata by Inputs Preparation. For targeted designs also the library catalog YAML, and optionally a verified marker catalogue TSV.",
         "inputs/targets": "Target regions BED and primer definitions TSV (or probe BED) matched to the reference, named by a panel in the library catalog.",
         "inputs/truth": "truth.json, confident_regions.bed, and <MONOCLONAL_SAMPLE_ID>.truth.vcf for each scored monoclonal sample.",
         "inputs/partitions": "partition.json, created by ./pfvarx benchmark-partition."
@@ -284,6 +308,12 @@ function changed(id) {
         render();
         return;
     }
+    if (id === "config.study_metadata") {
+        config.study_metadata_dir = config.study_metadata
+            ? config.study_metadata_dir || filePlaceholders["config.study_metadata_dir"] : config.study_metadata_dir;
+        render();
+        return;
+    }
     if (id === "config.reference.host_removal") {
         reference.host_fasta = reference.host_removal ? reference.host_fasta || filePlaceholders["config.reference.host_fasta"] : null;
         render();
@@ -321,6 +351,8 @@ function changed(id) {
     toggle("config.assay.library_catalog", targeted);
     hostRemovalEligibility(targeted, config.assay_design);
     toggle("config.reference.host_fasta", !targeted && reference.host_removal === true);
+    toggle("config.study_metadata_dir", config.study_metadata === true);
+    toggle("config.samples_tsv", false);  // fixed path written by Inputs Preparation, not chosen here
     toggle("config.caller.executable", config.caller.backend === "external");
     toggle("config.caller.sha256", config.caller.backend === "external");
     toggle("compute.slurm_partition", false);
@@ -330,6 +362,7 @@ function changed(id) {
     const conditionalRequirements = {
         "config.assay.library_catalog": targeted,
         "config.reference.host_fasta": !targeted && reference.host_removal === true,
+        "config.study_metadata_dir": config.study_metadata === true,
         "config.reference.gff": full && analyses.selection !== "auto",
         "config.analyses.spatial_outcome_source": full && (analyses.requested || []).includes("DA007"),
         "config.caller.executable": config.caller.backend === "external",
@@ -392,7 +425,6 @@ async function load() {
         if (!state.input_folders_created) {
             const defaults = [
                 [values.config.assay, "library_catalog", "inputs/metadata/library_catalog.yaml"],
-                [values.config, "samples_tsv", "inputs/metadata/samples.tsv"],
                 [values.config.reference, "fasta", "inputs/reference/Pf3D7.fasta"],
                 [values.config.reference, "core_mask_bed", "inputs/reference/core_genome.bed"]
             ];
@@ -508,7 +540,7 @@ for (const view of ["configuration", "inputs", "validation", "preparation", "pre
 
 for (const [panel, endpoint, title] of [
     ["validation", "validate-inputs", "Input Files Validation"],
-    ["preparation", "prepare-inputs", "Reference Preparation"],
+    ["preparation", "prepare-inputs", "Inputs Preparation"],
     ["preflight", "preflight", "Workflow Readiness Checks"],
     ["workflow-check", "workflow-check", "Workflow check"]
 ]) {
@@ -658,30 +690,4 @@ byId("start-workflow").addEventListener("click", async () => {
         return;
     }
     pollWorkflow();
-});
-
-byId("join-metadata").addEventListener("submit", async event => {
-    event.preventDefault();
-    const apply = event.submitter?.value === "apply";
-    const message = byId("join-status");
-    message.textContent = apply ? "Joining..." : "Checking...";
-    try {
-        const table = new FormData(event.target).get("table");
-        const result = await request("join-metadata", {table, apply});
-        const lines = [
-            (apply ? (result.status === "APPLIED" ? "Joined. " : "Nothing to write. ") : "Preview: ") +
-                result.cells_filled + " empty cell(s) " + (apply ? "filled" : "would be filled") +
-                " in " + result.sample_sheet + ".",
-            "Columns: " + (result.columns_joined.join(", ") || "none")
-        ];
-        if (result.backup) lines.push("Backup: " + result.backup);
-        if (result.columns_skipped_protected.length) lines.push("Not taken from the study table: " + result.columns_skipped_protected.join(", "));
-        if (result.samples_without_study_row.length) lines.push("Samples with no study row: " + result.samples_without_study_row.join(", "));
-        if (result.study_rows_without_sample.length) lines.push("Study rows with no sample: " + result.study_rows_without_sample.join(", "));
-        for (const c of result.conflicts_not_overwritten) lines.push("Kept " + c.column + " of " + c.sample_id + ": sample sheet has " + JSON.stringify(c.sample_sheet) + ", study table has " + JSON.stringify(c.study_table));
-        for (const w of result.warnings) lines.push("Warning: " + w);
-        message.textContent = lines.join("\n");
-    } catch (error) {
-        message.textContent = error.message;
-    }
 });

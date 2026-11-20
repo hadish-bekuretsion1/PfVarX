@@ -101,8 +101,9 @@ After editing the assay fields:
 ./pfvarx init
 ```
 
-`init` creates only the input directories needed for the chosen purpose/design and
-an empty `inputs/metadata/samples.tsv` header. It does not fabricate data, references,
+`init` creates only the input directories needed for the chosen purpose/design
+(`inputs/metadata/` only when a catalogue lives there). Inputs Preparation builds the sample
+sheet, `prepared/samples.tsv`, from the input files. It does not fabricate data, references,
 truth, results or masks. Populate the input paths from your own verified resources.
 
 | Resource | Requirements |

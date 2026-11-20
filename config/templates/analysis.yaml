@@ -19,7 +19,9 @@ reference:
   host_fasta: null                         # EDIT when host_removal is true: human genome FASTA (e.g. inputs/reference/GRCh38_no_alt.fasta); you supply its bwa-mem2 index
   release_label: SET_REFERENCE_RELEASE     # EDIT: exact release used for FASTA and GFF
   snpeff_genome_id: null                   # OPTIONAL: id of a SnpEff database built from the same files
-samples_tsv: inputs/metadata/samples.tsv   # FIXED path written by 'pixi run init'
+samples_tsv: prepared/samples.tsv         # FIXED: sample metadata, built by Inputs Preparation from the input files
+study_metadata: false                      # REVIEW: Study Metadata. true = merge a study table from study_metadata_dir; false = sample metadata from the input files only
+study_metadata_dir: inputs/metadata       # EDIT when study_metadata is true: folder holding the study metadata table
 analyses:
   selection: explicit                     # auto: FO004, empty requested and scales
   requested: []                            # EDIT for FO004, e.g. [DA002, DA001, DA006]

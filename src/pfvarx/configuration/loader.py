@@ -68,7 +68,7 @@ def migrate_project(project: dict[str, Any]) -> dict[str, Any]:
 # Folder shortcuts (a setting that names only a folder) and the file name used when the
 # folder holds no single file with the right content (validation then reports it).
 FOLDER_SETTINGS = {
-    "samples_tsv": "inputs/metadata/samples.tsv",
+    "samples_tsv": "prepared/samples.tsv",
     "reference.fasta": "inputs/reference/Pf3D7.fasta",
     "reference.core_mask_bed": "inputs/reference/core_genome.bed",
     "reference.gff": "inputs/reference/Pf3D7.gff",

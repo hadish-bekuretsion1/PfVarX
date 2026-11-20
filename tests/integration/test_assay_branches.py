@@ -136,7 +136,7 @@ def test_bam_entry_runs_only_the_steps_its_state_needs(fastq_runs: dict[str, Any
                                                        kind: str, state: str, ran: set[str], skipped: set[str]) -> None:
     _, source, _ = fastq_runs[design]
     ws = workspace(tmp_path / "ws", design, "BAM")
-    sheet = ws / "inputs/metadata/samples.tsv"
+    sheet = ws / "prepared/samples.tsv"
     rows = [line.split("\t") for line in sheet.read_text().splitlines()]
     header = rows[0]
     (ws / "inputs/alignments").mkdir(exist_ok=True)
@@ -169,7 +169,7 @@ def validation_failures(ws: Path) -> list[str]:
 
 
 def set_column(ws: Path, column: str, values: dict[str, str]) -> None:
-    sheet = ws / "inputs/metadata/samples.tsv"
+    sheet = ws / "prepared/samples.tsv"
     rows = [line.split("\t") for line in sheet.read_text().splitlines()]
     for row in rows[1:]:
         sid = row[rows[0].index("sample_id")]
@@ -209,7 +209,7 @@ def test_consensus_state_on_raw_umi_reads_is_rejected(fastq_runs: dict[str, Any]
     """A documented state the reads contradict is refused before anything runs."""
     _, source, _ = fastq_runs["targeted_umi"]
     ws = workspace(tmp_path / "ws", "targeted_umi", "BAM")
-    sheet = ws / "inputs/metadata/samples.tsv"
+    sheet = ws / "prepared/samples.tsv"
     rows = [line.split("\t") for line in sheet.read_text().splitlines()]
     header = rows[0]
     (ws / "inputs/alignments").mkdir(exist_ok=True)
