@@ -97,19 +97,19 @@ Use these starting points with your own paths and laboratory protocol.
 
 ### Direct WGS paired FASTQ on a small PC
 
-Bootstrap the sample profile with the default FASTQ/WGS choices. In the form choose FASTQ, FO002, assay design wgs and Local; record amplification_route DIRECT (or SWGA) per library in the sample manifest. Set the matching FASTA and core BED. For an 8 GB PC, start with 6500 MiB total and per job, one job, and a thread count that fits your CPU.
+Bootstrap with --final-output FO002 with the default FASTQ/WGS choices. In the form choose FASTQ, FO002, assay design wgs and Local; record amplification_route DIRECT (or SWGA) per library in the sample manifest. Set the matching FASTA and core BED. For an 8 GB PC, start with 6500 MiB total and per job, one job, and a thread count that fits your CPU.
 
 ### Existing indexed alignment
 
-Bootstrap with `--profile sample --input-type BAM` or `--input-type CRAM`. Choose FO002. Register the alignment and index using the sample manifest, with its processing_state (wgs: aligned or duplicates_marked; targeted_no_umi: aligned or primers_trimmed; targeted_umi: aligned, consensus or consensus_primers_trimmed) so only the missing steps run. Use the same reference assembly used to align or encode it.
+Bootstrap with `--final-output FO002 --input-type BAM` or `--input-type CRAM`. Choose FO002. Register the alignment and index using the sample manifest, with its processing_state (wgs: aligned or duplicates_marked; targeted_no_umi: aligned or primers_trimmed; targeted_umi: aligned, consensus or consensus_primers_trimmed) so only the missing steps run. Use the same reference assembly used to align or encode it.
 
 ### Targeted UMI sequencing
 
-Bootstrap with `--profile sample --design targeted_umi`. Choose FASTQ, FO002 and assay design targeted_umi, and point `assay.library_catalog` at the library catalog. In the catalog, define the panel (targets and primers) and the library protocol with both actual mate read structures. In the sample manifest, give each row its panel_id, panel_version and library_protocol_id; the optional technique label TBS_UMI or AMPLICON must match the design.
+Bootstrap with `--final-output FO002 --design targeted_umi`. Choose FASTQ, FO002 and assay design targeted_umi, and point `assay.library_catalog` at the library catalog. In the catalog, define the panel (targets and primers) and the library protocol with both actual mate read structures. In the sample manifest, give each row its panel_id, panel_version and library_protocol_id; the optional technique label TBS_UMI or AMPLICON must match the design.
 
 ### Automatic downstream analysis
 
-Bootstrap with `--profile downstream --auto-analyses` and the actual design. Select FO004 and automatic analysis selection. Leave requested and scales empty. Supply matched annotation and an eligible catalogue for marker analysis. Add actual population, date and geography metadata where required. Review terminal reasons for excluded analyses.
+Bootstrap with `--final-output FO004 --auto-analyses` and the actual design. Select FO004 and automatic analysis selection. Leave requested and scales empty. Supply matched annotation and an eligible catalogue for marker analysis. Add actual population, date and geography metadata where required. Review terminal reasons for excluded analyses.
 
 ### After saving
 

@@ -34,6 +34,12 @@
 <p>After saving, supply or register the files listed for your configuration.</p>
 <ul id="input-folder-preview"></ul>
 <button id="save" disabled>Create Configuration and Input Directories</button>
+<section id="tools" aria-label="Required tools">
+<button type="button" id="install-tools">Install required tools</button>
+<p>Installs only the tools the saved configuration needs (final output, design, input type and analyses), before <strong>Inputs Preparation</strong>. Save the configuration first. Pressing it again after changing the configuration installs only what is newly needed. Terminal equivalent: <code>./pfvarx install-tools</code> (<code>--check</code> to report only).</p>
+<p id="tools-status" role="status" aria-live="polite"></p>
+<pre id="tools-result" aria-live="polite"></pre>
+</section>
 <details open><summary>Configuration summary</summary><pre id="summary"></pre></details>
 <pre id="result" aria-live="polite"></pre>
 </section>

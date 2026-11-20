@@ -120,6 +120,17 @@ function draw(parent, object, schema, path = "") {
             }
             input.value = object[key] ?? "";
             const installation = state.installation;
+            if (id === "config.final_output" && installation && installation.profile !== "development") {
+                // Tools are installed by final output: later outputs need a new installation.
+                for (const option of input.options) option.disabled = option.value > installation.max_final_output;
+                if (installation.max_final_output !== "FO004") {
+                    const note = document.createElement("small");
+                    note.className = "notice";
+                    note.textContent = "This workspace installed the tools for final outputs up to " + installation.max_final_output +
+                        ". For a later final output, install a new workspace: python3 bootstrap.py --final-output FO00N.";
+                    row.append(note);
+                }
+            }
             if (id === "config.input_type" && installation && installation.profile !== "development" && installation.input_type !== "FASTQ") {
                 for (const option of input.options) option.disabled = option.value !== installation.input_type;
                 const note = document.createElement("small");
@@ -253,7 +264,9 @@ function changed(id) {
         : "Example: inputs/alignments/sample.bam and inputs/alignments/sample.bam.bai. Place the BAM and its index here after saving, or register their existing paths.";
     const outputs = byId("config.final_output");
     for (const option of outputs.options) {
-        option.disabled = option.value === "FO001" && config.input_type !== "FASTQ";
+        const installed = state.installation && state.installation.profile !== "development"
+            ? state.installation.max_final_output : "FO004";
+        option.disabled = (option.value === "FO001" && config.input_type !== "FASTQ") || option.value > installed;
     }
     const full = config.final_output === "FO004";
     const targeted = config.assay_design !== "wgs";
@@ -421,7 +434,8 @@ saveButton.addEventListener("click", async () => {
         byId("result").textContent = "Input directories are successfully created\n\nInput folders:\n" + result.directories.map(path => path + "/").join("\n") +
             "\n\nSaved: " + (result.saved.join(", ") || "already current") +
             (result.backups.length ? "\nBackups: " + result.backups.join(", ") : "") +
-            "\n\nNext: add files on the Input files tab (or ./pfvarx add-input / fetch-input), then validate.";
+            "\n\nNext: click Install required tools, then add files on the Input files tab (or ./pfvarx add-input / fetch-input) and validate.";
+        refreshTools();
     } catch (error) {
         status.textContent = error.message;
         const field = error.message.match(/config\/(config|quality|compute)\.yaml: ([\w.]+):/);
@@ -440,6 +454,46 @@ saveButton.addEventListener("click", async () => {
 editor.addEventListener("submit", event => event.preventDefault());
 byId("purpose").addEventListener("change", load);
 load();
+
+// Required tools: what the saved configuration needs, and the Install required tools button.
+async function refreshTools() {
+    const message = byId("tools-status");
+    const button = byId("install-tools");
+    try {
+        const tools = await request("tools-status");
+        message.textContent = tools.detail;
+        button.hidden = tools.mode !== "on-demand";
+        button.disabled = tools.current;
+        button.textContent = tools.current ? "Required tools installed" : "Install required tools";
+    } catch (error) {
+        message.textContent = "Save the configuration first; then install the tools it needs.";
+        button.disabled = true;
+    }
+}
+
+byId("install-tools").addEventListener("click", async () => {
+    const button = byId("install-tools");
+    const message = byId("tools-status");
+    button.disabled = true;
+    message.textContent = "Installing the tools for the saved configuration. This can take several minutes...";
+    try {
+        const result = await request("install-tools", {});
+        const stage = result.stages[0];
+        let detail = stage.stdout || stage.stderr;
+        try {
+            const parsed = JSON.parse(stage.stdout);
+            detail = parsed.status === "INSTALLED" ? "Installed environment " + parsed.environment + " for " +
+                parsed.required_for.final_output + ", " + parsed.required_for.design + ", " + parsed.required_for.input_type + "."
+                : parsed.status === "ALREADY_INSTALLED" ? "Already installed: environment " + parsed.environment + "."
+                : (parsed.error || stage.stdout);
+        } catch { /* keep the raw output */ }
+        byId("tools-result").textContent = detail;
+    } catch (error) {
+        byId("tools-result").textContent = error.message;
+    }
+    refreshTools();
+});
+refreshTools();
 
 for (const view of ["configuration", "inputs", "validation", "preparation", "preflight", "workflow"]) {
     byId(view + "-tab").addEventListener("click", () => {

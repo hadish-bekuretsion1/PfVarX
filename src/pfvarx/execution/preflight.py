@@ -109,7 +109,11 @@ def validate_inputs(root: Path) -> dict[str, Any]:
 
 
 def prepare_inputs(root: Path, dry_run: bool = False) -> dict[str, Any]:
+    from pfvarx.installation import require_tools
+
     bundle = load_bundle(root)
+    if not dry_run:
+        require_tools(root)  # on-demand workspaces: the reference tools come with Install required tools
     if dry_run:
         return prepare(root, bundle, True)
     sheet = root / bundle.config.samples_tsv

@@ -407,6 +407,19 @@ def _run_checks(stages: tuple[str, ...]) -> None:
     emit(result, 0 if result["passed"] else 1)
 
 
+@app.command("install-tools")
+def install_tools(check: bool = typer.Option(False, "--check", help="report only: are the tools installed?")) -> None:
+    """Install the tools the saved configuration needs (GUI: Install required tools)."""
+    from pfvarx.installation import install, status
+
+    root = _root()
+    if check:
+        result = guard(lambda: status(root))
+        emit(result, 0 if result["current"] else 1)
+        return
+    emit(guard(lambda: install(root)))
+
+
 @app.command("prepare-reference")
 def prepare_reference() -> None:
     """Prepare references, verify artifacts and check readiness."""

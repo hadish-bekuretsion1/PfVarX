@@ -28,6 +28,9 @@ from pfvarx.runs import registry as runs
 
 
 def build_plan(root: Path) -> dict[str, Any]:
+    from pfvarx.installation import require_tools
+
+    require_tools(root)  # readiness, dry run and pipeline need the tools of the saved configuration
     bundle = load_bundle(root)
     cfg = bundle.config
     if cfg.final_output.value != "FO001":
