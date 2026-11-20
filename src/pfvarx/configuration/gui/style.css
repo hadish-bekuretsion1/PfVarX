@@ -1,47 +1,175 @@
-body{margin:0;background:#edf3f7;color:#173042;font:16px/1.5 system-ui,sans-serif}
-main{max-width:1000px;margin:auto;padding:2rem}
-fieldset,details,dialog{border:1px solid #aec5d4;border-radius:.45rem;background:white;margin:1rem 0;padding:1rem}
-legend{font-weight:700}label{display:block;margin:.6rem 0}small{display:block;color:#42596a}
-input,select,textarea,button{font:inherit;padding:.35rem;margin:.2rem;max-width:95%}
-input:not([type=checkbox]):not([type=radio]),textarea{width:26rem}
-button{background:#164963;color:white;border:0;border-radius:.25rem;padding:.5rem .8rem}
-button:disabled{opacity:.45}pre{white-space:pre-wrap;overflow-wrap:anywhere}dialog{margin:auto;max-width:90vw}
-#entries{max-height:55vh;overflow:auto}#entries button{display:block}
+/* PfVarX configuration editor. Colours are defined once here and reused. */
+:root {
+    --bg: #f3f5f8;
+    --surface: #ffffff;
+    --surface-muted: #f8fafc;
+    --text: #1b2733;
+    --text-muted: #556575;
+    --border: #d5dde6;
+    --primary: #1d4f7a;
+    --primary-hover: #163d5f;
+    --primary-soft: #e8f0f7;
+    --focus: #3b82c4;
+    --danger: #b42318;
+    --notice: #8a5100;
+    --radius: .5rem;
+    --shadow: 0 1px 2px rgba(16, 32, 48, .06), 0 1px 3px rgba(16, 32, 48, .08);
+}
 
-[hidden]{display:none!important}
-*,*::before,*::after{box-sizing:border-box}
-fieldset{min-width:0}label,button{overflow-wrap:anywhere}
-@media(max-width:600px){main{padding:1rem}fieldset{padding:.65rem}button{max-width:100%}}
+*, *::before, *::after { box-sizing: border-box; }
+/* Keep the colours when the page is printed or saved as PDF (browsers drop backgrounds otherwise). */
+html { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+[hidden] { display: none !important; }
 
-[data-required-mark] { color: #b42318; font-weight: 700; }
+body { margin: 0; background: var(--bg); color: var(--text); font: 16px/1.5 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
+main { max-width: 1100px; margin: auto; padding: 2rem; }
+h1 { margin: 0 0 .5rem; font-size: 1.9rem; letter-spacing: -.01em; color: var(--primary); }
+h2 { margin-top: 1.75rem; font-size: 1.3rem; }
+h3 { margin-top: 1.5rem; font-size: 1.05rem; }
+code { background: var(--primary-soft); color: var(--primary-hover); padding: .05rem .3rem; border-radius: .25rem; font-size: .9em; }
 
-nav button[aria-pressed="true"] {
-    background: #e7f3ff;
-    color: #103c59;
-    box-shadow: inset 0 -3px #17658c;
+/* Panels and grouped settings */
+fieldset, details, dialog {
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    background: var(--surface);
+    box-shadow: var(--shadow);
+    margin: 1rem 0;
+    padding: 1rem 1.25rem;
+    min-width: 0;
+}
+fieldset fieldset { background: var(--surface-muted); box-shadow: none; }
+legend { font-weight: 700; color: var(--primary); padding: 0 .4rem; text-transform: capitalize; }
+details > summary { cursor: pointer; font-weight: 600; color: var(--primary); }
+dialog { margin: auto; max-width: 90vw; }
+
+label { display: block; margin: .75rem 0 .2rem; font-weight: 500; overflow-wrap: anywhere; }
+small { display: block; color: var(--text-muted); font-size: .85rem; margin-bottom: .4rem; }
+small.notice { color: var(--notice); font-weight: 600; }
+[data-required-mark] { color: var(--danger); font-weight: 700; }
+
+/* Form controls */
+input, select, textarea, button { font: inherit; max-width: 95%; }
+input:not([type=checkbox]):not([type=radio]), select, textarea {
+    padding: .45rem .6rem;
+    margin: .2rem;
+    border: 1px solid var(--border);
+    border-radius: .375rem;
+    background: var(--surface);
+    color: var(--text);
+}
+input:not([type=checkbox]):not([type=radio]), textarea { width: 28rem; }
+input[type=checkbox], input[type=radio] { width: 1.05rem; height: 1.05rem; margin: 0 .35rem; vertical-align: -.15rem; accent-color: var(--primary); }
+input:disabled, select:disabled, textarea:disabled { background: var(--surface-muted); color: var(--text-muted); }
+input:focus-visible, select:focus-visible, textarea:focus-visible, button:focus-visible {
+    outline: 3px solid color-mix(in srgb, var(--focus) 45%, transparent);
+    outline-offset: 1px;
+    border-color: var(--focus);
+}
+pre { white-space: pre-wrap; overflow-wrap: anywhere; background: var(--surface-muted); border-radius: .375rem; padding: .25rem .75rem; }
+pre:empty { display: none; }
+
+/* Buttons: one primary style, an outline style for secondary actions */
+button {
+    display: inline-flex;
+    align-items: center;
+    gap: .4rem;
+    margin: .35rem .5rem .35rem 0;
+    padding: .55rem 1.1rem;
+    border: 1px solid var(--primary);
+    border-radius: .375rem;
+    background: var(--primary);
+    color: #fff;
+    font-weight: 600;
+    line-height: 1.2;
+    cursor: pointer;
+    box-shadow: var(--shadow);
+    transition: background-color .15s ease, border-color .15s ease, box-shadow .15s ease, transform .05s ease;
+    overflow-wrap: anywhere;
+}
+button:hover:not(:disabled) { background: var(--primary-hover); border-color: var(--primary-hover); }
+button:active:not(:disabled) { transform: translateY(1px); box-shadow: none; }
+button:disabled { background: #c7d0da; border-color: #c7d0da; color: #fff; cursor: not-allowed; box-shadow: none; }
+#run-workflow-check, #join-metadata button[value=preview], #entries button {
+    background: var(--surface);
+    color: var(--primary);
+}
+#run-workflow-check:hover:not(:disabled), #join-metadata button[value=preview]:hover:not(:disabled), #entries button:hover {
+    background: var(--primary-soft);
+}
+#save { padding: .7rem 1.4rem; font-size: 1.02rem; }
+#entries { max-height: 55vh; overflow: auto; }
+#entries button { display: flex; width: 100%; margin: .2rem 0; box-shadow: none; }
+
+/* Tab bars (workflow steps and input file categories): every tab is always visible, as an even
+   grid of horizontal buttons. Six in one row on wide screens, 3 x 2 on laptops, 2 x 3 on phones;
+   a label never breaks inside a tab and the bar never scrolls. */
+nav {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(9rem, 1fr));
+    gap: .25rem;
+    margin: 1.25rem 0;
+    padding: .3rem;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: calc(var(--radius) + .2rem);
+    box-shadow: var(--shadow);
+}
+nav[aria-label="Workspace views"] { grid-template-columns: repeat(3, 1fr); }
+@media (min-width: 1500px) { nav[aria-label="Workspace views"] { grid-template-columns: repeat(6, 1fr); } }
+@media (max-width: 900px) { nav[aria-label="Workspace views"] { grid-template-columns: repeat(2, 1fr); } }
+nav button {
+    justify-content: flex-start;
+    min-width: 0;
+    margin: 0;
+    padding: .6rem .9rem;
+    white-space: nowrap;
+    overflow-wrap: normal;
+    max-width: none;
+    border: 0;
+    border-radius: var(--radius);
+    background: transparent;
+    color: var(--text-muted);
+    font-size: .92rem;
+    font-weight: 600;
+    box-shadow: none;
+}
+nav button:hover:not(:disabled) { background: var(--primary-soft); color: var(--primary); }
+nav button[aria-pressed="true"],
+nav button[aria-pressed="true"]:hover:not(:disabled) {
+    background: var(--primary);
+    color: #fff;
+    box-shadow: var(--shadow);
+}
+
+/* Workflow steps are numbered in order: 1 Input directories ... 6 Workflow Check and Run. */
+nav[aria-label="Workspace views"] { counter-reset: step; }
+nav[aria-label="Workspace views"] button { counter-increment: step; }
+nav[aria-label="Workspace views"] button::before {
+    content: counter(step);
+    display: inline-grid;
+    place-items: center;
+    width: 1.45rem;
+    height: 1.45rem;
+    border-radius: 50%;
+    background: var(--primary-soft);
+    color: var(--primary);
+    font-size: .78rem;
     font-weight: 700;
 }
+nav[aria-label="Workspace views"] button[aria-pressed="true"]::before { background: #fff; color: var(--primary); }
 
-nav button[aria-pressed="true"]::before {
-    content: "✓ ";
+@media (max-width: 600px) {
+    main { padding: 1rem; }
+    fieldset { padding: .75rem; }
+    input:not([type=checkbox]):not([type=radio]), textarea { width: 100%; }
+    button { max-width: 100%; }
 }
 
-/* Tab bars (workflow steps and input file categories) stay on one horizontal line.
-   Tabs share the width by label length; on narrow screens the bar scrolls sideways instead of wrapping. */
-nav {
-    display: flex;
-    flex-wrap: nowrap;
-    gap: .3rem;
-    overflow-x: auto;
-    margin: 1rem 0;
-    padding-bottom: .2rem;
-}
+/* Step drop-down beside the tabs: label and list on one line. */
+.step-picker { display: flex; align-items: center; gap: .6rem; margin: -.5rem 0 1.25rem; font-weight: 600; color: var(--primary); }
+.step-picker select { width: 22rem; max-width: 100%; padding: .5rem .7rem; font-weight: 600; color: var(--text); cursor: pointer; }
+.step-picker select:hover { border-color: var(--primary); }
 
-nav button {
-    flex: 1 1 auto;
-    min-width: 6.5rem;
-    max-width: none;
-    margin: 0;
-    line-height: 1.25;
-    overflow-wrap: normal;
-}
+/* Printed or saved as PDF: three tabs per row, slightly smaller. */
+@media print { nav[aria-label="Workspace views"] { grid-template-columns: repeat(3, 1fr); } nav button { font-size: .8rem; padding: .5rem .6rem; } }

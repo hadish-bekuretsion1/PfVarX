@@ -18,6 +18,17 @@
 <button type="button" id="preflight-tab" aria-controls="preflight-panel" aria-pressed="false">Workflow Readiness Checks</button>
 <button type="button" id="workflow-tab" aria-controls="workflow-panel" aria-pressed="false">Workflow Check and Run</button>
 </nav>
+<!-- The same six steps as a drop-down list. The choices are fixed here in the page: no database or server call fills them. -->
+<label class="step-picker" for="step-select">Go to step
+<select id="step-select">
+<option value="configuration">1 · Input directories</option>
+<option value="inputs">2 · Input files</option>
+<option value="validation">3 · Input Files Validation</option>
+<option value="preparation">4 · Reference Preparation</option>
+<option value="preflight">5 · Workflow Readiness Checks</option>
+<option value="workflow">6 · Workflow Check and Run</option>
+</select>
+</label>
 <section id="configuration-panel">
 <p>Terminal equivalent: edit the YAML files in <code>config/</code>, then <code>./pfvarx input-directories</code>. A schema-3 configuration is migrated on save, as <code>./pfvarx config-migrate --apply</code> does.</p>
 <label>Template <select id="purpose"><option>analysis</option><option>benchmarking</option></select></label>

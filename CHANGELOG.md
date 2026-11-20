@@ -5,6 +5,17 @@
 The release version was reset to 0.0.0 after 0.4.2, as the baseline for the first reviewed
 release. The sections below 0.0.0 are the earlier development numbering, kept as history.
 
+### Configuration editor: visible steps, step drop-down and one colour scheme
+
+- The six workflow tabs are an even grid of horizontal buttons that are always visible (one
+  row of six on wide screens, 3 x 2 on laptops, 2 x 3 on narrow windows), numbered 1-6 in
+  workflow order; labels no longer break inside a tab and the bar no longer scrolls.
+- A **Go to step** drop-down lists the same six steps. Its choices are fixed in
+  `index.html` (no database or server call) and it stays in step with the tabs.
+- One navy colour scheme defined once in `style.css`: primary and outline buttons, clear
+  disabled state, card-style setting groups, focus outlines. Colours are kept when the page
+  is printed or saved as PDF.
+
 ### Adapters are set per library, not detected
 
 - fastp's adapter detection (`--detect_adapter_for_pe`) was on for every library. On AT-rich

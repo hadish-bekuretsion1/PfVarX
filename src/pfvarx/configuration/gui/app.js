@@ -408,10 +408,13 @@ for (const view of ["configuration", "inputs", "validation", "preparation", "pre
             byId(panel + "-panel").hidden = panel !== view;
             byId(panel + "-tab").setAttribute("aria-pressed", String(panel === view));
         }
+        byId("step-select").value = view;  // keep the drop-down on the open step
         if (view === "inputs") loadFileTabs();
         if (view === "workflow") pollWorkflow();
     });
 }
+// Choosing a step in the drop-down opens it exactly as clicking its tab does.
+byId("step-select").addEventListener("change", event => byId(event.target.value + "-tab").click());
 
 for (const [panel, endpoint, title] of [
     ["validation", "validate-inputs", "Input Files Validation"],
