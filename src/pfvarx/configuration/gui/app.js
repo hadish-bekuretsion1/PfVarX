@@ -27,6 +27,7 @@ const filePlaceholders = {
     "config.reference.fasta": "inputs/reference/",
     "config.reference.core_mask_bed": "inputs/reference/",
     "config.reference.gff": "inputs/reference/",
+    "config.reference.host_fasta": "inputs/reference/",
     "config.analyses.resistance_catalog": "inputs/metadata/",
 };
 
@@ -52,7 +53,9 @@ function draw(parent, object, schema, path = "") {
             "config.samples_tsv": "Study metadata and catalogue",
             "config.assay_design": "Assay design",
             "config.assay.library_catalog": "Library catalog: panels and library protocols (YAML)",
-            "config.reference.core_mask_bed": "Core-genome mask (BED)"
+            "config.reference.core_mask_bed": "Core-genome mask (BED)",
+            "config.reference.host_removal": "Human DNA removal (true / false; wgs design only)",
+            "config.reference.host_fasta": "Human genome FASTA (used when Human DNA removal is on)"
         };
         label.textContent = (labels[id] || key.replaceAll("_", " ")) + " ";
         row.append(label);

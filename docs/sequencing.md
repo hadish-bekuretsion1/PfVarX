@@ -10,7 +10,7 @@ in the library catalog, and the pipeline checks it against the design.
 
 | `assay_design` | Libraries | FASTQ entry | BAM/CRAM entry (by `processing_state`) | Counts |
 | --- | --- | --- | --- | --- |
-| `wgs` | Direct WGS (`amplification_route: DIRECT`) and selective WGS (`SWGA`) share this branch | fastp, bwa-mem2, merge lanes, duplicate marking (Picard) | `aligned`: duplicates marked; `duplicates_marked`: used as is; empty: duplicates marked unless the header records it | reads |
+| `wgs` | Direct WGS (`amplification_route: DIRECT`) and selective WGS (`SWGA`) share this branch | fastp, bwa-mem2, optional Human DNA removal (`reference.host_removal`, wgs only), merge lanes, duplicate marking (Picard) | `aligned`: duplicates marked; `duplicates_marked`: used as is; empty: duplicates marked unless the header records it | reads |
 | `targeted_no_umi` | Amplicon or panel libraries without UMIs (`AMPLICON`) | fastp, bwa-mem2, merge lanes, primer trimming (fgbio TrimPrimers) | `aligned`: primers trimmed; `primers_trimmed`: used as is | reads |
 | `targeted_umi` | Amplicon libraries with UMIs (`AMPLICON`) | fastp, UMI extraction (FastqToBam), alignment, grouping, consensus, filtering, realignment, primer trimming | `aligned` (raw reads, UMI in RX): grouping, consensus, realignment, trimming; `consensus`: trimming only, consensus is **not** generated again; `consensus_primers_trimmed`: used as is | UMI consensus molecules |
 

@@ -9,7 +9,7 @@
 #   the gate is evaluated and every decision is labelled calibrated=false until measured.
 # threshold_source UNSET_BLOCKING => gate reports NOT_EVALUATED (never PASS).
 policy_id: pfvarx_qc_v1
-version: "1.1.0"
+version: "1.2.0"
 gates:
   - {id: G1.read_retention, gate: G1, stage: L1.fastq_qc, metric: reads_retained_fraction, unit: fraction,
      direction: min, fail: 0.5, warn: 0.7, threshold_source: UNCALIBRATED_PROVISIONAL,
@@ -28,6 +28,10 @@ gates:
      direction: min, fail: 0.5, warn: 0.8, threshold_source: UNCALIBRATED_PROVISIONAL,
      reference: "no published standard; host DNA content varies by sample type (Oyola 2016)",
      designs: [wgs, targeted_no_umi, targeted_umi], mandatory: true, warning_permitted_for: [L2, L3, L4]}
+  - {id: G2.host_fraction, gate: G2, stage: L1.alignment, metric: host_fraction, unit: fraction,
+     direction: descriptive, fail: null, warn: null, threshold_source: FRAMEWORK_POLICY,
+     reference: "host (human) read pairs removed by competitive alignment when reference.host_fasta is set; reported, not gated (depth and callability gates decide)",
+     designs: [wgs, targeted_no_umi, targeted_umi], mandatory: false, warning_permitted_for: []}
   - {id: G2.properly_paired, gate: G2, stage: L1.alignment, metric: properly_paired_fraction, unit: fraction,
      direction: min, fail: null, warn: null, threshold_source: UNSET_BLOCKING,
      reference: "no published standard; reported only",

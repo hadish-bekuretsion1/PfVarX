@@ -13,11 +13,31 @@ ELIG = R / "eligibility"
 # --- Resources and the per-sample QC gates ---
 
 
-def mem(base):
-    """Attempt-scaled memory within the per-job ceiling (retries only on memory-scalable rules)."""
+def mem(base, host=False):
+    """Attempt-scaled memory within the per-job ceiling (retries only on memory-scalable rules).
+
+    ``host=True`` marks a bwa-mem2 job: with Human DNA removal (wgs only) it loads the
+    combined parasite+host index, so the request grows by ``layer1.bwa_mem2_host_extra_mem_mb``.
+    """
     cap = COMPUTE["per_job"]["max_mem_mb"]
     factor = COMPUTE["retry_memory_factor"]
+    if host and HOST:
+        base += P["layer1.bwa_mem2_host_extra_mem_mb"]
     return lambda wc, attempt: int(min(base * factor ** (attempt - 1), cap))
+
+
+def host_filter(counts):
+    """Shell pipe stage after bwa-mem2 that removes host read pairs (empty without a host FASTA).
+
+    *counts* is a path pattern with {sample} and optionally {lane}; the stage is a params
+    function so the wildcards are filled in.
+    """
+    def stage(wc):
+        if not HOST:
+            return ""
+        path = counts.format(sample=wc.sample, lane=getattr(wc, "lane", ""))
+        return f"| python -m pfvarx.references.host --counts '{path}' "
+    return stage
 
 
 def threads(n):
@@ -186,6 +206,8 @@ def entry_final_source(wc):
 def gate_inputs(wc):
     d = R / "qc" / "samples" / wc.sample
     files = {"flagstat": str(d / f"{wc.sample}.flagstat.json")}
+    if HOST and PLAN["input_type"] == "FASTQ":
+        files["host"] = [str(d / f"{wc.sample}.{x['lane']}.host.json") for x in SAMPLES[wc.sample]["lanes"]]
     if PLAN["input_type"] == "FASTQ":
         files["fastp"] = [str(d / f"{wc.sample}.{x['lane']}.fastp.json") for x in SAMPLES[wc.sample]["lanes"]]
     if DESIGN == "wgs":

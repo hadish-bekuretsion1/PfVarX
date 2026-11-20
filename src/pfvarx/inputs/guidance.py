@@ -14,6 +14,9 @@ from typing import Any
 ROLES: dict[str, tuple[str, str, str, tuple[str, ...]]] = {
     "FASTA": ("Reference genome FASTA", "reference.fasta",
               "Reads are aligned to it and every variant is described against it.", ("FASTA",)),
+    "HOST_FASTA": ("Host (human) genome FASTA", "reference.host_fasta",
+                   "Reads are aligned to the parasite and host genomes together; pairs that align best to the host "
+                   "are removed before duplicate marking and counted in sample QC.", ("FASTA",)),
     "CORE_MASK": ("Core-genome mask BED", "reference.core_mask_bed",
                   "Variants are called, and depth and callability QC are measured, only inside these regions: the "
                   "accessible core of the genome, without the subtelomeric and internal hypervariable regions "

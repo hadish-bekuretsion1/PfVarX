@@ -2,19 +2,27 @@
 # and existing-alignment entry.
 
 
+# Human DNA removal (reference.host_removal: true, wgs only): reads are aligned to the
+# parasite+host reference and the host filter removes pairs aligned to the host before
+# sorting (counts in <sample>.<lane>.host.json).
+HOST_COUNTS = str(R / "qc" / "samples" / "{sample}" / "{sample}.{lane}.host.json")
+
+
 rule bwa_mem2_lane:
     input:
         r1=str(R / "work" / "trimmed" / "{sample}.{lane}.R1.fastq.gz"),
         r2=str(R / "work" / "trimmed" / "{sample}.{lane}.R2.fastq.gz"),
     output:
-        temp(str(R / "work" / "lanes" / "{sample}.{lane}.bam")),
+        bam=temp(str(R / "work" / "lanes" / "{sample}.{lane}.bam")),
+        **({"host": HOST_COUNTS} if HOST else {}),
     params:
         rg=rg,
-        ref=REF,
+        ref=ALIGN_REF,
         K=P["layer1.bwa_mem2_fixed_batch_K"],
+        host=host_filter(HOST_COUNTS),
     threads: threads(4)
     resources:
-        mem_mb=mem(6000),
+        mem_mb=mem(6000, host=True),
         runtime=RUNTIME,
     log:
         str(LOGS / "bwa_mem2" / "{sample}.{lane}.log"),
@@ -22,7 +30,7 @@ rule bwa_mem2_lane:
         str(BENCH / "bwa_mem2" / "{sample}.{lane}.tsv")
     shell:
         "(bwa-mem2 mem -t {threads} -K {params.K} -R {params.rg:q} {params.ref:q} {input.r1:q} {input.r2:q} "
-        "| samtools sort -@ {threads} -o {output:q} -) 2> {log:q}"
+        "{params.host}| samtools sort -@ {threads} -o {output.bam:q} -) 2> {log:q}"
 
 
 rule merge_lanes:

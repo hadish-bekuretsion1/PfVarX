@@ -5,6 +5,25 @@
 The release version was reset to 0.0.0 after 0.4.2, as the baseline for the first reviewed
 release. The sections below 0.0.0 are the earlier development numbering, kept as history.
 
+### Optional Human DNA removal for whole-genome sequencing (`reference.host_removal: true | false`)
+
+- New true/false setting `reference.host_removal` (GUI: **Human DNA removal**, default
+  false) with `reference.host_fasta`. When true, FASTQ read pairs are aligned once to the
+  parasite plus human genome (`prepared/reference/combined.fasta`, human contigs prefixed
+  `host_`), and pairs whose primary alignment is on the human genome are removed before
+  duplicate marking. The BAM header keeps the parasite contigs only; later steps use
+  `parasite.fasta` (with a new `parasite.dict`).
+- Eligible only for `assay_design: wgs`. `targeted_no_umi` and `targeted_umi` are
+  ineligible: `host_removal: true` with a targeted design is refused when the
+  configuration is loaded, in the CLI and the GUI.
+- QC records `host_templates_removed`, `templates_before_host_removal` and `host_fraction`
+  (descriptive gate `G2.host_fraction`; QC policy 1.2.0). `G2.mapped` is measured after removal.
+- The human-sized bwa-mem2 index is supplied, not built: `prepare` stops with
+  `HOST_INDEX_REQUIRED` and the steps, then checks a supplied index against
+  `combined.fasta` (`.ann` against `.fai`) and seals it. `ready` adds
+  `layer1.bwa_mem2_host_extra_mem_mb` (12 000 MB, provisional) to the bwa-mem2 request.
+- Files of 1 GiB or more under `prepared/reference/` are sealed by size and modification time.
+
 ### Adapters are set per library, not detected
 
 - fastp's adapter detection (`--detect_adapter_for_pe`) was on for every library. On AT-rich

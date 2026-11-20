@@ -57,6 +57,33 @@ def test_targeted_design_requires_the_library_catalog(workspace: Path) -> None:
         load_bundle(workspace)
 
 
+def test_human_dna_removal_is_optional_and_eligible_only_for_wgs(workspace: Path) -> None:
+    _init(workspace)
+    p = workspace / "config" / "config.yaml"
+    d = yaml.safe_load(p.read_text())
+    assert load_bundle(workspace).config.reference.host_removal is False  # off unless switched on
+    d["reference"].update(host_removal=True, host_fasta="inputs/reference/human.fasta")
+    p.write_text(yaml.safe_dump(d))
+    assert load_bundle(workspace).config.reference.host_fasta_used == Path("inputs/reference/human.fasta")
+    d["assay"]["library_catalog"] = "inputs/metadata/library_catalog.yaml"
+    for design in ("targeted_no_umi", "targeted_umi"):
+        d["assay_design"] = design
+        p.write_text(yaml.safe_dump(d))
+        with pytest.raises(ConfigError) as exc:
+            load_bundle(workspace)
+        assert any(f"eligible only for assay_design wgs, not {design}" in m for m in exc.value.problems)
+        d["reference"]["host_removal"] = False
+        p.write_text(yaml.safe_dump(d))
+        assert load_bundle(workspace).config.reference.host_fasta_used is None
+        d["reference"]["host_removal"] = True
+    d.update(assay_design="wgs")
+    d["reference"]["host_fasta"] = None
+    p.write_text(yaml.safe_dump(d))
+    with pytest.raises(ConfigError) as exc:
+        load_bundle(workspace)
+    assert any("set reference.host_fasta" in m for m in exc.value.problems)
+
+
 def test_fo004_requires_analyses_and_da007_source(workspace: Path) -> None:
     _init(workspace)
     p = workspace / "config" / "config.yaml"
