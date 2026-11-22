@@ -1418,7 +1418,7 @@ printf '%s\n' &quot;$ANALYSIS/runs/$RUN_ID/results/report/pfvarx_dashboard.html&
 <p><strong>Step 2. Review the eight sections and export</strong></p>
 <p>Use them in order: Overview, Inputs, Quality Control, Variants, Downstream Analyses (DA001–DA007), Resources, Software and Logs. In Downstream Analyses open each analysis tab; its page shows all its charts and tables together. Elsewhere choose one visualization per group. Filter actual fields; inspect active counts and click/focus a sample/mark for its source evidence. CSV/XLSX exports include all filtered embedded rows; tables display 50 rows/page. PNG exports the actual selected chart. Export PDF opens native print; all sections print, but tables use the visible page and downstream uses the current selected analysis. Print each desired analysis for a complete supplement.</p>
 <p><strong>Step 3. Check provenance and sharing scope</strong></p>
-<p>The variant embedding cap is currently 200000; full summaries precede that cap, detailed charts use the labelled embedded subset. Missing fields stay missing. Synthetic fixtures display SYNTHETIC DEMO DATA. Redacted log tails are bounded. Table pseudonymization is not full report anonymization; review source paths, free text and identifiers before sharing.</p>
+<p>The variant embedding cap is currently 200000; full summaries precede that cap, detailed charts use the labelled embedded subset. Missing fields stay missing. Synthetic fixtures display SYNTHETIC DEMO DATA at the top of Overview. Redacted log tails are bounded. Table pseudonymization is not full report anonymization; review source paths, free text and identifiers before sharing.</p>
 <h3>4. Expected outputs</h3>
 <p><code>report/pfvarx_dashboard.html</code>, <code>report/dashboard_data.json</code>, <code>qc/centralized_quality_matrix.json</code>; user-selected CSV/XLSX/PNG/PDF and redacted-log downloads outside source.</p>
 <h3>5. Verification and quality control</h3>
@@ -1617,7 +1617,7 @@ find &quot;$LAB/benchmark-smoke/benchmark/results/qc/samples&quot; -name qc_deci
 <h3>4. Expected outputs</h3>
 <p>Only the new external smoke workspace contains synthetic FASTQ/reference/truth/calls/reports and evaluation outputs. Production source and real benchmark inputs remain unchanged.</p>
 <h3>5. Verification and quality control</h3>
-<p>Check the SYNTHETIC DEMO DATA report banner, expected low-depth sample blocking and all method terminal states. A skipped method is not evidence it executed; inspect the informative fixture manifests.</p>
+<p>Check the SYNTHETIC DEMO DATA notice at the top of the report's Overview, expected low-depth sample blocking and all method terminal states. A skipped method is not evidence it executed; inspect the informative fixture manifests.</p>
 <h3>6. Error handling and troubleshooting</h3>
 <p>Output already exists: choose another new directory. Tool or data failure: inspect the numbered command log and run tool logs; do not overwrite the failed evidence with a successful-looking fixture.</p>
 <h3>7. Completion criteria</h3>

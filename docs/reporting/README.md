@@ -75,7 +75,9 @@ earlier run without rerunning any analysis.
 ## Sections and scientific views
 
 The dashboard is titled **PfVarX Genomic Analysis Dashboard** (navy header with the teal
-PfVarX mark). The project, run, final output, design and purpose are on the strip below it. The sidebar
+PfVarX mark). Nothing else sits above the sections. The project, run, final output, design and purpose,
+the data kind (SYNTHETIC DEMO DATA for fixtures) and the calibration status appear once,
+at the top of **Overview**. The sidebar
 contains eight sections, in the order a run is reviewed: **Overview** (run
 summary), **Inputs** (validation and libraries), **Quality Control** (gates and metrics),
 **Variants** (records and annotations), **Downstream Analyses** (DA001–DA007),

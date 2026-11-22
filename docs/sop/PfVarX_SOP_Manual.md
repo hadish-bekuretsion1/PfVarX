@@ -2037,7 +2037,7 @@ Use them in order: Overview, Inputs, Quality Control, Variants, Downstream Analy
 
 **Step 3. Check provenance and sharing scope**
 
-The variant embedding cap is currently 200000; full summaries precede that cap, detailed charts use the labelled embedded subset. Missing fields stay missing. Synthetic fixtures display SYNTHETIC DEMO DATA. Redacted log tails are bounded. Table pseudonymization is not full report anonymization; review source paths, free text and identifiers before sharing.
+The variant embedding cap is currently 200000; full summaries precede that cap, detailed charts use the labelled embedded subset. Missing fields stay missing. Synthetic fixtures display SYNTHETIC DEMO DATA at the top of Overview. Redacted log tails are bounded. Table pseudonymization is not full report anonymization; review source paths, free text and identifiers before sharing.
 
 ### 4. Expected outputs
 
@@ -2394,7 +2394,7 @@ Only the new external smoke workspace contains synthetic FASTQ/reference/truth/c
 
 ### 5. Verification and quality control
 
-Check the SYNTHETIC DEMO DATA report banner, expected low-depth sample blocking and all method terminal states. A skipped method is not evidence it executed; inspect the informative fixture manifests.
+Check the SYNTHETIC DEMO DATA notice at the top of the report's Overview, expected low-depth sample blocking and all method terminal states. A skipped method is not evidence it executed; inspect the informative fixture manifests.
 
 ### 6. Error handling and troubleshooting
 
