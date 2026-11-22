@@ -255,3 +255,6 @@ nav[aria-label="Workspace views"] button[aria-pressed="true"]::before { backgrou
 #tools th { background: var(--surface-muted); font-weight: 600; }
 #tools td:nth-child(2) { font-variant-numeric: tabular-nums; white-space: nowrap; }
 #tools tr.not-installed td:last-child { color: var(--notice); font-weight: 600; }
+
+/* Reference release label: drop-down, with a text box for "Other release" */
+.release-choice { display: flex; flex-direction: column; gap: .4rem; min-width: 0; }

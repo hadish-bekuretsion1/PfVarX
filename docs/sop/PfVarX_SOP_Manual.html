@@ -2503,6 +2503,12 @@ uses it for and whether it is installed yet. It follows each change of final out
 input type and analyses before you save; FO001 for example lists Python, pysam, Snakemake,
 fastp, BWA-MEM2, SAMtools, Picard and mosdepth, and FO002 adds NumPy, SciPy and BCFtools.
 <code>./pfvarx install-tools --check</code> reports the same list (<code>tools</code>) for the saved configuration.</p>
+<p><strong>Reference release label</strong> is a drop-down: PlasmoDB 68, Pf3D7 - release unknown, Custom
+reference - study version 1, or Reference source and release unknown. Choose PlasmoDB 68 only
+if you verified that release. <strong>Other release (type it)</strong> opens a text box for any other exact
+release, such as another PlasmoDB release or a study's own assembly. In <code>config/config.yaml</code>
+the setting stays <code>reference.release_label</code>, any text; the template placeholder
+<code>SET_REFERENCE_RELEASE</code> must be replaced before input directories are created.</p>
 <p>Enter a workspace-relative or absolute file path. The form checks path configuration syntax.
 The <code>validate</code> command checks the actual files. Select <strong>Create Configuration and
 Input Directories</strong> when ready. Existing YAML with changes requires <strong>Save with
