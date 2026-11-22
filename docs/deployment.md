@@ -41,6 +41,10 @@ Each line names the installation, its environment and `ok`, `EXTRA` (installed b
 by that final output) or `MISSING` (run but not installed; the command then exits 1), with
 the tools installed and not installed and the parts of the pipeline code copied.
 
+In the configuration editor, the **Tools for this configuration** table under **Install
+required tools** lists what the current choices need and whether each is installed;
+`./pfvarx install-tools --check` prints the same list for the saved configuration.
+
 After installing, look inside the workspace itself:
 
 ```bash

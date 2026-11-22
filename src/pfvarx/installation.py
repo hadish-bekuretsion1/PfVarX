@@ -27,6 +27,33 @@ from typing import Any
 
 from pfvarx.io import read_json, write_json
 
+# The tools and packages a configuration can need: (conda package, name shown, what PfVarX uses
+# it for). Listed in pipeline order; only those in the chosen environment are shown.
+TOOLS = [
+    ("python", "Python", "runs PfVarX itself (configuration, validation, QC gates, reports)"),
+    ("pysam", "pysam", "reads FASTA, BAM and VCF files in validation and the caller"),
+    ("snakemake-minimal", "Snakemake", "runs the workflow steps in order"),
+    ("fastp", "fastp", "read trimming and read QC (FASTQ input)"),
+    ("bwa-mem2", "BWA-MEM2", "aligns reads to the reference (and to the human genome with Human DNA removal)"),
+    ("samtools", "SAMtools", "sorts, merges, indexes and counts alignments; FASTA index"),
+    ("picard-slim", "Picard", "marks duplicates (WGS) and writes the sequence dictionary"),
+    ("mosdepth", "mosdepth", "depth and callable coverage for the QC gates"),
+    ("fgbio-minimal", "fgbio", "targeted designs: primer trimming, UMI grouping and consensus reads"),
+    ("numpy", "NumPy", "variant caller arithmetic (FO002 and later)"),
+    ("scipy", "SciPy", "variant caller statistics and mixture fitting (FO002 and later)"),
+    ("bcftools", "BCFtools", "normalises per-sample VCFs and merges the cohort (FO002 and later)"),
+    ("snpeff", "SnpEff", "annotates the cohort VCF with gene effects (FO004)"),
+    ("r-base", "R", "runs the R analysis scripts (DA001, DA004, DA007)"),
+    ("r-moire", "MOIRE", "complexity of infection and clonality (DA001)"),
+    ("r-dcifer", "Dcifer", "relatedness between infections (DA004)"),
+    ("hmmibd", "hmmIBD", "identity by descent between infections (DA004)"),
+    ("scikit-allel", "scikit-allel", "population structure (DA005)"),
+    ("iqtree", "IQ-TREE", "phylogeny (DA006)"),
+    ("r-mgcv", "mgcv", "spatial and temporal models (DA007)"),
+    ("rtg-tools", "RTG Tools", "benchmark comparison against truth VCFs (benchmarking)"),
+]
+_LOCK_CACHE: dict[tuple[str, float], dict[str, dict[str, str]]] = {}
+
 ON_DEMAND = "on-demand"
 CONTROL = "control"
 INSTALLATION = "config/installation.json"
@@ -46,12 +73,12 @@ def environment_python(root: Path, environment: str) -> Path:
     return root / ".pixi" / "envs" / environment / "bin" / "python"
 
 
-def required(root: Path) -> dict[str, Any]:
-    """What the saved configuration needs: the environment and the settings that decide it."""
+def required(root: Path, cfg: Any = None) -> dict[str, Any]:
+    """What a configuration needs (the saved one by default): the environment and the settings that decide it."""
     from pfvarx.configuration.loader import load_bundle
     from pfvarx.eligibility.engine import internal_prerequisites, load_registry
 
-    cfg = load_bundle(root).config
+    cfg = cfg if cfg is not None else load_bundle(root).config
     bootstrap = runpy.run_path(str(root / "bootstrap.py"))
     if cfg.final_output.value == "FO004" and cfg.analyses.selection == "auto":
         analyses = sorted(bootstrap["METHODS"])  # eligibility decides per run; install every method's tools
@@ -65,17 +92,77 @@ def required(root: Path) -> dict[str, Any]:
             "input_type": cfg.input_type.value, "analyses": analyses}
 
 
+def locked_versions(root: Path) -> dict[str, dict[str, str]]:
+    """{environment: {conda package: version}} from the workspace's pixi.lock (cached by modification time)."""
+    import yaml
+
+    lock = root / "pixi.lock"
+    key = (str(lock), lock.stat().st_mtime)
+    if key not in _LOCK_CACHE:
+        loader = getattr(yaml, "CSafeLoader", yaml.SafeLoader)
+        data = yaml.load(lock.read_text(), Loader=loader)  # noqa: S506 - a safe loader
+        versions: dict[str, str] = {}
+        for package in data.get("packages", []):
+            url = package.get("conda") or ""
+            if url:
+                name, version, _build = url.rsplit("/", 1)[-1].rsplit("-", 2)
+                versions[url] = version
+                versions.setdefault(name, version)
+        environments: dict[str, dict[str, str]] = {}
+        for environment, record in data.get("environments", {}).items():
+            names: dict[str, str] = {}
+            for packages in record.get("packages", {}).values():
+                for item in packages:
+                    url = item.get("conda") or ""
+                    if url:
+                        names[url.rsplit("/", 1)[-1].rsplit("-", 2)[0]] = versions.get(url, "")
+            environments[environment] = names
+        _LOCK_CACHE.clear()
+        _LOCK_CACHE[key] = environments
+    return _LOCK_CACHE[key]
+
+
+def tools_for(root: Path, environment: str) -> list[dict[str, Any]]:
+    """The tools and packages *environment* installs, with locked version and what each is for."""
+    installed = environment_python(root, environment).is_file()
+    packages = locked_versions(root).get(environment, {})
+    return [{"package": package, "name": name, "version": packages[package], "used_for": purpose,
+             "installed": installed}
+            for package, name, purpose in TOOLS if package in packages]
+
+
+def plan(root: Path, values: dict[str, Any] | None = None) -> dict[str, Any]:
+    """The tools a configuration needs: the saved one, or the GUI form's current values (not saved)."""
+    cfg = None
+    if values is not None:
+        from pfvarx.configuration.loader import validate_bundle
+
+        cfg = validate_bundle(root, values).config
+    meta = metadata(root)
+    if meta.get("profile") != ON_DEMAND:
+        environment = meta.get("environment", "default")
+        return {"mode": "up-front", "environment": environment, "tools": tools_for(root, environment),
+                "installed": True}
+    need = required(root, cfg)
+    environment = need["environment"]
+    return {"mode": ON_DEMAND, "environment": environment, "required_for": need,
+            "tools": tools_for(root, environment), "installed": environment_python(root, environment).is_file()}
+
+
 def status(root: Path) -> dict[str, Any]:
     """Whether the tools for the saved configuration are installed."""
     meta = metadata(root)
     if meta.get("profile") != ON_DEMAND:
-        return {"mode": "up-front", "current": True, "installed_environment": meta.get("environment"),
+        environment = meta.get("environment", "default")
+        return {"mode": "up-front", "current": True, "installed_environment": environment,
+                "tools": tools_for(root, environment),
                 "detail": "Tools were installed with the workspace (bootstrap --final-output or --profile)."}
     need = required(root)
     installed = meta.get("environment", CONTROL)
     current = installed == need["environment"] and environment_python(root, installed).is_file()
     return {"mode": ON_DEMAND, "current": current, "installed_environment": installed,
             "required_environment": need["environment"], "required_for": need,
+            "tools": tools_for(root, need["environment"]),
             "detail": (f"Installed for this configuration (environment {installed})." if current else
                        f"Not installed yet for this configuration: {need['final_output']}, {need['design']}, "
                        f"{need['input_type']} needs environment {need['environment']}. Click Install required "

@@ -32,6 +32,7 @@ from pfvarx.constants import Design
 from pfvarx.execution.retention import workspace_lock
 from pfvarx.initialization.layout import check_release_label, create_input_dirs, required_dirs
 from pfvarx.inputs.transfer import check_content, destination_for, download, folder_contents
+from pfvarx.installation import plan as tools_plan
 from pfvarx.installation import stage_environment, stage_python
 from pfvarx.installation import status as tools_status
 from pfvarx.io import atomic_write_text, read_json, within
@@ -325,6 +326,9 @@ class Handler(BaseHTTPRequestHandler):
                 self.respond(run_preflight(self.root, checks[name]))
                 return
             values = payload["values"]
+            if name == "tools-plan":  # the tools the form's current choices need (nothing is saved)
+                self.respond(tools_plan(self.root, values))
+                return
             if name == "check":
                 self.respond({"directories": check(self.root, values)})
             elif name == "save":

@@ -2497,6 +2497,12 @@ the current configuration are installed. Inputs Preparation, readiness, the dry 
 pipeline stop with <code>TOOLS_NOT_INSTALLED</code> and this instruction until they are. After changing
 the final output, design, input type or analyses, click it again: it installs only the newly
 needed environment. Workspaces installed up front (<code>--final-output</code>) do not show the button.</p>
+<p>The <strong>Tools for this configuration</strong> table under the button lists every tool and package the
+form's current choices need: its name, the exact version locked in <code>pixi.lock</code>, what PfVarX
+uses it for and whether it is installed yet. It follows each change of final output, design,
+input type and analyses before you save; FO001 for example lists Python, pysam, Snakemake,
+fastp, BWA-MEM2, SAMtools, Picard and mosdepth, and FO002 adds NumPy, SciPy and BCFtools.
+<code>./pfvarx install-tools --check</code> reports the same list (<code>tools</code>) for the saved configuration.</p>
 <p>Enter a workspace-relative or absolute file path. The form checks path configuration syntax.
 The <code>validate</code> command checks the actual files. Select <strong>Create Configuration and
 Input Directories</strong> when ready. Existing YAML with changes requires <strong>Save with

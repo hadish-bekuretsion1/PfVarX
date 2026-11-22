@@ -84,7 +84,7 @@ GUI and the terminal at any stage. `tests/unit/test_cli_gui_parity.py` keeps the
 | --- | --- | --- |
 | (open the GUI) | `configure --gui` | Local configuration form at 127.0.0.1 with a session token; the YAML files stay usable |
 | Input directories | `input-directories` | Create the input folders for the saved configuration (after editing the YAML) |
-| Input directories: Install required tools | `install-tools [--check]` | On-demand workspaces: install the locked environment the saved configuration needs (final output, design, input type, analyses and their prerequisites) and record it; nothing when it is installed. `--check` reports whether it is (exit 1 if not) |
+| Input directories: Install required tools | `install-tools [--check]` | On-demand workspaces: install the locked environment the saved configuration needs (final output, design, input type, analyses and their prerequisites) and record it; nothing when it is installed. `--check` reports whether it is (exit 1 if not) and lists each tool and package with its locked version, purpose and installed state |
 | Input files | `input-files`, `add-input --file PATH`, `fetch-input --url URL --name NAME` | List input folders; copy files from disk or download over HTTPS into them, with the same checks as the GUI |
 | Input Files Validation | `validate-input-files` | Run `validate` on the saved configuration |
 | Inputs Preparation | `inputs-preparation [--metadata-table PATH]` | Run `prepare-samples`, `prepare`, `verify-prepared` and `ready` in order |

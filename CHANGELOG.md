@@ -26,6 +26,14 @@ release. The sections below 0.0.0 are the earlier development numbering, kept as
   `layer1.bwa_mem2_host_extra_mem_mb` (12 000 MB, provisional) to the bwa-mem2 request.
 - Files of 1 GiB or more under `prepared/reference/` are sealed by size and modification time.
 
+### Tools for this configuration
+
+- Under **Install required tools**, the configuration editor lists every tool and package the
+  form's current choices need: name, version locked in `pixi.lock`, what PfVarX uses it for
+  and whether it is installed. It follows each change before saving (endpoint `tools-plan`).
+  `./pfvarx install-tools --check` includes the same list (`tools`) for the saved
+  configuration.
+
 ### SOP manual kept in step with the guides
 
 - SOP appendices E, F and G copy `docs/caller.md`, `docs/configuration.md` and

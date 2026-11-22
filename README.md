@@ -42,8 +42,10 @@ The tools are installed for the final output you choose, in one of two ways:
   environment (configuration, GUI, validation; no pipeline tools). After saving the
   configuration, click **Install required tools** on the Input directories tab (or run
   `./pfvarx install-tools`): it installs exactly what the saved final output, design, input
-  type and analyses need. Change the configuration later and click it again to add what is
-  newly needed. Steps that run tools stop with that instruction until the tools are
+  type and analyses need. The **Tools for this configuration** table under it lists each tool
+  and package your current choices need, with its locked version, what it is used for and
+  whether it is installed, and follows every change in the form. Change the configuration
+  later and click it again to add what is newly needed. Steps that run tools stop with that instruction until the tools are
   installed. This needs internet access (or a filled Pixi cache) at that step.
 - **Up front.** `--final-output FO00N` installs the tools at bootstrap, for machines without
   internet access later, such as HPC compute nodes. A later final output then needs a new
