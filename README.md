@@ -11,6 +11,9 @@ See [scientific status](docs/status.md) before interpreting results.
 
 ## 1. Install
 
+New to PfVarX? [Getting started](docs/getting-started.md) walks through every step below,
+from installing Pixi to opening the report, with a troubleshooting table.
+
 You need Linux x86-64, Git, Python 3.11+, Pixi on PATH, and access to the private
 GitHub repository. On Windows, use WSL2 with a Linux distribution; macOS and Linux ARM64
 are not supported. This example creates a workspace whose tools are installed on demand.
@@ -42,8 +45,10 @@ The tools are installed for the final output you choose, in one of two ways:
   environment (configuration, GUI, validation; no pipeline tools). After saving the
   configuration, click **Install required tools** on the Input directories tab (or run
   `./pfvarx install-tools`): it installs exactly what the saved final output, design, input
-  type and analyses need. Change the configuration later and click it again to add what is
-  newly needed. Steps that run tools stop with that instruction until the tools are
+  type and analyses need. The **Tools for this configuration** table under it lists each tool
+  and package your current choices need, with its locked version, what it is used for and
+  whether it is installed, and follows every change in the form. Change the configuration
+  later and click it again to add what is newly needed. Steps that run tools stop with that instruction until the tools are
   installed. This needs internet access (or a filled Pixi cache) at that step.
 - **Up front.** `--final-output FO00N` installs the tools at bootstrap, for machines without
   internet access later, such as HPC compute nodes. A later final output then needs a new
@@ -159,6 +164,7 @@ outputs, logs and frozen configuration under `runs/<RUN_ID>/`.
 
 ## Guides
 
+- [Getting started: install Pixi, install, configure and run](docs/getting-started.md) ([HTML](docs/getting-started.html))
 - [Step-by-step HTML quick start](docs/README.html)
 - [HTML Operational SOP](docs/sop/PfVarX_SOP_Manual.html) and [GitHub-readable SOP](docs/sop/PfVarX_SOP_Manual.md)
 - [Complete orchestration/command guide](docs/orchestration.md)

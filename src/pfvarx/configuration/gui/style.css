@@ -245,3 +245,16 @@ nav[aria-label="Workspace views"] button[aria-pressed="true"]::before { backgrou
     nav[aria-label="Workspace views"] { display: grid; grid-template-columns: repeat(3, 1fr); }
     nav button { font-size: .8rem; padding: .5rem .6rem; }
 }
+
+/* Tools for this configuration */
+#tools .tools-table { flex-basis: 100%; overflow-x: auto; }
+#tools table { width: 100%; border-collapse: collapse; font-size: .88rem; }
+#tools caption { text-align: left; font-weight: 700; color: var(--primary); padding: .2rem 0 .5rem; }
+#tools caption span { font-weight: 400; color: var(--text-muted); }
+#tools th, #tools td { text-align: left; padding: .4rem .6rem; border-top: 1px solid var(--border); vertical-align: top; }
+#tools th { background: var(--surface-muted); font-weight: 600; }
+#tools td:nth-child(2) { font-variant-numeric: tabular-nums; white-space: nowrap; }
+#tools tr.not-installed td:last-child { color: var(--notice); font-weight: 600; }
+
+/* Reference release label: drop-down, with a text box for "Other release" */
+.release-choice { display: flex; flex-direction: column; gap: .4rem; min-width: 0; }

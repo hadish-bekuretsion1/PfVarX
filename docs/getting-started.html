@@ -1,0 +1,311 @@
+<!doctype html>
+<html lang="en"><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Getting started with PfVarX</title>
+<style>body{font:16px/1.6 system-ui;color:#193247;max-width:820px;margin:2rem auto;padding:0 1rem}pre{background:#edf3f7;padding:1rem;overflow:auto}code{background:#edf3f7;padding:0 .2rem}pre code{padding:0}a{color:#17658c}table{border-collapse:collapse;width:100%;margin:1rem 0;font-size:.95rem}th,td{border:1px solid #cddbe5;padding:.4rem .6rem;text-align:left;vertical-align:top}th{background:#edf3f7}h2{margin-top:2.2rem;border-bottom:1px solid #cddbe5;padding-bottom:.3rem}</style>
+<main>
+<h1>Getting started: install, configure and run PfVarX</h1>
+<p>This guide takes you from a new computer to a finished run and its report, one step at a
+time. Every step can be done in the configuration editor (GUI) or in the terminal; both use
+the same files, so you can switch between them at any point.</p>
+<h2>1. What you need</h2>
+<table>
+<thead>
+<tr>
+<th>Item</th>
+<th>Requirement</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Computer</td>
+<td>Linux x86-64. On Windows use WSL2 with Ubuntu; macOS and Linux ARM64 are not supported.</td>
+</tr>
+<tr>
+<td>Software</td>
+<td>Git, Python 3.11 or later, a web browser for the GUI</td>
+</tr>
+<tr>
+<td>Network</td>
+<td>Internet access to install Pixi and the tools (once per tools environment)</td>
+</tr>
+<tr>
+<td>Memory</td>
+<td>About 8 GB for parasite-only analyses; about 16 GB free with Human DNA removal</td>
+</tr>
+<tr>
+<td>Disk</td>
+<td>1–3 GB per tools environment (FO001 about 1 GB; analyses with R more), plus your reads, references and results</td>
+</tr>
+<tr>
+<td>GitHub</td>
+<td>Access to the private repository <code>hadish-bekuretsion1/PfVarX</code></td>
+</tr>
+</tbody>
+</table>
+<h2>2. Install Pixi (once per computer)</h2>
+<p>Pixi installs PfVarX's tools in locked, reproducible environments. Install it once:</p>
+<pre><code class="language-bash">curl -fsSL https://pixi.sh/install.sh | bash
+exec bash                 # reload the shell so that `pixi` is found
+pixi --version            # prints the version, for example pixi 0.83.0
+</code></pre>
+<p>If <code>pixi</code> is not found afterwards, add <code>~/.pixi/bin</code> to your <code>PATH</code> in <code>~/.bashrc</code> and open a
+new terminal.</p>
+<h2>3. Get PfVarX</h2>
+<pre><code class="language-bash">mkdir -p ~/pfvarx &amp;&amp; cd ~/pfvarx
+git clone https://github.com/hadish-bekuretsion1/PfVarX.git PfVarX-source
+</code></pre>
+<p>For the private repository, log in first with the GitHub CLI (<code>gh auth login</code>, then
+<code>gh auth setup-git</code>), or use a personal access token when Git asks for a password.</p>
+<h2>4. Create a study workspace</h2>
+<p>A workspace is the folder of one study: its configuration, input files, prepared references
+and runs. Create a new one for each study.</p>
+<pre><code class="language-bash">cd ~/pfvarx
+python3 PfVarX-source/bootstrap.py --workspace ~/pfvarx/my-study
+cd ~/pfvarx/my-study
+./pfvarx version
+</code></pre>
+<p>This installs only the small <strong>control</strong> environment (configuration, GUI and validation).
+The pipeline tools are installed in step 6, for exactly what your configuration needs.</p>
+<p>On a machine that will have no internet access later (for example an HPC compute node),
+install the tools now instead, for the final output you need:</p>
+<pre><code class="language-bash">python3 PfVarX-source/bootstrap.py --workspace ~/pfvarx/my-study --final-output FO002
+</code></pre>
+<table>
+<thead>
+<tr>
+<th>Final output</th>
+<th>What it produces</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>FO001</td>
+<td>Alignment and QC (FASTQ input only)</td>
+</tr>
+<tr>
+<td>FO002</td>
+<td>Per-sample variant calls</td>
+</tr>
+<tr>
+<td>FO003</td>
+<td>Cohort VCF across samples</td>
+</tr>
+<tr>
+<td>FO004</td>
+<td>Annotation and downstream analyses (add <code>--analyses DA001 DA002 ...</code> or <code>--auto-analyses</code>)</td>
+</tr>
+</tbody>
+</table>
+<h2>5. Configure the study</h2>
+<h3>With the GUI</h3>
+<pre><code class="language-bash">./pfvarx configure --gui
+</code></pre>
+<p>Your browser opens the configuration editor (if not, open the link the terminal prints,
+including its token). On tab <strong>1 Input directories</strong> set:</p>
+<table>
+<thead>
+<tr>
+<th>Setting</th>
+<th>What to choose</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>project id</td>
+<td>Your study name: letters, digits, <code>_</code> or <code>-</code></td>
+</tr>
+<tr>
+<td>input type</td>
+<td>FASTQ (paired reads) or BAM (aligned reads)</td>
+</tr>
+<tr>
+<td>final output</td>
+<td>FO001 to FO004, from the table above</td>
+</tr>
+<tr>
+<td>Assay design</td>
+<td>Whole-genome sequencing, Targeted without UMI or Targeted with UMI</td>
+</tr>
+<tr>
+<td>fasta, Core-genome mask (BED)</td>
+<td>Your reference files in <code>inputs/reference/</code></td>
+</tr>
+<tr>
+<td>Human DNA removal</td>
+<td>False, or True (WGS only) with the Human genome reference</td>
+</tr>
+<tr>
+<td>Reference release label</td>
+<td>The exact release of your FASTA and GFF, for example PlasmoDB 68, or Other to type it</td>
+</tr>
+<tr>
+<td>Study Metadata</td>
+<td>Yes if you have a study table (country, dates, population, ...), else No</td>
+</tr>
+<tr>
+<td>compute</td>
+<td>Cores, memory and disk PfVarX may use on this computer</td>
+</tr>
+</tbody>
+</table>
+<p>Then click <strong>Create Configuration and Input Directories</strong>. If the workspace already has a
+configuration (bootstrap writes one), tick <strong>Save with backup if existing YAML differs</strong> first.
+Only the folders you put input files into are created, for example <code>inputs/fastq/</code> and
+<code>inputs/reference/</code>.</p>
+<h3>Or by editing the files</h3>
+<p>The same settings are in <code>config/config.yaml</code>, <code>config/quality.yaml</code> and
+<code>config/compute.yaml</code>. Edit the lines marked <code>EDIT</code> or <code>REVIEW</code>, leave <code>FIXED</code> lines as they
+are, then create the folders:</p>
+<pre><code class="language-bash">nano config/config.yaml           # or: code config/config.yaml
+./pfvarx input-directories
+</code></pre>
+<p>Every setting, its values and an example are listed in the
+<a href="configuration-guide.html">configuration guide</a>.</p>
+<h2>6. Install the required tools</h2>
+<p>Click <strong>Install required tools</strong> under the save area (terminal: <code>./pfvarx install-tools</code>).
+It installs only what the saved final output, design, input type and analyses need; the
+table under the button lists each tool, its version and what it is used for. Change the
+configuration later and click it again to add what is newly needed.</p>
+<pre><code class="language-bash">./pfvarx install-tools --check    # are the tools for the saved configuration installed?
+</code></pre>
+<p>Workspaces installed with <code>--final-output</code> (step 4) already have their tools.</p>
+<h2>7. Add your input files</h2>
+<p>On tab <strong>2 Input files</strong>, choose a category and upload files from your computer or download
+them by HTTPS link. In the terminal:</p>
+<pre><code class="language-bash">./pfvarx add-input --file /data/run1/S1_L001_R1.fastq.gz --file /data/run1/S1_L001_R2.fastq.gz
+./pfvarx add-input --role reference --file /data/ref/Pf3D7.fasta --file /data/ref/core_genome.bed
+</code></pre>
+<table>
+<thead>
+<tr>
+<th>Folder</th>
+<th>Put here</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>inputs/fastq/</code></td>
+<td>Paired reads named like <code>S1_L001_R1.fastq.gz</code> and <code>S1_L001_R2.fastq.gz</code></td>
+</tr>
+<tr>
+<td><code>inputs/alignments/</code></td>
+<td>BAM or CRAM files with their index (BAM input)</td>
+</tr>
+<tr>
+<td><code>inputs/reference/</code></td>
+<td>Parasite FASTA, core-genome BED, GFF for FO004, human FASTA with Human DNA removal</td>
+</tr>
+<tr>
+<td><code>inputs/metadata/</code></td>
+<td>Your study table with a <code>sample_id</code> column (Study Metadata: Yes); library catalog for targeted designs</td>
+</tr>
+<tr>
+<td><code>inputs/targets/</code></td>
+<td>Target BED and primer table (targeted designs)</td>
+</tr>
+</tbody>
+</table>
+<h2>8. Check, prepare and run</h2>
+<p>Work through the tabs in order; each names its terminal command.</p>
+<table>
+<thead>
+<tr>
+<th>Tab</th>
+<th>Button</th>
+<th>Terminal</th>
+<th>What it does</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>3 Input Files Validation</td>
+<td>Validate inputs</td>
+<td><code>./pfvarx validate</code></td>
+<td>Checks every file; each problem comes with numbered steps to fix it</td>
+</tr>
+<tr>
+<td>4 Inputs Preparation</td>
+<td>Prepare inputs</td>
+<td><code>./pfvarx inputs-preparation</code></td>
+<td>Builds the sample metadata <code>prepared/samples.tsv</code> from your files, merges the study table, prepares the reference indexes and checks readiness</td>
+</tr>
+<tr>
+<td>5 Workflow Readiness Checks</td>
+<td>Run readiness checks</td>
+<td><code>./pfvarx workflow-readiness-checks</code></td>
+<td>Repeats every check before a run</td>
+</tr>
+<tr>
+<td>6 Workflow Check and Run</td>
+<td>Check workflow, then Run workflow</td>
+<td><code>./pfvarx workflow-check</code>, <code>./pfvarx workflow-run</code></td>
+<td>Plans the run without outputs, then runs it</td>
+</tr>
+</tbody>
+</table>
+<p>Review <code>prepared/samples.tsv</code> after step 4: sample and lane IDs come from the file names.
+A run continues in the background if you close the browser; reopen tab 6 to see its status.</p>
+<h2>9. Review the results</h2>
+<p>Each run has its own folder <code>runs/&lt;RUN_ID&gt;/</code>. Open its report dashboard in a browser:</p>
+<pre><code class="language-bash">xdg-open runs/&lt;RUN_ID&gt;/results/report/pfvarx_dashboard.html
+</code></pre>
+<p>The dashboard is a single file that works offline. Check the QC section and any exclusions
+before interpreting calls. See the <a href="reporting/README.md">reporting guide</a>.</p>
+<h2>10. Later: update PfVarX or start another study</h2>
+<pre><code class="language-bash">cd ~/pfvarx/PfVarX-source &amp;&amp; git pull      # newer PfVarX
+python3 bootstrap.py --workspace ~/pfvarx/next-study
+</code></pre>
+<p>Start a new workspace for a new study or a new PfVarX version; existing workspaces keep the
+version they were created with, so their runs stay reproducible.</p>
+<h2>11. When something goes wrong</h2>
+<table>
+<thead>
+<tr>
+<th>Message or problem</th>
+<th>What to do</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>pixi: command not found</code></td>
+<td>Repeat step 2, then open a new terminal</td>
+</tr>
+<tr>
+<td>The GUI does not open</td>
+<td>Copy the link the terminal printed (with its token) into the browser</td>
+</tr>
+<tr>
+<td><code>Save with backup</code> is asked</td>
+<td>Tick <strong>Save with backup if existing YAML differs</strong>; the old file goes to <code>config/backups/</code></td>
+</tr>
+<tr>
+<td>Create Configuration stays greyed out</td>
+<td>Choose the <strong>Reference release label</strong> and fill every field marked with a red <code>*</code></td>
+</tr>
+<tr>
+<td><code>TOOLS_NOT_INSTALLED</code></td>
+<td>Click <strong>Install required tools</strong> (<code>./pfvarx install-tools</code>)</td>
+</tr>
+<tr>
+<td>Installing tools fails</td>
+<td>It needs internet access to the conda channels; see <code>metadata/install_tools.log</code></td>
+</tr>
+<tr>
+<td><code>RESOURCE_MEMORY_EXCEEDED</code> in readiness</td>
+<td>Lower the job memory in <code>config/compute.yaml</code>, or use a machine with more memory</td>
+</tr>
+<tr>
+<td><code>HOST_INDEX_REQUIRED</code></td>
+<td>Human DNA removal needs a bwa-mem2 index you build on a large machine; <code>./pfvarx prepare</code> lists the steps</td>
+</tr>
+<tr>
+<td>A validation problem</td>
+<td>Follow the numbered steps it prints; the full record is in <code>metadata/validation_report.json</code></td>
+</tr>
+</tbody>
+</table>
+<p>For every command and option, see the <a href="orchestration.md">orchestration guide</a>; for the full
+procedures, the <a href="sop/PfVarX_SOP_Manual.html">SOP manual</a>.</p>
+</main>
+</html>

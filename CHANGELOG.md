@@ -5,6 +5,30 @@
 The release version was reset to 0.0.0 after 0.4.2, as the baseline for the first reviewed
 release. The sections below 0.0.0 are the earlier development numbering, kept as history.
 
+### Tools for this configuration
+
+- Under **Install required tools**, the configuration editor lists every tool and package the
+  form's current choices need: name, version locked in `pixi.lock`, what PfVarX uses it for
+  and whether it is installed. It follows each change before saving (endpoint `tools-plan`).
+  `./pfvarx install-tools --check` includes the same list (`tools`) for the saved
+  configuration.
+
+### Reference release label as a drop-down
+
+- In the configuration editor the release setting is now **Reference release label**, a
+  drop-down of PlasmoDB 68, Pf3D7 - release unknown, Custom reference - study version 1 and
+  Reference source and release unknown, plus **Other release (type it)** for any other exact
+  release. The YAML setting `reference.release_label` is unchanged and still takes any text.
+- Form messages name the field by its label instead of its internal ID.
+
+### Getting started guide
+
+- New `docs/getting-started.md` (and `.html`): installing Pixi, getting PfVarX, creating a
+  workspace (tools on demand or up front), configuring in the GUI or the YAML files,
+  installing the required tools, adding input files, the steps from validation to the run,
+  reviewing the report, updating, and a troubleshooting table. Linked from the README and
+  the HTML quick start.
+
 ### Optional Human DNA removal for whole-genome sequencing (`reference.host_removal: true | false`)
 
 - New true/false setting `reference.host_removal` (GUI: **Human DNA removal**, default

@@ -115,3 +115,30 @@ def test_gui_steps_find_the_installed_tools_first_on_path(tmp_path: Path, monkey
     tools_bin = str(ws / ".pixi/envs/core/bin")
     assert env["PATH"].split(":")[0] == tools_bin  # samtools, bwa-mem2 ... found before the control env
     assert env["CONDA_PREFIX"] == str(ws / ".pixi/envs/core")
+
+
+def test_the_tools_a_configuration_needs_are_listed_with_locked_versions(tmp_path: Path) -> None:
+    ws = on_demand_workspace(tmp_path)
+    lock = yaml.safe_load((ws / "pixi.lock").read_text())
+    set_config(ws, final_output="FO001")
+    tools = {t["package"]: t for t in installation.status(ws)["tools"]}
+    assert {"fastp", "bwa-mem2", "samtools", "picard-slim", "mosdepth", "snakemake-minimal"} <= set(tools)
+    assert not {"bcftools", "scipy", "snpeff", "r-base"} & set(tools)  # FO001 runs none of these
+    fastp = next(p["conda"] for p in lock["packages"] if "/fastp-" in p.get("conda", ""))
+    assert tools["fastp"]["version"] in fastp and tools["fastp"]["installed"] is False
+    assert "read trimming" in tools["fastp"]["used_for"]
+
+
+def test_the_gui_lists_tools_for_unsaved_choices(tmp_path: Path) -> None:
+    from pfvarx.configuration.web import editor_state
+
+    ws = on_demand_workspace(tmp_path)
+    values = editor_state(ws, "analysis")["values"]
+    values["config"].update(final_output="FO004")
+    values["config"]["reference"]["gff"] = "inputs/reference/Pf3D7.gff"
+    values["config"]["analyses"]["requested"] = ["DA006"]
+    plan = installation.plan(ws, values)
+    names = [t["name"] for t in plan["tools"]]
+    assert plan["environment"] == "selected-annotation-coi-phylogeny-reads"
+    assert {"SnpEff", "IQ-TREE", "MOIRE", "BCFtools"} <= set(names) and "mgcv" not in names
+    assert yaml.safe_load((ws / "config/config.yaml").read_text())["final_output"] == "FO002"  # nothing saved
