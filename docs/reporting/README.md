@@ -74,8 +74,12 @@ earlier run without rerunning any analysis.
 
 ## Sections and scientific views
 
-The sidebar contains eight sections: overview, downstream analyses, variant calling and
-annotation, QC, resources, input validation, software/provenance, and troubleshooting.
+The sidebar contains eight sections, in the order a run is reviewed: **Overview** (run
+summary), **Inputs** (validation and libraries), **Quality Control** (gates and metrics),
+**Variants** (records and annotations), **Downstream Analyses** (DA001–DA007),
+**Resources** (execution and utilization), **Software** (versions and provenance) and
+**Logs** (diagnostics and exclusions). Each is a card with an icon; the open section is
+dark with a teal bar. On a phone, **Menu** opens the same cards.
 Every dataset with multiple views has one **Choose visualization** selector. Exactly
 one view is visible per dataset. Choices persist during navigation and the browser
 session for that run; **Reset dashboard** restores defaults. Different scientifically

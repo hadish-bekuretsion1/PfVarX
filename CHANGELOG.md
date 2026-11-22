@@ -5,6 +5,16 @@
 The release version was reset to 0.0.0 after 0.4.2, as the baseline for the first reviewed
 release. The sections below 0.0.0 are the earlier development numbering, kept as history.
 
+### Report dashboard redesign
+
+- The report dashboard has a new look: a navy header with the PfVarX mark and "Genomic
+  surveillance", navigation cards with icons, the open section shown dark with a teal bar,
+  KPI tiles with an accent bar, and cleaner tables, panels and status badges. Phones get
+  the same cards through **Menu**.
+- The sections follow the order a run is reviewed: Overview, Inputs, Quality Control,
+  Variants, Downstream Analyses, Resources, Software, Logs. Contents, filters and exports
+  are unchanged.
+
 ### Tools for this configuration
 
 - Under **Install required tools**, the configuration editor lists every tool and package the
