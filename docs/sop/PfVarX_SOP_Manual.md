@@ -2033,11 +2033,11 @@ Open the printed file path in the browser. This overwrites the report HTML/JSON 
 
 **Step 2. Review the eight sections and export**
 
-Use overview, downstream DA001–DA007, variant/annotation, QC, resources, inputs, software/provenance and logs. Choose one visualization per group. Filter actual fields; inspect active counts and click/focus a sample/mark for its source evidence. CSV/XLSX exports include all filtered embedded rows; tables display 50 rows/page. PNG exports the actual selected chart. Export PDF opens native print; all sections print, but tables use the visible page and downstream uses the current selected analysis. Print each desired analysis for a complete supplement.
+Use them in order: Overview, Inputs, Quality Control, Variants, Downstream Analyses (DA001–DA007), Resources, Software and Logs. In Downstream Analyses open each analysis tab; its page shows all its charts and tables together. Elsewhere choose one visualization per group. Filter actual fields; inspect active counts and click/focus a sample/mark for its source evidence. CSV/XLSX exports include all filtered embedded rows; tables display 50 rows/page. PNG exports the actual selected chart. Print from the browser (Ctrl+P, or Share → Print on a phone) to save a PDF; all sections print, but tables use the visible page and downstream uses the current selected analysis. Print each desired analysis for a complete supplement.
 
 **Step 3. Check provenance and sharing scope**
 
-The variant embedding cap is currently 200000; full summaries precede that cap, detailed charts use the labelled embedded subset. Missing fields stay missing. Synthetic fixtures display SYNTHETIC DEMO DATA. Redacted log tails are bounded. Table pseudonymization is not full report anonymization; review source paths, free text and identifiers before sharing.
+The variant embedding cap is currently 200000; full summaries precede that cap, detailed charts use the labelled embedded subset. Missing fields stay missing. Synthetic fixtures display SYNTHETIC DEMO DATA at the top of Overview. Redacted log tails are bounded. Table pseudonymization is not full report anonymization; review source paths, free text and identifiers before sharing.
 
 ### 4. Expected outputs
 
@@ -2394,7 +2394,7 @@ Only the new external smoke workspace contains synthetic FASTQ/reference/truth/c
 
 ### 5. Verification and quality control
 
-Check the SYNTHETIC DEMO DATA report banner, expected low-depth sample blocking and all method terminal states. A skipped method is not evidence it executed; inspect the informative fixture manifests.
+Check the SYNTHETIC DEMO DATA notice at the top of the report's Overview, expected low-depth sample blocking and all method terminal states. A skipped method is not evidence it executed; inspect the informative fixture manifests.
 
 ### 6. Error handling and troubleshooting
 

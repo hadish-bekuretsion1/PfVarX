@@ -8,6 +8,8 @@ rule flagstat:
         str(R / "alignments" / "{sample}.bam"),
     output:
         str(R / "qc" / "samples" / "{sample}" / "{sample}.flagstat.json"),
+    benchmark:
+        str(BENCH / "flagstat" / "{sample}.tsv")
     log:
         str(LOGS / "flagstat" / "{sample}.log"),
     shell:
@@ -29,6 +31,8 @@ rule mosdepth_core:
     resources:
         mem_mb=mem(1000),
         runtime=RUNTIME,
+    benchmark:
+        str(BENCH / "mosdepth_core" / "{sample}.tsv")
     log:
         str(LOGS / "mosdepth" / "{sample}.core.log"),
     shell:
@@ -69,6 +73,8 @@ checkpoint l1_gate:
     params:
         frozen=FROZEN,
         root=str(ROOT),
+    benchmark:
+        str(BENCH / "l1_gate" / "{sample}.tsv")
     log:
         str(LOGS / "gate" / "{sample}.log"),
     script:

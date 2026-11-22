@@ -34,6 +34,8 @@ checkpoint da_eligibility:
     params:
         run=str(RUN),
         root=str(ROOT),
+    benchmark:
+        str(BENCH / "da_eligibility" / "da_eligibility.tsv")
     log:
         str(LOGS / "downstream" / "eligibility.log"),
     shell:

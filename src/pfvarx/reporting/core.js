@@ -52,16 +52,17 @@ function recordsTable(rows, options = {}) { if (!rows.length) return empty("No r
 function numericRows(rows, field) { return rows.filter(r => number(r[field]) !== null); }
 function groupBy(rows, key) { const result = new Map(); rows.forEach(r => { const k = String(r[key] ?? "Not recorded"); if (!result.has(k)) result.set(k, []); result.get(k).push(r); }); return result; }
 function categoryItems(rows, key) { return [...groupBy(rows, key)].map(([label, list]) => ({label, value:list.length, tip:esc(label) + ": " + list.length + " records"})); }
-function visualGroup({id,title,rows,filters = [],views,defaultView,description = "", defaults = {}, extraFilter = null, extraControls = []}) {
+function visualGroup({id,title,rows,filters = [],views,defaultView,description = "", defaults = {}, extraFilter = null, extraControls = [], layout = "single"}) {
+  const grid = layout === "grid";
   rows = rows.filter(r => r && typeof r === "object");
-  const panel = el("div", {class:"panel visual-group", "data-group":id}, el("h3", {}, title));
+  const panel = el("div", {class:"panel visual-group" + (grid ? " dash-group" : ""), "data-group":id, "data-layout":layout}, el("h3", {}, title));
   if (description) panel.append(note(description));
   const viewId = "view-" + id.replace(/[^a-z0-9]/gi, "-");
   const select = el("select", {id:viewId, "aria-label":"Choose visualization: " + title}, Object.entries(views).map(([value,v]) => el("option", {value}, v.label)));
   const selected = STATE.views[id]; select.value = selected && views[selected] ? selected : (defaultView && views[defaultView] ? defaultView : Object.keys(views)[0]);
-  const controls = el("div", {class:"controls"}, el("label", {for:viewId}, "Choose visualization", select));
+  const controls = el("div", {class:"controls"}, grid ? null : el("label", {for:viewId}, "Choose visualization", select));
   const active = el("div", {class:"active-filters", "aria-live":"polite"});
-  const body = el("div", {class:"viz-body", "data-view":select.value});
+  const body = el("div", {class:"viz-body", "data-view":grid ? "grid" : select.value});
   const state = STATE.filters[id] || (STATE.filters[id] = {...defaults}); const fields = [];
   for (const field of filters) { const values = unique(rows.map(r => r[field])); if (!values.length) continue; const filter = el("select", {"aria-label":"Filter " + field + ": " + title}, el("option", {value:""}, field + ": all"), values.sort((a,b) => String(a).localeCompare(String(b))).map(v => el("option", {value:String(v)}, v))); filter.value = state[field] || ""; if (!filter.value) delete state[field]; filter.onchange = () => { state[field] = filter.value; draw(); }; fields.push([field,filter]); controls.append(filter); }
   controls.append(...extraControls);
@@ -69,7 +70,7 @@ function visualGroup({id,title,rows,filters = [],views,defaultView,description =
   const current = () => rows.filter(r => fields.every(([field]) => !state[field] || String(r[field]) === state[field])).filter(r => !extraFilter || extraFilter(r));
   const exportCurrent = format => { try { const nested = body.querySelector(".data-table"); if (nested?._export) nested._export(format,id,state); else exportRecords(id,current(),format,state); } catch (error) { notify("Export failed: " + error.message,true); } };
   controls.append(el("button", {class:"btn", onclick:() => exportCurrent("csv")}, "CSV"), el("button", {class:"btn", onclick:() => exportCurrent("xlsx")}, "XLSX"));
-  function draw() { const filtered = current(); const labels = fields.filter(([key]) => state[key]).map(([key]) => key + "=" + state[key]); active.textContent = "Showing " + filtered.length + " of " + rows.length + " source records" + (labels.length ? " · Active filters: " + labels.join("; ") : " · No categorical filters"); body.dataset.view = select.value; body.replaceChildren(); if (!filtered.length) body.append(empty("No matching records. Reset filters or choose another dataset.")); else { try { body.append(views[select.value].render(filtered)); } catch (error) { body.append(empty("This view is unavailable: " + error.message)); } } panel.dataset.filteredCount = String(filtered.length); }
+  function draw() { const filtered = current(); const labels = fields.filter(([key]) => state[key]).map(([key]) => key + "=" + state[key]); active.textContent = "Showing " + filtered.length + " of " + rows.length + " source records" + (labels.length ? " · Active filters: " + labels.join("; ") : " · No categorical filters"); body.dataset.view = grid ? "grid" : select.value; body.replaceChildren(); if (!filtered.length) body.append(empty("No matching records. Reset filters or choose another dataset.")); else if (grid) { const tiles = el("div", {class:"dash-grid"}); for (const [key, view] of Object.entries(views)) { if (view.grid === false) continue; let content; try { content = view.render(filtered); } catch (error) { content = empty("This view is unavailable: " + error.message); } tiles.append(el("div", {class:"dash-tile" + (view.wide || key === "table" || key === "map" ? " wide" : ""), "data-view":key}, el("h4", {class:"tile-title"}, view.label), content)); } body.append(tiles); } else { try { body.append(views[select.value].render(filtered)); } catch (error) { body.append(empty("This view is unavailable: " + error.message)); } } panel.dataset.filteredCount = String(filtered.length); }
   select.onchange = () => { STATE.views[id] = select.value; saveViews(); draw(); }; panel.append(controls,active,body); panel._refresh = draw; draw(); return panel;
 }
 function loadReport(input) { const check = validateData(input); if (check.errors.length) { $("#main").replaceChildren(el("div", {class:"panel schema-error", role:"alert"}, el("h2", {}, "Report data could not be loaded"), ...check.errors.map(e => el("p", {}, e)), note("Choose a valid dashboard_data.json using Open report JSON. No data was substituted."))); $("#nav").replaceChildren(); $("#dataNotice").textContent = "Invalid report data — no scientific results rendered."; return false; } D = check.data; STATE.selectedSample = null; STATE.filters = {}; STATE.rendered = new Set(); restoreViews(); build(); return true; }
