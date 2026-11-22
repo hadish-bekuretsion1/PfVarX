@@ -5,6 +5,14 @@
 The release version was reset to 0.0.0 after 0.4.2, as the baseline for the first reviewed
 release. The sections below 0.0.0 are the earlier development numbering, kept as history.
 
+### Getting started guide
+
+- New `docs/getting-started.md` (and `.html`): installing Pixi, getting PfVarX, creating a
+  workspace (tools on demand or up front), configuring in the GUI or the YAML files,
+  installing the required tools, adding input files, the steps from validation to the run,
+  reviewing the report, updating, and a troubleshooting table. Linked from the README and
+  the HTML quick start.
+
 ### Optional Human DNA removal for whole-genome sequencing (`reference.host_removal: true | false`)
 
 - New true/false setting `reference.host_removal` (GUI: **Human DNA removal**, default
