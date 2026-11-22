@@ -132,7 +132,8 @@ catalogue versions are independent and are not changed by a release.
 Before publication run [testing](testing.md), isolated workflow checks, source package
 checks and checksum/extraction validation. The CI pins an explicit Ubuntu runner and
 validates the software-only archive for the current version. Attach the final source
-ZIP/checksum to the reviewed release. Never attach a study workspace or a guessed
+ZIP/checksum to the reviewed release; it contains the analysis software only, without
+the development material in `development/`. Never attach a study workspace or a guessed
 scientific-validation claim.
 
 Keep the previous source/lock for rollback. Use NEW workspaces for capability/assay/input
