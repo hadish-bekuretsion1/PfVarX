@@ -1,7 +1,14 @@
 name: PfVarX CI
+# One run per change: pull requests, plus pushes to main and develop (after a merge).
+# Feature-branch pushes are tested by their pull request, so they do not run twice.
 on:
-  push:
   pull_request:
+  push:
+    branches: [main, develop]
+  workflow_dispatch:
+concurrency:
+  group: ci-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
 permissions:
   contents: read
 jobs:

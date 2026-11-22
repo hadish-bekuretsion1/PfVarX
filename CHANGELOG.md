@@ -5,6 +5,12 @@
 The release version was reset to 0.0.0 after 0.4.2, as the baseline for the first reviewed
 release. The sections below 0.0.0 are the earlier development numbering, kept as history.
 
+### CI uses half the GitHub Actions minutes
+
+- CI runs on pull requests and on pushes to `main` and `develop`, not on every branch push,
+  so each change is tested once instead of twice. A newer push to the same pull request
+  cancels the older run. It can also be started by hand (Actions → Run workflow).
+
 ### Development guide, kept out of releases
 
 - New `development/` folder with `PfVarX_Development_Guide.html`: every tool, package,
