@@ -8,8 +8,8 @@ release. The sections below 0.0.0 are the earlier development numbering, kept as
 ### One page per downstream analysis
 
 - Downstream Analyses no longer uses an analysis drop-down: the seven analyses are tabs
-  across the top (Infection Complexity, Resistance Markers, Genetic Diversity,
-  Relatedness, Population Structure, Phylogenetics, Spatiotemporal). Each opens a page
+  across the top (Infection Complexity, Resistance Markers, Genetic Diversity, Genetic
+  Relatedness, Population Structure, Phylogenetic Analysis, Spatiotemporal Analysis). Each opens a page
   titled with the analysis name, with its own summary tiles and its charts and tables shown
   together in a grid under shared filters, instead of one chosen view at a time.
 - New views: callability by marker (DA002), P(COI > 1) and classification share (DA001),

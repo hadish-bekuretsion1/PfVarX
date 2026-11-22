@@ -37,10 +37,10 @@ const ANALYSIS_META = {
   DA001:{tab:"Infection Complexity",title:"Within-Host Infection Complexity",subtitle:"MOIRE · Clonality and complexity of infection (COI)"},
   DA002:{tab:"Resistance Markers",title:"Antimalarial Resistance Marker Analysis",subtitle:"Marker calls, callability and prevalence"},
   DA003:{tab:"Genetic Diversity",title:"Population Genetic Diversity",subtitle:"Expected heterozygosity and nucleotide diversity"},
-  DA004:{tab:"Relatedness",title:"Pairwise Genetic Relatedness",subtitle:"Identity by descent · Dcifer and hmmIBD"},
+  DA004:{tab:"Genetic Relatedness",title:"Pairwise Genetic Relatedness",subtitle:"Identity by descent · Dcifer and hmmIBD"},
   DA005:{tab:"Population Structure",title:"Population Genetic Structure",subtitle:"Principal component analysis and genetic differentiation"},
-  DA006:{tab:"Phylogenetics",title:"Phylogenetic Relationships",subtitle:"IQ-TREE maximum-likelihood phylogeny of single-lineage samples"},
-  DA007:{tab:"Spatiotemporal",title:"Spatiotemporal Analysis of Resistance Marker Prevalence",subtitle:"Geographic and temporal coverage, callability and eligibility"},
+  DA006:{tab:"Phylogenetic Analysis",title:"Phylogenetic Relationships",subtitle:"IQ-TREE maximum-likelihood phylogeny of single-lineage samples"},
+  DA007:{tab:"Spatiotemporal Analysis",title:"Spatiotemporal Analysis of Resistance Marker Prevalence",subtitle:"Geographic and temporal coverage, callability and eligibility"},
 };
 function range(values) { const v=values.map(number).filter(x=>x!==null);if(!v.length)return null;const lo=Math.min(...v),hi=Math.max(...v);return lo===hi?fmt(lo):fmt(lo)+" – "+fmt(hi); }
 function median(values) { const v=values.map(number).filter(x=>x!==null).sort((a,b)=>a-b);if(!v.length)return null;const m=Math.floor(v.length/2);return v.length%2?v[m]:(v[m-1]+v[m])/2; }
@@ -69,7 +69,7 @@ function buildDownstream() {
     if(String(data.terminal||"").startsWith("COMPLETED")){try{body.append(...daViews(id,data));}catch(error){body.append(empty("Optional analysis data could not be rendered: "+error.message));}}
     body.append(daPanel(id,data));
     body.append(note("Display filters select supplied records; they do not refit estimators or recalculate scientific eligibility."));};
-  ids.forEach(id=>tabs.append(el("button",{class:"analysis-tab",role:"tab","data-analysis":id,"aria-selected":"false",onclick:()=>show(id)},el("strong",{},(ANALYSIS_META[id]||{}).tab||D.downstream[id].name||id),el("small",{},id))));
+  ids.forEach(id=>tabs.append(el("button",{class:"analysis-tab",role:"tab","data-analysis":id,"aria-selected":"false",title:id+" · "+((ANALYSIS_META[id]||{}).title||D.downstream[id].name||id),onclick:()=>show(id)},(ANALYSIS_META[id]||{}).tab||D.downstream[id].name||id)));
   s.append(tabs);if(omitted.length)s.append(note("Not applicable: "+omitted.map(([id,reason])=>id+" · "+reason).join(" | ")));s.append(body);show(current);
 }
 function stackBars(items,legend) { if(!items.length)return empty("No values are available for this chart.");const wrap=el("div",{class:"stackbars"});items.forEach(item=>{const total=item.segments.reduce((n,x)=>n+(number(x.value)||0),0);const bar=el("div",{class:"stackbar"});item.segments.forEach(x=>{const v=number(x.value)||0;if(!v||!total)return;const share=100*v/total;bar.append(el("span",{style:`width:${share}%;background:${x.color}`,title:`${item.label}: ${x.label} ${v} (${share.toFixed(1)}%)`},share>=12?`${v} (${share.toFixed(1)}%)`:String(v)));});wrap.append(el("div",{class:"stackrow"},el("span",{class:"stacklabel"},item.label),total?bar:el("span",{class:"note"},"No records")));});wrap.append(el("div",{class:"legend"},legend.map(([label,color])=>el("span",{},el("span",{class:"swatch",style:"background:"+color}),label))));return wrap; }

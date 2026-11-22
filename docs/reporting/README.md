@@ -81,8 +81,9 @@ summary), **Inputs** (validation and libraries), **Quality Control** (gates and 
 **Logs** (diagnostics and exclusions). Each is a card with an icon; the open section is
 dark with a teal bar. On a phone, **Menu** opens the same cards.
 **Downstream Analyses** has one tab per analysis across the top: Infection Complexity
-(DA001), Resistance Markers (DA002), Genetic Diversity (DA003), Relatedness (DA004),
-Population Structure (DA005), Phylogenetics (DA006) and Spatiotemporal (DA007). Each tab
+(DA001), Resistance Markers (DA002), Genetic Diversity (DA003), Genetic Relatedness (DA004),
+Population Structure (DA005), Phylogenetic Analysis (DA006) and Spatiotemporal Analysis
+(DA007). The open tab is navy with a teal bar. Each tab
 opens the analysis's own page: its full name as the title (for example *Antimalarial
 Resistance Marker Analysis*, *DA002 · Marker calls, callability and prevalence*), summary
 tiles (for DA002: samples, markers, callable denominator, UNKNOWN), and its charts and
