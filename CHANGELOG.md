@@ -5,6 +5,15 @@
 The release version was reset to 0.0.0 after 0.4.2, as the baseline for the first reviewed
 release. The sections below 0.0.0 are the earlier development numbering, kept as history.
 
+### Time and RAM for every step
+
+- Every workflow step now records its time and memory (Snakemake `benchmark` on all 29
+  rules; before, only 5 did), in `runs/<RUN_ID>/benchmarks/<step>/`.
+- The report's Resources section starts with **Resources by step: tool, time and RAM**: per
+  step, its layer, the tools and versions used, jobs, total and longest time, CPU time,
+  peak and mean RAM, average CPU cores and share of time, as a table or charts. Each
+  measurement in `dashboard_data.json` carries `step`, `layer` and `tools`.
+
 ### Report dashboard redesign
 
 - The report dashboard has a new look: a navy header with the PfVarX mark and "Genomic

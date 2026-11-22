@@ -95,6 +95,17 @@ distinct datasets have separate groups and explicitly identified denominators.
 | DA006 | Supplied Newick tree, collapse/expand and support table; distance matrix only if IQ-TREE published `tree.mldist` |
 | DA007 | Actual-coordinate grid map/table; separate country-month heatmap, time series and table for the corresponding source summary |
 
+**Resources** opens with **Resources by step: tool, time and RAM**, one row per workflow
+step (fastp read QC, bwa-mem2 alignment, Picard duplicate marking, the PfVarX caller,
+bcftools, SnpEff, each analysis DA001–DA007, and the others): its layer, the tools and
+versions that ran it, the number of jobs (samples, lanes or analyses), total and longest
+job time, CPU time, peak and mean RAM, average CPU cores and its share of the summed time.
+Charts show time, peak RAM or CPU time per step. **Resources by job** below gives the same
+measurements for every sample, lane or analysis. Every step records its measurements in
+`runs/<RUN_ID>/benchmarks/<step>/<job>.tsv`; time and RAM are Snakemake's measurements
+(wall seconds and maximum resident memory). Steps run in parallel can overlap, so summed
+time can exceed the run's elapsed time.
+
 Filters select existing records and never refit an estimator or alter eligibility.
 DA002 defaults to the ALL population group where present; DA004 starts with one recorded
 method and requires a single method for a matrix/network; DA007 starts with one actual

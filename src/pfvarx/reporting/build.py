@@ -84,6 +84,63 @@ def _benchmarks(run: Path) -> list[dict[str, Any]]:
     return out
 
 
+# Benchmark folder -> (step shown in the report, pipeline layer, packages that do the work).
+STEP_INFO: dict[str, tuple[str, str, tuple[str, ...]]] = {
+    "fastp": ("Read QC and trimming", "L1", ("fastp",)),
+    "bwa_mem2": ("Read alignment", "L1", ("bwa-mem2", "samtools")),
+    "merge_lanes": ("Merge lanes", "L1", ("samtools",)),
+    "markdup": ("Mark duplicates", "L1", ("picard", "samtools")),
+    "insert_metrics_preclip": ("Insert metrics before primer clipping", "L1", ("samtools",)),
+    "trim_primers": ("Primer trimming", "L1", ("fgbio", "samtools")),
+    "alignment_entry": ("Aligned-input entry", "L1", ("samtools",)),
+    "entry_finalize": ("Aligned-input finalise", "L1", ("samtools",)),
+    "umi_fastq_to_bam": ("UMI: reads to BAM", "L1", ("fgbio",)),
+    "umi_align_zipper": ("UMI: align and merge tags", "L1", ("bwa-mem2", "fgbio", "samtools")),
+    "umi_group": ("UMI: group reads", "L1", ("fgbio",)),
+    "umi_consensus": ("UMI: consensus reads", "L1", ("fgbio",)),
+    "umi_realign": ("UMI: realign consensus", "L1", ("bwa-mem2", "fgbio", "samtools")),
+    "umi_preclip_and_trim": ("UMI: clip and trim primers", "L1", ("fgbio", "samtools")),
+    "flagstat": ("Alignment statistics", "L1", ("samtools",)),
+    "mosdepth_core": ("Core-genome depth", "L1", ("mosdepth",)),
+    "mosdepth": ("Target depth", "L1", ("mosdepth",)),
+    "l1_gate": ("QC gate decision", "L1", ("python",)),
+    "pfvarx_call": ("Variant calling (PfVarX caller)", "L2", ("python", "pysam", "numpy", "scipy")),
+    "normalise_sample": ("Normalise sample VCF", "L2", ("bcftools",)),
+    "cohort_merge": ("Cohort merge", "L3", ("bcftools",)),
+    "cohort_status": ("Cohort call status", "L3", ("python", "pysam")),
+    "cohort_evidence": ("Cohort evidence", "L3", ("python", "pysam")),
+    "snpeff_build": ("Annotation database build", "L4", ("snpeff",)),
+    "snpeff_annotate": ("Variant annotation", "L4", ("snpeff",)),
+    "da_eligibility": ("Analysis eligibility", "L5", ("python",)),
+}
+ANALYSIS_TOOLS: dict[str, tuple[str, tuple[str, ...]]] = {
+    "DA001": ("Complexity of infection", ("r-base", "r-moire")),
+    "DA002": ("Drug-resistance markers", ("python",)),
+    "DA003": ("Genetic diversity", ("scikit-allel",)),
+    "DA004": ("Relatedness and IBD", ("hmmibd", "r-dcifer")),
+    "DA005": ("Population structure", ("scikit-allel",)),
+    "DA006": ("Phylogenetics", ("iqtree",)),
+    "DA007": ("Spatial and temporal summary", ("r-base", "r-mgcv")),
+}
+
+
+def _label_steps(measured: list[dict[str, Any]], tools_installed: dict[str, Any]) -> None:
+    """Add the step name, layer and tools (with the run's recorded versions) to each measurement."""
+    def with_version(package: str) -> str:
+        if package == "python":
+            return "Python (PfVarX)"
+        recorded = next((tools_installed[f"{name} (package)"] for name in (package, f"{package}-slim", f"{package}-minimal")
+                         if f"{name} (package)" in tools_installed), None)
+        return f"{package} {str(recorded).split(' ')[0]}" if recorded else package
+
+    for row in measured:
+        step, layer, packages = STEP_INFO.get(row["rule"], (row["rule"].replace("_", " "), None, ()))
+        if row["rule"] == "downstream":
+            name, packages = ANALYSIS_TOOLS.get(row["job"], (row["job"], ()))
+            step, layer = f"{row['job']} {name}", "L5"
+        row.update({"step": step, "layer": layer, "tools": ", ".join(with_version(p) for p in packages) or None})
+
+
 def _num(v: Any) -> float | None:
     try:
         value = None if v in (None, "", "-", "NA") else float(v)
@@ -376,6 +433,7 @@ def harvest(root: Path, run: Path) -> dict[str, Any]:
     # version installed when the report is rebuilt; the renderer version is kept separately.
     tools = {**snap.get("tools_installed", {}),
              **{f"{name} (package)": version for name, version in snap.get("packages", {}).items()}}
+    _label_steps(resources_["measured"], tools)
     software = {"pfvarx_version": snap.get("pfvarx_version", __version__),
                 "tools_installed": tools,
                 "rules_with_measured_execution": executed_rules, "git": snap.get("git"),

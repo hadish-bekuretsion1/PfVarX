@@ -30,6 +30,8 @@ if DESIGN == "targeted_umi":
             resources:
                 mem_mb=mem(2000),
                 runtime=RUNTIME,
+            benchmark:
+                str(BENCH / "umi_fastq_to_bam" / "{sample}.{lane}.tsv")
             log:
                 str(LOGS / "umi" / "{sample}.{lane}.fastqtobam.log"),
             shell:
@@ -51,6 +53,8 @@ if DESIGN == "targeted_umi":
             resources:
                 mem_mb=mem(6000),
                 runtime=RUNTIME,
+            benchmark:
+                str(BENCH / "umi_align_zipper" / "{sample}.{lane}.tsv")
             log:
                 str(LOGS / "umi" / "{sample}.{lane}.align.log"),
             shell:
@@ -73,6 +77,8 @@ if DESIGN == "targeted_umi":
         resources:
             mem_mb=mem(4000),
             runtime=RUNTIME,
+        benchmark:
+            str(BENCH / "umi_group" / "{sample}.tsv")
         log:
             str(LOGS / "umi" / "{sample}.group.log"),
         shell:
@@ -101,6 +107,8 @@ if DESIGN == "targeted_umi":
         resources:
             mem_mb=mem(4000),
             runtime=RUNTIME,
+        benchmark:
+            str(BENCH / "umi_consensus" / "{sample}.tsv")
         log:
             str(LOGS / "umi" / "{sample}.consensus.log"),
         shell:
@@ -125,6 +133,8 @@ if DESIGN == "targeted_umi":
         resources:
             mem_mb=mem(6000),
             runtime=RUNTIME,
+        benchmark:
+            str(BENCH / "umi_realign" / "{sample}.tsv")
         log:
             str(LOGS / "umi" / "{sample}.realign.log"),
         shell:
@@ -149,6 +159,8 @@ if DESIGN == "targeted_umi":
             resources:
                 mem_mb=mem(3000),
                 runtime=RUNTIME,
+            benchmark:
+                str(BENCH / "umi_preclip_and_trim" / "{sample}.tsv")
             log:
                 str(LOGS / "umi" / "{sample}.trim.log"),
             shell:
