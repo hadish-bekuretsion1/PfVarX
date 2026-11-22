@@ -41,9 +41,8 @@ For an in-progress run, missing final artifacts display an unfinished state. The
 artifact-derived states, not a live scheduler subscription: reload a freshly regenerated
 report to observe progress. Final interpretation should use a finalized run.
 
-Use **Open report JSON** to import another local `dashboard_data.json` without a server.
-The embedded report remains usable without its adjacent JSON file. Import uses the
-browser file picker, not filesystem fetch. Invalid required fields produce a clear
+Each run's dashboard carries its own data, so open that run's `pfvarx_dashboard.html` to
+see another run; the embedded report remains usable without its adjacent JSON file. Invalid required fields produce a clear
 error; malformed optional containers become unavailable with provenance warnings.
 Dashboard JSON /2 uses the new analysis IDs. Keep the original renderer for /1 reports.
 The schema is shipped at `src/pfvarx/reporting/dashboard.schema.json`.
@@ -74,11 +73,33 @@ earlier run without rerunning any analysis.
 
 ## Sections and scientific views
 
-The sidebar contains eight sections: overview, downstream analyses, variant calling and
-annotation, QC, resources, input validation, software/provenance, and troubleshooting.
-Every dataset with multiple views has one **Choose visualization** selector. Exactly
-one view is visible per dataset. Choices persist during navigation and the browser
-session for that run; **Reset dashboard** restores defaults. Different scientifically
+The dashboard is titled **PfVarX Genomic Analysis Dashboard** (navy header with the teal
+PfVarX mark, centred; on phones and tablets the **Menu** button sits on the same row and
+the section list slides in from the left). The header has no buttons. Nothing else sits above the sections. The project, run, final output, design and purpose,
+the data kind (SYNTHETIC DEMO DATA for fixtures) and the calibration status appear once,
+at the top of **Overview**. The sidebar
+contains eight sections, in the order a run is reviewed: **Overview** (run
+summary), **Inputs** (validation and libraries), **Quality Control** (gates and metrics),
+**Variants** (records and annotations), **Downstream Analyses** (DA001–DA007),
+**Resources** (execution and utilization), **Software** (versions and provenance) and
+**Logs** (diagnostics and exclusions). Each section opens with one heading, such as **PfVarX · Inputs**; Downstream Analyses
+shows the name of the open analysis instead. Each is a card with an icon; the open section is
+dark with a teal bar. On a phone, **Menu** opens the same cards.
+**Downstream Analyses** has one tab per analysis across the top: Infection Complexity
+(DA001), Resistance Markers (DA002), Genetic Diversity (DA003), Genetic Relatedness (DA004),
+Population Structure (DA005), Phylogenetic Analysis (DA006) and Spatiotemporal Analysis
+(DA007). The open tab is navy with a teal bar. Each tab
+opens the analysis's own page: its full name as the title (for example *Antimalarial
+Resistance Marker Analysis*, *DA002 · Marker calls, callability and prevalence*), summary
+tiles (for DA002: samples, markers, callable denominator, UNKNOWN), and its charts and
+evidence tables side by side under one set of filters. DA002 adds callability by marker;
+DA001 adds P(COI > 1) by sample and the classification share; DA003 adds nucleotide
+diversity; DA004 adds estimates with 95% confidence intervals; DA005 adds explained
+variance. The run status and denominators of the analysis follow at the bottom.
+
+In the other sections, every dataset with multiple views has one **Choose visualization**
+selector. Exactly one view is visible per dataset there. Choices persist during navigation and the browser
+session for that run; closing the tab restores the defaults. Different scientifically
 distinct datasets have separate groups and explicitly identified denominators.
 
 | Analysis | Default and available evidence |
@@ -90,6 +111,17 @@ distinct datasets have separate groups and explicitly identified denominators.
 | DA005 | PCA scatter with actual components and supplied explained variance; coordinates table; FST has its own matrix/table |
 | DA006 | Supplied Newick tree, collapse/expand and support table; distance matrix only if IQ-TREE published `tree.mldist` |
 | DA007 | Actual-coordinate grid map/table; separate country-month heatmap, time series and table for the corresponding source summary |
+
+**Resources** opens with **Resources by step: tool, time and RAM**, one row per workflow
+step (fastp read QC, bwa-mem2 alignment, Picard duplicate marking, the PfVarX caller,
+bcftools, SnpEff, each analysis DA001–DA007, and the others): its layer, the tools and
+versions that ran it, the number of jobs (samples, lanes or analyses), total and longest
+job time, CPU time, peak and mean RAM, average CPU cores and its share of the summed time.
+Charts show time, peak RAM or CPU time per step. **Resources by job** below gives the same
+measurements for every sample, lane or analysis. Every step records its measurements in
+`runs/<RUN_ID>/benchmarks/<step>/<job>.tsv`; time and RAM are Snakemake's measurements
+(wall seconds and maximum resident memory). Steps run in parallel can overlap, so summed
+time can exceed the run's elapsed time.
 
 Filters select existing records and never refit an estimator or alter eligibility.
 DA002 defaults to the ALL population group where present; DA004 starts with one recorded
@@ -123,8 +155,9 @@ embedded subset. Consult the evidence TSV paths for omitted records.
 - **PNG** exports the current SVG view on white, at least 1200 pixels wide, with title
   and project/run caption. Zoom affects the exported visible view; reset zoom for full
   extents. Export feedback states whether a download was prepared or failed.
-- **Export PDF** opens the browser print dialog. Select Save as PDF. All eight sections
-  print, with the current downstream analysis and selected chart views. Tables print
+- **PDF**: print from the browser (Ctrl+P, or Share → Print on a phone) and choose Save
+  as PDF. All eight sections
+  print, with the open downstream analysis (all its charts and tables) and selected chart views. Tables print
   their current page. Use CSV/XLSX for complete tables and print each analysis separately
   when a DA001–DA007 supplement is required. Browser headers/footers are user settings.
 
@@ -146,8 +179,8 @@ installation containing the verification script and all selected-method dependen
 pixi run verify benchmark --output /absolute/path/to/new-verification
 ```
 
-The resulting `benchmark/results/report/dashboard_data.json` can be loaded with
-**Open report JSON**. Its **SYNTHETIC DEMO DATA** banner remains visible. The complete
+The resulting `benchmark/results/report/pfvarx_dashboard.html` shows **SYNTHETIC DEMO
+DATA** at the top of Overview. The complete
 synthetic generator and verification code are retained; generated data is not shipped.
 This is a software fixture, not an experimental finding or accuracy claim.
 

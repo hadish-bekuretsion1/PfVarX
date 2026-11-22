@@ -59,3 +59,14 @@ def test_pristine_archive_roundtrip_and_symlink_rejection(tmp_path: Path) -> Non
     (source / "src/pfvarx/unsafe.py").symlink_to(external)
     with pytest.raises(ValueError, match="symlinks"):
         PACKAGER["build_archive"](source, tmp_path / "rejected")
+
+
+def test_development_content_is_not_released(tmp_path: Path) -> None:
+    """The development guide and other development/ material stay out of the archive."""
+    assert (ROOT / "development/PfVarX_Development_Guide.html").is_file()
+    source = _copy_source(tmp_path / "source")
+    shutil.copytree(ROOT / "development", source / "development")
+    result = PACKAGER["build_archive"](source, tmp_path / "archive")
+    with zipfile.ZipFile(result["archive"]) as bundle:
+        assert not any(name.startswith("pfvarx/development/") for name in bundle.namelist())
+        assert not any("Development_Guide" in name for name in bundle.namelist())

@@ -5,6 +5,57 @@
 The release version was reset to 0.0.0 after 0.4.2, as the baseline for the first reviewed
 release. The sections below 0.0.0 are the earlier development numbering, kept as history.
 
+### CI uses half the GitHub Actions minutes
+
+- CI runs on pull requests and on pushes to `main` and `develop`, not on every branch push,
+  so each change is tested once instead of twice. A newer push to the same pull request
+  cancels the older run. It can also be started by hand (Actions → Run workflow).
+
+### One page per downstream analysis
+
+- Downstream Analyses no longer uses an analysis drop-down: the seven analyses are tabs
+  across the top (Infection Complexity, Resistance Markers, Genetic Diversity, Genetic
+  Relatedness, Population Structure, Phylogenetic Analysis, Spatiotemporal Analysis). Each opens a page
+  titled with the analysis name, with its own summary tiles and its charts and tables shown
+  together in a grid under shared filters, instead of one chosen view at a time.
+- New views: callability by marker (DA002), P(COI > 1) and classification share (DA001),
+  nucleotide diversity (DA003), relatedness estimates with 95% intervals (DA004),
+  explained variance (DA005).
+
+### Time and RAM for every step
+
+- Every workflow step now records its time and memory (Snakemake `benchmark` on all 29
+  rules; before, only 5 did), in `runs/<RUN_ID>/benchmarks/<step>/`.
+- The report's Resources section starts with **Resources by step: tool, time and RAM**: per
+  step, its layer, the tools and versions used, jobs, total and longest time, CPU time,
+  peak and mean RAM, average CPU cores and share of time, as a table or charts. Each
+  measurement in `dashboard_data.json` carries `step`, `layer` and `tools`.
+
+### Report dashboard redesign
+
+- The report dashboard has a new look: a navy header with the teal PfVarX mark and
+  the title "PfVarX Genomic Analysis Dashboard", centred, with the Menu button on the same
+  row on phones and tablets; the Open report JSON, Reset dashboard and Export PDF buttons
+  are removed (print from the browser for a PDF); run details, the synthetic-data label and
+  calibration status appear once at the top of Overview; switching sections and analysis
+  tabs is smoother because pages are prepared in the background, each section opens with one large
+  heading such as "PfVarX · Inputs" (Downstream Analyses keeps its analysis titles), navigation cards with icons, the open section shown dark with a teal bar,
+  KPI tiles with an accent bar, and cleaner tables, panels and status badges. Phones get
+  the same cards through **Menu**.
+- The sections follow the order a run is reviewed: Overview, Inputs, Quality Control,
+  Variants, Downstream Analyses, Resources, Software, Logs. Contents, filters and exports
+  are unchanged.
+
+### Development guide, kept out of releases
+
+- New `development/` folder with `PfVarX_Development_Guide.html`: every tool, package,
+  pipeline step, algorithm, parameter and QC gate with its path and purpose; how to test
+  parameter values and QC thresholds and choose the best; how to measure, replace or upgrade
+  a tool; the testing ladder; documentation rules; and the Git and GitHub commands for this
+  project on Ubuntu or WSL2.
+- `scripts/package.py` refuses to package anything under `development/`; the release
+  archive contains the analysis software only (`tests/unit/test_distribution.py`).
+
 ### Tools for this configuration
 
 - Under **Install required tools**, the configuration editor lists every tool and package the

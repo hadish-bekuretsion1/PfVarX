@@ -19,6 +19,8 @@ rule snpeff_build:
     resources:
         mem_mb=mem(4000),
         runtime=RUNTIME,
+    benchmark:
+        str(BENCH / "snpeff_build" / "snpeff_build.tsv")
     log:
         str(LOGS / "snpeff" / "build.log"),
     shell:
@@ -42,6 +44,8 @@ rule snpeff_annotate:
     resources:
         mem_mb=mem(4000),
         runtime=RUNTIME,
+    benchmark:
+        str(BENCH / "snpeff_annotate" / "snpeff_annotate.tsv")
     log:
         str(LOGS / "snpeff" / "annotate.log"),
     shell:

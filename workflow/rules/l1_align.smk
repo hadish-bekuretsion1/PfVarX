@@ -42,6 +42,8 @@ rule merge_lanes:
     resources:
         mem_mb=mem(1000),
         runtime=RUNTIME,
+    benchmark:
+        str(BENCH / "merge_lanes" / "{sample}.tsv")
     log:
         str(LOGS / "merge" / "{sample}.log"),
     shell:
@@ -92,6 +94,8 @@ if DESIGN == "targeted_no_umi" and PLAN["input_type"] == "FASTQ":
             str(R / "work" / "merged" / "{sample}.bam"),
         output:
             str(R / "qc" / "samples" / "{sample}" / "{sample}.preclip.stats.txt"),
+        benchmark:
+            str(BENCH / "insert_metrics_preclip" / "{sample}.tsv")
         log:
             str(LOGS / "preclip" / "{sample}.log"),
         shell:
@@ -137,6 +141,8 @@ if PLAN["input_type"] in ("BAM", "CRAM"):
         resources:
             mem_mb=mem(4000),
             runtime=RUNTIME,
+        benchmark:
+            str(BENCH / "alignment_entry" / "{sample}.tsv")
         log:
             str(LOGS / "entry" / "{sample}.log"),
         shell:
@@ -172,6 +178,8 @@ if PLAN["input_type"] in ("BAM", "CRAM"):
             entry_final_source,
         output:
             str(R / "alignments" / "{sample}.bam"),
+        benchmark:
+            str(BENCH / "entry_finalize" / "{sample}.tsv")
         log:
             str(LOGS / "entry" / "{sample}.finalize.log"),
         shell:

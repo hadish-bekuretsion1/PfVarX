@@ -12,6 +12,8 @@ rule cohort_merge:
         # Sample IDs in merge order (IDs never contain dots, so the file stem is the ID).
         ids=lambda wc, input: " ".join(Path(v).name.split(".")[0] for v in input.vcfs),
         n=lambda wc, input: len(input.vcfs),
+    benchmark:
+        str(BENCH / "cohort_merge" / "cohort_merge.tsv")
     log:
         str(LOGS / "cohort" / "merge.log"),
     # final_targets requests the cohort only when a sample is permitted into Layer 3. One
@@ -36,6 +38,8 @@ rule cohort_status:
         empty=lambda wc: "--empty" if not passing("L3") else "",
         run=str(RUN),
         root=str(ROOT),
+    benchmark:
+        str(BENCH / "cohort_status" / "cohort_status.tsv")
     log:
         str(LOGS / "cohort" / "status.log"),
     shell:
@@ -59,6 +63,8 @@ rule cohort_evidence:
     resources:
         mem_mb=mem(2000),
         runtime=RUNTIME,
+    benchmark:
+        str(BENCH / "cohort_evidence" / "cohort_evidence.tsv")
     log:
         str(LOGS / "cohort" / "evidence.log"),
     shell:

@@ -475,6 +475,24 @@
             "string",
             "null"
           ]
+        },
+        "step": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "layer": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "tools": {
+          "type": [
+            "string",
+            "null"
+          ]
         }
       },
       "additionalProperties": true
