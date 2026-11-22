@@ -13,6 +13,14 @@ release. The sections below 0.0.0 are the earlier development numbering, kept as
   release. The YAML setting `reference.release_label` is unchanged and still takes any text.
 - Form messages name the field by its label instead of its internal ID.
 
+### Getting started guide
+
+- New `docs/getting-started.md` (and `.html`): installing Pixi, getting PfVarX, creating a
+  workspace (tools on demand or up front), configuring in the GUI or the YAML files,
+  installing the required tools, adding input files, the steps from validation to the run,
+  reviewing the report, updating, and a troubleshooting table. Linked from the README and
+  the HTML quick start.
+
 ### Optional Human DNA removal for whole-genome sequencing (`reference.host_removal: true | false`)
 
 - New true/false setting `reference.host_removal` (GUI: **Human DNA removal**, default
