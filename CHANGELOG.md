@@ -28,8 +28,12 @@ release. The sections below 0.0.0 are the earlier development numbering, kept as
 ### Report dashboard redesign
 
 - The report dashboard has a new look: a navy header with the teal PfVarX mark and
-  the title "PfVarX Genomic Analysis Dashboard" only; run details, the synthetic-data
-  label and calibration status appear once at the top of Overview, navigation cards with icons, the open section shown dark with a teal bar,
+  the title "PfVarX Genomic Analysis Dashboard", centred, with the Menu button on the same
+  row on phones and tablets; the Open report JSON, Reset dashboard and Export PDF buttons
+  are removed (print from the browser for a PDF); run details, the synthetic-data label and
+  calibration status appear once at the top of Overview; switching sections and analysis
+  tabs is smoother because pages are prepared in the background, each section opens with one large
+  heading such as "PfVarX · Inputs" (Downstream Analyses keeps its analysis titles), navigation cards with icons, the open section shown dark with a teal bar,
   KPI tiles with an accent bar, and cleaner tables, panels and status badges. Phones get
   the same cards through **Menu**.
 - The sections follow the order a run is reviewed: Overview, Inputs, Quality Control,

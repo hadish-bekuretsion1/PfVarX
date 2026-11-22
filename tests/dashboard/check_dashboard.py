@@ -42,7 +42,7 @@ def main(report_dir: str, out_dir: str) -> dict:
         checks['eight_sections'] = page.locator('#nav button.card').count() == 8
         for button in page.locator('#nav button.card').all():
             button.click()
-            assert page.locator('#' + button.get_attribute('data-id')).is_visible()
+            page.locator('#' + button.get_attribute('data-id')).wait_for(state='visible')
         checks['navigation'] = True
         checks['numeric_missing_preserved'] = page.evaluate('[null,undefined,"", "NA", "nan"].every(v=>number(v)===null) && number(0)===0 && number(-.02)===-.02')
         group_count = 0
@@ -64,12 +64,15 @@ def main(report_dir: str, out_dir: str) -> dict:
                 select.select_option(select.locator('option').first.get_attribute('value'))
         for sid in ['overview', 'variants', 'qc', 'resources']:
             page.locator(f'#nav [data-id="{sid}"]').click()
+            page.locator(f'#{sid}.active').wait_for(state='visible')
             exercise_groups()
         page.locator('#nav [data-id="downstream"]').click()
+        page.locator('#downstream.active').wait_for(state='visible')
         tabs = page.locator('#downstream .analysis-tab')
         if tabs.count():
             for value in tabs.evaluate_all('(nodes)=>nodes.map(n=>n.dataset.analysis)'):
                 page.locator(f'#downstream .analysis-tab[data-analysis="{value}"]').click()
+                page.locator(f'#analysisView .analysis-page[data-analysis="{value}"]').wait_for(state='visible')
                 assert page.locator(f'#downstream .analysis-tab[data-analysis="{value}"]').get_attribute('aria-selected') == 'true'
                 exercise_groups()
                 assert 'could not be rendered:' not in page.locator('#downstream').inner_text()
@@ -93,8 +96,10 @@ def main(report_dir: str, out_dir: str) -> dict:
         page.locator('#menuToggle').click()
         checks['mobile_menu'] = page.locator('#nav').is_visible() and page.locator('#menuToggle').get_attribute('aria-expanded') == 'true'
         page.locator('#nav [data-id="overview"]').click()
+        page.locator('#overview.active').wait_for(state='visible')
         page.set_viewport_size({'width':1440,'height':1000})
         page.locator('#nav [data-id="downstream"]').click()
+        page.locator('#downstream.active').wait_for(state='visible')
         checks['optional_sections_render'] = page.locator('.failbox').filter(has_text='could not be rendered').count() == 0
         # Persistence across analysis switches and navigation; exclusive view body.
         group = page.locator('.visual-group:visible:not([data-layout="grid"])').first
@@ -104,11 +109,14 @@ def main(report_dir: str, out_dir: str) -> dict:
             gid = group.get_attribute('data-group')
             select.select_option(last)
             page.locator('#nav [data-id="overview"]').click()
+            page.locator('#overview.active').wait_for(state='visible')
             page.locator('#nav [data-id="downstream"]').click()
+            page.locator('#downstream.active').wait_for(state='visible')
             checks['view_persistence'] = page.locator(f'[data-group="{gid}"] select').first.input_value() == last
         else:
             checks['view_persistence'] = True  # No downstream dataset in FO001/FO002.
         page.locator('#nav [data-id="qc"]').click()
+        page.locator('#qc.active').wait_for(state='visible')
         graphic = page.locator('#qc svg [aria-label][tabindex]').first
         if graphic.count():
             graphic.focus()
@@ -137,8 +145,8 @@ def main(report_dir: str, out_dir: str) -> dict:
             book = load_workbook(xlsx_path)
             checks['genuine_xlsx'] = any(sid in row for row in book['data'].values)
             checks['export_feedback'] = 'download' in page.locator('#exportStatus').inner_text().lower()
-        page.get_by_role('button', name='Reset dashboard', exact=True).click()
         page.locator('#nav [data-id="qc"]').click()
+        page.locator('#qc.active').wait_for(state='visible')
         png = page.locator('#qc').get_by_role('button', name='PNG', exact=True).first
         if png.count():
             with page.expect_download() as download:
@@ -152,22 +160,20 @@ def main(report_dir: str, out_dir: str) -> dict:
         page.pdf(path=str(out / 'report.pdf'), print_background=True, prefer_css_page_size=True)
         checks['pdf_created'] = (out / 'report.pdf').stat().st_size > 10000
         page.screenshot(path=str(out / 'qc.png'), full_page=True)
-        checks['synthetic_banner_when_declared'] = original.get('data_kind') != 'synthetic' or 'SYNTHETIC DEMO DATA' in page.locator('#dataNotice').inner_text()
+        checks['synthetic_banner_when_declared'] = original.get('data_kind') != 'synthetic' or 'SYNTHETIC DEMO DATA' in page.locator('#overview .run-notice').inner_text()
         # Local import, schema errors and missing optional containers.
-        input_id = page.locator('input[type=file]').get_attribute('id')
-        page.locator('#' + input_id).set_input_files({'name':'invalid.json','mimeType':'application/json','buffer':b'{broken'})
-        page.wait_for_timeout(50)
+        page.evaluate('PfVarX.loadReport(null)')
         checks['invalid_json_explained'] = 'could not' in page.locator('#main').inner_text().lower()
         checks['required_schema_validation'] = page.evaluate('PfVarX.validateData({samples:[]}).errors.length>0')
         minimal = {'schema':'pfvarx.dashboard/2','project_id':'SYNTHETIC_MINIMAL','run_id':'MINIMAL','samples':[], 'data_kind':'synthetic', 'downstream':{'DA002':None}}
-        page.locator('#' + input_id).set_input_files({'name':'minimal.json','mimeType':'application/json','buffer':json.dumps(minimal).encode()})
-        page.wait_for_timeout(50)
+        page.evaluate('input=>PfVarX.loadReport(input)', minimal)
         page.evaluate('SECTIONS.forEach(([id])=>ensureSection(id))')
         checks['missing_optional_no_crash'] = page.locator('.failbox').filter(has_text='could not be rendered').count() == 0
         # Large tables remain paginated; empty filtering does not invent a row.
         many = dict(minimal, samples=[{'sample_id':f'SYNTHETIC_{i}'} for i in range(125)], downstream={})
         page.evaluate('input=>PfVarX.loadReport(input)', many)
         page.locator('#nav [data-id="qc"]').click()
+        page.locator('#qc.active').wait_for(state='visible')
         sample_table = page.locator('#qc .panel').filter(has=page.get_by_role('heading', name='Samples (click to inspect)', exact=True))
         checks['table_pagination'] = sample_table.locator('tbody tr').count() == 50
         sample_table.get_by_role('button', name='Next', exact=True).click()

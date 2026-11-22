@@ -2,19 +2,32 @@ const SECTIONS = [["overview","Overview","Run summary","Run overview"],["inputs"
 const NAV_ICONS = {overview:'<rect x="3" y="4" width="18" height="14" rx="2"/><path d="M8 14v-3M12 14V8M16 14v-5M9 21h6M12 18v3"/>',inputs:'<path d="M12 15V4M7.5 8.5 12 4l4.5 4.5M4 14v4a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-4"/>',qc:'<circle cx="11" cy="11" r="6.5"/><path d="m20 20-4.2-4.2"/>',variants:'<path d="M7 3c0 6 10 6 10 12v6M17 3c0 6-10 6-10 12v6M8 7h8M8 17h8"/>',downstream:'<path d="m12 3 9 5-9 5-9-5 9-5Z"/><path d="m3 12.5 9 5 9-5M3 17l9 5 9-5"/>',resources:'<ellipse cx="12" cy="5.5" rx="7.5" ry="2.8"/><path d="M4.5 5.5v13c0 1.5 3.4 2.8 7.5 2.8s7.5-1.3 7.5-2.8v-13M4.5 12c0 1.5 3.4 2.8 7.5 2.8s7.5-1.3 7.5-2.8"/>',software:'<path d="m8 7-5 5 5 5M16 7l5 5-5 5M14 4l-4 16"/>',logs:'<rect x="5" y="3" width="14" height="18" rx="2"/><path d="M9 8h6M9 12h6M9 16h4"/>'};
 function navIcon(id) { const span=el("span",{class:"nav-icon","aria-hidden":"true"});span.innerHTML='<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">'+(NAV_ICONS[id]||"")+"</svg>";return span; }
 const BUILDERS = {overview:buildOverview,downstream:buildDownstream,variants:buildVariants,qc:buildQC,resources:buildResources,inputs:buildInputs,software:buildSoftware,logs:buildLogs};
-function sectionHeader(id,description) { const section=$("#"+id); section.append(el("div",{class:"eyebrow"},"PfVarX · "+SECTIONS.find(v=>v[0]===id)[1]),el("h2",{tabindex:-1},SECTIONS.find(v=>v[0]===id)[3]),el("p",{class:"desc"},description));return section; }
+function sectionHeader(id,description) { const section=$("#"+id); section.append(el("h2",{class:"section-title",tabindex:-1,title:SECTIONS.find(v=>v[0]===id)[3]},"PfVarX · "+SECTIONS.find(v=>v[0]===id)[1]),el("p",{class:"desc"},description));return section; }
 function ensureSection(id) { if(STATE.rendered.has(id))return; STATE.rendered.add(id);try{BUILDERS[id]();}catch(error){$("#"+id).append(el("div",{class:"failbox",role:"alert"},"This optional section could not be rendered: "+error.message));} }
-function go(id) { if(!BUILDERS[id])id="overview";ensureSection(id);STATE.section=id;document.querySelectorAll("nav .card").forEach(button=>button.setAttribute("aria-current",button.dataset.id===id?"page":"false"));document.querySelectorAll("main section").forEach(section=>section.classList.toggle("active",section.id===id));$("#nav").classList.remove("open");$("#menuToggle").setAttribute("aria-expanded","false");hideTip(); }
+function afterPaint(fn) { let done=false;const run=()=>{if(!done){done=true;fn();}};requestAnimationFrame(()=>setTimeout(run,0));setTimeout(run,60); }
+function go(id) {
+  if(!BUILDERS[id])id="overview";STATE.section=id;
+  // Highlight the chosen card at once; build and swap the section only after that has painted.
+  document.querySelectorAll("nav .card").forEach(button=>button.setAttribute("aria-current",button.dataset.id===id?"page":"false"));hideTip();
+  const swap=()=>{if(STATE.section!==id)return;ensureSection(id);const target=$("#"+id),wasActive=target.classList.contains("active");document.querySelectorAll("main section").forEach(section=>section.classList.toggle("active",section===target));if(!wasActive&&window.scrollY>document.querySelector("main").offsetTop)window.scrollTo({top:0});$("#nav").classList.remove("open");$("#menuToggle").setAttribute("aria-expanded","false");};
+  if(STATE.rendered.has(id))swap();else afterPaint(swap);
+}
+function prerenderSections() {
+  // Build the remaining sections while the browser is idle, so later switches are instant.
+  const queue=SECTIONS.map(([id])=>id).filter(id=>!STATE.rendered.has(id));const idle=window.requestIdleCallback||(fn=>setTimeout(()=>fn({timeRemaining:()=>12}),120));
+  const step=deadline=>{while(queue.length&&deadline.timeRemaining()>6)ensureSection(queue.shift());if(queue.length)idle(step);};idle(step);
+}
 function build() {
   $("#hdrmeta").textContent=[D.project_id,D.run_id,D.final_output,D.design,D.purpose].filter(Boolean).join(" · ");
   const notice=$("#dataNotice");notice.className=D.data_kind==="synthetic"?"demo":"";
   notice.textContent=(D.data_kind==="synthetic"?"SYNTHETIC DEMO DATA · ":"")+(D.calibration||"Calibration status was not supplied.")+(D.report_warnings.length?" · "+D.report_warnings.length+" report-source warnings (see provenance).":"");
   const nav=$("#nav");nav.replaceChildren();SECTIONS.forEach(([id,title,subtitle])=>nav.append(el("button",{class:"card","data-id":id,onclick:()=>go(id)},navIcon(id),el("span",{class:"nav-text"},el("strong",{},title),el("small",{},subtitle)))));nav.append(el("label",{class:"nav-note"},el("input",{type:"checkbox",checked:STATE.redact?"checked":null,onchange:e=>STATE.redact=e.target.checked})," Pseudonymize sample/location fields in table exports"),note("Pseudonymization is not full report anonymization. No network services are used."));
   $("#main").replaceChildren(...SECTIONS.map(([id,title])=>el("section",{id,"aria-label":title})));
-  $("#menuToggle").onclick=()=>{const expanded=$("#nav").classList.toggle("open");$("#menuToggle").setAttribute("aria-expanded",String(expanded));};
-  $("#resetDashboard").onclick=()=>{STATE.views={};STATE.filters={};STATE.selectedSample=null;STATE.rendered=new Set();saveViews();build();notify("Dashboard views and filters reset.");};
-  $("#printReport").onclick=printReport;
-  go("overview");
+  $("#menuToggle").onclick=()=>{const nav=$("#nav"),header=document.querySelector("header").getBoundingClientRect();nav.style.paddingTop=Math.max(64,header.bottom+12)+"px";const expanded=nav.classList.toggle("open");$("#menuToggle").setAttribute("aria-expanded",String(expanded));};
+  if($("#resetDashboard"))$("#resetDashboard").onclick=()=>{STATE.views={};STATE.filters={};STATE.selectedSample=null;STATE.rendered=new Set();saveViews();build();notify("Dashboard views and filters reset.");};
+  if($("#printReport"))$("#printReport").onclick=printReport;
+  go("overview");prerenderSections();
+  if(!window.__pfvarxPrintHook){window.__pfvarxPrintHook=true;window.addEventListener("beforeprint",()=>SECTIONS.forEach(([id])=>ensureSection(id)));}
 }
 function kpis(items) { return el("div",{class:"kpis"},items.map(([label,value,scope])=>{const shown=fmt(value);return el("div",{class:"kpi"},el("b",{class:String(shown).length>8?"long "+String(shown):String(shown)},shown),label,scope?el("small",{},scope):null);})); }
 function summaryCount(key,value) { const supplied=D.variant_summary[key];if(supplied&&typeof supplied==="object")return number(supplied[value])??0;return D.variants.filter(v=>String(v[{types:"type",statuses:"status",chromosomes:"chrom"}[key]])===value).length; }
@@ -56,13 +69,16 @@ function daKpis(id,data) {
   return [];
 }
 function buildDownstream() {
-  const s=$("#downstream");s.append(el("div",{class:"eyebrow"},"PfVarX · Downstream Analyses"));
+  const s=$("#downstream");s.append(el("h2",{class:"section-title",tabindex:-1},"PfVarX · Downstream Analyses"));
   const omitted=Object.entries(D.analyses_not_applicable||{});
   const ids=Object.keys(D.downstream).sort();
-  if(!ids.length){s.append(el("h2",{tabindex:-1},"Downstream analyses"),empty("No downstream analyses were requested (final-output mode "+fmt(D.final_output)+")."));return;}
+  if(!ids.length){s.append(empty("No downstream analyses were requested (final-output mode "+fmt(D.final_output)+")."));return;}
   const tabs=el("div",{class:"analysis-tabs",role:"tablist","aria-label":"Select analysis"});const body=el("div",{id:"analysisView",role:"tabpanel"});
   let current=STATE.views.analysis&&ids.includes(STATE.views.analysis)?STATE.views.analysis:ids[0];
-  const show=id=>{current=id;STATE.views.analysis=id;saveViews();tabs.querySelectorAll("button").forEach(b=>b.setAttribute("aria-selected",String(b.dataset.analysis===id)));
+  const pages={};const show=(id,now=false)=>{current=id;STATE.views.analysis=id;saveViews();tabs.querySelectorAll("button").forEach(b=>b.setAttribute("aria-selected",String(b.dataset.analysis===id)));
+    const open=()=>{if(current!==id)return;if(!pages[id]){pages[id]=el("div",{class:"analysis-page","data-analysis":id});renderAnalysis(id,pages[id]);}body.replaceChildren(pages[id]);};
+    if(pages[id]||now)open();else afterPaint(open);};
+  const renderAnalysis=(id,body)=>{
     const data=D.downstream[id]||{},meta=ANALYSIS_META[id]||{title:data.name||id,subtitle:""};
     body.replaceChildren(el("div",{class:"analysis-head"},el("div",{},el("h2",{tabindex:-1},meta.title),el("p",{class:"analysis-sub"},[id,meta.subtitle].filter(Boolean).join(" · "))),badge(data.terminal||"NOT_RECORDED")));
     const figures=daKpis(id,data);if(figures.length)body.append(kpis(figures));
@@ -70,7 +86,8 @@ function buildDownstream() {
     body.append(daPanel(id,data));
     body.append(note("Display filters select supplied records; they do not refit estimators or recalculate scientific eligibility."));};
   ids.forEach(id=>tabs.append(el("button",{class:"analysis-tab",role:"tab","data-analysis":id,"aria-selected":"false",title:id+" · "+((ANALYSIS_META[id]||{}).title||D.downstream[id].name||id),onclick:()=>show(id)},(ANALYSIS_META[id]||{}).tab||D.downstream[id].name||id)));
-  s.append(tabs);if(omitted.length)s.append(note("Not applicable: "+omitted.map(([id,reason])=>id+" · "+reason).join(" | ")));s.append(body);show(current);
+  s.append(tabs);if(omitted.length)s.append(note("Not applicable: "+omitted.map(([id,reason])=>id+" · "+reason).join(" | ")));s.append(body);show(current,true);
+  const idle=window.requestIdleCallback||(fn=>setTimeout(()=>fn({timeRemaining:()=>12}),150));const queue=ids.filter(id=>!pages[id]);const step=deadline=>{while(queue.length&&deadline.timeRemaining()>6){const id=queue.shift();if(!pages[id]){pages[id]=el("div",{class:"analysis-page","data-analysis":id});renderAnalysis(id,pages[id]);}}if(queue.length)idle(step);};idle(step);
 }
 function stackBars(items,legend) { if(!items.length)return empty("No values are available for this chart.");const wrap=el("div",{class:"stackbars"});items.forEach(item=>{const total=item.segments.reduce((n,x)=>n+(number(x.value)||0),0);const bar=el("div",{class:"stackbar"});item.segments.forEach(x=>{const v=number(x.value)||0;if(!v||!total)return;const share=100*v/total;bar.append(el("span",{style:`width:${share}%;background:${x.color}`,title:`${item.label}: ${x.label} ${v} (${share.toFixed(1)}%)`},share>=12?`${v} (${share.toFixed(1)}%)`:String(v)));});wrap.append(el("div",{class:"stackrow"},el("span",{class:"stacklabel"},item.label),total?bar:el("span",{class:"note"},"No records")));});wrap.append(el("div",{class:"legend"},legend.map(([label,color])=>el("span",{},el("span",{class:"swatch",style:"background:"+color}),label))));return wrap; }
 function prevalenceRows(rows) { return rows.map(row=>{const value={...row};const n=number(row.callable),k=number(row.mutant_or_mixed);if(number(value.prevalence_infections)===null&&n>0&&k!==null&&k>=0&&k<=n)value.prevalence_infections=k/n;if((number(value.wilson_lo)===null||number(value.wilson_hi)===null)&&n>0&&Number.isInteger(n)&&Number.isInteger(k)&&k>=0&&k<=n){const z=1.959963984540054,p=k/n,den=1+z*z/n,center=(p+z*z/(2*n))/den,half=z*Math.sqrt(p*(1-p)/n+z*z/(4*n*n))/den;value.wilson_lo=Math.max(0,center-half);value.wilson_hi=Math.min(1,center+half);value.interval_source="Wilson 95% from valid supplied counts";}else value.interval_source="Supplied interval or not available";return value;}); }
@@ -148,5 +165,5 @@ function buildSoftware() { const s=sectionHeader("software","Versions and hashes
 function buildLogs() { const s=sectionHeader("logs","Scientific exclusions, QC decisions and software failures are different events. Embedded log content is bounded and redacted; download only the supplied sanitized content.");const rows=D.diagnostics.map(row=>({timestamp:row.timestamp,severity:row.severity,stage:row.stage,sample_id:row.sample_id,analysis_id:row.analysis_id,status:row.status,failure_class:row.failure_class,code:row.code,message:row.cause_confirmed||row.message||"Cause not established",observed:plain(row.observed),expected:row.expected,remedies:(row.remedies||[]).join("; "),log_paths:(row.log_paths||[]).join("; ")}));s.append(recordsTable(rows,{title:"Structured diagnostics",name:"diagnostics",filters:["severity","stage","sample_id","failure_class"],badges:["status"]}));
   const logs=D.log_content;if(!logs.length){s.append(empty("No redacted log content was supplied. Consult the run's local logs directory."));return;}const picker=el("select",{"aria-label":"Choose log file"},logs.map((log,i)=>el("option",{value:i},log.path)));const search=el("input",{type:"search",placeholder:"Search log text…","aria-label":"Search log message text"});const text=el("pre",{class:"log-text"});const meta=el("div",{class:"active-filters"});const render=()=>{const log=logs[Number(picker.value)];const query=search.value.toLowerCase();const lines=String(log.text||"").split("\n");const selected=query?lines.filter(line=>line.toLowerCase().includes(query)):lines;text.textContent=selected.length?selected.join("\n"):"No matching log lines.";meta.textContent=log.path+" · "+(log.truncated?"Redacted tail; earlier content omitted":"Redacted supplied content")+" · original size "+fmt(log.size_bytes)+" bytes · "+selected.length+" / "+lines.length+" lines";};picker.onchange=render;search.oninput=render;s.append(el("div",{class:"panel"},el("h3",{},"Available redacted log content"),el("div",{class:"controls"},picker,search,el("button",{class:"btn",onclick:()=>{search.value="";render();}},"Reset log filter"),el("button",{class:"btn",onclick:()=>{const log=logs[Number(picker.value)];download(log.path.replace(/[^a-z0-9_.-]/gi,"_")+".txt",new Blob([text.textContent],{type:"text/plain;charset=utf-8"}));}},"Download displayed log")),meta,text));render();
 }
-$("#jsonFile").onchange=async event=>{const file=event.target.files?.[0];if(!file)return;try{const input=JSON.parse(await file.text());if(loadReport(input))notify("Loaded local report JSON: "+file.name);}catch(error){loadReport(null);notify("JSON load failed: "+error.message,true);}finally{event.target.value="";}};
+if($("#jsonFile"))$("#jsonFile").onchange=async event=>{const file=event.target.files?.[0];if(!file)return;try{const input=JSON.parse(await file.text());if(loadReport(input))notify("Loaded local report JSON: "+file.name);}catch(error){loadReport(null);notify("JSON load failed: "+error.message,true);}finally{event.target.value="";}};
 try { loadReport(JSON.parse($("#pfvarx-data").textContent)); } catch(error) { loadReport(null); notify("Embedded report JSON is malformed: "+error.message,true); }
