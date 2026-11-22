@@ -20,6 +20,8 @@ SUFFIXES = {"src": {".py", ".html", ".css", ".js", ".json"}, "workflow": {".smk"
             "config/templates": {".yaml"}, "config/parameters": {".yaml"},
             "config/registry": {".yaml", ".tsv", ".bed"}, "config/geo": {".geojson", ".md"}}
 CACHES = {"__pycache__", ".pytest_cache", ".mypy_cache", ".ruff_cache", ".pixi", ".snakemake", ".git"}
+# Development-only material (guides, notes, experiment scripts) is never part of a release.
+DEVELOPMENT_ONLY = {"development"}
 RUNTIME = {"inputs", "prepared", "metadata", "runs", "results", "benchmarks", "work", "logs", "dist", "build"}
 
 
@@ -34,6 +36,9 @@ def source_files(root: Path) -> list[Path]:
             if path.suffix in suffixes and not any(p in CACHES for p in path.relative_to(root).parts):
                 if path.is_file() or path.is_symlink():
                     paths.add(path)
+    leaked = sorted(p.relative_to(root).as_posix() for p in paths if p.relative_to(root).parts[0] in DEVELOPMENT_ONLY)
+    if leaked:
+        raise ValueError(f"Development-only files selected for release: {leaked}")
     for path in paths:
         # Reject external references even if their filename looks like source code.
         if path.is_symlink() or not path.resolve().is_relative_to(root.resolve()):

@@ -5,6 +5,16 @@
 The release version was reset to 0.0.0 after 0.4.2, as the baseline for the first reviewed
 release. The sections below 0.0.0 are the earlier development numbering, kept as history.
 
+### Development guide, kept out of releases
+
+- New `development/` folder with `PfVarX_Development_Guide.html`: every tool, package,
+  pipeline step, algorithm, parameter and QC gate with its path and purpose; how to test
+  parameter values and QC thresholds and choose the best; how to measure, replace or upgrade
+  a tool; the testing ladder; documentation rules; and the Git and GitHub commands for this
+  project on Ubuntu or WSL2.
+- `scripts/package.py` refuses to package anything under `development/`; the release
+  archive contains the analysis software only (`tests/unit/test_distribution.py`).
+
 ### Tools for this configuration
 
 - Under **Install required tools**, the configuration editor lists every tool and package the

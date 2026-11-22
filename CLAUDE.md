@@ -25,6 +25,13 @@ replaces. Appendices E, F and G of the SOP copy docs/caller.md, docs/configurati
 docs/sequencing.md: run `python scripts/sync_sop.py` after editing those guides
 (`tests/unit/test_sop_mirrors.py` must pass).
 
+## Development material stays out of releases
+
+Material only developers need (the development guide, notes, experiment scripts, comparison
+results) goes in `development/`. `scripts/package.py` never packages it and
+`tests/unit/test_distribution.py` checks that, so the release users receive contains the
+analysis software only. User documentation must not link to `development/`.
+
 ## Before committing
 
 `pixi run lint`, `pixi run typecheck` and `pixi run pytest -q tests` (about 13 minutes).
