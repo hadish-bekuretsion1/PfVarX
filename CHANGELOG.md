@@ -5,6 +5,14 @@
 The release version was reset to 0.0.0 after 0.4.2, as the baseline for the first reviewed
 release. The sections below 0.0.0 are the earlier development numbering, kept as history.
 
+### Tools for this configuration
+
+- Under **Install required tools**, the configuration editor lists every tool and package the
+  form's current choices need: name, version locked in `pixi.lock`, what PfVarX uses it for
+  and whether it is installed. It follows each change before saving (endpoint `tools-plan`).
+  `./pfvarx install-tools --check` includes the same list (`tools`) for the saved
+  configuration.
+
 ### Reference release label as a drop-down
 
 - In the configuration editor the release setting is now **Reference release label**, a
@@ -41,14 +49,6 @@ release. The sections below 0.0.0 are the earlier development numbering, kept as
   `combined.fasta` (`.ann` against `.fai`) and seals it. `ready` adds
   `layer1.bwa_mem2_host_extra_mem_mb` (12 000 MB, provisional) to the bwa-mem2 request.
 - Files of 1 GiB or more under `prepared/reference/` are sealed by size and modification time.
-
-### Tools for this configuration
-
-- Under **Install required tools**, the configuration editor lists every tool and package the
-  form's current choices need: name, version locked in `pixi.lock`, what PfVarX uses it for
-  and whether it is installed. It follows each change before saving (endpoint `tools-plan`).
-  `./pfvarx install-tools --check` includes the same list (`tools`) for the saved
-  configuration.
 
 ### SOP manual kept in step with the guides
 
