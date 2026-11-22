@@ -27,8 +27,8 @@ release. The sections below 0.0.0 are the earlier development numbering, kept as
 
 ### Report dashboard redesign
 
-- The report dashboard has a new look: a navy header with the PfVarX mark and "Genomic
-  surveillance", navigation cards with icons, the open section shown dark with a teal bar,
+- The report dashboard has a new look: a navy header titled "PfVarX Genomic Analysis
+  Dashboard" with the PfVarX mark and "Genomic surveillance", navigation cards with icons, the open section shown dark with a teal bar,
   KPI tiles with an accent bar, and cleaner tables, panels and status badges. Phones get
   the same cards through **Menu**.
 - The sections follow the order a run is reviewed: Overview, Inputs, Quality Control,
