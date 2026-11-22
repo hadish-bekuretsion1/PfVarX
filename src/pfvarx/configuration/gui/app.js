@@ -262,6 +262,23 @@ function hostRemovalEligibility(targeted, design) {
         : "";
 }
 
+function showTools(plan) {
+    // The tools the current choices need, with the locked version and what each is for.
+    byId("tools-environment").textContent = "(environment " + plan.environment + ")";
+    const rows = byId("tools-rows");
+    rows.replaceChildren();
+    for (const tool of plan.tools) {
+        const row = document.createElement("tr");
+        for (const text of [tool.name, tool.version, tool.used_for, tool.installed ? "Yes" : "Not yet"]) {
+            const cell = document.createElement("td");
+            cell.textContent = text;
+            row.append(cell);
+        }
+        if (!tool.installed) row.className = "not-installed";
+        rows.append(row);
+    }
+}
+
 function showInputFolders(directories) {
     const contents = {
         "inputs/fastq": "Paired reads (.fastq or .fastq.gz), such as sample_R1.fastq.gz and sample_R2.fastq.gz.",
@@ -406,6 +423,7 @@ function changed(id) {
             const result = await request("check", {values});
             if (current !== generation) return;
             showInputFolders(result.directories);
+            showTools(await request("tools-plan", {values}));
             status.textContent = state.migration_needed
                 ? "Ready to save. This workspace uses configuration schema 3: saving first runs the migration " +
                   "(terminal equivalent: ./pfvarx config-migrate --apply), which writes the library catalog and the " +
