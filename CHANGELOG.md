@@ -5,6 +5,17 @@
 The release version was reset to 0.0.0 after 0.4.2, as the baseline for the first reviewed
 release. The sections below 0.0.0 are the earlier development numbering, kept as history.
 
+### One page per downstream analysis
+
+- Downstream Analyses no longer uses an analysis drop-down: the seven analyses are tabs
+  across the top (Infection Complexity, Resistance Markers, Genetic Diversity,
+  Relatedness, Population Structure, Phylogenetics, Spatiotemporal). Each opens a page
+  titled with the analysis name, with its own summary tiles and its charts and tables shown
+  together in a grid under shared filters, instead of one chosen view at a time.
+- New views: callability by marker (DA002), P(COI > 1) and classification share (DA001),
+  nucleotide diversity (DA003), relatedness estimates with 95% intervals (DA004),
+  explained variance (DA005).
+
 ### Time and RAM for every step
 
 - Every workflow step now records its time and memory (Snakemake `benchmark` on all 29

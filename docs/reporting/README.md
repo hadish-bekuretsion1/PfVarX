@@ -80,8 +80,19 @@ summary), **Inputs** (validation and libraries), **Quality Control** (gates and 
 **Resources** (execution and utilization), **Software** (versions and provenance) and
 **Logs** (diagnostics and exclusions). Each is a card with an icon; the open section is
 dark with a teal bar. On a phone, **Menu** opens the same cards.
-Every dataset with multiple views has one **Choose visualization** selector. Exactly
-one view is visible per dataset. Choices persist during navigation and the browser
+**Downstream Analyses** has one tab per analysis across the top: Infection Complexity
+(DA001), Resistance Markers (DA002), Genetic Diversity (DA003), Relatedness (DA004),
+Population Structure (DA005), Phylogenetics (DA006) and Spatiotemporal (DA007). Each tab
+opens the analysis's own page: its full name as the title (for example *Antimalarial
+Resistance Marker Analysis*, *DA002 · Marker calls, callability and prevalence*), summary
+tiles (for DA002: samples, markers, callable denominator, UNKNOWN), and its charts and
+evidence tables side by side under one set of filters. DA002 adds callability by marker;
+DA001 adds P(COI > 1) by sample and the classification share; DA003 adds nucleotide
+diversity; DA004 adds estimates with 95% confidence intervals; DA005 adds explained
+variance. The run status and denominators of the analysis follow at the bottom.
+
+In the other sections, every dataset with multiple views has one **Choose visualization**
+selector. Exactly one view is visible per dataset there. Choices persist during navigation and the browser
 session for that run; **Reset dashboard** restores defaults. Different scientifically
 distinct datasets have separate groups and explicitly identified denominators.
 
@@ -139,7 +150,7 @@ embedded subset. Consult the evidence TSV paths for omitted records.
   and project/run caption. Zoom affects the exported visible view; reset zoom for full
   extents. Export feedback states whether a download was prepared or failed.
 - **Export PDF** opens the browser print dialog. Select Save as PDF. All eight sections
-  print, with the current downstream analysis and selected chart views. Tables print
+  print, with the open downstream analysis (all its charts and tables) and selected chart views. Tables print
   their current page. Use CSV/XLSX for complete tables and print each analysis separately
   when a DA001–DA007 supplement is required. Browser headers/footers are user settings.
 

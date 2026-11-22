@@ -50,6 +50,11 @@ def main(report_dir: str, out_dir: str) -> dict:
             nonlocal group_count
             for group in page.locator('.visual-group:visible').all():
                 group_count += 1
+                if group.get_attribute('data-layout') == 'grid':
+                    # Analysis dashboards show every view at once in tiles.
+                    assert group.locator('.dash-tile').count() >= 1 or 'No matching records' in group.inner_text()
+                    assert 'This view is unavailable:' not in group.inner_text()
+                    continue
                 select = group.locator('select').first
                 for value in select.locator('option').evaluate_all('(nodes)=>nodes.map(n=>n.value)'):
                     select.select_option(value)
@@ -61,10 +66,11 @@ def main(report_dir: str, out_dir: str) -> dict:
             page.locator(f'#nav [data-id="{sid}"]').click()
             exercise_groups()
         page.locator('#nav [data-id="downstream"]').click()
-        analysis = page.get_by_label('Select analysis', exact=True)
-        if analysis.count():
-            for value in analysis.locator('option').evaluate_all('(nodes)=>nodes.map(n=>n.value)'):
-                analysis.select_option(value)
+        tabs = page.locator('#downstream .analysis-tab')
+        if tabs.count():
+            for value in tabs.evaluate_all('(nodes)=>nodes.map(n=>n.dataset.analysis)'):
+                page.locator(f'#downstream .analysis-tab[data-analysis="{value}"]').click()
+                assert page.locator(f'#downstream .analysis-tab[data-analysis="{value}"]').get_attribute('aria-selected') == 'true'
                 exercise_groups()
                 assert 'could not be rendered:' not in page.locator('#downstream').inner_text()
                 if value in ('DA002','DA005','DA006'):
@@ -77,7 +83,7 @@ def main(report_dir: str, out_dir: str) -> dict:
                         page.get_by_label('Relatedness display threshold', exact=True).dispatch_event('input')
                         checks['threshold_visible'] = '0.50' in page.locator('#downstream').inner_text()
                         toggle.uncheck()
-            analysis.select_option(analysis.locator('option').first.get_attribute('value'))
+            tabs.first.click()
         checks['all_available_views'] = group_count > 0
         category = page.locator('.visual-group:visible select[aria-label^="Filter "]').first
         if category.count() and category.locator('option').count()>1:
@@ -91,7 +97,7 @@ def main(report_dir: str, out_dir: str) -> dict:
         page.locator('#nav [data-id="downstream"]').click()
         checks['optional_sections_render'] = page.locator('.failbox').filter(has_text='could not be rendered').count() == 0
         # Persistence across analysis switches and navigation; exclusive view body.
-        group = page.locator('.visual-group:visible').first
+        group = page.locator('.visual-group:visible:not([data-layout="grid"])').first
         if group.count():
             select = group.locator('select').first
             last = select.locator('option').last.get_attribute('value')

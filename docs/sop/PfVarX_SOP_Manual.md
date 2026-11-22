@@ -2033,7 +2033,7 @@ Open the printed file path in the browser. This overwrites the report HTML/JSON 
 
 **Step 2. Review the eight sections and export**
 
-Use them in order: Overview, Inputs, Quality Control, Variants, Downstream Analyses (DA001–DA007), Resources, Software and Logs. Choose one visualization per group. Filter actual fields; inspect active counts and click/focus a sample/mark for its source evidence. CSV/XLSX exports include all filtered embedded rows; tables display 50 rows/page. PNG exports the actual selected chart. Export PDF opens native print; all sections print, but tables use the visible page and downstream uses the current selected analysis. Print each desired analysis for a complete supplement.
+Use them in order: Overview, Inputs, Quality Control, Variants, Downstream Analyses (DA001–DA007), Resources, Software and Logs. In Downstream Analyses open each analysis tab; its page shows all its charts and tables together. Elsewhere choose one visualization per group. Filter actual fields; inspect active counts and click/focus a sample/mark for its source evidence. CSV/XLSX exports include all filtered embedded rows; tables display 50 rows/page. PNG exports the actual selected chart. Export PDF opens native print; all sections print, but tables use the visible page and downstream uses the current selected analysis. Print each desired analysis for a complete supplement.
 
 **Step 3. Check provenance and sharing scope**
 
