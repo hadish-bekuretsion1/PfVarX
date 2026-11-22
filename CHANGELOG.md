@@ -5,6 +5,14 @@
 The release version was reset to 0.0.0 after 0.4.2, as the baseline for the first reviewed
 release. The sections below 0.0.0 are the earlier development numbering, kept as history.
 
+### Reference release label as a drop-down
+
+- In the configuration editor the release setting is now **Reference release label**, a
+  drop-down of PlasmoDB 68, Pf3D7 - release unknown, Custom reference - study version 1 and
+  Reference source and release unknown, plus **Other release (type it)** for any other exact
+  release. The YAML setting `reference.release_label` is unchanged and still takes any text.
+- Form messages name the field by its label instead of its internal ID.
+
 ### Optional Human DNA removal for whole-genome sequencing (`reference.host_removal: true | false`)
 
 - New true/false setting `reference.host_removal` (GUI: **Human DNA removal**, default

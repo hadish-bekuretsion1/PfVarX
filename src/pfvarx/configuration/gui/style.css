@@ -245,3 +245,6 @@ nav[aria-label="Workspace views"] button[aria-pressed="true"]::before { backgrou
     nav[aria-label="Workspace views"] { display: grid; grid-template-columns: repeat(3, 1fr); }
     nav button { font-size: .8rem; padding: .5rem .6rem; }
 }
+
+/* Reference release label: drop-down, with a text box for "Other release" */
+.release-choice { display: flex; flex-direction: column; gap: .4rem; min-width: 0; }

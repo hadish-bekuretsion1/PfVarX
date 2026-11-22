@@ -63,7 +63,8 @@ function draw(parent, object, schema, path = "") {
             "config.assay.library_catalog": "Library catalog: panels and library protocols (YAML)",
             "config.reference.core_mask_bed": "Core-genome mask (BED)",
             "config.reference.host_removal": "Human DNA removal",
-            "config.reference.host_fasta": "Human genome reference"
+            "config.reference.host_fasta": "Human genome reference",
+            "config.reference.release_label": "Reference release label"
         };
         // The setting name sits in its own element (left column); the input follows it.
         label.className = "field";
@@ -230,7 +231,55 @@ function draw(parent, object, schema, path = "") {
             }
             changed(id);
         });
+        if (id === "config.reference.release_label") releaseChoice(label, input, object, key);
     }
+}
+
+// Reference release label: the usual choices as a drop-down; "Other release" opens the text box,
+// so any exact release (another PlasmoDB release, a study's own assembly) can still be recorded.
+const RELEASE_CHOICES = ["PlasmoDB 68", "Pf3D7 - release unknown", "Custom reference - study version 1",
+    "Reference source and release unknown"];
+const RELEASE_OTHER = "__other__";
+
+function releaseChoice(label, input, object, key) {
+    const choice = document.createElement("select");
+    choice.id = "config.reference.release_label.choice";
+    choice.setAttribute("aria-label", "Reference release label");
+    choice.required = true;
+    choice.append(new Option("Choose the reference release", ""));
+    for (const value of RELEASE_CHOICES) choice.append(new Option(value, value));
+    choice.append(new Option("Other release (type it)", RELEASE_OTHER));
+    const box = document.createElement("div");
+    box.className = "release-choice";
+    label.replaceChild(box, input);
+    box.append(choice, input);
+    input.placeholder = "Type the exact release, for example PlasmoDB 67";
+    const current = (object[key] || "").trim();
+    const placeholder = ["", "SET_REFERENCE_RELEASE"].includes(current);
+    const show = () => {
+        const other = choice.value === RELEASE_OTHER;
+        input.hidden = !other;
+        input.disabled = !other;  // a preset choice needs no typing
+    };
+    choice.value = placeholder ? "" : RELEASE_CHOICES.includes(current) ? current : RELEASE_OTHER;
+    if (placeholder) choice.setCustomValidity("Choose the reference release, or Other release and type it.");
+    if (placeholder) input.value = "";
+    show();
+    choice.addEventListener("change", () => {
+        choice.setCustomValidity("");
+        input.setCustomValidity("");
+        if (choice.value === RELEASE_OTHER) {
+            if (RELEASE_CHOICES.includes(input.value)) input.value = "";
+            object[key] = input.value;
+            show();
+            input.focus();
+        } else {
+            input.value = choice.value;
+            object[key] = choice.value || "SET_REFERENCE_RELEASE";
+            show();
+        }
+        changed("config.reference.release_label");
+    });
 }
 
 function toggle(id, visible) {
@@ -382,7 +431,9 @@ function changed(id) {
     };
     for (const input of editor.querySelectorAll("[data-schema-required]")) {
         input.required = !input.disabled && (conditionalRequirements[input.id] ?? (input.dataset.schemaRequired === "true"));
-        input.parentElement.querySelector("[data-required-mark]").hidden = !input.required;
+        const mark = (input.closest("label") || input.parentElement).querySelector("[data-required-mark]");
+        // The release label is always required, also when a drop-down choice disables its text box.
+        if (mark) mark.hidden = !(input.required || input.id === "config.reference.release_label");
     }
     const summary = structuredClone(values);
     if (full && analyses.selection === "explicit") {
@@ -402,7 +453,10 @@ function changed(id) {
     timer = setTimeout(async () => {
         try {
             const invalid = editor.querySelector(":is(input,select,textarea):invalid");
-            if (invalid) throw new Error(invalid.id + ": " + invalid.validationMessage);
+            if (invalid) {
+                const name = invalid.closest("label")?.querySelector(".field-name")?.firstChild?.textContent?.trim();
+                throw new Error((name || invalid.id) + ": " + invalid.validationMessage);
+            }
             const result = await request("check", {values});
             if (current !== generation) return;
             showInputFolders(result.directories);
@@ -458,8 +512,11 @@ saveButton.addEventListener("click", async () => {
         if (input?.value.trim().endsWith("/") && input.value !== filePlaceholders[id]) input.setCustomValidity("Add the filename after the folder path.");
     }
     const release = byId("config.reference.release_label");
+    const releaseChoiceBox = byId("config.reference.release_label.choice");
     if (release && ["", "SET_REFERENCE_RELEASE"].includes(release.value.trim())) {
-        release.setCustomValidity("Enter the actual reference release label.");
+        const target = release.disabled && releaseChoiceBox ? releaseChoiceBox : release;
+        target.setCustomValidity(release.disabled ? "Choose the reference release, or Other release and type it."
+            : "Type the exact reference release.");
     }
     const invalid = editor.querySelector(":is(input,select,textarea):invalid");
     if (invalid) {
