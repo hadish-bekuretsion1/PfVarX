@@ -111,7 +111,7 @@ input[type=range]{max-width:190px;accent-color:var(--teal)}
 .analysis-tab:hover{box-shadow:var(--shadow);border-color:#c3d2e0}
 .analysis-tab[aria-selected=true]{background:var(--navy);border-color:var(--navy);color:#fff;box-shadow:inset 0 -6px 0 var(--teal),0 6px 14px #0f2a4433}
 .analysis-head{display:flex;justify-content:space-between;align-items:flex-start;gap:16px;flex-wrap:wrap;margin-bottom:18px}
-.analysis-head h2{font-size:30px;margin:0}.analysis-sub{margin:4px 0 0;color:var(--muted);font-size:16px}
+.analysis-head h2{font-size:16px;line-height:1.4;font-weight:800;letter-spacing:0;margin:0}.analysis-sub{margin:2px 0 0;color:var(--muted);font-size:16px;line-height:1.4}
 .dash-group>.controls{background:#f6f9fc;border:1px solid var(--line-soft);border-radius:10px;padding:10px 12px}
 .dash-grid{display:grid;grid-template-columns:minmax(0,1.45fr) minmax(0,1fr);grid-auto-flow:dense;gap:16px}
 .dash-tile{border:1px solid var(--line);border-radius:var(--radius);padding:14px 16px;background:#fff;min-width:0;box-shadow:0 1px 2px #0f2a440a}
@@ -127,7 +127,7 @@ input[type=range]{max-width:190px;accent-color:var(--teal)}
 .stackbar span[style*="#c5ced8"]{color:#33475a}
 
 /* Tablet and phone */
-@media(max-width:1050px){header{padding:10px 16px}main{padding:20px 16px 40px}.grid2,.dash-grid{grid-template-columns:1fr}.analysis-tabs{display:flex;overflow-x:auto}.analysis-tab{flex:0 0 150px}.analysis-head h2{font-size:24px}h1{font-size:22px}#menuToggle{display:inline-block;z-index:16}
+@media(max-width:1050px){header{padding:10px 16px}main{padding:20px 16px 40px}.grid2,.dash-grid{grid-template-columns:1fr}.analysis-tabs{display:flex;overflow-x:auto}.analysis-tab{flex:0 0 150px}h1{font-size:22px}#menuToggle{display:inline-block;z-index:16}
 nav{position:fixed;z-index:15;top:0;bottom:0;left:0;height:auto;transform:translateX(-100%);transition:transform .2s;box-shadow:6px 0 24px #0f2a4433}nav.open{transform:translateX(0);padding-top:60px}
 .header-actions{margin-left:auto}.kpis{grid-template-columns:repeat(auto-fit,minmax(140px,1fr))}#dataNotice.demo{top:0}}
 @media(max-width:600px){main{padding:16px 10px 32px}.panel{padding:14px 13px}header{gap:10px}.header-actions .btn{font-size:11px;padding:5px 8px}.meta{font-size:10px}h1{font-size:18px}.brandmark svg{width:30px;height:30px}.runstrip{padding:6px 12px;font-size:11px}.controls label{flex-wrap:wrap}h2{font-size:22px}nav{width:86vw}}
