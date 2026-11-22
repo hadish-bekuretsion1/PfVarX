@@ -119,7 +119,8 @@ This writes `pfvarx-<version>-source.zip` (the version printed by `./pfvarx vers
 the output directory to verify the archive. Export uses explicit software roots and
 file types, never raw workspace copying. Active config YAML, input/reference/truth
 data, profiles measured on a study, runs, results, environments, caches and symlinks
-are excluded or rejected. Fixed ZIP timestamps, modes and ordering make repeated
+are excluded or rejected. Development-only material in `development/` (the development
+guide, notes, experiment scripts) is never packaged. Fixed ZIP timestamps, modes and ordering make repeated
 packages from identical source byte-identical on the same packaging runtime.
 
 To assert that an unpacked release contains only software and no runtime directories:
