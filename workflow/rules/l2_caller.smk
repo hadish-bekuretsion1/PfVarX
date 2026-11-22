@@ -50,6 +50,8 @@ rule normalise_sample:
         c=P["layer3.norm_check_ref"],
         o=P["layer3.norm_multi_overlaps"],
         unit=lambda wc: count_unit(wc.sample),
+    benchmark:
+        str(BENCH / "normalise_sample" / "{sample}.tsv")
     log:
         str(LOGS / "norm" / "{sample}.log"),
     shell:
