@@ -1,5 +1,5 @@
 /* PfVarX report dashboard. Tokens first; components follow the page order: header, navigation, content, data, print. */
-:root{--bg:#eef2f7;--panel:#fff;--ink:#14263a;--muted:#5b6f82;--line:#dde5ee;--line-soft:#edf1f6;--navy:#0f2a44;--navy-2:#16395b;--accent:#1468a8;--teal:#16a394;--teal-soft:#e3f6f3;--pass:#1f7a4f;--warn:#a6620c;--fail:#b8383b;--na:#667a8e;--skip:#6a55a0;--nav:276px;--radius:12px;--shadow:0 1px 2px #0f2a440d,0 4px 14px #0f2a440f;--mono:ui-monospace,"SFMono-Regular",Menlo,Consolas,monospace}
+:root{--good:#13703a;--good-bg:#e6f4ea;--good-mark:#0ca30c;--warning:#8a5300;--warning-bg:#fff3d6;--warning-mark:#fab219;--critical:#b3261e;--critical-bg:#fdecea;--critical-mark:#d03b3b;--finding:#a3401c;--finding-bg:#fdeee6;--info:#1c5cab;--info-bg:#e8f1fc;--neutral:#5b6b7b;--neutral-bg:#eef2f6;--category:#1c5cab;--category-bg:#e8f1fc;--bar:#cde2fb;--bg:#eef2f7;--panel:#fff;--ink:#14263a;--muted:#5b6f82;--line:#dde5ee;--line-soft:#edf1f6;--navy:#0f2a44;--navy-2:#16395b;--accent:#1468a8;--teal:#16a394;--teal-soft:#e3f6f3;--pass:#1f7a4f;--warn:#a6620c;--fail:#b8383b;--na:#667a8e;--skip:#6a55a0;--nav:276px;--radius:12px;--shadow:0 1px 2px #0f2a440d,0 4px 14px #0f2a440f;--mono:ui-monospace,"SFMono-Regular",Menlo,Consolas,monospace}
 *{box-sizing:border-box}
 body{margin:0;color:var(--ink);background:var(--bg);font:14px/1.55 "Inter","Segoe UI",system-ui,-apple-system,sans-serif;-webkit-font-smoothing:antialiased}
 button,input,select{font:inherit;color:inherit}button,select{cursor:pointer}
@@ -145,6 +145,31 @@ input[type=range]{max-width:190px;accent-color:var(--teal)}
 .btn-small{padding:3px 9px;font-size:12px}.outputs-actions{white-space:nowrap}.outputs-actions .btn{margin-right:6px}
 .file-name{font-weight:650}.chip-plain{background:#eef2f6;color:var(--muted);border-color:var(--line)}
 
+/* Meaning-based colours: one tone per kind of state, with an icon so colour is never the only cue.
+   good / warning / critical are quality states; finding (e.g. a resistance mutation) and
+   category (e.g. MONOCLONAL) describe biology, not quality. Ink stays dark for contrast. */
+.badge{display:inline-flex;align-items:center;gap:4px;border:1px solid transparent;border-radius:999px;padding:2px 9px 2px 7px;font-size:11px;font-weight:700;letter-spacing:.02em;white-space:nowrap}
+.badge::before{font-size:10px;line-height:1}
+.badge.tone-good{color:var(--good);background:var(--good-bg);border-color:#bfe3cb}.badge.tone-good::before{content:"\2714"}
+.badge.tone-warning{color:var(--warning);background:var(--warning-bg);border-color:#f3d48a}.badge.tone-warning::before{content:"\25B2"}
+.badge.tone-critical{color:var(--critical);background:var(--critical-bg);border-color:#f3b9b4}.badge.tone-critical::before{content:"\2716"}
+.badge.tone-finding{color:var(--finding);background:var(--finding-bg);border-color:#f2c3ad}.badge.tone-finding::before{content:"\25C6"}
+.badge.tone-info{color:var(--info);background:var(--info-bg);border-color:#bcd5f3}.badge.tone-info::before{content:"\25CF"}
+.badge.tone-category{color:var(--category);background:var(--category-bg);border-color:#d3cdf4}.badge.tone-category::before{content:"\25CB"}
+.badge.tone-neutral{color:var(--neutral);background:var(--neutral-bg);border-color:#dbe2ea}.badge.tone-neutral::before{content:"\2013"}
+.cell-tone{display:inline-block;padding:1px 7px;border-radius:6px;font-weight:650}
+.cell-tone.tone-good{color:var(--good);background:var(--good-bg)}
+.cell-tone.tone-warning{color:var(--warning);background:var(--warning-bg)}.cell-tone.tone-warning::after{content:" \25B2";font-size:9px}
+.cell-tone.tone-critical{color:var(--critical);background:var(--critical-bg)}.cell-tone.tone-critical::after{content:" \2716";font-size:9px}
+.cell-bar{display:inline-block;min-width:74px;padding:1px 6px;border-radius:4px;background:linear-gradient(90deg,var(--bar) var(--v),transparent var(--v));box-shadow:inset 0 0 0 1px #dbe6f3}
+td.num{text-align:right}th{text-align:left}
+thead th{background:linear-gradient(180deg,#f4f7fb,#e9eff6);color:#2b4257;border-bottom:2px solid #d3dde8}
+tbody tr:nth-child(even) td{background:#f9fbfd}
+.kpi.kpi-good::before{background:var(--good-mark)}.kpi.kpi-warning::before{background:var(--warning-mark)}.kpi.kpi-critical::before{background:var(--critical-mark)}
+.kpi.kpi-warning b{color:var(--warning)}.kpi.kpi-critical b{color:var(--critical)}
+.kpi b.PASS,.kpi b.COMPLETED{color:var(--good)}.kpi b.COMPLETED_WITH_EXCLUSIONS,.kpi b.WARNING{color:var(--warning)}.kpi b.FAILED,.kpi b.FAIL{color:var(--critical)}
+.legend .swatch{border-radius:3px}
+
 /* Tablet and phone */
 @media(max-width:1050px){header{padding:10px 16px;z-index:20}main{padding:20px 16px 40px}.grid2,.dash-grid{grid-template-columns:1fr}.analysis-tabs{display:flex;overflow-x:auto}.analysis-tab{flex:0 0 150px}h1{font-size:28px}#menuToggle{display:inline-flex;z-index:16}
 nav{position:fixed;z-index:15;top:0;bottom:0;left:0;height:auto;padding-top:64px;transform:translateX(-100%);visibility:hidden;box-shadow:6px 0 24px #0f2a4433;transition:transform .3s cubic-bezier(.2,.8,.2,1),visibility 0s linear .3s}nav.open{transform:translateX(0);visibility:visible;transition:transform .3s cubic-bezier(.2,.8,.2,1),visibility 0s}
@@ -153,7 +178,7 @@ nav{position:fixed;z-index:15;top:0;bottom:0;left:0;height:auto;padding-top:64px
 
 /* Print / PDF */
 @page{size:A4 landscape;margin:12mm}
-@media print{.analysis-tabs{display:none!important}.dash-grid{grid-template-columns:1fr}.dash-tile{break-inside:avoid;box-shadow:none}body{background:#fff;font-size:10pt;color:#14263a}header{position:static;background:#fff;color:#14263a;}.brand-sub{color:#566b7d}header{border-bottom:2px solid var(--teal);padding:0 0 10px;box-shadow:none}.brandmark{color:var(--teal)}.brand-rule{background:#ccd}.meta,h1 span{color:#334}
+@media print{.badge,.cell-tone,.cell-bar{-webkit-print-color-adjust:exact;print-color-adjust:exact}.analysis-tabs{display:none!important}.dash-grid{grid-template-columns:1fr}.dash-tile{break-inside:avoid;box-shadow:none}body{background:#fff;font-size:10pt;color:#14263a}header{position:static;background:#fff;color:#14263a;}.brand-sub{color:#566b7d}header{border-bottom:2px solid var(--teal);padding:0 0 10px;box-shadow:none}.brandmark{color:var(--teal)}.brand-rule{background:#ccd}.meta,h1 span{color:#334}
 .layout{display:block}nav,.header-actions,#menuToggle,.controls,.pager,#tip,.toast,.skip{display:none!important}main{padding:12px 0;max-width:none}
 section{display:block!important;break-before:page;animation:none}section:first-child{break-before:auto}
 .panel,.kpi{box-shadow:none;border:1px solid #d2dae2}.panel{padding:10px;margin:10px 0;break-inside:avoid}.kpis{grid-template-columns:repeat(4,1fr)}.kpi{padding:8px}.kpi b{font-size:17px}

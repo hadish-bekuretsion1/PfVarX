@@ -6,7 +6,43 @@ const esc = value => String(value ?? "").replace(/[&<>"]/g, c => ({"&":"&amp;","
 const number = value => value === null || value === undefined || value === "" || typeof value === "boolean" || (typeof value === "string" && !value.trim()) ? null : (Number.isFinite(Number(value)) ? Number(value) : null);
 const fmt = (value, digits = 3) => value === null || value === undefined || value === "" ? "—" : (typeof value === "number" ? (Number.isFinite(value) ? (Number.isInteger(value) ? String(value) : value.toFixed(digits)) : "—") : String(value));
 const percent = value => number(value) === null ? "—" : (number(value) * 100).toFixed(1) + "%";
-const badge = state => el("span", {class:"badge " + String(state || "UNKNOWN")}, state || "UNKNOWN");
+// What each status word means, so every table, badge and tile colours it the same way.
+// good / warning / critical / info / neutral are states; finding and category are biology, not quality.
+const TONE = {
+  PASS:"good", COMPLETED:"good", ELIGIBLE:"good", EXECUTE:"good", EXECUTED_AS_PREREQUISITE:"good", READY:"good", OK:"good",
+  WARNING:"warning", COMPLETED_WITH_EXCLUSIONS:"warning", CONDITIONALLY_ELIGIBLE:"warning", LOW_CONFIDENCE:"warning", INCOMPLETE:"warning", INTERRUPTED:"warning",
+  FAIL:"critical", FAILED:"critical", FAILED_EXECUTION:"critical", INELIGIBLE:"critical", BLOCKED_QC:"critical", BLOCKED_INPUT_VALIDATION:"critical",
+  BLOCKED_MISSING_PREREQUISITE:"critical", BLOCKED_UPSTREAM:"critical", FILTERED:"critical", STRAND_BIAS:"critical", ERROR:"critical",
+  RUNNING:"info", PENDING:"info",
+  NOT_APPLICABLE:"neutral", NOT_EVALUATED:"neutral", NOT_REACHED:"neutral", UNKNOWN:"neutral", SKIPPED_INELIGIBLE:"neutral", UNSUPPORTED:"neutral",
+  INSUFFICIENT_DEPTH:"neutral", FOCAL_CALLABILITY_LOSS:"neutral", CONTEXT_UNRELIABLE:"neutral", BELOW_REPORTING_FLOOR:"neutral", MISSING_LOW_DEPTH:"neutral", UNCALLABLE:"neutral",
+  MUTANT:"finding", ALT_DOMINANT:"finding", MIXED:"category", WILD_TYPE:"category", REF_DOMINANT:"category",
+  MONOCLONAL:"category", POLYCLONAL:"category", INDETERMINATE:"neutral"
+};
+const toneOf = state => TONE[String(state || "UNKNOWN").toUpperCase()] || null;  // used for whole status words only
+const badge = state => { const value = state || "UNKNOWN"; return el("span", {class:"badge " + String(value) + " tone-" + (toneOf(value) || "neutral"), title:String(value).replaceAll("_"," ").toLowerCase()}, value); };
+// QC limits by metric name, taken from the run's own gate decisions (never invented here).
+let LIMITS = null;
+function limitsFor(metric) {
+  if (!LIMITS) { LIMITS = new Map(); for (const row of (D && D.qc_matrix) || []) if (row.metric && !LIMITS.has(row.metric) && row.direction !== "descriptive" && (number(row.fail_threshold) !== null || number(row.warn_threshold) !== null)) LIMITS.set(row.metric, {direction:row.direction, fail:number(row.fail_threshold), warn:number(row.warn_threshold)}); }
+  return LIMITS.get(metric) || null;
+}
+function limitTone(metric, value) {
+  const limit = limitsFor(metric), v = number(value); if (!limit || v === null) return null;
+  const below = (t) => t !== null && (limit.direction === "min" ? v < t : v > t);
+  return below(limit.fail) ? "critical" : below(limit.warn) ? "warning" : "good";
+}
+const FRACTION_COLUMN = /(^wsaf|fraction|prevalence|^prob_|_share$)/i;
+// One table cell: status words as badges, QC metrics coloured against their limits, 0-1 fractions with an in-cell bar.
+function cellContent(column, value, badgeColumns = []) {
+  if (value === null || value === undefined || value === "") return fmt(value);  // missing stays a plain dash, never a status
+  if (badgeColumns.includes(column) || (typeof value === "string" && toneOf(value))) return badge(value);
+  const tone = limitTone(column, value);
+  const v = number(value);
+  if (tone) return el("span", {class:"cell-tone tone-" + tone, title:column + " is " + (tone === "good" ? "within" : tone === "warning" ? "past the warning limit of" : "past the failure limit of") + " the QC policy"}, fmt(value));
+  if (v !== null && v >= 0 && v <= 1 && FRACTION_COLUMN.test(column)) return el("span", {class:"cell-bar", style:"--v:" + (v * 100).toFixed(1) + "%"}, fmt(value));
+  return fmt(value);
+}
 const unique = values => [...new Set(values.filter(v => v !== null && v !== undefined && v !== ""))];
 const plain = value => typeof value === "object" && value !== null ? JSON.stringify(value) : (value ?? "");
 const note = text => el("div", {class:"note"}, text);
@@ -73,5 +109,5 @@ function visualGroup({id,title,rows,filters = [],views,defaultView,description =
   function draw() { const filtered = current(); const labels = fields.filter(([key]) => state[key]).map(([key]) => key + "=" + state[key]); active.textContent = "Showing " + filtered.length + " of " + rows.length + " source records" + (labels.length ? " · Active filters: " + labels.join("; ") : " · No categorical filters"); body.dataset.view = grid ? "grid" : select.value; body.replaceChildren(); if (!filtered.length) body.append(empty("No matching records. Reset filters or choose another dataset.")); else if (grid) { const tiles = el("div", {class:"dash-grid"}); for (const [key, view] of Object.entries(views)) { if (view.grid === false) continue; let content; try { content = view.render(filtered); } catch (error) { content = empty("This view is unavailable: " + error.message); } tiles.append(el("div", {class:"dash-tile" + (view.wide || key === "table" || key === "map" ? " wide" : ""), "data-view":key}, el("h4", {class:"tile-title"}, view.label), content)); } body.append(tiles); } else { try { body.append(views[select.value].render(filtered)); } catch (error) { body.append(empty("This view is unavailable: " + error.message)); } } panel.dataset.filteredCount = String(filtered.length); }
   select.onchange = () => { STATE.views[id] = select.value; saveViews(); draw(); }; panel.append(controls,active,body); panel._refresh = draw; draw(); return panel;
 }
-function loadReport(input) { const check = validateData(input); if (check.errors.length) { $("#main").replaceChildren(el("div", {class:"panel schema-error", role:"alert"}, el("h2", {}, "Report data could not be loaded"), ...check.errors.map(e => el("p", {}, e)), note("Choose a valid dashboard_data.json using Open report JSON. No data was substituted."))); $("#nav").replaceChildren(); $("#dataNotice").textContent = "Invalid report data — no scientific results rendered."; return false; } D = check.data; STATE.selectedSample = null; STATE.filters = {}; STATE.rendered = new Set(); restoreViews(); build(); return true; }
+function loadReport(input) { const check = validateData(input); if (check.errors.length) { $("#main").replaceChildren(el("div", {class:"panel schema-error", role:"alert"}, el("h2", {}, "Report data could not be loaded"), ...check.errors.map(e => el("p", {}, e)), note("Choose a valid dashboard_data.json using Open report JSON. No data was substituted."))); $("#nav").replaceChildren(); $("#dataNotice").textContent = "Invalid report data — no scientific results rendered."; return false; } D = check.data; LIMITS = null; STATE.selectedSample = null; STATE.filters = {}; STATE.rendered = new Set(); restoreViews(); build(); return true; }
 window.PfVarX = {validateData, loadReport, get data() { return D; }, get state() { return STATE; }};
