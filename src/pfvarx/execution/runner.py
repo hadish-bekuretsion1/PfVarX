@@ -11,6 +11,7 @@ from __future__ import annotations
 
 import os
 import subprocess
+import sys
 import tempfile
 from pathlib import Path
 from typing import Any, TypedDict
@@ -241,9 +242,9 @@ def _execute(root: Path, mode: str = "NEW", previous: str | None = None) -> dict
     from pfvarx.execution import progress
     _progress(progress, run)
     if progress.open_in_browser(run / "progress.html"):
-        print(f"Run progress opened in your browser: {run / 'progress.html'}", flush=True)
+        print(f"Run progress opened in your browser: {run / 'progress.html'}", file=sys.stderr, flush=True)
     else:
-        print(f"Run progress page: {run / 'progress.html'}", flush=True)
+        print(f"Run progress page: {run / 'progress.html'}", file=sys.stderr, flush=True)
     for attempt in (1, 2):
         log = log_dir / f"snakemake.pass{offset + attempt}.log"
         with log.open("x") as h:
