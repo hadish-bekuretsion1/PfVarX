@@ -206,6 +206,13 @@ def test_every_downstream_analysis_executes(tmp_path: Path) -> None:
     summary = json.loads((res / "downstream/DA004/status_manifest.json").read_text())["results_summary"]
     assert summary["pairs_estimated"] > 0, summary
     assert (res / "downstream/DA006/tree.treefile").is_file()
+    # Tool byproducts that no step reads are not kept.
+    unused = [p for pattern in ("qc/samples/*/core.mosdepth.global.dist.txt", "qc/samples/*/core.regions.bed.gz*",
+                                "downstream/DA006/tree.ckp.gz", "downstream/DA006/tree.bionj",
+                                "downstream/DA006/tree.model.gz", "downstream/DA006/tree.splits.nex")
+              for p in res.glob(pattern)]
+    assert not unused, unused
+    assert list(res.glob("qc/samples/*/core.mosdepth.region.dist.txt"))  # the file the QC gate reads stays
     report = (res / "report/clonality_report.txt").read_text()
     assert all(f"Sample PF{i:03d} is" in report for i in range(1, 12)), report
 

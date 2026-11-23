@@ -196,6 +196,34 @@
     },
     "variant_summary": {
       "type": "object"
+    },
+    "outputs": {
+      "type": [
+        "object",
+        "null"
+      ],
+      "description": "Where the run's results are saved and its final output files, with links relative to results/report/",
+      "properties": {
+        "run_dir": {
+          "type": "string"
+        },
+        "results_dir": {
+          "type": "string"
+        },
+        "results_href": {
+          "type": "string"
+        },
+        "folders": {
+          "type": "array"
+        },
+        "run_files": {
+          "type": "array"
+        },
+        "files": {
+          "type": "array"
+        }
+      },
+      "additionalProperties": true
     }
   },
   "additionalProperties": true,

@@ -162,8 +162,10 @@ Each run has its own folder `runs/<RUN_ID>/`. Open its report dashboard in a bro
 xdg-open runs/<RUN_ID>/results/report/pfvarx_dashboard.html
 ```
 
-The dashboard is a single file that works offline. Check the QC section and any exclusions
-before interpreting calls. See the [reporting guide](reporting/README.md).
+The dashboard is a single file that works offline. At the top of **Overview**, **Where the
+results are saved** shows the run folder (with **Copy path** and **Open results folder**),
+buttons for each output folder, and every output file with its size and what it is; click a
+file to open it. Check the QC section and any exclusions before interpreting calls. See the [reporting guide](reporting/README.md).
 
 ## 10. Later: update PfVarX or start another study
 

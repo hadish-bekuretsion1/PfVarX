@@ -2041,7 +2041,7 @@ The variant embedding cap is currently 200000; full summaries precede that cap, 
 
 ### 4. Expected outputs
 
-`report/pfvarx_dashboard.html`, `report/dashboard_data.json`, `qc/centralized_quality_matrix.json`; user-selected CSV/XLSX/PNG/PDF and redacted-log downloads outside source.
+`report/pfvarx_dashboard.html` (its Overview lists every output file with links), `report/dashboard_data.json`, `qc/centralized_quality_matrix.json`; user-selected CSV/XLSX/PNG/PDF and redacted-log downloads outside source.
 
 ### 5. Verification and quality control
 

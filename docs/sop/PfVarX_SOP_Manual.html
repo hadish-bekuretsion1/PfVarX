@@ -1420,7 +1420,7 @@ printf '%s\n' &quot;$ANALYSIS/runs/$RUN_ID/results/report/pfvarx_dashboard.html&
 <p><strong>Step 3. Check provenance and sharing scope</strong></p>
 <p>The variant embedding cap is currently 200000; full summaries precede that cap, detailed charts use the labelled embedded subset. Missing fields stay missing. Synthetic fixtures display SYNTHETIC DEMO DATA at the top of Overview. Redacted log tails are bounded. Table pseudonymization is not full report anonymization; review source paths, free text and identifiers before sharing.</p>
 <h3>4. Expected outputs</h3>
-<p><code>report/pfvarx_dashboard.html</code>, <code>report/dashboard_data.json</code>, <code>qc/centralized_quality_matrix.json</code>; user-selected CSV/XLSX/PNG/PDF and redacted-log downloads outside source.</p>
+<p><code>report/pfvarx_dashboard.html</code> (its Overview lists every output file with links), <code>report/dashboard_data.json</code>, <code>qc/centralized_quality_matrix.json</code>; user-selected CSV/XLSX/PNG/PDF and redacted-log downloads outside source.</p>
 <h3>5. Verification and quality control</h3>
 <p>Confirm run/reference/sample identities, QC source metrics, true denominators, view/export filters and retained renderer hash. Resource wall-time sums are not elapsed run duration; absent measurements are not zero.</p>
 <h3>6. Error handling and troubleshooting</h3>

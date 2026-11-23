@@ -3,7 +3,7 @@ import gzip
 import json
 from pathlib import Path
 
-from pfvarx.reporting.build import _distance_matrix, _log_content, _num, _optional_json, _redact, _vcf_values
+from pfvarx.reporting.build import _distance_matrix, _log_content, _num, _optional_json, _outputs, _redact, _vcf_values
 
 
 def test_missing_values_are_not_zero():
@@ -138,3 +138,24 @@ def test_snapshot_records_scientific_package_versions(tmp_path):
     (meta / 'broken.json').write_text('{not json')
     assert package_versions(tmp_path) == {'fgbio': '4.1.1 (hdfd78af_0)', 'r-moire': '3.7.0 (r45h_0)'}
     assert package_versions(tmp_path / 'absent') == {}
+
+
+def test_outputs_list_every_final_file_with_working_relative_links(tmp_path: Path):
+    run = tmp_path / "runs" / "R1"
+    for rel in ("results/alignments/S1.bam", "results/variants/samples/S1.vcf.gz", "results/qc/samples/S1/qc_decision.json",
+                "results/work/calls/S1.raw.vcf", "frozen_config.json", "logs/x.log", "benchmarks/a/S1.tsv"):
+        (run / rel).parent.mkdir(parents=True, exist_ok=True)
+        (run / rel).write_text("x")
+    out = _outputs(run)
+    paths = {f["path"] for f in out["files"]}
+    assert "results/alignments/S1.bam" in paths and "results/variants/samples/S1.vcf.gz" in paths
+    assert not any(p.startswith("results/work/") for p in paths)  # temporary files are not outputs
+    assert "results/report/pfvarx_dashboard.html" in paths  # planned report files are listed before they exist
+    report_dir = run / "results" / "report"
+    for f in out["files"]:
+        if f["size_bytes"] is not None:
+            assert (report_dir / f["href"]).resolve() == (run / f["path"]).resolve()
+            assert f["description"]
+    assert [f["label"] for f in out["folders"]][:3] == ["Alignments", "Quality control", "Variant calls"]
+    assert all((report_dir / f["href"]).resolve().is_dir() for f in out["folders"])
+    assert out["run_dir"] == str(run.resolve()) and out["run_files"][0]["path"] == "frozen_config.json"

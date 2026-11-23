@@ -5,6 +5,23 @@
 The release version was reset to 0.0.0 after 0.4.2, as the baseline for the first reviewed
 release. The sections below 0.0.0 are the earlier development numbering, kept as history.
 
+### Output files in the dashboard
+
+- Overview starts with **Where the results are saved**: the run folder's full path (Copy path,
+  Open results folder), a button for each output folder, logs, benchmarks, frozen settings and
+  software versions, and every final output file grouped by folder with its size, what it is
+  and a link that opens it, with search. Temporary work files are left out. The list is also
+  in `dashboard_data.json` (`outputs`).
+
+### No unused files
+
+- Tool byproducts that no step reads and that add nothing are no longer kept: mosdepth's
+  whole-genome distribution and per-region depth tables for the core genome
+  (`core.mosdepth.global.dist.txt`, `core.regions.bed.gz` and its index), the unused mosdepth
+  files of target depth, and IQ-TREE's working files (`tree.ckp.gz`, `tree.bionj`,
+  `tree.model.gz`, `tree.splits.nex`). The files the QC gates, analyses and report read, and
+  the summaries, logs and inputs kept for checking and reproducing a run, are unchanged.
+
 ### CI uses half the GitHub Actions minutes
 
 - CI runs on pull requests and on pushes to `main` and `develop`, not on every branch push,
