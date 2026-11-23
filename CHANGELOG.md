@@ -5,6 +5,12 @@
 The release version was reset to 0.0.0 after 0.4.2, as the baseline for the first reviewed
 release. The sections below 0.0.0 are the earlier development numbering, kept as history.
 
+### Greedy job scheduling
+
+- Snakemake runs with `--scheduler greedy`. The default ILP optimiser added nothing for
+  PfVarX's jobs and could pause 10 seconds per scheduling decision before falling back
+  ("Failed to solve scheduling problem with ILP solver in time"). Results are unchanged.
+
 ### Output files open in place
 
 - In "Where the results are saved", nothing is downloaded any more: each file has **Open
