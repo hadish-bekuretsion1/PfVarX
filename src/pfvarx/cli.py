@@ -182,6 +182,11 @@ def dry_run() -> None:
     from pfvarx.execution.runner import dry_run as dr
 
     res = guard(lambda: dr(_root()))
+    est = (res.get("resources") or {}).get("estimate") or (res.get("plan", {}).get("resources") or {}).get("estimate")
+    if est:  # the human-readable estimate goes to stderr; stdout stays the JSON result
+        from pfvarx.planning.history import estimate_table
+
+        typer.echo(estimate_table(est, res.get("final_output"), res.get("input_type")), err=True)
     emit(res, 0 if res["status"] == "OK" else 1)
 
 
@@ -286,6 +291,21 @@ def benchmark_resources(run_id: str | None = typer.Option(None, "--run-id")) -> 
     root = _root()
     run = root / "runs" / run_id if run_id else latest(root)
     emit(guard(lambda: summarise(root, run)))  # type: ignore[arg-type]
+
+
+@app.command("resources-learn")
+def resources_learn(run_id: str | None = typer.Option(None, "--run-id")) -> None:
+    """Add a finished real-data run to this computer's resource history (used for time, RAM and storage estimates)."""
+    from pfvarx.planning.history import history_file, record
+    from pfvarx.runs.registry import latest
+
+    root = _root()
+    run = root / "runs" / run_id if run_id else latest(root)
+    if run is None:
+        emit({"status": "ERROR", "error": "no runs"}, 2)
+    entry = guard(lambda: record(root, run))  # type: ignore[arg-type]
+    emit({"status": "RECORDED" if entry else "SKIPPED_SYNTHETIC", "run_id": run.name,  # type: ignore[union-attr]
+          "history": str(history_file()), "jobs": len(entry["jobs"]) if entry else 0})
 
 
 @app.command("workspace-init")

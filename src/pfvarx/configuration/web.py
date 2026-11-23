@@ -222,20 +222,58 @@ def workflow_status(root: Path) -> dict[str, Any]:
     }
 
 
+RUN_REPORT = "results/report/pfvarx_dashboard.html"
+# The progress page and the report are self-contained pages with inline styles and scripts;
+# they may not load anything from elsewhere.
+RUN_PAGE_POLICY = ("default-src 'none'; style-src 'unsafe-inline'; script-src 'unsafe-inline'; img-src data: 'self'; "
+                   "connect-src 'self'; frame-ancestors 'none'; base-uri 'none'; form-action 'none'")
+WAITING_PAGE = (b'<!doctype html><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">'
+                b'<meta http-equiv="refresh" content="5"><title>PfVarX run progress</title>'
+                b'<body style="font:16px system-ui,sans-serif;margin:40px;color:#14263a">'
+                b'<h2 style="color:#16a394">PfVarX &middot; Run progress</h2>'
+                b'<p>Waiting for the run to start. This page refreshes by itself.</p>')
+
+
+def run_page(root: Path, name: str, after: str = "") -> bytes:
+    """The latest run's live progress page, or its report dashboard.
+
+    ``after`` names the run that was latest when Run was pressed: until a newer run exists the
+    page waits, so it never shows the previous run's finished state.
+    """
+    from pfvarx.runs.registry import latest
+
+    run = latest(root) if (root / "runs").is_dir() else None
+    if run is None or (after and run.name <= after):
+        return WAITING_PAGE
+    if name == "progress":
+        page = run / "progress.html"
+        if not page.is_file():
+            # A run made before progress pages existed, or one starting right now.
+            from pfvarx.execution import progress
+
+            progress.write(run)
+        return page.read_bytes()
+    report = run / RUN_REPORT
+    if not report.is_file():
+        raise ValueError("The report is written when the run finishes")
+    return report.read_bytes()
+
+
 class Handler(BaseHTTPRequestHandler):
     def __init__(self, *args: Any, root: Path, token: str, **kwargs: Any):
         self.root = root
         self.prefix = "/" + token + "/"
         super().__init__(*args, **kwargs)
 
-    def respond(self, data: Any, status: int = 200, media: str = "application/json") -> None:
+    def respond(self, data: Any, status: int = 200, media: str = "application/json",
+                policy: str = "default-src 'self'; frame-ancestors 'none'; base-uri 'none'") -> None:
         body = data if isinstance(data, bytes) else json.dumps(data).encode()
         self.send_response(status)
         self.send_header("Content-Type", media)
         self.send_header("Content-Length", str(len(body)))
         self.send_header("Cache-Control", "no-store")
         self.send_header("Referrer-Policy", "no-referrer")
-        self.send_header("Content-Security-Policy", "default-src 'self'; frame-ancestors 'none'; base-uri 'none'")
+        self.send_header("Content-Security-Policy", policy)
         self.end_headers()
         self.wfile.write(body)
 
@@ -268,6 +306,9 @@ class Handler(BaseHTTPRequestHandler):
                 self.respond(tools_status(self.root))
             elif name == "workflow-status":
                 self.respond(workflow_status(self.root))
+            elif name in ("progress", RUN_REPORT):
+                after = query.get("after", [""])[0]
+                self.respond(run_page(self.root, name, after), media="text/html", policy=RUN_PAGE_POLICY)
             elif name == "state":
                 self.respond(editor_state(self.root, query.get("purpose", ["analysis"])[0]))
             elif name == "browse":

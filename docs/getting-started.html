@@ -240,12 +240,16 @@ them by HTTPS link. In the terminal:</p>
 <td>6 Workflow Check and Run</td>
 <td>Check workflow, then Run workflow</td>
 <td><code>./pfvarx workflow-check</code>, <code>./pfvarx workflow-run</code></td>
-<td>Plans the run without outputs, then runs it</td>
+<td>Plans the run without outputs and shows the expected time, memory and storage of each step, then runs it and opens the live progress page</td>
 </tr>
 </tbody>
 </table>
 <p>Review <code>prepared/samples.tsv</code> after step 4: sample and lane IDs come from the file names.
-A run continues in the background if you close the browser; reopen tab 6 to see its status.</p>
+A run continues in the background if you close the browser; reopen tab 6 to see its status,
+or <strong>Open run progress</strong> for the progress page: when it started, the steps running now,
+the expected finish and the time remaining. When the run ends the page opens the report
+dashboard. Expected times come from earlier real-data runs on this computer, so the first
+run shows them as unknown.</p>
 <h2>9. Review the results</h2>
 <p>Each run has its own folder <code>runs/&lt;RUN_ID&gt;/</code>. Open its report dashboard in a browser:</p>
 <pre><code class="language-bash">xdg-open runs/&lt;RUN_ID&gt;/results/report/pfvarx_dashboard.html

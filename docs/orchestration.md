@@ -62,8 +62,9 @@ Pixi/tool diagnostics go to stderr. `PFVARX_JSON_OUT` can save command JSON atom
 | `prepare` | Accepted input validation | Only necessary reference derivatives, artifact hashes/seal and preparation report; verification PASS |
 | `verify-prepared` | Prepared resources and current registry | Input validation plus source/derived checksums, FASTA/FAI/dictionary compatibility; mandatory failures stop execution |
 | `ready` | Valid inputs/current preparation | Read-only resource/eligibility pre-plan; ready must be true |
-| `dry-run` | Same mandatory preflight | Snakemake DAG check in external temporary directory; no runs/results created |
-| `pipeline --mode NEW` | Accepted preflight | Frozen run, actual workflow/QC/scientific products, report and policy cleanup |
+| `dry-run` | Same mandatory preflight | Snakemake DAG check in external temporary directory; no runs/results created. Also prints (on stderr) the expected time, peak memory and storage of each step for these inputs and this final output (see "Time, memory and storage estimates") |
+| `pipeline --mode NEW` | Accepted preflight | Frozen run, actual workflow/QC/scientific products, report and policy cleanup. Writes and refreshes the live progress page `runs/<RUN_ID>/progress.html` (opened in the browser when run from a desktop terminal) |
+| `resources-learn --run-id ID` | Existing COMPLETED real-data run | Adds the run's measured step times, peak memory and result sizes to this computer's resource history (done automatically after each completed run; use it for runs made before estimates existed). Synthetic runs are skipped |
 | `pipeline --mode RESUME --run-id ID` | Unchanged interrupted run | Restart only with compatible source/config; preserved attempt logs |
 | `pipeline --mode EXTEND --run-id ID` | Declared compatible extension | New run, conservatively reused artifacts where reuse key permits |
 | `orchestrate --through STAGE` | User-reviewed configuration and registered actual inputs | Ordered initialize/validate/prepare/verify/preflight/execute; stop at selected boundary or mandatory failure |
@@ -91,14 +92,41 @@ GUI and the terminal at any stage. `tests/unit/test_cli_gui_parity.py` keeps the
 | Inputs Preparation (steps 1–2 only) | `prepare-samples [--metadata-table PATH]` | Build the sample metadata `prepared/samples.tsv` from the input files if it is missing; with Study Metadata: Yes, merge the study table from `study_metadata_dir` (none: continue with a warning; several: stop and ask); with No, continue with the sample metadata only |
 | (earlier name) | `prepare-reference` | Run `prepare`, `verify-prepared` and `ready` (references only, no sample sheet or merge) |
 | Workflow Readiness Checks | `workflow-readiness-checks` | Run `prepare-samples`, `validate`, `prepare`, `verify-prepared` and `ready` in order |
-| Workflow Check and Run: Check workflow | `workflow-check` | Run `dry-run`; no outputs are created |
-| Workflow Check and Run: Run workflow | `workflow-run` | Check the workflow, then run it as a new analysis |
+| Workflow Check and Run: Check workflow | `workflow-check` | Run `dry-run`; no outputs are created. Shows the expected time, peak memory and storage per step |
+| Workflow Check and Run: Run workflow | `workflow-run` | Check the workflow, then run it as a new analysis. The GUI opens the live progress page in a new tab; it opens the report dashboard when the run ends |
 
 Initialization creates no placeholder runs, fake logs or empty output trees. Run
 creation establishes run execution/log/result roots before processing; individual
 rules create their required subdirectories. This is intentional demand-driven setup.
 Sequencing quality facts before alignment are labelled input-validation observations;
 post-alignment QC is computed only when the tools actually run.
+
+## Run progress and time, memory and storage estimates
+
+**Live progress.** While a run works, PfVarX rewrites `runs/<RUN_ID>/progress.html` (and
+`progress.json`) every 15 seconds from the Snakemake log. The page shows when the run started,
+how long it has run, the steps running now (with sample, start time, time so far and expected
+time), a count of finished, running and failed jobs per step, the expected finish time and
+the time remaining. The page refreshes itself; when the run ends it shows the final status
+and total time and then opens the report dashboard. The progress page opens by itself when
+you start a run from a desktop terminal (`./pfvarx workflow-run` or `pipeline`), or in a new
+browser tab when you press **Run workflow** in the GUI (the GUI also has an **Open run
+progress** link). Set `PFVARX_NO_BROWSER=1` to never open a browser; the page path is
+always printed. The page only reads run files and never changes the run.
+
+**Estimates.** After every COMPLETED real-data run, PfVarX records each step's wall time,
+CPU time and peak memory with the input size of the sample it processed, and the size of
+each results folder, in a history file for this computer
+(`~/.local/share/pfvarx/history/<host>.jsonl`, or `$PFVARX_HISTORY_DIR`). A new plan scales
+those measurements by its own input sizes (median seconds per input GB, preferring earlier
+runs with the same design and input type) and packs samples `max_jobs` at a time. The result
+is frozen with the plan (`frozen_plan.json` → `resources.estimate`), printed by
+`workflow-check` and the GUI's **Check workflow**, used by the progress page, and compared
+with what the run measured in the report's Resources section. Nothing is invented: a step
+never run on this computer is UNKNOWN, so the total time is unknown until every step has
+history; synthetic test runs are never learned from. Estimates are advice for planning only
+and never change results. For runs made before this feature, add them once with
+`./pfvarx resources-learn --run-id RUN_ID`.
 
 ## Organize without duplicating originals
 

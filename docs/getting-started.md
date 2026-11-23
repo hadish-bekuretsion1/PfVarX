@@ -149,10 +149,14 @@ Work through the tabs in order; each names its terminal command.
 | 3 Input Files Validation | Validate inputs | `./pfvarx validate` | Checks every file; each problem comes with numbered steps to fix it |
 | 4 Inputs Preparation | Prepare inputs | `./pfvarx inputs-preparation` | Builds the sample metadata `prepared/samples.tsv` from your files, merges the study table, prepares the reference indexes and checks readiness |
 | 5 Workflow Readiness Checks | Run readiness checks | `./pfvarx workflow-readiness-checks` | Repeats every check before a run |
-| 6 Workflow Check and Run | Check workflow, then Run workflow | `./pfvarx workflow-check`, `./pfvarx workflow-run` | Plans the run without outputs, then runs it |
+| 6 Workflow Check and Run | Check workflow, then Run workflow | `./pfvarx workflow-check`, `./pfvarx workflow-run` | Plans the run without outputs and shows the expected time, memory and storage of each step, then runs it and opens the live progress page |
 
 Review `prepared/samples.tsv` after step 4: sample and lane IDs come from the file names.
-A run continues in the background if you close the browser; reopen tab 6 to see its status.
+A run continues in the background if you close the browser; reopen tab 6 to see its status,
+or **Open run progress** for the progress page: when it started, the steps running now,
+the expected finish and the time remaining. When the run ends the page opens the report
+dashboard. Expected times come from earlier real-data runs on this computer, so the first
+run shows them as unknown.
 
 ## 9. Review the results
 
