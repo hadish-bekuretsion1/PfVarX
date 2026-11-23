@@ -5,6 +5,18 @@
 The release version was reset to 0.0.0 after 0.4.2, as the baseline for the first reviewed
 release. The sections below 0.0.0 are the earlier development numbering, kept as history.
 
+### Cohort QC for FO003 (gate G5)
+
+- FO003 and FO004 runs now have their own QC step, like FO001's: `results/cohort/cohort_qc.json`
+  gives each cohort sample a verdict on **G5.cohort_missingness**, the share of cohort sites
+  where it is missing (low depth or uncallable): PASS up to 20 %, WARNING above 20 %, FAIL
+  above 50 % (provisional limits, QC policy 1.3.0). The share of MIXED sites is reported, and
+  so is how many sites are called in at least 80 % of samples.
+- A sample that fails cohort QC is excluded from the downstream analyses (reason
+  `COHORT_QC_FAIL` in the eligibility files); it keeps its own VCF and stays in the cohort VCF.
+- The report shows the G5 decisions in the QC heatmap and gate table, and a cohort QC column
+  in the sample table.
+
 ### Configuration editor tabs on phones
 
 - On phones and small tablets the six step tabs of the configuration editor wrap their labels

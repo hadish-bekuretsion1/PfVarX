@@ -76,7 +76,8 @@ def final_targets(wildcards):
     targets.append(str(R / "cohort" / "cohort_status.json"))
     if not passing("L3"):
         return targets
-    targets += [str(R / "cohort" / "cohort.vcf.gz"), str(R / "cohort" / "missingness.tsv")]
+    targets += [str(R / "cohort" / "cohort.vcf.gz"), str(R / "cohort" / "missingness.tsv"),
+                str(R / "cohort" / "cohort_qc.json")]
     if 4 in LAYERS:
         targets += [str(R / "annotation" / "cohort.ann.vcf.gz"), str(R / "annotation" / "annotation_qc.json")]
     if 5 in LAYERS:
@@ -245,7 +246,8 @@ def common_inputs(wc=None):
 
 def eligibility_inputs(wc):
     d = {"gates": [str(R / "qc" / "samples" / s / "qc_decision.json") for s in sorted(SAMPLES) if s not in EXCLUDED],
-         "samples": str(R / "cohort" / "cohort_samples.txt")}
+         "samples": str(R / "cohort" / "cohort_samples.txt"),
+         "cohort_qc": str(R / "cohort" / "cohort_qc.json")}
     if "DA001" in REQUESTED + INTERNAL:
         d["clonality"] = str(DOWN / "DA001" / "clonality.tsv")
     return d
