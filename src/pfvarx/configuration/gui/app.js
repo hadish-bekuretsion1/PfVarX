@@ -331,7 +331,7 @@ function showTools(plan) {
 function showInputFolders(directories) {
     const contents = {
         "inputs/fastq": "Paired reads (.fastq or .fastq.gz), such as sample_R1.fastq.gz and sample_R2.fastq.gz.",
-        "inputs/alignments": "Coordinate-sorted BAM files and their indexes (.bai or .csi). Record each file's processing_state in the sample registry so only the missing steps run.",
+        "inputs/bam": "Coordinate-sorted BAM files and their indexes (.bai or .csi). Record each file's processing_state in the sample registry so only the missing steps run.",
         "inputs/reference": "Reference FASTA and matching core-genome BED. Include matching GFF when annotation is needed.",
         "inputs/metadata": "Study Metadata: one study table (tab-separated, with sample_id: country, latitude, longitude, collection_date, population and any other study fields), merged into the sample metadata by Inputs Preparation. For targeted designs also the library catalog YAML, and optionally a verified marker catalogue TSV.",
         "inputs/targets": "Target regions BED and primer definitions TSV (or probe BED) matched to the reference, named by a panel in the library catalog.",
@@ -360,10 +360,10 @@ function changed(id) {
     }
     const location = byId("raw-data-directory");
     const fastq = config.input_type === "FASTQ";
-    location.value = fastq ? "inputs/fastq/" : "inputs/alignments/";
+    location.value = fastq ? "inputs/fastq/" : "inputs/bam/";
     byId("raw-data-help").textContent = fastq
         ? "Example pair: inputs/fastq/sample_R1.fastq.gz and inputs/fastq/sample_R2.fastq.gz. Place your files here after saving, or register their existing paths."
-        : "Example: inputs/alignments/sample.bam and inputs/alignments/sample.bam.bai. Place the BAM and its index here after saving, or register their existing paths.";
+        : "Example: inputs/bam/sample.bam and inputs/bam/sample.bam.bai. Place the BAM and its index here after saving, or register their existing paths.";
     const outputs = byId("config.final_output");
     for (const option of outputs.options) {
         const installed = state.installation && state.installation.profile !== "development"
@@ -461,7 +461,7 @@ function changed(id) {
     }
     byId("summary").textContent = JSON.stringify(summary, null, 2);
     saveButton.disabled = false;
-    const folders = ["inputs/reference", "inputs/metadata", fastq ? "inputs/fastq" : "inputs/alignments"];
+    const folders = ["inputs/reference", "inputs/metadata", fastq ? "inputs/fastq" : "inputs/bam"];
     if (targeted) folders.push("inputs/targets");
     if (config.purpose === "benchmarking") folders.push("inputs/truth", "inputs/partitions");
     showInputFolders(folders);
@@ -664,13 +664,13 @@ async function loadFileTabs() {
         const {folders, contents, annotation} = await request("input-folders");
         const labels = {
             fastq: [["FASTQ reads", "fastq"]],
-            alignments: [["Alignments and indexes", "alignments"]],
+            bam: [["BAM/CRAM files and indexes", "bam"]],
             reference: [["Reference FASTA", "reference"], ["Core BED", "reference"], ["GFF annotation", "reference"]],
             metadata: [["Study metadata and catalogue", "metadata"]],
             targets: [["Target BED", "targets"], ["Primer TSV", "targets"]],
             truth: [["Truth files", "truth"]]
         };
-        const rawFolder = folders.find(folder => ["inputs/fastq", "inputs/alignments"].includes(folder));
+        const rawFolder = folders.find(folder => ["inputs/fastq", "inputs/bam"].includes(folder));
         const orderedFolders = rawFolder ? [rawFolder, ...folders.filter(folder => folder !== rawFolder)] : folders;
         for (const folder of orderedFolders) {
             for (const [label, role] of labels[folder.split("/").at(-1)] || []) {

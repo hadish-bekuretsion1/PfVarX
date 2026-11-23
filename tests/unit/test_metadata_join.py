@@ -67,7 +67,7 @@ def test_study_table_needs_one_row_per_sample(tmp_path: Path) -> None:
 
 def test_names_outside_the_standard_are_warnings() -> None:
     good = {"sample_id": "ETH001", "lane": "L001", "fastq_1": "inputs/fastq/ETH001_L001_R1.fastq.gz",
-            "fastq_2": "inputs/fastq/ETH001_L001_R2.fastq.gz", "bam": "inputs/alignments/ETH001.bam"}
+            "fastq_2": "inputs/fastq/ETH001_L001_R2.fastq.gz", "bam": "inputs/bam/ETH001.bam"}
     assert naming_problems([good], InputType.FASTQ) == []
     assert naming_problems([good], InputType.BAM) == []
     illumina = {**good, "fastq_1": "x/ETH001_S1_L001_R1_001.fastq.gz", "fastq_2": "x/ETH001_S1_L001_R2_001.fastq.gz"}

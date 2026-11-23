@@ -2545,8 +2545,8 @@ with a trailing slash. File fields still require filenames.</p>
 <td>Paired FASTQ for FASTQ entry. Register read pairs with their verified sample and lane identities.</td>
 </tr>
 <tr>
-<td><code>inputs/alignments/</code></td>
-<td>BAM or CRAM with the appropriate index for aligned entry.</td>
+<td><code>inputs/bam/</code></td>
+<td>BAM or CRAM with the appropriate index for aligned entry (BAM/CRAM input). The pipeline's own alignments are written to <code>results/alignments/</code> of each run.</td>
 </tr>
 <tr>
 <td><code>inputs/metadata/</code></td>
@@ -2611,11 +2611,11 @@ nano metadata/discovered_samples.tsv
 ./pfvarx register-inputs --manifest metadata/discovered_samples.tsv --mode reference
 </code></pre>
 <h2 id="transfer-raw-data-and-run-preflight">Transfer raw data and run preflight</h2>
-<p>After saving, open <strong>Input files</strong> to upload reads or alignments, or download
+<p>After saving, open <strong>Input files</strong> to upload reads (<code>inputs/fastq/</code>) or BAM/CRAM files (<code>inputs/bam/</code>), or download
 them using an HTTPS link and a destination filename. A trusted SHA-256 is
 optional. When provided, PfVarX checks it before saving. Otherwise, PfVarX
 records the computed checksum and marks the download unverified. Put reference
-files in <code>inputs/reference/</code>. Register your reads or alignments before running
+files in <code>inputs/reference/</code>. Register your reads or BAM/CRAM files before running
 <strong>Workflow Readiness Checks → Run readiness checks</strong>. The tab runs <code>validate</code>, <code>prepare</code>,
 <code>verify-prepared</code>, and <code>ready</code> in that order and stops on failure.</p>
 <h2 id="validate-prepare-and-execute">Validate, prepare and execute</h2>
@@ -3038,7 +3038,7 @@ primer or catalogue header), and refused, with an explanation, when they do not.
 <td>FASTQ reads, plain or gzip-compressed</td>
 </tr>
 <tr>
-<td>inputs/alignments/</td>
+<td>inputs/bam/</td>
 <td>BAM or CRAM alignment (as configured) and its index (.bai, .csi or .crai content)</td>
 </tr>
 <tr>
@@ -3183,7 +3183,7 @@ PF002	L001	inputs/fastq/PF002_R1.fastq.gz	inputs/fastq/PF002_R2.fastq.gz		PF002_
 </code></pre>
 <p>An imported consensus BAM for the same panel:</p>
 <pre><code class="language-text">sample_id	lane	bam	library_id	technique	panel_id	panel_version	processing_state
-PF003	L001	inputs/alignments/PF003.consensus.bam	PF003_lib1	TBS_UMI	MAD4HATTER	1	consensus
+PF003	L001	inputs/bam/PF003.consensus.bam	PF003_lib1	TBS_UMI	MAD4HATTER	1	consensus
 </code></pre>
 <h2 id="the-library-catalog">The library catalog</h2>
 <p><code>assay.library_catalog</code> (required for targeted designs) names a YAML file. The template
@@ -3359,7 +3359,7 @@ run <code>./pfvarx dry-run</code> from that workspace.</p>
 <p>On RESUME, top-level Snakemake logs advance to the next
 <code>logs/snakemake.passN.log</code>. Method-level logs can still be reused on retry.
 Archive them before resuming if their original contents are needed.</p>
-<section><h2>Transfer raw data and run preflight</h2><p>After saving, open <strong>Input files</strong> to upload reads or alignments
+<section><h2>Transfer raw data and run preflight</h2><p>After saving, open <strong>Input files</strong> to upload reads (<code>inputs/fastq/</code>) or BAM/CRAM files (<code>inputs/bam/</code>)
 or download them using an HTTPS link and destination filename. Trusted SHA-256
 is optional. When provided, PfVarX checks it before saving. Otherwise, PfVarX
 records the computed checksum and marks the download unverified. Put reference

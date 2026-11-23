@@ -28,7 +28,7 @@ cd pfvarx-analysis
 <p>Open the printed local URL if needed. Review the form and click <strong>Create Configuration and Input Directories</strong>. It creates only the folders you put input files into; set <strong>Study Metadata</strong> to <strong>Yes</strong> if you have a study table (country, latitude, longitude, collection_date, population, ...), and <code>inputs/metadata/</code> is created for it. Then click <strong>Install required tools</strong> (<code>./pfvarx install-tools</code>): it installs only the tools the saved configuration needs.</p>
 <p><a href="configuration-guide.html" target="_blank" rel="noopener noreferrer">Configuration guide for every setting</a></p>
 <h2>3. Transfer and register reads</h2>
-<p>After saving, open <strong>Input files</strong> to upload reads or alignments
+<p>After saving, open <strong>Input files</strong> to upload reads (<code>inputs/fastq/</code>) or BAM/CRAM files (<code>inputs/bam/</code>)
 or download them using an HTTPS link and destination filename. Trusted SHA-256
 is optional. When provided, PfVarX checks it before saving. Otherwise, PfVarX
 records the computed checksum and marks the download unverified. Put reference

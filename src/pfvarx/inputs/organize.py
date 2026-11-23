@@ -96,7 +96,7 @@ def register(root: Path, manifest: Path, mode: str = "reference") -> dict[str, A
             if mode == "reference":
                 row[field] = str(path)
             else:
-                role = "fastq" if field.startswith("fastq") else "alignments"
+                role = "fastq" if field.startswith("fastq") else "bam"
                 suffix = "".join(path.suffixes)
                 name = f"{row['sample_id']}.{row['lane']}.{field}{suffix}"
                 require(path, FOLDER_KINDS[role], name)
