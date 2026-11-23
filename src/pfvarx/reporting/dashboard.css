@@ -129,6 +129,20 @@ input[type=range]{max-width:190px;accent-color:var(--teal)}
 .stackbar span{display:flex;align-items:center;justify-content:center;color:#fff;font-weight:700;font-size:11px;white-space:nowrap;overflow:hidden;min-width:2px}
 .stackbar span[style*="#c5ced8"]{color:#33475a}
 
+/* Output files panel (Overview) */
+.outputs-path{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-bottom:12px}
+.outputs-label{font-weight:750;font-size:13px}
+.outputs-path code{background:#f3f6fa;border:1px solid var(--line);border-radius:8px;padding:6px 10px;font:12.5px var(--mono);overflow-wrap:anywhere;flex:1 1 320px}
+.outputs-folders{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:14px}
+.chip{display:inline-block;padding:5px 12px;border-radius:999px;background:var(--teal-soft);color:#0d6f64;font-size:12.5px;font-weight:650;text-decoration:none;border:1px solid #bfe9e2}
+.chip:hover{background:#d2f0eb}
+.outputs-list details{border:1px solid var(--line);border-radius:10px;margin-bottom:10px;background:#fff}
+.outputs-list summary{cursor:pointer;padding:10px 14px;font-weight:750}
+.outputs-list summary small{color:var(--muted);font-weight:600;margin-left:6px}
+.outputs-list .tablewrap{border:0;border-top:1px solid var(--line);border-radius:0 0 10px 10px;max-height:420px}
+.outputs-list td a{color:var(--accent);font-weight:650}
+.outputs-list td code{font:11.5px var(--mono);color:var(--muted)}
+
 /* Tablet and phone */
 @media(max-width:1050px){header{padding:10px 16px;z-index:20}main{padding:20px 16px 40px}.grid2,.dash-grid{grid-template-columns:1fr}.analysis-tabs{display:flex;overflow-x:auto}.analysis-tab{flex:0 0 150px}h1{font-size:28px}#menuToggle{display:inline-flex;z-index:16}
 nav{position:fixed;z-index:15;top:0;bottom:0;left:0;height:auto;padding-top:64px;transform:translateX(-100%);visibility:hidden;box-shadow:6px 0 24px #0f2a4433;transition:transform .3s cubic-bezier(.2,.8,.2,1),visibility 0s linear .3s}nav.open{transform:translateX(0);visibility:visible;transition:transform .3s cubic-bezier(.2,.8,.2,1),visibility 0s}

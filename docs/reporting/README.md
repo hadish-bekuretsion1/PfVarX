@@ -9,6 +9,17 @@ acceptance checks currently exercise Chromium.
 ## Open or refresh a report
 
 After a run finishes, open `results/report/pfvarx_dashboard.html` in your browser.
+
+**Where the results are saved** (top of Overview) gives the run folder's full path with
+**Copy path** and **Open results folder**, a button for each output folder (Alignments,
+Quality control, Variant calls, Cohort, Annotation, Eligibility, Downstream analyses, Report,
+logs, benchmarks, frozen settings, software versions), and every final output file grouped by
+folder, with its size, what it is and a link that opens it. Search finds a file by name,
+sample or type. Links are relative to `results/report/`, so they work when the dashboard is
+opened from its run folder on the computer that ran PfVarX; a copy sent elsewhere keeps the
+list but not the files. HTML, JSON, TSV and TXT open in the browser; BAM and VCF files are
+downloaded or opened with another program such as IGV. Temporary work files are not listed, and tool byproducts that no step reads are not kept.
+The same list is in `dashboard_data.json` under `outputs`.
 The existing `results` link selects the current run. Each run retains the same paths
 beneath `runs/<run-id>/results/`:
 

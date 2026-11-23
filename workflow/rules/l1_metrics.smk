@@ -36,7 +36,11 @@ rule mosdepth_core:
     log:
         str(LOGS / "mosdepth" / "{sample}.core.log"),
     shell:
-        "mosdepth -n -t {threads} -F {params.flag} -Q {params.mapq} -b {params.bed:q} {params.prefix:q} {input:q} > {log:q} 2>&1"
+        # mosdepth also writes a whole-genome distribution and a per-region depth table that no step
+        # reads (the core gate uses region.dist, the summary is kept for reading); remove them.
+        "(mosdepth -n -t {threads} -F {params.flag} -Q {params.mapq} -b {params.bed:q} {params.prefix:q} {input:q} "
+        "&& rm -f {params.prefix:q}.mosdepth.global.dist.txt {params.prefix:q}.regions.bed.gz {params.prefix:q}.regions.bed.gz.csi) "
+        "> {log:q} 2>&1"
 
 
 rule mosdepth_targets:
@@ -62,7 +66,10 @@ rule mosdepth_targets:
         str(BENCH / "mosdepth" / "{sample}.targets.tsv")
     shell:
         "(mosdepth -n -t {threads} -F {params.flag} -Q {params.mapq} -b {params.bed:q} {params.prefix:q} {input:q} "
-        "&& samtools view -c -F {params.flag} -L {params.bed:q} {input:q} > {output.ontarget:q}) > {log:q} 2>&1"
+        "&& samtools view -c -F {params.flag} -L {params.bed:q} {input:q} > {output.ontarget:q} "
+        # Only targets.regions.bed.gz is read (target depth gates); the rest of mosdepth's files are unused.
+        "&& rm -f {params.prefix:q}.mosdepth.global.dist.txt {params.prefix:q}.mosdepth.region.dist.txt "
+        "{params.prefix:q}.regions.bed.gz.csi) > {log:q} 2>&1"
 
 
 checkpoint l1_gate:
