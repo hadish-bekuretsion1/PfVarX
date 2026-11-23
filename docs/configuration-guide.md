@@ -129,10 +129,10 @@ Register inputs before validation. Inspect each result before proceeding to `./p
 
 ## Transfer raw data and run preflight
 
-After saving, open **Input files** to upload reads or alignments, or download
+After saving, open **Input files** to upload reads (`inputs/fastq/`) or BAM/CRAM files (`inputs/bam/`), or download
 them using an HTTPS link and a destination filename. A trusted SHA-256 is
 optional. When provided, PfVarX checks it before saving. Otherwise, PfVarX
 records the computed checksum and marks the download unverified. Put reference
-files in `inputs/reference/`. Register your reads or alignments before running
+files in `inputs/reference/`. Register your reads or BAM/CRAM files before running
 **Workflow Readiness Checks → Run readiness checks**. The tab runs `validate`, `prepare`,
 `verify-prepared`, and `ready` in that order and stops on failure.

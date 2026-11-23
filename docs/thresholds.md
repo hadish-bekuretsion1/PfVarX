@@ -2,7 +2,7 @@
 
 Every numeric decision PfVarX makes is listed here with its three outcomes — accepted,
 accepted with warning, rejected or filtered out — and where the value comes from.
-The values live in `config/registry/qc_policy_pfvarx_qc_v1.yaml` (policy version 1.2.0) and
+The values live in `config/registry/qc_policy_pfvarx_qc_v1.yaml` (policy version 1.3.0) and
 `config/parameters/layer*.yaml`. Each entry there carries a source class:
 
 | Source class | Meaning |
@@ -57,6 +57,22 @@ which excludes subtelomeric and internal hypervariable regions.
 | G3.dropout (targeted) | Fraction of amplicons below usable depth | ≤ 0.20 | 0.20–0.50 | > 0.50 | Provisional. Panel specific. |
 | G3.amplicon_depth (targeted, no UMI) | Median depth per amplicon | ≥ 100 | < 100 | never (warning only) | Early 2019; MAD4HatTeR guidance. |
 | G3.umi_singletons (UMI) | Fraction of single-read UMI families | reported | — | — | Unset. No published standard. |
+
+## Stage 3 — cohort QC (FO003 and FO004)
+
+Applied after the cohort evidence step to every sample in the cohort
+(`results/cohort/cohort_qc.json`). A rejected sample keeps its own VCF and stays in the
+cohort VCF, but is excluded from the downstream analyses (reason `COHORT_QC_FAIL`); a sample
+accepted with warning continues into them (`COHORT_QC_WARNING` is recorded only when a
+stage is not permitted).
+
+| Gate | Metric | Accepted | Accepted with warning | Rejected | Source |
+| --- | --- | --- | --- | --- | --- |
+| G5.cohort_missingness | Fraction of cohort sites where the sample is MISSING_LOW_DEPTH or UNCALLABLE | ≤ 0.20 | 0.20–0.50 | > 0.50 | Provisional. No published standard; set from the phylogeny missingness limit (≤ 20 %) and the Pf7/Pf8 callability rejection level (50 %). |
+| G5.cohort_mixed_fraction | Fraction of cohort sites with MIXED evidence | reported | — | — | Descriptive: mixed infection or artefact (for example paralog mismapping). |
+
+The same file reports how many cohort sites are called (ALT, MIXED or REF) in at least
+80 % of the samples; that site completeness is reported, not gated.
 
 Basis for the literature-supported rows:
 

@@ -262,6 +262,7 @@ results -> runs/<RUN_ID>/results
 | `cohort/cohort.vcf.gz` | FO003/FO004 variant-only cohort merge |
 | `cohort/evidence_matrix.tsv.gz` | Site-forced per-sample evidence; missing is not imputed reference |
 | `cohort/sites.tsv`, `cohort/missingness.tsv` | Cohort sites and missingness summary |
+| `cohort/cohort_qc.json` | Cohort QC (gate G5) per sample: missing and mixed fractions, PASS/WARNING/FAIL; site call rates. A FAIL excludes the sample from DA001–DA007 (`COHORT_QC_FAIL`) |
 | `annotation/cohort.ann.vcf.gz`, `annotation_qc.json` | FO004 SnpEff consequences and annotation checks |
 | `eligibility/` | Per-sample/cohort scientific eligibility decisions |
 | `downstream/DAxxx/status_manifest.json` | Requested method's terminal state, denominators, exclusions and caveats |

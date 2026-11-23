@@ -312,7 +312,7 @@ def register_inputs(manifest: Path = typer.Option(..., "--manifest"),
 
 @app.command("fetch-input")
 def fetch_input(url: str = typer.Option(..., "--url"), sha256: str | None = typer.Option(None, "--sha256"),
-                role: str = typer.Option("raw", "--role", help="raw (reads or alignments) | reference | targets | metadata | truth"),
+                role: str = typer.Option("raw", "--role", help="raw (FASTQ reads or BAM/CRAM input) | reference | targets | metadata | truth"),
                 name: str = typer.Option(..., "--name")) -> None:
     """Download an HTTPS resource into its input folder (same checks as the GUI download)."""
     from pfvarx.execution.retention import workspace_lock
@@ -328,7 +328,7 @@ def fetch_input(url: str = typer.Option(..., "--url"), sha256: str | None = type
 
 @app.command("add-input")
 def add_input(files: list[Path] = typer.Option(..., "--file", help="file on this computer; repeat for several"),
-              role: str = typer.Option("raw", "--role", help="raw (reads or alignments) | reference | targets | metadata | truth"),
+              role: str = typer.Option("raw", "--role", help="raw (FASTQ reads or BAM/CRAM input) | reference | targets | metadata | truth"),
               name: str | None = typer.Option(None, "--name", help="destination filename (single --file only)")) -> None:
     """Copy files from disk into their input folder (same checks as the GUI upload)."""
     from pfvarx.execution.retention import workspace_lock

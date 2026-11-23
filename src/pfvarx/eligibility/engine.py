@@ -41,6 +41,7 @@ class SampleState:
     clonality: str | None = None  # MONOCLONAL | POLYCLONAL | INDETERMINATE | None (not assessed)
     metadata: dict[str, str] = field(default_factory=dict)
     processing: str = "COMPLETED"
+    cohort_qc: dict[str, Any] | None = None  # G5 decision (Layer 3); None when not evaluated
 
 
 @dataclass
@@ -81,6 +82,13 @@ def sample_eligibility(da: str, contract: dict[str, Any], s: SampleState, scale:
         status, failure = Eligibility.INELIGIBLE, FailureClass.QC_FAILURE
         reasons.append(Reason.QC_GATE_FAIL.value if s.qc.get("verdict") == QC.FAIL
                        else Reason.QC_GATE_WARNING.value)
+    elif s.cohort_qc is not None and not stage_permitted(s.cohort_qc, da):
+        status, failure = Eligibility.INELIGIBLE, FailureClass.QC_FAILURE
+        reasons.append(Reason.COHORT_QC_FAIL.value if s.cohort_qc.get("verdict") == QC.FAIL
+                       else Reason.COHORT_QC_WARNING.value)
+    if s.cohort_qc is not None:
+        evidence["cohort_qc_verdict"] = s.cohort_qc.get("verdict")
+        evidence["cohort_missing_fraction"] = (s.cohort_qc.get("metrics") or {}).get("cohort_missing_fraction")
     if Design.parse(s.design) not in [Design.parse(d) for d in contract["designs"]]:
         status, failure = Eligibility.UNSUPPORTED, FailureClass.SCIENTIFIC_EXCLUSION
         reasons.append(Reason.DESIGN_NOT_SUPPORTED.value)

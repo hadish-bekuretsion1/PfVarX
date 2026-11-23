@@ -51,7 +51,7 @@ FOLDER_KINDS = {
     "targets": ("BED", "PRIMERS"),
     "metadata": ("SAMPLE_SHEET", "CATALOGUE", "LIBRARY_CATALOG", "TSV"),
     "fastq": ("FASTQ",),
-    "alignments": ("BAM", "CRAM", "ALIGNMENT_INDEX"),
+    "bam": ("BAM", "CRAM", "ALIGNMENT_INDEX"),  # BAM/CRAM input; results/alignments/ holds the pipeline's own
     "truth": ("VCF", "BED", "JSON"),
 }
 ALIGNMENT_KINDS = {"BAM": ("BAM", "ALIGNMENT_INDEX"), "CRAM": ("CRAM", "ALIGNMENT_INDEX")}

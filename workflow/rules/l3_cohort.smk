@@ -71,3 +71,23 @@ rule cohort_evidence:
         "python -m pfvarx.cohort.evidence --vcf {input.vcf:q} --samples {input.samples:q} --bams {input.bams:q} "
         "--callable {input.callable:q} --reference {params.ref:q} --frozen-config {params.frozen:q} "
         "--out-matrix {output.matrix:q} --out-missing {output.missing:q} --out-sites {output.sites:q} > {log:q} 2>&1"
+
+
+rule cohort_qc:
+    """Cohort QC (gate G5): each sample's completeness in the cohort; a FAIL excludes the
+    sample from the downstream analyses."""
+    input:
+        missing=str(R / "cohort" / "missingness.tsv"),
+        matrix=str(R / "cohort" / "evidence_matrix.tsv.gz"),
+    output:
+        str(R / "cohort" / "cohort_qc.json"),
+    params:
+        frozen=FROZEN,
+        root=str(ROOT),
+    benchmark:
+        str(BENCH / "cohort_qc" / "cohort_qc.tsv")
+    log:
+        str(LOGS / "cohort" / "qc.log"),
+    shell:
+        "python -m pfvarx.quality.cohort --root {params.root:q} --frozen-config {params.frozen:q} "
+        "--missingness {input.missing:q} --matrix {input.matrix:q} --out {output:q} > {log:q} 2>&1"

@@ -289,6 +289,7 @@ def harvest(root: Path, run: Path) -> dict[str, Any]:
     snap = read_json(run / "snapshot.json")
     meta = {r["sample_id"]: r for r in _read_tsv_safe(root / eff["config"]["samples_tsv"])}
     samples, qc_matrix = [], []
+    cohort_qc = (_optional_json(res / "cohort" / "cohort_qc.json", warnings) or {}).get("samples", {})
     all_ids = sorted({s["sample_id"] for s in plan["samples"]} | set(plan.get("samples_failed_validation", [])))
     excl = read_json(run / "runtime_exclusions.json")["samples"] if (run / "runtime_exclusions.json").is_file() else []
     for sid in all_ids:
@@ -317,6 +318,7 @@ def harvest(root: Path, run: Path) -> dict[str, Any]:
         m = meta.get(sid, {})
         samples.append({"sample_id": sid, "processing": processing,
                         "qc_verdict": gate["verdict"] if gate else "NOT_EVALUATED",
+                        "cohort_qc_verdict": (cohort_qc.get(sid) or {}).get("verdict"),
                         "label": gate.get("label") if gate else None,
                         "permitted": gate.get("permitted") if gate else {},
                         "metrics": gate.get("metrics") if gate else {},
@@ -330,7 +332,7 @@ def harvest(root: Path, run: Path) -> dict[str, Any]:
                         "population": m.get(eff["config"]["analyses"].get("population_column") or "population", ""),
                         "country": m.get("country", ""), "latitude": _num(m.get("latitude")),
                         "longitude": _num(m.get("longitude")), "collection_date": m.get("collection_date", "")})
-        for d in (gate or {}).get("decisions", []):
+        for d in [*(gate or {}).get("decisions", []), *(cohort_qc.get(sid) or {}).get("decisions", [])]:
             qc_matrix.append({"sample_id": sid, **{k: d.get(k) for k in (
                 "gate_id", "gate", "stage", "metric", "unit", "observed", "fail_threshold", "warn_threshold",
                 "direction", "status", "threshold_source", "calibrated", "policy_version", "mandatory", "reason")}})
@@ -510,6 +512,7 @@ OUTPUT_DESCRIPTIONS: list[tuple[str, str]] = [
     (r"\.callable\.bed$", "Regions where the sample could be called"),
     (r"\.focal_loss\.bed$", "Regions with focal loss of callability"),
     (r"^cohort/cohort\.vcf\.gz$", "Cohort VCF: all samples merged"),
+    (r"^cohort/cohort_qc\.json$", "Cohort QC (gate G5): each sample's completeness in the cohort, and site call rates"),
     (r"^cohort/", "Cohort-level table or status"),
     (r"^annotation/cohort\.ann\.vcf\.gz$", "Annotated cohort VCF (SnpEff)"),
     (r"^annotation/", "Annotation output"),
