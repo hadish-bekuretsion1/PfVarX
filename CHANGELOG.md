@@ -5,6 +5,17 @@
 The release version was reset to 0.0.0 after 0.4.2, as the baseline for the first reviewed
 release. The sections below 0.0.0 are the earlier development numbering, kept as history.
 
+### Report colours by meaning
+
+- One colour theme across the dashboard: status labels are green ✔ (accepted), amber ▲
+  (warning), red ✖ (rejected or blocked), orange ◆ (a finding such as MUTANT), blue ○ (a
+  category such as MONOCLONAL) or gray – (not applicable), each with an icon.
+- Table cells for QC metrics are coloured against the run's QC policy limits; WSAF, prevalence
+  and other 0–1 fractions get a small in-cell bar; missing values stay a dash.
+- Overview tiles show failed samples in red and QC warnings (now including cohort QC) in amber
+  when there are any. Charts use the same status colours; clonality uses a colour-blind-safe
+  blue/orange pair.
+
 ### Cohort QC for FO003 (gate G5)
 
 - FO003 and FO004 runs now have their own QC step, like FO001's: `results/cohort/cohort_qc.json`

@@ -153,6 +153,28 @@ No violin density, posterior samples, historical control chart or execution time
 is fabricated from summary-only inputs. Distribution quartiles describe the supplied
 point estimates, not confidence intervals.
 
+## Colours and what they mean
+
+The whole dashboard uses one set of colours, each with an icon so colour is never the only cue:
+
+| Look | Meaning | Examples |
+| --- | --- | --- |
+| green ✔ | accepted / done | PASS, COMPLETED, ELIGIBLE |
+| amber ▲ | accepted with a warning | WARNING, LOW_CONFIDENCE, CONDITIONALLY_ELIGIBLE, COMPLETED_WITH_EXCLUSIONS |
+| red ✖ | rejected / failed / blocked | FAIL, FAILED, INELIGIBLE, BLOCKED_…, FILTERED |
+| orange ◆ | a finding (biology, not quality) | MUTANT, ALT_DOMINANT |
+| blue ○ | a category (biology, not quality) | MONOCLONAL, MIXED, WILD_TYPE, REF_DOMINANT |
+| gray – | not applicable, not evaluated or not callable | NOT_APPLICABLE, NOT_EVALUATED, INSUFFICIENT_DEPTH, UNCALLABLE |
+
+In tables, a QC metric (for example `median_depth_core`, `duplicate_fraction`,
+`cohort_missing_fraction`) is coloured against the run's own QC policy limits: green within,
+amber ▲ past the warning limit, red ✖ past the failure limit. Other fractions between 0 and 1
+(WSAF and its interval, prevalence, P(COI > 1)) show a small blue bar behind the number for
+magnitude, with no judgement. Missing values stay a plain dash. Overview tiles take the same
+colours: failed samples red when any, QC warnings amber when any (read/alignment or cohort
+QC). Charts use the same status colours; clonality uses blue (monoclonal) and orange
+(polyclonal), a pair checked for colour-vision deficiency.
+
 ## Filters, tables and exports
 
 Tables provide text search, available categorical filters, keyboard-accessible sorting,
