@@ -59,7 +59,7 @@ def required_dirs(cfg: ProjectConfig) -> list[str]:
     if cfg.input_type == InputType.FASTQ:
         dirs.append("inputs/fastq")
     elif cfg.input_type in (InputType.BAM, InputType.CRAM):
-        dirs.append("inputs/alignments")
+        dirs.append("inputs/bam")  # BAM or CRAM input; the pipeline's own alignments go to results/alignments/
     else:
         dirs.append("inputs/vcf")
     if cfg.assay_design.targeted:

@@ -139,11 +139,11 @@ def test_bam_entry_runs_only_the_steps_its_state_needs(fastq_runs: dict[str, Any
     sheet = ws / "prepared/samples.tsv"
     rows = [line.split("\t") for line in sheet.read_text().splitlines()]
     header = rows[0]
-    (ws / "inputs/alignments").mkdir(exist_ok=True)
+    (ws / "inputs/bam").mkdir(exist_ok=True)
     for row in rows[1:]:
         sample = row[header.index("sample_id")]
-        source_bam(source, sample, kind, ws / f"inputs/alignments/{sample}.bam")
-        row[header.index("bam")] = f"inputs/alignments/{sample}.bam"
+        source_bam(source, sample, kind, ws / f"inputs/bam/{sample}.bam")
+        row[header.index("bam")] = f"inputs/bam/{sample}.bam"
         row[header.index("fastq_1")] = row[header.index("fastq_2")] = ""
         row[header.index("processing_state")] = state
     sheet.write_text("\n".join("\t".join(r) for r in rows) + "\n")
@@ -212,11 +212,11 @@ def test_consensus_state_on_raw_umi_reads_is_rejected(fastq_runs: dict[str, Any]
     sheet = ws / "prepared/samples.tsv"
     rows = [line.split("\t") for line in sheet.read_text().splitlines()]
     header = rows[0]
-    (ws / "inputs/alignments").mkdir(exist_ok=True)
+    (ws / "inputs/bam").mkdir(exist_ok=True)
     for row in rows[1:]:
         sample = row[header.index("sample_id")]
-        source_bam(source, sample, "umi_raw", ws / f"inputs/alignments/{sample}.bam")
-        row[header.index("bam")] = f"inputs/alignments/{sample}.bam"
+        source_bam(source, sample, "umi_raw", ws / f"inputs/bam/{sample}.bam")
+        row[header.index("bam")] = f"inputs/bam/{sample}.bam"
         row[header.index("processing_state")] = "consensus"
     sheet.write_text("\n".join("\t".join(r) for r in rows) + "\n")
     failures = validation_failures(ws)

@@ -258,7 +258,7 @@ def test_aligned_profile_skips_read_tool_feature_and_creates_no_fastq_directory(
 
     initialize(tmp_path / "aligned")
     assert result["environment"] == "aligned"
-    assert (tmp_path / "aligned/inputs/alignments").is_dir()
+    assert (tmp_path / "aligned/inputs/bam").is_dir()
     assert not (tmp_path / "aligned/inputs/fastq").exists()
 
 

@@ -3549,7 +3549,7 @@ with a trailing slash. File fields still require filenames.
 | --- | --- |
 | `inputs/reference/` | Parasite FASTA, and core BED. Add a matching GFF for explicit FO004 or to enable markers in automatic FO004. With Human DNA removal (`reference.host_removal: true`, wgs only), also the human genome FASTA. |
 | `inputs/fastq/` | Paired FASTQ for FASTQ entry. Register read pairs with their verified sample and lane identities. |
-| `inputs/alignments/` | BAM or CRAM with the appropriate index for aligned entry. |
+| `inputs/bam/` | BAM or CRAM with the appropriate index for aligned entry (BAM/CRAM input). The pipeline's own alignments are written to `results/alignments/` of each run. |
 | `inputs/metadata/` | Created only with Study Metadata: Yes, or for a targeted design's library catalog: the study metadata table (tab-separated, with `sample_id`: population, country, latitude, longitude, collection_date, ...), the library catalog YAML and an optional marker catalogue. |
 | `inputs/targets/` | Reference-matched target BED and primer TSV for targeted assays. |
 | `inputs/truth/`, `inputs/partitions/` | Benchmark truth, confidence regions and partition resources for benchmark workspaces. |
@@ -3580,11 +3580,11 @@ nano metadata/discovered_samples.tsv
 
 ## Transfer raw data and run preflight
 
-After saving, open **Input files** to upload reads or alignments, or download
+After saving, open **Input files** to upload reads (`inputs/fastq/`) or BAM/CRAM files (`inputs/bam/`), or download
 them using an HTTPS link and a destination filename. A trusted SHA-256 is
 optional. When provided, PfVarX checks it before saving. Otherwise, PfVarX
 records the computed checksum and marks the download unverified. Put reference
-files in `inputs/reference/`. Register your reads or alignments before running
+files in `inputs/reference/`. Register your reads or BAM/CRAM files before running
 **Workflow Readiness Checks → Run readiness checks**. The tab runs `validate`, `prepare`,
 `verify-prepared`, and `ready` in that order and stops on failure.
 
@@ -3875,7 +3875,7 @@ primer or catalogue header), and refused, with an explanation, when they do not.
 | --- | --- |
 | inputs/reference/ | FASTA sequence, BED intervals (core mask), GFF3 annotation |
 | inputs/fastq/ | FASTQ reads, plain or gzip-compressed |
-| inputs/alignments/ | BAM or CRAM alignment (as configured) and its index (.bai, .csi or .crai content) |
+| inputs/bam/ | BAM or CRAM alignment (as configured) and its index (.bai, .csi or .crai content) |
 | inputs/targets/ | BED intervals (targets, probes) and the primer table, named by a panel in the library catalog |
 | inputs/metadata/ | Study metadata table (header with `sample_id`), marker catalogue (header with `marker_id`), library catalog (YAML with `schema_version: pfvarx.library_catalog/1`), other tab-separated tables |
 | inputs/truth/ | VCF variants, BED intervals, JSON |
@@ -3963,7 +3963,7 @@ An imported consensus BAM for the same panel:
 
 ```text
 sample_id	lane	bam	library_id	technique	panel_id	panel_version	processing_state
-PF003	L001	inputs/alignments/PF003.consensus.bam	PF003_lib1	TBS_UMI	MAD4HATTER	1	consensus
+PF003	L001	inputs/bam/PF003.consensus.bam	PF003_lib1	TBS_UMI	MAD4HATTER	1	consensus
 ```
 
 ## The library catalog
@@ -4102,10 +4102,10 @@ Archive them before resuming if their original contents are needed.
 
 ## Transfer raw data and run preflight
 
-After saving, open **Input files** to upload reads or alignments, or download
+After saving, open **Input files** to upload reads (`inputs/fastq/`) or BAM/CRAM files (`inputs/bam/`), or download
 them using an HTTPS link and a destination filename. A trusted SHA-256 is
 optional. When provided, PfVarX checks it before saving. Otherwise, PfVarX
 records the computed checksum and marks the download unverified. Put reference
-files in `inputs/reference/`. Register your reads or alignments before running
+files in `inputs/reference/`. Register your reads or BAM/CRAM files before running
 **Workflow Readiness Checks → Run readiness checks**. The tab runs `validate`, `prepare`,
 `verify-prepared`, and `ready` in that order and stops on failure.

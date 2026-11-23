@@ -58,7 +58,7 @@ An imported consensus BAM for the same panel:
 
 ```text
 sample_id	lane	bam	library_id	technique	panel_id	panel_version	processing_state
-PF003	L001	inputs/alignments/PF003.consensus.bam	PF003_lib1	TBS_UMI	MAD4HATTER	1	consensus
+PF003	L001	inputs/bam/PF003.consensus.bam	PF003_lib1	TBS_UMI	MAD4HATTER	1	consensus
 ```
 
 ## The library catalog

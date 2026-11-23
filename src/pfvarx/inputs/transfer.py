@@ -27,7 +27,7 @@ def folder_kinds(root: Path) -> dict[str, tuple[str, ...]]:
     cfg = load_bundle(root).config
     kinds = dict(FOLDER_KINDS)
     if cfg.input_type.value in ALIGNMENT_KINDS:
-        kinds["alignments"] = ALIGNMENT_KINDS[cfg.input_type.value]
+        kinds["bam"] = ALIGNMENT_KINDS[cfg.input_type.value]
     return kinds
 
 
@@ -42,12 +42,12 @@ def check_content(root: Path, staged: Path, destination: Path) -> None:
 
 
 def destination_for(root: Path, name: str, role: str = "raw") -> Path:
-    """Checked destination of one input file; ``raw`` means the reads or alignments folder."""
+    """Checked destination of one input file; ``raw`` means the reads (inputs/fastq) or BAM/CRAM (inputs/bam) folder."""
     if not re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9._-]*", name):
         raise ValueError("Use a plain filename with letters, digits, dots, underscores or hyphens")
     cfg = load_bundle(root).config
     if role == "raw":
-        role = "fastq" if cfg.input_type.value == "FASTQ" else "alignments"
+        role = "fastq" if cfg.input_type.value == "FASTQ" else "bam"
     if f"inputs/{role}" not in required_dirs(cfg) or role == "partitions":
         raise ValueError("Input folder is unavailable for the saved configuration")
     folder = within(root, f"inputs/{role}")

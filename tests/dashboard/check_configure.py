@@ -45,7 +45,7 @@ with tempfile.TemporaryDirectory(prefix="pfvarx040-gui-") as directory:
                 source_type.select_option(aligned)
                 expect(output).to_have_value("FO002")
                 preview = page.locator("#input-folder-preview")
-                expect(preview).to_contain_text("inputs/alignments/")
+                expect(preview).to_contain_text("inputs/bam/")
                 expect(preview).not_to_contain_text("inputs/fastq/")
                 assert output.locator('option[value="FO001"]').evaluate('(option) => option.disabled')
             source_type.select_option("FASTQ")

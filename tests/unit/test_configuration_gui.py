@@ -94,7 +94,7 @@ def test_bam_save_creates_alignment_folders(workspace: Path) -> None:
     values["config"]["input_type"] = "BAM"
     values["config"]["reference"]["release_label"] = "fixture"
     result = save(workspace, values, state["revision"], False)
-    assert set(result["directories"]) == {"inputs/alignments", "inputs/reference"}
+    assert set(result["directories"]) == {"inputs/bam", "inputs/reference"}
     assert all((workspace / folder).is_dir() for folder in result["directories"])
     assert not (workspace / "inputs/fastq").exists()
 
@@ -183,9 +183,9 @@ def test_gui_and_cli_share_transfer_rules(workspace: Path, tmp_path_factory: pyt
     with pytest.raises(ValueError, match="does not end in .gz"):
         transfer.import_file(workspace, unnamed_gzip)
     with pytest.raises(ValueError, match="unavailable for the saved configuration"):
-        transfer.import_file(workspace, source, role="alignments")  # FASTQ study has no such folder
+        transfer.import_file(workspace, source, role="bam")  # FASTQ study has no such folder
     with pytest.raises(ValueError, match="unavailable for the saved configuration"):
-        transfer.download(workspace, "https://example.org/x.bam", None, "alignments", "x.bam")
+        transfer.download(workspace, "https://example.org/x.bam", None, "bam", "x.bam")
     reference = outside / "Pf3D7.fasta"
     reference.write_text(">c\nACGT\n")
     assert transfer.import_file(workspace, reference, role="reference")["path"] == "inputs/reference/Pf3D7.fasta"
@@ -195,8 +195,8 @@ def test_alignment_content_follows_the_saved_input_type(workspace: Path, tmp_pat
     from pfvarx.inputs import transfer
 
     _saved_workspace(workspace, "BAM")
-    assert transfer.folder_kinds(workspace)["alignments"] == ("BAM", "ALIGNMENT_INDEX")
-    assert transfer.folder_contents(workspace)["alignments"][0] == "BAM alignment"
+    assert transfer.folder_kinds(workspace)["bam"] == ("BAM", "ALIGNMENT_INDEX")
+    assert transfer.folder_contents(workspace)["bam"][0] == "BAM alignment"
     cram = tmp_path_factory.mktemp("disk") / "S1.bam"  # CRAM content under a .bam name
     cram.write_bytes(b"CRAM\x03\x00" + b"\x00" * 20)
     with pytest.raises(ValueError, match="contains CRAM alignment; this input needs BAM alignment"):
