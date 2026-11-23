@@ -11,6 +11,13 @@ release. The sections below 0.0.0 are the earlier development numbering, kept as
   PfVarX's jobs and could pause 10 seconds per scheduling decision before falling back
   ("Failed to solve scheduling problem with ILP solver in time"). Results are unchanged.
 
+### Output files open in place
+
+- In "Where the results are saved", nothing is downloaded any more: each file has **Open
+  folder** (its folder in the browser) and **Copy path** (full path for IGV, a spreadsheet or
+  the file manager). File names are links only for files the browser displays (HTML, JSON,
+  TXT, logs, images, PDF); BAM, VCF, TSV and BED are no longer links.
+
 ### Output files in the dashboard
 
 - Overview starts with **Where the results are saved**: the run folder's full path (Copy path,

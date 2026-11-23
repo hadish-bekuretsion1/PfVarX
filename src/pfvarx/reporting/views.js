@@ -32,24 +32,31 @@ function build() {
 function kpis(items) { return el("div",{class:"kpis"},items.map(([label,value,scope])=>{const shown=fmt(value);return el("div",{class:"kpi"},el("b",{class:String(shown).length>8?"long "+String(shown):String(shown)},shown),label,scope?el("small",{},scope):null);})); }
 function summaryCount(key,value) { const supplied=D.variant_summary[key];if(supplied&&typeof supplied==="object")return number(supplied[value])??0;return D.variants.filter(v=>String(v[{types:"type",statuses:"status",chromosomes:"chrom"}[key]])===value).length; }
 function fileSize(bytes) { const n=number(bytes);if(n===null)return "—";const units=["B","KB","MB","GB","TB"];let i=0,v=n;while(v>=1024&&i<units.length-1){v/=1024;i++;}return (i?v.toFixed(v<10?1:0):String(v))+" "+units[i]; }
+// File types a browser shows itself; everything else (BAM, VCF, TSV, BED, gz…) would be downloaded.
+const VIEWABLE_OUTPUT=/\.(html?|json|txt|log|svg|png|jpe?g|pdf)$/i;
+function copyText(text,what) { return el("button",{class:"btn btn-small",title:text,onclick:async()=>{try{await navigator.clipboard.writeText(text);notify(what+" copied: "+text);}catch(_){notify("Copy failed: select the path and copy it: "+text,true);}}},"Copy path"); }
 function outputsPanel() {
   const o=D.outputs;if(!o||!Array.isArray(o.files))return null;
   const link=(href,text,cls="")=>el("a",{href,target:"_blank",rel:"noopener",class:cls},text);
-  const copy=el("button",{class:"btn",onclick:async()=>{try{await navigator.clipboard.writeText(o.run_dir);notify("Run folder path copied.");}catch(_){notify("Copy failed: select the path and copy it.",true);}}},"Copy path");
+  const folderOf=href=>href.replace(/[^/]+$/,"");
+  const absolute=f=>o.run_dir.replace(/\/$/,"")+"/"+f.path;
   const panel=el("div",{class:"panel outputs-panel",id:"outputs"},el("h3",{},"Where the results are saved"),
-    el("div",{class:"outputs-path"},el("span",{class:"outputs-label"},"Run folder"),el("code",{},o.run_dir),copy,link(o.results_href||"../","Open results folder","btn primary")),
-    el("div",{class:"outputs-folders"},(o.folders||[]).map(f=>link(f.href,f.label,"chip")),(o.run_files||[]).map(f=>link(f.href,f.label,"chip"))));
+    el("div",{class:"outputs-path"},el("span",{class:"outputs-label"},"Run folder"),el("code",{},o.run_dir),copyText(o.run_dir,"Run folder path"),link(o.results_href||"../","Open results folder","btn primary")),
+    el("div",{class:"outputs-folders"},(o.folders||[]).map(f=>link(f.href,f.label,"chip")),(o.run_files||[]).map(f=>VIEWABLE_OUTPUT.test(f.path)?link(f.href,f.label,"chip"):el("span",{class:"chip chip-plain"},f.label))));
   const search=el("input",{type:"search",placeholder:"Find a file, e.g. vcf, PF001, fastp","aria-label":"Find an output file"});
   const list=el("div",{class:"outputs-list"});
   const draw=()=>{const q=search.value.trim().toLowerCase();const rows=o.files.filter(f=>!q||[f.path,f.description,f.group].join(" ").toLowerCase().includes(q));
     const groups=new Map();rows.forEach(f=>{if(!groups.has(f.group))groups.set(f.group,[]);groups.get(f.group).push(f);});
     list.replaceChildren(...[...groups].map(([group,items],i)=>el("details",{open:q||i===0?"open":null},el("summary",{},group+" ",el("small",{},items.length+" file"+(items.length===1?"":"s"))),
-      el("div",{class:"tablewrap"},el("table",{},el("thead",{},el("tr",{},el("th",{},"File"),el("th",{},"Size"),el("th",{},"What it is"),el("th",{},"Location"))),
-        el("tbody",{},items.map(f=>el("tr",{},el("td",{},link(f.href,f.file)),el("td",{class:"num"},fileSize(f.size_bytes)),el("td",{},f.description||""),el("td",{},el("code",{},f.path))))))))));
+      el("div",{class:"tablewrap"},el("table",{},el("thead",{},el("tr",{},el("th",{},"File"),el("th",{},"Size"),el("th",{},"What it is"),el("th",{},"Location"),el("th",{},"Open"))),
+        el("tbody",{},items.map(f=>el("tr",{},
+          el("td",{},VIEWABLE_OUTPUT.test(f.file)?link(f.href,f.file):el("span",{class:"file-name",title:"Opened with another program; use Open folder or Copy path"},f.file)),
+          el("td",{class:"num"},fileSize(f.size_bytes)),el("td",{},f.description||""),el("td",{},el("code",{},f.path)),
+          el("td",{class:"outputs-actions"},link(folderOf(f.href),"Open folder","btn btn-small"),copyText(absolute(f),"Path"))))))))));
     if(!rows.length)list.append(empty("No output file matches."));};
   search.oninput=draw;draw();
   panel.append(el("div",{class:"controls"},search,el("span",{class:"note"},o.files.length+" files")),list,
-    note("Links open the saved files when this dashboard is opened from its run folder on the computer that ran PfVarX. HTML, JSON, TSV and TXT files open in the browser; BAM and VCF files are downloaded or opened with another program (for example IGV). Temporary work files are not listed."));
+    note("Nothing is downloaded. Open folder shows the file's folder in the browser. File names are links only for files the browser displays (HTML, JSON, TXT, logs, images, PDF). BAM, VCF, TSV, BED and other files open with their own program (IGV, a spreadsheet, a text editor): use Copy path and paste the path there, or in the file manager (Ctrl+L). Links work when this dashboard is opened from its run folder on the computer that ran PfVarX. Temporary work files are not listed."));
   return panel;
 }
 function buildOverview() {
