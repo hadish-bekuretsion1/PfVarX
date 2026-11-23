@@ -142,6 +142,8 @@ input[type=range]{max-width:190px;accent-color:var(--teal)}
 .outputs-list .tablewrap{border:0;border-top:1px solid var(--line);border-radius:0 0 10px 10px;max-height:420px}
 .outputs-list td a{color:var(--accent);font-weight:650}
 .outputs-list td code{font:11.5px var(--mono);color:var(--muted)}
+.btn-small{padding:3px 9px;font-size:12px}.outputs-actions{white-space:nowrap}.outputs-actions .btn{margin-right:6px}
+.file-name{font-weight:650}.chip-plain{background:#eef2f6;color:var(--muted);border-color:var(--line)}
 
 /* Tablet and phone */
 @media(max-width:1050px){header{padding:10px 16px;z-index:20}main{padding:20px 16px 40px}.grid2,.dash-grid{grid-template-columns:1fr}.analysis-tabs{display:flex;overflow-x:auto}.analysis-tab{flex:0 0 150px}h1{font-size:28px}#menuToggle{display:inline-flex;z-index:16}
