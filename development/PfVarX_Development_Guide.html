@@ -458,7 +458,7 @@ code .</pre></div>
 </table></div>
 
 <h2 id="inv-gates">7. All QC gates</h2>
-<p>Thresholds in <code>config/registry/qc_policy_pfvarx_qc_v1.yaml</code> (policy version 1.2.0). <code>min</code>: FAIL below <code>fail</code>, WARNING below <code>warn</code>; <code>max</code>: the reverse; <code>descriptive</code>: reported only. A FAIL on a non-mandatory gate counts as a WARNING.</p>
+<p>Thresholds in <code>config/registry/qc_policy_pfvarx_qc_v1.yaml</code> (policy version 1.3.0). <code>min</code>: FAIL below <code>fail</code>, WARNING below <code>warn</code>; <code>max</code>: the reverse; <code>descriptive</code>: reported only. A FAIL on a non-mandatory gate counts as a WARNING.</p>
 <div class="tablewrap"><table>
 <tr><th>Gate</th><th>Metric</th><th>Direction</th><th>Fail</th><th>Warn</th><th>Source</th><th>Designs</th><th>Mandatory</th><th>Reference</th></tr>
 <tr><td><code>G1.read_retention</code></td><td><code>reads_retained_fraction</code></td><td>min</td><td class='num'>0.5</td><td class='num'>0.7</td><td><span class='pill'>UNCALIBRATED_PROVISIONAL</span></td><td>wgs, targeted_no_umi, targeted_umi</td><td>yes</td><td>no published standard; depends on library and adapter content</td></tr>
@@ -475,6 +475,8 @@ code .</pre></div>
 <tr><td><code>G3.amplicon_depth</code></td><td><code>median_amplicon_depth</code></td><td>min</td><td class='num'>100</td><td class='num'>null</td><td><span class='pill'>LITERATURE_SUPPORTED</span></td><td>targeted_no_umi</td><td>no</td><td>Early 2019 (sensitivity and precision fall below 100 reads per amplicon); MAD4HatTeR guidance (&gt;=100 reads per amplicon). Raw reads only, so not applied to UMI consensus reads; reported as a warning</td></tr>
 <tr><td><code>G3.umi_singletons</code></td><td><code>umi_singleton_fraction</code></td><td>max</td><td class='num'>null</td><td class='num'>null</td><td><span class='pill'>UNSET_BLOCKING</span></td><td>targeted_umi</td><td>no</td><td>no published standard; reported only</td></tr>
 <tr><td><code>G4.mixture_converged</code></td><td><code>mixture_converged</code></td><td>min</td><td class='num'>1</td><td class='num'>null</td><td><span class='pill'>FRAMEWORK_POLICY</span></td><td>wgs, targeted_no_umi, targeted_umi</td><td>no</td><td>numerical convergence of the mixture model</td></tr>
+<tr><td><code>G5.cohort_missingness</code></td><td><code>cohort_missing_fraction</code></td><td>max</td><td class='num'>0.5</td><td class='num'>0.2</td><td><span class='pill'>UNCALIBRATED_PROVISIONAL</span></td><td>wgs, targeted_no_umi, targeted_umi</td><td>yes</td><td>no published standard; share of cohort sites where the sample is MISSING_LOW_DEPTH or UNCALLABLE (FO003/FO004; a FAIL excludes the sample from DA001–DA007)</td></tr>
+<tr><td><code>G5.cohort_mixed_fraction</code></td><td><code>cohort_mixed_fraction</code></td><td>descriptive</td><td class='num'>null</td><td class='num'>null</td><td><span class='pill'>FRAMEWORK_POLICY</span></td><td>wgs, targeted_no_umi, targeted_umi</td><td>no</td><td>descriptive; share of cohort sites with MIXED evidence</td></tr>
 </table></div>
 
 <h2 id="inv-analyses">8. Downstream analyses</h2>

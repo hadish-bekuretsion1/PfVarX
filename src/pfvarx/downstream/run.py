@@ -82,6 +82,8 @@ def run_eligibility(ctx: Context) -> None:
     requested = list(ctx.plan.get("analyses_requested", []))
     internal = list(ctx.plan.get("analyses_internal", []))
     clon = clonality_map(ctx)
+    cohort_qc_path = ctx.results / "cohort" / "cohort_qc.json"
+    cohort_qc = json.loads(cohort_qc_path.read_text())["samples"] if cohort_qc_path.is_file() else {}
     states: dict[str, SampleState] = {}
     for sid in sorted({s["sample_id"] for s in ctx.plan["samples"]}):
         try:
@@ -91,7 +93,8 @@ def run_eligibility(ctx: Context) -> None:
         processing = "COMPLETED" if sid in ctx.samples else "BLOCKED_UPSTREAM"
         states[sid] = SampleState(sample_id=sid, design=ctx.design.value, qc=gate,
                                   clonality=(clon or {}).get(sid) if clon is not None else None,
-                                  metadata=ctx.metadata.get(sid, {}), processing=processing)
+                                  metadata=ctx.metadata.get(sid, {}), processing=processing,
+                                  cohort_qc=cohort_qc.get(sid))
     scales = ctx.eff["config"]["analyses"]["scales"]
     from pfvarx.eligibility.territory import callable_markers, describe
 

@@ -93,7 +93,7 @@ the section list slides in from the left). The header has no buttons. Nothing el
 the data kind (SYNTHETIC DEMO DATA for fixtures) and the calibration status appear once,
 at the top of **Overview**. The sidebar
 contains eight sections, in the order a run is reviewed: **Overview** (run
-summary), **Inputs** (validation and libraries), **Quality Control** (gates and metrics),
+summary), **Inputs** (validation and libraries), **Quality Control** (gates and metrics; for FO003 and FO004 also the cohort QC gate G5 and each sample's cohort QC verdict),
 **Variants** (records and annotations), **Downstream Analyses** (DA001–DA007),
 **Resources** (execution and utilization), **Software** (versions and provenance) and
 **Logs** (diagnostics and exclusions). Each section opens with one heading, such as **PfVarX · Inputs**; Downstream Analyses

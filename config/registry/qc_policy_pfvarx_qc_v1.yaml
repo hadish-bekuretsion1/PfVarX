@@ -9,7 +9,7 @@
 #   the gate is evaluated and every decision is labelled calibrated=false until measured.
 # threshold_source UNSET_BLOCKING => gate reports NOT_EVALUATED (never PASS).
 policy_id: pfvarx_qc_v1
-version: "1.2.0"
+version: "1.3.0"
 gates:
   - {id: G1.read_retention, gate: G1, stage: L1.fastq_qc, metric: reads_retained_fraction, unit: fraction,
      direction: min, fail: 0.5, warn: 0.7, threshold_source: UNCALIBRATED_PROVISIONAL,
@@ -69,3 +69,14 @@ gates:
      direction: min, fail: 1, warn: null, threshold_source: FRAMEWORK_POLICY,
      reference: "numerical convergence of the mixture model",
      designs: [wgs, targeted_no_umi, targeted_umi], mandatory: false, warning_permitted_for: [L3, DA002, DA003]}
+  # G5 cohort QC (Layer 3, FO003 and later): completeness of each sample in the cohort, from
+  # cohort/missingness.tsv. A FAIL excludes the sample from the downstream analyses (FO004).
+  - {id: G5.cohort_missingness, gate: G5, stage: L3.cohort, metric: cohort_missing_fraction, unit: fraction,
+     direction: max, fail: 0.5, warn: 0.2, threshold_source: UNCALIBRATED_PROVISIONAL,
+     reference: "no published standard; share of cohort sites where the sample is MISSING_LOW_DEPTH or UNCALLABLE",
+     designs: [wgs, targeted_no_umi, targeted_umi], mandatory: true,
+     warning_permitted_for: [L4, DA001, DA002, DA003, DA004, DA005, DA006, DA007]}
+  - {id: G5.cohort_mixed_fraction, gate: G5, stage: L3.cohort, metric: cohort_mixed_fraction, unit: fraction,
+     direction: descriptive, fail: null, warn: null, threshold_source: FRAMEWORK_POLICY,
+     reference: "descriptive; share of cohort sites with MIXED evidence (mixed infection or artefact)",
+     designs: [wgs, targeted_no_umi, targeted_umi], mandatory: false, warning_permitted_for: []}

@@ -206,6 +206,10 @@ def test_every_downstream_analysis_executes(tmp_path: Path) -> None:
     summary = json.loads((res / "downstream/DA004/status_manifest.json").read_text())["results_summary"]
     assert summary["pairs_estimated"] > 0, summary
     assert (res / "downstream/DA006/tree.treefile").is_file()
+    # Cohort QC (G5) ran and gave each cohort sample a verdict.
+    cohort_qc = json.loads((res / "cohort/cohort_qc.json").read_text())
+    assert set(cohort_qc["samples"]) == set((res / "cohort/cohort_samples.txt").read_text().split())
+    assert all(q["verdict"] in ("PASS", "WARNING", "FAIL") for q in cohort_qc["samples"].values())
     # Tool byproducts that no step reads are not kept.
     unused = [p for pattern in ("qc/samples/*/core.mosdepth.global.dist.txt", "qc/samples/*/core.regions.bed.gz*",
                                 "downstream/DA006/tree.ckp.gz", "downstream/DA006/tree.bionj",
