@@ -176,7 +176,7 @@ button:disabled { background: #c7d0da; border-color: #c7d0da; color: #fff; curso
 
 /* Step tabs: all six on one line in a wide bar, numbered in workflow order, each sized to its
    label so no label is cut or broken. Windows too narrow for one line get an even 3 x 2 grid
-   (2 x 3 on phones); the bar never scrolls and no tab is hidden. */
+   (2 x 3 on phones, where long labels wrap); the bar never scrolls and no tab is hidden. */
 nav {
     display: flex;
     flex-wrap: nowrap;
@@ -210,7 +210,12 @@ nav button {
     nav[aria-label="Workspace views"] { display: grid; grid-template-columns: repeat(3, 1fr); }
     nav[aria-label="Workspace views"] button { justify-content: flex-start; }
 }
-@media (max-width: 900px) { nav[aria-label="Workspace views"] { grid-template-columns: repeat(2, 1fr); } }
+/* Two columns on phones and small tablets: labels wrap onto two or three lines instead of
+   running into the next tab. */
+@media (max-width: 900px) {
+    nav[aria-label="Workspace views"] { grid-template-columns: repeat(2, 1fr); }
+    nav[aria-label="Workspace views"] button { white-space: normal; text-align: left; line-height: 1.25; }
+}
 nav button:hover:not(:disabled) { background: var(--primary-soft); color: var(--primary); border-color: var(--border); }
 nav button[aria-pressed="true"],
 nav button[aria-pressed="true"]:hover:not(:disabled) { background: var(--primary); color: #fff; box-shadow: var(--shadow); }

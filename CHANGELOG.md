@@ -5,6 +5,12 @@
 The release version was reset to 0.0.0 after 0.4.2, as the baseline for the first reviewed
 release. The sections below 0.0.0 are the earlier development numbering, kept as history.
 
+### Configuration editor tabs on phones
+
+- On phones and small tablets the six step tabs of the configuration editor wrap their labels
+  onto two or three lines, so "Workflow Readiness Checks" no longer runs into "Workflow Check
+  and Run".
+
 ### BAM input folder is `inputs/bam/`
 
 - BAM or CRAM files given as input now go in `inputs/bam/` (was `inputs/alignments/`), so the
