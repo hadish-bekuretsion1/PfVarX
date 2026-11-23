@@ -90,6 +90,9 @@ def snakemake_cmd(root: Path, run: Path, eff: dict[str, Any], dry: bool) -> list
            "--default-resources", f"mem_mb={min(1000, comp['per_job']['max_mem_mb'])}",
            f"runtime={comp['per_job']['max_runtime_min']}",
            *([f"tmpdir={comp['tmp_dir']}"] if comp.get("tmp_dir") else []),
+           # Greedy scheduling: PfVarX jobs are few per sample with fixed limits, so Snakemake's ILP
+           # optimiser adds nothing and can stall 10 s per decision before falling back to greedy.
+           "--scheduler", "greedy",
            "--rerun-incomplete", "--printshellcmds", "--show-failed-logs"]
     if eff["config"].get("retention", {}).get("intermediates") == "keep":
         cmd += ["--notemp"]
