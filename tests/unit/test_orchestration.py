@@ -237,6 +237,10 @@ def test_keep_policy_changes_snakemake_retention_only(workspace):
     assert "--notemp" in snakemake_cmd(workspace, workspace / "run", eff, False)
     eff["config"]["retention"]["intermediates"] = "successful"
     assert "--notemp" not in snakemake_cmd(workspace, workspace / "run", eff, False)
+    # Greedy scheduling for real and dry runs: no ILP optimiser time-outs.
+    for dry in (False, True):
+        cmd = snakemake_cmd(workspace, workspace / "run", eff, dry)
+        assert cmd[cmd.index("--scheduler") + 1] == "greedy"
 
 
 def test_diversity_export_does_not_install_moire(tmp_path):

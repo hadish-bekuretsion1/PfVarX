@@ -486,6 +486,87 @@ def harvest(root: Path, run: Path) -> dict[str, Any]:
     return _redact(data)
 
 
+# Output files shown in the dashboard: (pattern on the path inside results/, what the file is).
+OUTPUT_DESCRIPTIONS: list[tuple[str, str]] = [
+    (r"^report/pfvarx_dashboard\.html$", "This dashboard (opens offline in any browser)"),
+    (r"^report/dashboard_data\.json$", "All data shown in this dashboard, machine-readable"),
+    (r"^report/clonality_report\.(tsv|txt)$", "Clonality summary per sample"),
+    (r"^alignments/.+\.bam$", "Final alignment (BAM) used for variant calling"),
+    (r"^alignments/.+\.(bai|csi)$", "Index of the alignment"),
+    (r"^qc/centralized_quality_matrix\.json$", "Every QC gate for every sample"),
+    (r"\.fastp\.html$", "fastp read-QC report (per-position quality, adapters)"),
+    (r"\.fastp\.json$", "fastp read-QC numbers"),
+    (r"\.flagstat\.json$", "Alignment statistics (samtools flagstat)"),
+    (r"\.markdup\.txt$", "Duplicate-marking metrics (Picard)"),
+    (r"mosdepth\.summary\.txt$", "Depth summary in the core genome (mosdepth)"),
+    (r"mosdepth\..*dist\.txt$", "Depth distribution (mosdepth)"),
+    (r"targets\.regions\.bed\.gz$", "Depth per target region (mosdepth; target gates)"),
+    (r"qc_decision\.json$", "QC verdict of the sample and the reason for each gate"),
+    (r"\.caller_qc\.json$", "Variant-caller model fit for the sample"),
+    (r"\.entry_contract\.json$", "Checks done on an imported BAM/CRAM"),
+    (r"^variants/samples/.+\.vcf\.gz$", "Variant calls of the sample (VCF)"),
+    (r"^variants/samples/.+\.vcf\.gz\.tbi$", "Index of the VCF"),
+    (r"\.evidence\.tsv$", "Every candidate site with its evidence and status (full table)"),
+    (r"\.callable\.bed$", "Regions where the sample could be called"),
+    (r"\.focal_loss\.bed$", "Regions with focal loss of callability"),
+    (r"^cohort/cohort\.vcf\.gz$", "Cohort VCF: all samples merged"),
+    (r"^cohort/", "Cohort-level table or status"),
+    (r"^annotation/cohort\.ann\.vcf\.gz$", "Annotated cohort VCF (SnpEff)"),
+    (r"^annotation/", "Annotation output"),
+    (r"^eligibility/", "Which samples were eligible for each analysis"),
+    (r"^downstream/DA00\d/status_manifest\.json$", "Run status and denominators of the analysis"),
+    (r"^downstream/", "Downstream analysis result"),
+]
+OUTPUT_GROUPS = {"report": "Report", "alignments": "Alignments", "qc": "Quality control", "variants": "Variant calls",
+                 "cohort": "Cohort", "annotation": "Annotation", "eligibility": "Eligibility",
+                 "downstream": "Downstream analyses"}
+
+
+def _describe_output(rel: str) -> str:
+    for pattern, text in OUTPUT_DESCRIPTIONS:
+        if re.search(pattern, rel):
+            return text
+    return ""
+
+
+def _outputs(run: Path) -> dict[str, Any]:
+    """Where the run's results are and every final output file, with links that work from the report folder.
+
+    Temporary work files (results/work) are left out. Links are relative to results/report/, so they
+    open when this dashboard is opened from the run folder on the computer that produced it.
+    """
+    res = run / "results"
+    files: list[dict[str, Any]] = []
+    planned = ["report/pfvarx_dashboard.html", "report/dashboard_data.json", "qc/centralized_quality_matrix.json"]
+    seen = set()
+    for path in sorted(p for p in res.rglob("*") if p.is_file() and not p.is_symlink()):
+        rel = path.relative_to(res).as_posix()
+        if rel.startswith("work/"):
+            continue
+        seen.add(rel)
+        files.append(_output_entry(rel, path.stat().st_size))
+    for rel in planned:  # written after this list is made
+        if rel not in seen:
+            files.append(_output_entry(rel, None))
+    files.sort(key=lambda f: (list(OUTPUT_GROUPS).index(f["group_id"]) if f["group_id"] in OUTPUT_GROUPS else 99, f["path"]))
+    folders = [{"label": OUTPUT_GROUPS.get(d.name, d.name), "path": f"results/{d.name}/", "href": f"../{d.name}/"}
+               for d in sorted(res.iterdir(), key=lambda d: (list(OUTPUT_GROUPS).index(d.name) if d.name in OUTPUT_GROUPS else 99, d.name))
+               if d.is_dir() and d.name != "work"]
+    folders += [{"label": "Logs of every step", "path": "logs/", "href": "../../logs/"},
+                {"label": "Time and memory of every step", "path": "benchmarks/", "href": "../../benchmarks/"}]
+    run_files = [{"label": "Settings used for this run (frozen)", "path": "frozen_config.json", "href": "../../frozen_config.json"},
+                 {"label": "Software and versions used", "path": "snapshot.json", "href": "../../snapshot.json"}]
+    return {"run_dir": str(run.resolve()), "results_dir": str(res.resolve()), "results_href": "../",
+            "folders": folders, "run_files": [f for f in run_files if (run / f["path"]).is_file()], "files": files}
+
+
+def _output_entry(rel: str, size: int | None) -> dict[str, Any]:
+    group = rel.split("/", 1)[0]
+    return {"group_id": group, "group": OUTPUT_GROUPS.get(group, group), "path": "results/" + rel,
+            "file": rel.rsplit("/", 1)[-1], "size_bytes": size, "description": _describe_output(rel),
+            "href": "../" + rel}
+
+
 def _file_size(root: Path, value: str) -> int | None:
     try:
         path = root / value
@@ -511,6 +592,7 @@ def build_report(root: Path, run: Path) -> dict[str, Any]:
 
     data["clonality"] = write_clonality(res, [s["sample_id"] for s in data["samples"]
                                               if (res / "qc" / "samples" / s["sample_id"]).is_dir()], run.name)
+    data["outputs"] = _outputs(run)
     write_json(res / "report" / "dashboard_data.json", data)
     write_json(res / "qc" / "centralized_quality_matrix.json",
                {"schema": "pfvarx.qc_matrix/1", "run_id": run.name, "rows": data["qc_matrix"],

@@ -161,6 +161,12 @@ retention:
   intermediates: successful   # default; or keep for debugging
 ```
 
+Snakemake always runs with `--scheduler greedy`: it starts whatever jobs fit the limits in
+`config/compute.yaml`. PfVarX's jobs are few per sample with fixed limits, so Snakemake's ILP
+optimiser adds nothing and could otherwise pause 10 seconds per scheduling decision ("Failed to
+solve scheduling problem with ILP solver in time") before falling back to the same greedy
+choice. Results do not depend on the scheduler.
+
 `keep` adds Snakemake `--notemp`. `successful` lets Snakemake delete declared temporary
 outputs after their dependencies finish, then removes safe remaining results/work
 regular files only after a COMPLETED run. A failed run never receives the final bulk

@@ -112,6 +112,10 @@ def run(ctx: Context, threads: int = 1) -> None:
     (out / "iqtree_command.txt").write_text(" ".join(cmd) + "\n" + r.stdout[-3000:] + r.stderr[-3000:])
     if r.returncode != 0 or not (out / "tree.treefile").is_file():
         raise SystemExit(f"IQ-TREE failed with exit code {r.returncode}")
+    # IQ-TREE working files no step reads and that add nothing to the kept tree, report and log:
+    # the resume checkpoint, the starting BIONJ tree, the model-selection cache and the bootstrap splits.
+    for name in ("tree.ckp.gz", "tree.bionj", "tree.model.gz", "tree.splits.nex", "tree.uniqueseq.phy"):
+        (out / name).unlink(missing_ok=True)
     model = ""
     iq = out / "tree.iqtree"
     if iq.is_file():
