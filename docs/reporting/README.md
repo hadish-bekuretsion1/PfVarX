@@ -14,11 +14,14 @@ After a run finishes, open `results/report/pfvarx_dashboard.html` in your browse
 **Copy path** and **Open results folder**, a button for each output folder (Alignments,
 Quality control, Variant calls, Cohort, Annotation, Eligibility, Downstream analyses, Report,
 logs, benchmarks, frozen settings, software versions), and every final output file grouped by
-folder, with its size, what it is and a link that opens it. Search finds a file by name,
-sample or type. Links are relative to `results/report/`, so they work when the dashboard is
-opened from its run folder on the computer that ran PfVarX; a copy sent elsewhere keeps the
-list but not the files. HTML, JSON, TSV and TXT open in the browser; BAM and VCF files are
-downloaded or opened with another program such as IGV. Temporary work files are not listed, and tool byproducts that no step reads are not kept.
+folder, with its size and what it is. Nothing is downloaded: **Open folder** shows the file's
+folder in the browser, and **Copy path** copies its full path. File names are links only for
+files the browser displays (HTML, JSON, TXT, logs, images, PDF); BAM, VCF, TSV, BED and other
+files open with their own program (IGV, a spreadsheet, a text editor), so paste the copied
+path there or into the file manager (Ctrl+L). Search finds a file by name, sample or type.
+Links are relative to `results/report/`, so they work when the dashboard is opened from its
+run folder on the computer that ran PfVarX; a copy sent elsewhere keeps the list but not the
+files. Temporary work files are not listed, and tool byproducts that no step reads are not kept.
 The same list is in `dashboard_data.json` under `outputs`.
 The existing `results` link selects the current run. Each run retains the same paths
 beneath `runs/<run-id>/results/`:
