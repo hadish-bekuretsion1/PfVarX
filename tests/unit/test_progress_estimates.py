@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import datetime as dt
 import json
+import os
 from pathlib import Path
 
 from pfvarx.execution import progress
@@ -100,6 +101,8 @@ def test_progress_snapshot_running_with_estimate(tmp_path: Path) -> None:
 
 def test_progress_page_finished_links_report_and_never_opens_in_tests(tmp_path: Path) -> None:
     run = _run_dir(tmp_path, "COMPLETED", None)
+    (run / "results/report").mkdir(parents=True)
+    (run / "results/report/pfvarx_dashboard.html").write_text("report")
     p = progress.write(run)
     assert p["finished"] and p["elapsed_min"] == 57.4 and p["remaining_min"] == 0.0
     page = (run / "progress.html").read_text()
@@ -117,3 +120,67 @@ def test_gui_progress_page_waits_for_the_new_run(tmp_path: Path) -> None:
     page = run_page(tmp_path, "progress", after="20250101T000000Z-OLD-0000abcd")
     assert page != WAITING_PAGE and RUN.encode() in page
     assert (run / "progress.html").is_file()
+
+
+def test_stopped_run_is_reported_interrupted_without_a_report_link(tmp_path: Path) -> None:
+    from pfvarx.runs.registry import run_status
+
+    run = _run_dir(tmp_path, "RUNNING", None)
+    status = json.loads((run / "status.json").read_text())
+    import socket
+    status.update(pid=2**22 + 12345, host=socket.gethostname())  # no such process
+    (run / "status.json").write_text(json.dumps(status))
+    assert run_status(run)["status"] == "INTERRUPTED" and "RESUME" in run_status(run)["interruption"]
+    p = progress.write(run)
+    assert p["finished"] and not p["report_ready"] and p["running"] == []
+    page = (run / "progress.html").read_text()
+    assert "The run did not finish" in page and "Open the report dashboard" not in page
+    status.update(pid=os.getpid())  # this process is alive and is PfVarX's test run
+    (run / "status.json").write_text(json.dumps(status))
+    assert run_status(run)["status"] in ("RUNNING", "INTERRUPTED")  # INTERRUPTED only if not a pfvarx process
+
+
+def test_measured_peak_raises_the_plan_request(monkeypatch) -> None:
+    from pfvarx.planning import plan
+
+    runs = [_hist_run("r1", 2.0, 1200.0)]
+    monkeypatch.setattr(history, "load_history", lambda: runs)
+    assert history.measured_peak_mb("pfvarx_call", "WGS", "BAM") == 4000.0
+    assert history.measured_peak_mb("snpeff") is None
+    from types import SimpleNamespace as NS
+
+    from pfvarx.constants import Design, FinalOutput, InputType
+
+    def bundle(per_job_mem: int, max_jobs: int) -> NS:
+        return NS(compute=NS(max_jobs=max_jobs, max_cores=8, max_mem_mb=12000, tmp_disk_mb=10**6,
+                             per_job=NS(max_threads=8, max_mem_mb=per_job_mem)),
+                  config=NS(final_output=FinalOutput.FO002, input_type=InputType.BAM, assay_design=Design.WGS,
+                            analyses=NS(selection="all"), reference=NS(gff=None, host_fasta_used=None)))
+
+    design = bundle(1, 1).config.assay_design.value
+    runs[0]["design"] = design
+    monkeypatch.setattr(plan, "_available_mem_mb", lambda: 100000)
+    rows = {r["job"]: r for r in plan.resource_plan(Path("."), bundle(6500, 1), 4.0, 2)["jobs"]}
+    assert rows["pfvarx_call"]["mem_mb"] == 5000 and rows["pfvarx_call"]["memory_basis"] == "FRAMEWORK_POLICY_REQUEST"
+    runs[0]["jobs"][0]["rss_mb"] = 5000.0  # 5000 MB measured: 6000 MB with headroom
+    rows = {r["job"]: r for r in plan.resource_plan(Path("."), bundle(6500, 1), 4.0, 2)["jobs"]}
+    assert rows["pfvarx_call"]["mem_mb"] == 6000 and rows["pfvarx_call"]["memory_basis"] == "MEASURED_HISTORY"
+    tight = plan.resource_plan(Path("."), bundle(5500, 1), 4.0, 2)
+    assert tight["feasible"] and any(w["reason"] == "RESOURCE_MEMORY_TIGHT" for w in tight["warnings"])
+    monkeypatch.setattr(plan, "_available_mem_mb", lambda: 7000)
+    busy = plan.resource_plan(Path("."), bundle(6500, 2), 4.0, 2)
+    assert any(w["reason"] == "RESOURCE_MEMORY_IN_USE" and "max_jobs to 1" in w["detail"] for w in busy["warnings"])
+
+
+def test_damaged_sample_sheet_header_fails_cleanly(tmp_path: Path) -> None:
+    from pfvarx.constants import Design, InputType
+    from pfvarx.inputs.validate import validate_samples
+
+    sheet = tmp_path / "samples.tsv"
+    sheet.write_text("\x1b]633;C\x07sample_id\tlane\tlibrary_id\tbam\nS1\tL1\tlib\tx.bam\n")
+    rep, rows = validate_samples(sheet, tmp_path, InputType.BAM, Design.WGS, set())
+    assert rep.status == "FAIL" and rows == []
+    assert "hidden or extra characters" in rep.findings[0].detail
+    sheet.write_text("﻿sample_id\tlane\tlibrary_id\tbam\nS1\tL1\tlib\tx.bam\n")  # byte-order mark is fine
+    rep, rows = validate_samples(sheet, tmp_path, InputType.BAM, Design.WGS, set())
+    assert rows and rows[0]["sample_id"] == "S1"

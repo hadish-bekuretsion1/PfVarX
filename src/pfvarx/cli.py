@@ -187,6 +187,8 @@ def dry_run() -> None:
         from pfvarx.planning.history import estimate_table
 
         typer.echo(estimate_table(est, res.get("final_output"), res.get("input_type")), err=True)
+    for w in ((res.get("resources") or {}).get("warnings") or []):
+        typer.echo(f"Warning ({w['reason']}): {w['detail']}", err=True)
     emit(res, 0 if res["status"] == "OK" else 1)
 
 
@@ -226,14 +228,13 @@ def run_verify(run_id: str = typer.Option(..., "--run-id")) -> None:
 @app.command()
 def status() -> None:
     """Show the effective configuration hash and the latest run status."""
-    from pfvarx.io import read_json
-    from pfvarx.runs.registry import latest
+    from pfvarx.runs.registry import latest, run_status
 
     root = _root()
     eff = guard(lambda: effective_config(root))
     run = latest(root)
     emit({"effective_config_hash": eff["hash"], "latest_run": run.name if run else None,
-          "latest_status": read_json(run / "status.json") if run else None})
+          "latest_status": run_status(run) if run else None})
 
 
 @app.command()
