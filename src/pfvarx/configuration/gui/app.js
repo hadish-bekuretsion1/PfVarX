@@ -642,7 +642,9 @@ for (const [panel, endpoint, title] of [
             const result = await request(endpoint, {});
             output.textContent = result.stages.map(stage =>
                 "./pfvarx " + stage.command + " (exit " + stage.exit_code + ")\n" +
-                [stage.stdout, stage.stderr].filter(Boolean).join("\n")
+                // The workflow check prints its time, memory and storage table first (stderr), then the plan.
+                (stage.command === "dry-run" ? [estimateText(stage.stderr), stage.stdout] : [stage.stdout, stage.stderr])
+                    .filter(Boolean).join("\n")
             ).join("\n");
             message.textContent = result.passed ? title + " passed." :
                 title + " stopped at " + result.stages.at(-1).command + ".";
@@ -652,6 +654,12 @@ for (const [panel, endpoint, title] of [
             button.disabled = false;
         }
     });
+}
+
+function estimateText(stderr) {
+    // Keep only the estimate table that 'workflow-check' prints, not the environment banner.
+    const start = (stderr || "").indexOf("Expected resources for");
+    return start < 0 ? stderr : stderr.slice(start) + "\n";
 }
 
 let transferRole;
@@ -747,7 +755,9 @@ async function pollWorkflow() {
     const button = byId("start-workflow");
     try {
         const state = await request("workflow-status");
+        if (!state.running) lastRunBeforeStart = state.latest_run || "";
         button.disabled = state.running;
+        byId("open-progress").hidden = !state.latest_run;
         if (state.running) {
             message.textContent = "Workflow is running" + (state.latest_run ? " (run " + state.latest_run + ", " + state.latest_status + ")" : "") + "…";
             workflowTimer = setTimeout(pollWorkflow, 5000);
@@ -765,7 +775,11 @@ async function pollWorkflow() {
     }
 }
 
+let lastRunBeforeStart = "";
 byId("start-workflow").addEventListener("click", async () => {
+    // Open the live progress page now (inside the click, so the browser allows the new tab).
+    // It waits for the new run, follows it, and opens the report dashboard when the run ends.
+    const progressPage = window.open("progress?after=" + encodeURIComponent(lastRunBeforeStart), "pfvarx-progress");
     byId("start-workflow").disabled = true;
     byId("workflow-results").textContent = "";
     byId("workflow-status").textContent = "Starting workflow…";
@@ -774,6 +788,7 @@ byId("start-workflow").addEventListener("click", async () => {
     } catch (error) {
         byId("workflow-status").textContent = error.message;
         byId("start-workflow").disabled = false;
+        if (progressPage) progressPage.close();
         return;
     }
     pollWorkflow();

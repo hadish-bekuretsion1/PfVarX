@@ -126,7 +126,15 @@ distinct datasets have separate groups and explicitly identified denominators.
 | DA006 | Supplied Newick tree, collapse/expand and support table; distance matrix only if IQ-TREE published `tree.mldist` |
 | DA007 | Actual-coordinate grid map/table; separate country-month heatmap, time series and table for the corresponding source summary |
 
-**Resources** opens with **Resources by step: tool, time and RAM**, one row per workflow
+**Overview** and **Resources** show when the run started and finished, its total time and
+the time expected before it ran. **Resources** then compares, step by step, the estimate
+frozen with the plan (learned from earlier real-data runs on this computer, see
+`docs/orchestration.md`) with what the run measured: time, peak RAM and the size of each
+results folder. A run without an estimate says so.
+While a run works, its live page `runs/<RUN_ID>/progress.html` shows progress; the report
+dashboard is written when the run ends.
+
+**Resources** continues with **Resources by step: tool, time and RAM**, one row per workflow
 step (fastp read QC, bwa-mem2 alignment, Picard duplicate marking, the PfVarX caller,
 bcftools, SnpEff, each analysis DA001–DA007, and the others): its layer, the tools and
 versions that ran it, the number of jobs (samples, lanes or analyses), total and longest

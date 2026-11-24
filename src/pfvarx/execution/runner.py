@@ -11,6 +11,7 @@ from __future__ import annotations
 
 import os
 import subprocess
+import sys
 import tempfile
 from pathlib import Path
 from typing import Any, TypedDict
@@ -57,6 +58,14 @@ def build_plan(root: Path) -> dict[str, Any]:
         if s["bam"] and (root / s["bam"]).is_file():
             gb += (root / s["bam"]).stat().st_size / 1e9
     resources = resource_plan(root, bundle, gb, max(1, len(samples)))
+    # Expected time, memory and storage per step, learned from earlier real-data runs on this
+    # computer (MEASURED_HISTORY); UNKNOWN where this computer has no history for a step.
+    from pfvarx.planning.history import estimate, sample_input_gb
+
+    admitted = [s for k, s in sorted(samples.items()) if k not in failed_inputs]
+    resources["estimate"] = estimate([j["job"] for j in resources["jobs"]], sample_input_gb(root, {"samples": admitted}),
+                                     bundle.compute.max_jobs, cfg.assay_design.value, cfg.input_type.value,
+                                     layers=resources["layers"])
     manifest = root / "prepared" / "manifest.json"
     ref = read_json(manifest) if manifest.is_file() else {}
     return {
@@ -120,7 +129,8 @@ def dry_run(root: Path) -> dict[str, Any]:
             "jobs_before_checkpoints": r.stdout[-4000:], "stderr": r.stderr[-2000:],
             "note": ("snakemake -n checks the DAG up to the per-sample QC checkpoints and the downstream "
                      "eligibility checkpoint; jobs after them are decided at run time (deferred gates)."),
-            "resources": plan["resources"], "outputs_created": []}
+            "resources": plan["resources"], "outputs_created": [],
+            "final_output": plan["final_output"], "input_type": plan["input_type"]}
 
 
 def failed_samples(run: Path, plan: dict[str, Any]) -> dict[str, str]:
@@ -145,6 +155,34 @@ def execute(root: Path, mode: str = "NEW", previous: str | None = None) -> dict[
     from pfvarx.execution.retention import workspace_lock
     with workspace_lock(root):
         return _execute(root, mode, previous)
+
+
+PROGRESS_SECONDS = 15
+
+
+def _progress(progress: Any, run: Path) -> None:
+    try:  # the progress page is a view of the run; it must never stop it
+        progress.write(run)
+    except Exception:  # noqa: BLE001
+        pass
+
+
+def _run_watched(cmd: list[str], out: Any, env: dict[str, str], run: Path, progress: Any) -> subprocess.CompletedProcess[str]:
+    """Run Snakemake and refresh the run's progress page while it works."""
+    proc = subprocess.Popen(cmd, stdout=out, stderr=subprocess.STDOUT, env=env)
+    try:
+        while True:
+            try:
+                code = proc.wait(timeout=PROGRESS_SECONDS)
+                break
+            except subprocess.TimeoutExpired:
+                _progress(progress, run)
+    except BaseException:
+        proc.terminate()  # Ctrl+C: stop Snakemake too, as subprocess.run did
+        proc.wait()
+        raise
+    _progress(progress, run)
+    return subprocess.CompletedProcess(cmd, code)
 
 
 def _execute(root: Path, mode: str = "NEW", previous: str | None = None) -> dict[str, Any]:
@@ -201,10 +239,16 @@ def _execute(root: Path, mode: str = "NEW", previous: str | None = None) -> dict
         if path.stem.removeprefix("snakemake.pass").isdigit()
     ]
     offset = max(prior_passes, default=0)
+    from pfvarx.execution import progress
+    _progress(progress, run)
+    if progress.open_in_browser(run / "progress.html"):
+        print(f"Run progress opened in your browser: {run / 'progress.html'}", file=sys.stderr, flush=True)
+    else:
+        print(f"Run progress page: {run / 'progress.html'}", file=sys.stderr, flush=True)
     for attempt in (1, 2):
         log = log_dir / f"snakemake.pass{offset + attempt}.log"
         with log.open("x") as h:
-            r = subprocess.run(snakemake_cmd(root, run, eff, dry=False), stdout=h, stderr=subprocess.STDOUT, env=env)
+            r = _run_watched(snakemake_cmd(root, run, eff, dry=False), h, env, run, progress)
         failed = failed_samples(run, plan)
         passes.append({"pass": offset + attempt, "exit_code": r.returncode, "failed_samples": failed, "log": str(log)})
         if r.returncode != 0 and len(failed) == len(plan["samples"]):
@@ -242,6 +286,15 @@ def _execute(root: Path, mode: str = "NEW", previous: str | None = None) -> dict
     else:
         final = "COMPLETED_WITH_FAILURES"
     runs.set_status(run, final, passes=passes, downstream_failures=downstream_failures)
+    if final == "COMPLETED":
+        try:  # learn this run's step times, memory and storage for future estimates (advice only)
+            from pfvarx.planning.history import record
+            record(root, run)
+        except Exception as exc:  # noqa: BLE001 - estimates must never fail a finished run
+            append(events, event(run_id=run.name, layer="L6", stage="resource history", status="WARNING",
+                                 severity=Severity.WARNING, code="RESOURCE_HISTORY_NOT_RECORDED",
+                                 failure_class=FailureClass.SOFTWARE_FAILURE, cause_confirmed=str(exc),
+                                 project_id=eff["config"]["project_id"]))
     report = build_report(root, run)
     link = root / "results"
     if link.is_symlink() or not link.exists():
@@ -252,5 +305,6 @@ def _execute(root: Path, mode: str = "NEW", previous: str | None = None) -> dict
     if final == "COMPLETED" and eff["config"].get("retention", {}).get("intermediates", "successful") == "successful":
         from pfvarx.execution.retention import cleanup_run
         cleanup = cleanup_run(root, run, apply=True)
+    _progress(progress, run)  # final page: status, total time and a link that opens the report
     return {"run_id": run.name, "status": final, "passes": passes, "downstream_failures": downstream_failures, "report": report, "cleanup": cleanup}
 

@@ -397,9 +397,12 @@ Replace the example paths, URL and filename with your actual inputs. Add
 `--sha256` to `fetch-input` when you have a trusted checksum. For FASTQ input,
 Inputs Preparation (or validation, if it runs first) writes the sample metadata
 `prepared/samples.tsv` from the paired files in `inputs/fastq/` if none exists; review it
-before analysis. `workflow-run` repeats the workflow
+before analysis. `workflow-check` also prints the expected time, peak memory and storage of each step for
+your inputs and final output, learned from earlier runs on this computer (UNKNOWN for a step
+never run here). `workflow-run` repeats the workflow
 check and starts a new analysis only if it passes, exactly as the GUI **Run
-workflow** button does. `./pfvarx dry-run` and `./pfvarx pipeline --mode NEW`
+workflow** button does. The run's live progress page `runs/<RUN_ID>/progress.html` opens in
+your browser (from the GUI, in a new tab) and opens the report dashboard when the run ends. `./pfvarx dry-run` and `./pfvarx pipeline --mode NEW`
 remain available as the separate steps.
 
 ### Supported input content

@@ -993,7 +993,7 @@ cat &quot;$RECORDS/analysis/ready.json&quot;
 cat &quot;$RECORDS/analysis/dry-run.json&quot;
 </code></pre>
 <h3>4. Expected outputs</h3>
-<p>Validation report, current preparation, <code>ready: true</code> and <code>dry-run</code> status <code>OK</code>. On a new workspace the dry run does not create <code>runs/</code> or <code>results</code>.</p>
+<p>Validation report, current preparation, <code>ready: true</code> and <code>dry-run</code> status <code>OK</code>. On a new workspace the dry run does not create <code>runs/</code> or <code>results</code>. The dry run also prints, on stderr, the expected time, peak memory and storage of each step for these inputs and this final output; they are learned from earlier real-data runs on this computer and are UNKNOWN for steps never run here. Record them with the run request; they are planning advice, not acceptance criteria.</p>
 <h3>5. Verification and quality control</h3>
 <p>Review every failed sample, warning and deferred gate. The validation <code>summary</code> states for each problem or warning the input, why it failed, why the input matters and numbered steps to fix it. PARTIAL permits only individually valid samples under continue-independent policy; record exclusions explicitly. Reference/global validation failure must be resolved.</p>
 <h3>6. Error handling and troubleshooting</h3>
@@ -1019,6 +1019,7 @@ assay:
 </code></pre>
 <p>These are example settings for direct non-UMI gDNA; change chemistry/amplification only from real library metadata. Do not replace the full configuration with this fragment.</p>
 <p><strong>Step 2. Execute one NEW run and capture the result</strong></p>
+<p>While the run works, follow it on <code>runs/&lt;RUN_ID&gt;/progress.html</code>: start time, the steps running now, the expected finish and the time remaining. It opens in the browser when the run is started from a desktop terminal, refreshes every 15 seconds, and opens the report dashboard when the run ends. Use a second terminal for any checks: pressing Ctrl+C in the run terminal stops the run.</p>
 <pre><code class="language-bash">./pfvarx pipeline --mode NEW &gt; &quot;$RECORDS/analysis/pipeline.json&quot;
 cat &quot;$RECORDS/analysis/pipeline.json&quot;
 ./pfvarx status
@@ -1931,7 +1932,7 @@ cat config/profiles/resources.yaml
 <h3>4. Expected outputs</h3>
 <p><code>config/profiles/resources.yaml</code> generated at runtime plus the original per-job benchmark TSVs. Available values include wall seconds, CPU seconds, peak RSS and IO traffic.</p>
 <h3>5. Verification and quality control</h3>
-<p>Sum of job wall times can exceed elapsed run time because jobs overlap. Peak job RSS is not a measured concurrent whole-workflow RAM peak. IO traffic is not peak disk usage. Missing measurements remain missing.</p>
+<p>Sum of job wall times can exceed elapsed run time because jobs overlap. Peak job RSS is not a measured concurrent whole-workflow RAM peak. IO traffic is not peak disk usage. Missing measurements remain missing. The report's Resources section also compares the estimate frozen before the run with the measured time and peak memory per step and with the size of each results folder; each completed real-data run is added to this computer's resource history (<code>./pfvarx resources-learn --run-id RUN_ID</code> adds an older run).</p>
 <h3>6. Error handling and troubleshooting</h3>
 <p>No benchmark records: report the unmeasured scope; do not estimate a measured peak. OOM/quota: inspect actual hardware/budgets and only adjust legitimate computational settings before a new run.</p>
 <h3>7. Completion criteria</h3>
@@ -3012,9 +3013,12 @@ with <code>register-inputs</code>.</p>
 <code>--sha256</code> to <code>fetch-input</code> when you have a trusted checksum. For FASTQ input,
 Inputs Preparation (or validation, if it runs first) writes the sample metadata
 <code>prepared/samples.tsv</code> from the paired files in <code>inputs/fastq/</code> if none exists; review it
-before analysis. <code>workflow-run</code> repeats the workflow
+before analysis. <code>workflow-check</code> also prints the expected time, peak memory and storage of each step for
+your inputs and final output, learned from earlier runs on this computer (UNKNOWN for a step
+never run here). <code>workflow-run</code> repeats the workflow
 check and starts a new analysis only if it passes, exactly as the GUI <strong>Run
-workflow</strong> button does. <code>./pfvarx dry-run</code> and <code>./pfvarx pipeline --mode NEW</code>
+workflow</strong> button does. The run's live progress page <code>runs/&lt;RUN_ID&gt;/progress.html</code> opens in
+your browser (from the GUI, in a new tab) and opens the report dashboard when the run ends. <code>./pfvarx dry-run</code> and <code>./pfvarx pipeline --mode NEW</code>
 remain available as the separate steps.</p>
 <h3 id="supported-input-content">Supported input content</h3>
 <p>PfVarX recognises every input file by its content and structure, never by its name or

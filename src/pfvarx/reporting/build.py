@@ -85,6 +85,48 @@ def _benchmarks(run: Path) -> list[dict[str, Any]]:
 
 
 # Benchmark folder -> (step shown in the report, pipeline layer, packages that do the work).
+def _timeline(run: Path, status: dict[str, Any]) -> dict[str, Any]:
+    """When the run started and ended, from its id and its final status."""
+    try:
+        started = dt.datetime.strptime(run.name[:16], "%Y%m%dT%H%M%SZ").replace(tzinfo=dt.UTC)
+    except ValueError:
+        return {"started_utc": None, "finished_utc": None, "elapsed_min": None}
+    ended = status.get("updated_utc") if status.get("status") not in (None, "RUNNING", "PENDING") else None
+    elapsed = (dt.datetime.fromisoformat(ended) - started).total_seconds() / 60 if ended else None
+    return {"started_utc": started.isoformat(), "finished_utc": ended,
+            "elapsed_min": None if elapsed is None else round(elapsed, 1)}
+
+
+def _planned_vs_actual(run: Path, est: dict[str, Any] | None, measured: list[dict[str, Any]]) -> dict[str, Any] | None:
+    """The estimate frozen with the plan beside what the run measured: time, peak RAM and storage."""
+    if not est:
+        return None
+    from pfvarx.planning.history import RULE_TO_JOB, STORAGE_FOLDERS, _folder_mb
+
+    actual: dict[str, dict[str, float]] = {}
+    for b in measured:
+        job = RULE_TO_JOB.get(b["rule"])
+        if job is None or b.get("wall_s") is None:
+            continue
+        a = actual.setdefault(job, {"wall_s": 0.0, "rss_mb": 0.0})
+        a["wall_s"] += b["wall_s"]
+        a["rss_mb"] = max(a["rss_mb"], b.get("max_rss_mb") or 0.0)
+    steps = [{"step": s["name"], "jobs": s["jobs"], "expected_min": s["minutes"],
+              "actual_min": round(actual[s["job"]]["wall_s"] / 60, 1) if s["job"] in actual else None,
+              "expected_peak_ram_mb": s["peak_ram_mb"],
+              "actual_peak_ram_mb": round(actual[s["job"]]["rss_mb"]) if s["job"] in actual else None,
+              "basis": s["basis"]} for s in est.get("steps", [])]
+    planned = est.get("storage_mb") or {}
+    storage: list[dict[str, Any]] = [{"folder": f, "expected_mb": planned.get(f),
+                                      "actual_mb": round(_folder_mb(run / "results" / f), 1)} for f in STORAGE_FOLDERS
+                                     if (run / "results" / f).is_dir() or planned.get(f)]
+    actual_total = round(sum(float(r["actual_mb"]) for r in storage), 1)
+    return {"steps": steps, "storage": storage, "expected_wall_min": est.get("wall_minutes"),
+            "expected_peak_ram_mb": est.get("peak_ram_mb"), "expected_storage_mb": est.get("storage_total_mb"),
+            "actual_storage_mb": actual_total,
+            "basis": est.get("basis"), "confidence": est.get("confidence")}
+
+
 STEP_INFO: dict[str, tuple[str, str, tuple[str, ...]]] = {
     "fastp": ("Read QC and trimming", "L1", ("fastp",)),
     "bwa_mem2": ("Read alignment", "L1", ("bwa-mem2", "samtools")),
@@ -436,6 +478,9 @@ def harvest(root: Path, run: Path) -> dict[str, Any]:
     tools = {**snap.get("tools_installed", {}),
              **{f"{name} (package)": version for name, version in snap.get("packages", {}).items()}}
     _label_steps(resources_["measured"], tools)
+    resources_["timeline"] = _timeline(run, status)
+    resources_["planned_vs_actual"] = _planned_vs_actual(run, (plan.get("resources") or {}).get("estimate"),
+                                                         resources_["measured"])
     software = {"pfvarx_version": snap.get("pfvarx_version", __version__),
                 "tools_installed": tools,
                 "rules_with_measured_execution": executed_rules, "git": snap.get("git"),

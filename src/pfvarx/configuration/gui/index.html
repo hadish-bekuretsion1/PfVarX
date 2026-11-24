@@ -106,7 +106,8 @@
 <p>The check plans the workflow without creating outputs. The run repeats the check and, only if it passes, starts a new analysis. A run continues in the background if you close this page; reopen this tab to see its status.</p>
 <button type="button" id="run-workflow-check">Check workflow</button>
 <p id="workflow-check-status" role="status"></p><pre id="workflow-check-results"></pre>
-<button type="button" id="start-workflow">Run workflow</button>
+<p>The check also shows the expected time, peak memory and storage of each step for your inputs and final output, learned from earlier runs on this computer. When you run the workflow, its live progress page opens in a new tab and shows the report dashboard when the run ends.</p>
+<button type="button" id="start-workflow">Run workflow</button> <a id="open-progress" href="progress" target="pfvarx-progress" hidden>Open run progress</a>
 <p id="workflow-status" role="status" aria-live="polite"></p><pre id="workflow-results"></pre>
 </section>
 </main></body></html>
