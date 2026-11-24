@@ -130,8 +130,10 @@ the reviewed commit `v<version>`. Schema, parameter-file, QC-policy, registry an
 catalogue versions are independent and are not changed by a release.
 
 Before publication run [testing](testing.md), isolated workflow checks, source package
-checks and checksum/extraction validation. CI runs on pull requests, on pushes to `main` and `develop`, and on demand (Actions → Run
-workflow); a newer push to the same pull request cancels the older run. The CI pins an explicit Ubuntu runner and
+checks and checksum/extraction validation. CI on GitHub runs only on demand (Actions → PfVarX CI → Run
+workflow, or `gh workflow run ci.yaml --ref BRANCH`), because hosted minutes are limited; the same
+steps are run locally before every merge and release, and that result is recorded on the pull
+request. A newer run on the same branch cancels the older one. The CI pins an explicit Ubuntu runner and
 validates the software-only archive for the current version. Attach the final source
 ZIP/checksum to the reviewed release; it contains the analysis software only, without
 the development material in `development/`. Never attach a study workspace or a guessed

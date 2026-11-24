@@ -700,7 +700,7 @@ done</pre></div>
 <tr><td>7</td><td><code>scripts/check_gui_buttons.py</code>, <code>check_installs.py</code>, <code>sync_sop.py --check</code></td><td>~2 min</td><td>GUI buttons, installations, SOP copies</td></tr>
 <tr><td>8</td><td><code>pixi run pytest -q tests</code></td><td>~16 min</td><td>everything, with real pipeline runs for all designs</td></tr>
 <tr><td>9</td><td><code>pixi run verify --output ~/pfvarx-lab/verify-new</code></td><td>longer</td><td>every final output and benchmarking in fresh workspaces</td></tr>
-<tr><td>10</td><td>CI on GitHub (on pull requests and on merges into main/develop; or Actions → Run workflow)</td><td>~45 min</td><td>a clean machine from the lock file</td></tr>
+<tr><td>10</td><td>CI on GitHub, started by hand only (Actions → PfVarX CI → Run workflow, or <code>gh workflow run ci.yaml --ref BRANCH</code>); the same steps run locally before every merge</td><td>~45 min</td><td>a clean machine from the lock file</td></tr>
 </table></div>
 <div class="callout stop"><strong>Software tests are not scientific validation.</strong> Passing tests on synthetic data shows the code works. Whether a value or a tool is better is decided on real data with known answers, and recorded with its evidence.</div>
 
