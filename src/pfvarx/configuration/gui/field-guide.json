@@ -153,7 +153,7 @@
   },
   "compute.max_jobs": {
     "example": "1",
-    "help": "Maximum concurrent jobs, at least 1. Keep 1 for a small PC."
+    "help": "Maximum concurrent jobs, at least 1. Keep 1 for a small PC. Check workflow warns when the memory free now cannot hold this many jobs at once (other programs such as a browser count) and suggests a value."
   },
   "compute.tmp_disk_mb": {
     "example": "20000",

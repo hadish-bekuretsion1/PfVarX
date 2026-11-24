@@ -10,9 +10,11 @@ downstream analysis was skipped.
 from __future__ import annotations
 
 import os
+import signal
 import subprocess
 import sys
 import tempfile
+import threading
 from pathlib import Path
 from typing import Any, TypedDict
 
@@ -151,10 +153,22 @@ def failed_samples(run: Path, plan: dict[str, Any]) -> dict[str, str]:
 ExecutionPass = TypedDict("ExecutionPass", {"pass": int, "exit_code": int,
                                             "failed_samples": dict[str, str], "log": str})
 
+def _stop_on_sigterm(signum: int, frame: Any) -> None:
+    raise SystemExit(128 + signum)
+
+
 def execute(root: Path, mode: str = "NEW", previous: str | None = None) -> dict[str, Any]:
     from pfvarx.execution.retention import workspace_lock
-    with workspace_lock(root):
-        return _execute(root, mode, previous)
+    # A polite kill (SIGTERM) stops the run cleanly, like Ctrl+C, so it is recorded as INTERRUPTED.
+    # A hard kill cannot be caught; 'status' then recognises the run from its recorded process.
+    main = threading.current_thread() is threading.main_thread()
+    previous_handler = signal.signal(signal.SIGTERM, _stop_on_sigterm) if main else None
+    try:
+        with workspace_lock(root):
+            return _execute(root, mode, previous)
+    finally:
+        if main:
+            signal.signal(signal.SIGTERM, previous_handler)
 
 
 PROGRESS_SECONDS = 15
@@ -177,9 +191,13 @@ def _run_watched(cmd: list[str], out: Any, env: dict[str, str], run: Path, progr
                 break
             except subprocess.TimeoutExpired:
                 _progress(progress, run)
-    except BaseException:
-        proc.terminate()  # Ctrl+C: stop Snakemake too, as subprocess.run did
+    except BaseException as exc:
+        proc.terminate()  # Ctrl+C or a stop request: stop Snakemake too
         proc.wait()
+        how = "stopped with Ctrl+C" if isinstance(exc, KeyboardInterrupt) else f"stopped ({type(exc).__name__})"
+        runs.set_status(run, "INTERRUPTED", interruption=f"{how}; resume it with "
+                        f"'./pfvarx pipeline --mode RESUME --run-id {run.name}'")
+        _progress(progress, run)
         raise
     _progress(progress, run)
     return subprocess.CompletedProcess(cmd, code)
@@ -228,7 +246,7 @@ def _execute(root: Path, mode: str = "NEW", previous: str | None = None) -> dict
             exclusions.unlink()
         # Without this the finished target rule is treated as up to date and nothing is retried.
         (run / "workflow.complete").unlink(missing_ok=True)
-    runs.set_status(run, "RUNNING")
+    runs.set_status(run, "RUNNING", **runs.process_identity())
     env = dict(os.environ)
     env.pop("PFVARX_JSON_OUT", None)  # the CLI result file belongs to this command, not to workflow jobs
     passes: list[ExecutionPass] = []

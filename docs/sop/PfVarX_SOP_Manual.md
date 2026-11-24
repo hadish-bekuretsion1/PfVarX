@@ -1939,7 +1939,7 @@ Accept technical integrity and scientific QC separately. PASS, WARNING, FAIL, NO
 
 ### 6. Error handling and troubleshooting
 
-Missing artifact: first check mode, QC eligibility and run ID; do not interpret missing VCF as zero variants. FAILED_EXECUTION requires log diagnosis; scientific skip can be legitimate. Reject unexplained integrity failure.
+Missing artifact: first check mode, QC eligibility and run ID; do not interpret missing VCF as zero variants. FAILED_EXECUTION requires log diagnosis; scientific skip can be legitimate. INTERRUPTED means the run was stopped (Ctrl+C, a kill, running out of memory or a restart) before it finished: check free memory and `max_jobs`, then continue it with `./pfvarx pipeline --mode RESUME --run-id RUN_ID`. Reject unexplained integrity failure.
 
 ### 7. Completion criteria
 

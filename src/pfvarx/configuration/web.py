@@ -211,7 +211,9 @@ def workflow_status(root: Path) -> dict[str, Any]:
     running = process is not None and process.poll() is None
     result = root / WORKFLOW_RESULT
     run = latest(root) if (root / "runs").is_dir() else None
-    status = read_json(run / "status.json") if run and (run / "status.json").is_file() else None
+    from pfvarx.runs.registry import run_status
+
+    status = run_status(run) if run else None
     return {
         "running": running,
         "exit_code": None if process is None or running else process.returncode,

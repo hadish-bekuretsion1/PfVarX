@@ -128,6 +128,21 @@ history; synthetic test runs are never learned from. Estimates are advice for pl
 and never change results. For runs made before this feature, add them once with
 `./pfvarx resources-learn --run-id RUN_ID`.
 
+**Memory requests.** When a job class used more memory in an earlier real-data run on this
+computer than its fixed request, the plan raises the request to that peak plus 20 %
+(`memory_basis: MEASURED_HISTORY`; at present the variant caller reads it), within
+`per_job.max_mem_mb`. Snakemake then starts no more of those jobs at once than `max_mem_mb`
+holds. If the peak needs more than `per_job.max_mem_mb`, the check warns
+(`RESOURCE_MEMORY_TIGHT`). It also warns (`RESOURCE_MEMORY_IN_USE`) when the memory free at
+check time cannot hold `max_jobs` of the largest job, and suggests a `max_jobs` value: other
+programs (a browser, an editor) count, and when memory runs out the system can stop the run.
+
+**Stopped runs.** A run records its process; pressing Ctrl+C or a polite kill marks it
+INTERRUPTED. A run killed outright (for example by the out-of-memory killer) or ended by a
+restart cannot write that itself, so `status`, the GUI and the progress page report it as
+INTERRUPTED once its process is gone. Continue it with
+`./pfvarx pipeline --mode RESUME --run-id RUN_ID`.
+
 ## Organize without duplicating originals
 
 Discovery accepts `SAMPLE_R1.fastq[.gz]`, `SAMPLE_R2.fastq[.gz]`, optional `_L001` lane

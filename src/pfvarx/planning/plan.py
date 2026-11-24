@@ -88,13 +88,28 @@ def resource_plan(root: Path, bundle: Bundle, input_gb: float, n_samples: int) -
         from pfvarx.configuration.loader import load_parameters
 
         host_extra = int(load_parameters(root)["layer1.bwa_mem2_host_extra_mem_mb"]["value"])
+    from pfvarx.planning.history import measured_peak_mb
+
     rows, blocked = [], []
+    warnings = []
     for name in jobs:
         jc = JOB_CLASSES[name]
         threads = min(jc["threads"], comp.per_job.max_threads)
         mem = jc["mem_mb"] + int(jc["per_gb_mb"] * input_gb / max(n_samples, 1))
         mem += host_extra if name in HOST_INDEX_JOBS else 0
         prof = profiles.get(name)
+        basis = "MEASURED_PROFILE" if prof else "FRAMEWORK_POLICY_REQUEST"
+        # Memory a job of this class really used here before, with 20 % headroom (MEASURED_HISTORY).
+        # Kept within the per-job ceiling; a tighter ceiling is a warning, not a block.
+        peak = measured_peak_mb(name, bundle.config.assay_design.value, bundle.config.input_type.value)
+        if peak and int(peak * 1.2) > mem:
+            needed = int(peak * 1.2)
+            mem, basis = min(needed, comp.per_job.max_mem_mb), "MEASURED_HISTORY"
+            if needed > comp.per_job.max_mem_mb:
+                warnings.append({"reason": "RESOURCE_MEMORY_TIGHT", "job": name,
+                                 "detail": f"{name} used up to {int(peak)} MB in an earlier run on this computer; "
+                                           f"per_job.max_mem_mb is {comp.per_job.max_mem_mb}. Raise it if the "
+                                           "machine has the memory, or the job may run out of memory"})
         if prof:
             mem = max(mem, int(prof["peak_rss_mb"] * 1.2))
             runtime = {"value_min": prof["wall_min"], "confidence": "MEASURED_PROFILE",
@@ -103,7 +118,7 @@ def resource_plan(root: Path, bundle: Bundle, input_gb: float, n_samples: int) -
             runtime = {"value_min": None, "confidence": "UNKNOWN",
                        "basis": Reason.RESOURCE_ESTIMATE_UNAVAILABLE.value}
         row = {"job": name, "layer": jc["layer"], "threads": threads, "mem_mb": mem,
-               "runtime": runtime, "memory_basis": "MEASURED_PROFILE" if prof else "FRAMEWORK_POLICY_REQUEST"}
+               "runtime": runtime, "memory_basis": basis}
         if mem > comp.per_job.max_mem_mb:
             row["blocked"] = Reason.RESOURCE_MEMORY_EXCEEDED.value
             blocked.append({"job": name, "reason": Reason.RESOURCE_MEMORY_EXCEEDED.value,
@@ -117,7 +132,16 @@ def resource_plan(root: Path, bundle: Bundle, input_gb: float, n_samples: int) -
         rows.append(row)
     host_cpus = len(os.sched_getaffinity(0)) if hasattr(os, "sched_getaffinity") else (os.cpu_count() or 1)
     host_mem = _host_mem_mb()
-    warnings = []
+    free = _available_mem_mb()
+    at_once = min(comp.max_jobs, max(n_samples, 1))
+    biggest = max((r["mem_mb"] for r in rows), default=0)
+    if free is not None and biggest and biggest * at_once > free:
+        fits = max(1, free // biggest)
+        warnings.append({"reason": "RESOURCE_MEMORY_IN_USE",
+                         "detail": f"{at_once} job(s) at once may need {biggest * at_once} MB, but only {free} MB of "
+                                   f"memory is free now (other programs use the rest). Close other programs or set "
+                                   f"max_jobs to {fits} in config/compute.yaml, or the system may stop the run "
+                                   "when memory runs out"})
     if comp.max_cores > host_cpus:
         warnings.append({"reason": "RESOURCE_CPU_LIMIT", "detail": f"max_cores {comp.max_cores} > host CPUs {host_cpus}; "
                          "jobs will oversubscribe the CPUs (slower, not unsafe)"})
@@ -138,6 +162,17 @@ def resource_plan(root: Path, bundle: Bundle, input_gb: float, n_samples: int) -
             "host": {"cpus": host_cpus, "mem_mb": host_mem},
             "estimated_total_runtime_min": total,
             "estimate_confidence": "MEASURED_PROFILE" if total is not None else "UNKNOWN"}
+
+
+def _available_mem_mb() -> int | None:
+    """Memory free for new work now (Linux MemAvailable), or None where it cannot be read."""
+    try:
+        for line in Path("/proc/meminfo").read_text().splitlines():
+            if line.startswith("MemAvailable:"):
+                return int(line.split()[1]) // 1024
+    except OSError:
+        return None
+    return None
 
 
 def _host_mem_mb() -> int | None:
