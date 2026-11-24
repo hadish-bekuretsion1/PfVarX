@@ -1,9 +1,9 @@
 # Changelog
 
-## 0.0.0 (unreleased)
+## 0.0.0 (2026-11-24)
 
-The release version was reset to 0.0.0 after 0.4.2, as the baseline for the first reviewed
-release. The sections below 0.0.0 are the earlier development numbering, kept as history.
+First tagged release (`v0.0.0`). The release version was reset to 0.0.0 after 0.4.2, as the
+baseline for the first reviewed release. The sections below 0.0.0 are the earlier development numbering, kept as history.
 
 ### Development guide: local CI workflow
 

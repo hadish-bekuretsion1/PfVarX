@@ -3333,9 +3333,9 @@ experiment. Do not relabel provisional values as calibrated merely because tests
 
 Commands and output contracts were checked against the finalized 0.0.0 local CLI,
 configuration models/templates, Snakemake rules, caller/benchmark/downstream source and
-analysis/benchmarking/reporting/deployment manuals. The provided user CI transcript records the earlier 0.2.0 release. The 0.0.0
-orchestration update requires its own reviewed commit/hosted CI run; no new hosted-CI
-result is inferred from that earlier transcript.
+analysis/benchmarking/reporting/deployment manuals. Release 0.0.0 (tag `v0.0.0`) passed the full local
+CI (lint, type checking, unit, scientific and integration tests, and the release-archive check) before it was merged;
+the hosted GitHub workflow is started by hand and was not run for this release.
 This document itself does not claim a real study or new benchmark was executed.
 
 Authoritative companion sources in the release are `docs/analysis/README.md`,
