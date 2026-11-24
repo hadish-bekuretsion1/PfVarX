@@ -1,9 +1,16 @@
 # Changelog
 
-## 0.0.0 (unreleased)
+## 0.0.0 (2026-11-24)
 
-The release version was reset to 0.0.0 after 0.4.2, as the baseline for the first reviewed
-release. The sections below 0.0.0 are the earlier development numbering, kept as history.
+First tagged release (`v0.0.0`). The release version was reset to 0.0.0 after 0.4.2, as the
+baseline for the first reviewed release. The sections below 0.0.0 are the earlier development numbering, kept as history.
+
+### Development guide: local CI workflow
+
+- `development/local_ci.sh` (not released) runs the same checks as the GitHub workflow before
+  every merge and release. The development guide describes this workflow, the run progress
+  page, the resource history and estimates, and what a red ✕ from used-up Actions minutes
+  means.
 
 ### Safer runs: memory, stopped runs and damaged sample sheets
 

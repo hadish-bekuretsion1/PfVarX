@@ -6,6 +6,7 @@ repository for the developers and is **left out of the release archive** that us
 
 | File | Contents |
 | --- | --- |
+| `local_ci.sh` | Local CI: the same checks as `.github/workflows/ci.yaml` (lint, types, all tests, the release archive), run before every merge and release; `--quick` skips the integration tests |
 | `PfVarX_Development_Guide.html` | How to maintain PfVarX on Ubuntu or WSL2: every tool, package, step, algorithm, parameter and QC gate with its path and purpose; testing parameter values and QC thresholds; measuring, replacing and upgrading tools; the testing ladder; documentation rules; and all Git and GitHub commands for this project |
 
 Open the guide with `xdg-open development/PfVarX_Development_Guide.html` (in WSL2:
