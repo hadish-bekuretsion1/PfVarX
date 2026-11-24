@@ -5,6 +5,24 @@
 The release version was reset to 0.0.0 after 0.4.2, as the baseline for the first reviewed
 release. The sections below 0.0.0 are the earlier development numbering, kept as history.
 
+### Run progress page and time, memory and storage estimates
+
+- A live progress page, `runs/<RUN_ID>/progress.html`, refreshed every 15 seconds while a run
+  works: start time, elapsed time, the steps running now (sample, start, time so far,
+  expected time), finished, running and failed jobs per step, expected finish and time
+  remaining. It opens by itself when a run starts from a desktop terminal or from the GUI's
+  **Run workflow** button (new tab; **Open run progress** reopens it), and opens the report
+  dashboard when the run ends. `PFVARX_NO_BROWSER=1` turns the opening off.
+- Each completed real-data run is added to a resource history for this computer
+  (`~/.local/share/pfvarx/history/`, or `$PFVARX_HISTORY_DIR`); new command
+  `resources-learn --run-id ID` adds earlier runs. Synthetic runs are never learned from.
+- `workflow-check` (GUI **Check workflow**) shows the expected time, peak memory and storage
+  of each step for the chosen inputs and final output, scaled by input size from that
+  history; steps never run on this computer are UNKNOWN. The estimate is frozen with the plan.
+- The report shows the run's start, finish, total and expected time on Overview and
+  Resources, and compares expected with measured time, peak RAM and results-folder sizes per
+  step in Resources.
+
 ### Report colours by meaning
 
 - One colour theme across the dashboard: status labels are green ✔ (accepted), amber ▲

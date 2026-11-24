@@ -292,6 +292,7 @@ code .</pre></div>
 <tr><td><code>src/pfvarx/eligibility/engine.py</code></td><td>Scientific eligibility engine (L0.5): sample-by-analysis matrix and cohort decisions.</td></tr>
 <tr><td><code>src/pfvarx/eligibility/territory.py</code></td><td>The genomic territory a run can speak about, and each sample&#x27;s callable evidence within it.</td></tr>
 <tr><td><code>src/pfvarx/execution/__init__.py</code></td><td>Layer 0 execution.</td></tr>
+<tr><td><code>src/pfvarx/execution/progress.py</code></td><td>Live run progress page (<code>runs/&lt;RUN_ID&gt;/progress.html</code>) from the Snakemake log and the frozen estimate; opens the report when the run ends.</td></tr>
 <tr><td><code>src/pfvarx/execution/preflight.py</code></td><td>Config-driven preparation and auditable verification before scientific execution.</td></tr>
 <tr><td><code>src/pfvarx/execution/retention.py</code></td><td>Conservative cleanup of completed-run intermediates only; preview by default.</td></tr>
 <tr><td><code>src/pfvarx/execution/runner.py</code></td><td>Build the frozen plan, launch Snakemake, isolate failed samples and finalise the run (L0.8).</td></tr>
@@ -315,6 +316,7 @@ code .</pre></div>
 <tr><td><code>src/pfvarx/installation.py</code></td><td>Install the tools the saved configuration needs (GUI: Install required tools).</td></tr>
 <tr><td><code>src/pfvarx/io.py</code></td><td>Safe file primitives: hashing, atomic writes and path containment.</td></tr>
 <tr><td><code>src/pfvarx/planning/__init__.py</code></td><td>Layer 0 planning: FO/DA dependencies and resource feasibility.</td></tr>
+<tr><td><code>src/pfvarx/planning/history.py</code></td><td>Resource history of real-data runs on this computer and the time, peak RAM and storage estimate per step (MEASURED_HISTORY or UNKNOWN).</td></tr>
 <tr><td><code>src/pfvarx/planning/plan.py</code></td><td>Objective and resource planning (L0.7). Read-only: it never creates output artefacts.</td></tr>
 <tr><td><code>src/pfvarx/provenance/__init__.py</code></td><td>Layer 0 provenance snapshots.</td></tr>
 <tr><td><code>src/pfvarx/provenance/snapshot.py</code></td><td>Content-addressed snapshot of the run-defining files (configuration, policy, code).</td></tr>
@@ -630,6 +632,7 @@ grep -A2 "^LIBRARY" $RUN/results/qc/samples/PF001/PF001.markdup.txt   <span clas
   <li><strong>Update the bookkeeping</strong> for a new tool or package:
     <ul>
       <li>threads and memory of the rule → the job class in <code>src/pfvarx/planning/plan.py</code> (<code>tests/unit/test_resource_plan.py</code> checks they agree);</li>
+      <li>a new rule's benchmark folder → its job class in <code>RULE_TO_JOB</code> (<code>src/pfvarx/planning/history.py</code>) and, if its log name differs, <code>RULE_ALIASES</code> and a label in <code>STEP_LABELS</code> (<code>src/pfvarx/execution/progress.py</code>), so estimates and the progress page include it;</li>
       <li>version recording → <code>SCIENTIFIC_PACKAGES</code> in <code>src/pfvarx/provenance/snapshot.py</code>;</li>
       <li>the tools list in the GUI → <code>TOOLS</code> in <code>src/pfvarx/installation.py</code>;</li>
       <li>which installation needs it → <code>scripts/check_installs.py</code>, and for a new feature <code>environment_for()</code> in <code>bootstrap.py</code> and the environments in <code>pixi.toml</code>.</li>

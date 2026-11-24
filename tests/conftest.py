@@ -21,3 +21,10 @@ def workspace(tmp_path: Path) -> Path:
     for private in ("config.yaml", "quality.yaml", "compute.yaml", "profiles/resources.yaml"):
         (tmp_path / "config" / private).unlink(missing_ok=True)
     return tmp_path
+
+
+@pytest.fixture(autouse=True)
+def _private_history(tmp_path_factory: pytest.TempPathFactory, monkeypatch: pytest.MonkeyPatch) -> None:
+    """Tests never read or write this computer's resource history, and never open a browser."""
+    monkeypatch.setenv("PFVARX_HISTORY_DIR", str(tmp_path_factory.mktemp("history")))
+    monkeypatch.setenv("PFVARX_NO_BROWSER", "1")

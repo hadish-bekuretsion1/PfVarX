@@ -1341,7 +1341,7 @@ cat "$RECORDS/analysis/dry-run.json"
 
 ### 4. Expected outputs
 
-Validation report, current preparation, `ready: true` and `dry-run` status `OK`. On a new workspace the dry run does not create `runs/` or `results`.
+Validation report, current preparation, `ready: true` and `dry-run` status `OK`. On a new workspace the dry run does not create `runs/` or `results`. The dry run also prints, on stderr, the expected time, peak memory and storage of each step for these inputs and this final output; they are learned from earlier real-data runs on this computer and are UNKNOWN for steps never run here. Record them with the run request; they are planning advice, not acceptance criteria.
 
 ### 5. Verification and quality control
 
@@ -1390,6 +1390,8 @@ assay:
 These are example settings for direct non-UMI gDNA; change chemistry/amplification only from real library metadata. Do not replace the full configuration with this fragment.
 
 **Step 2. Execute one NEW run and capture the result**
+
+While the run works, follow it on `runs/<RUN_ID>/progress.html`: start time, the steps running now, the expected finish and the time remaining. It opens in the browser when the run is started from a desktop terminal, refreshes every 15 seconds, and opens the report dashboard when the run ends. Use a second terminal for any checks: pressing Ctrl+C in the run terminal stops the run.
 
 ```bash
 ./pfvarx pipeline --mode NEW > "$RECORDS/analysis/pipeline.json"
@@ -2977,7 +2979,7 @@ Open the corresponding run dashboard and select measured wall time, RSS, CPU tim
 
 ### 5. Verification and quality control
 
-Sum of job wall times can exceed elapsed run time because jobs overlap. Peak job RSS is not a measured concurrent whole-workflow RAM peak. IO traffic is not peak disk usage. Missing measurements remain missing.
+Sum of job wall times can exceed elapsed run time because jobs overlap. Peak job RSS is not a measured concurrent whole-workflow RAM peak. IO traffic is not peak disk usage. Missing measurements remain missing. The report's Resources section also compares the estimate frozen before the run with the measured time and peak memory per step and with the size of each results folder; each completed real-data run is added to this computer's resource history (`./pfvarx resources-learn --run-id RUN_ID` adds an older run).
 
 ### 6. Error handling and troubleshooting
 
@@ -3859,9 +3861,12 @@ Replace the example paths, URL and filename with your actual inputs. Add
 `--sha256` to `fetch-input` when you have a trusted checksum. For FASTQ input,
 Inputs Preparation (or validation, if it runs first) writes the sample metadata
 `prepared/samples.tsv` from the paired files in `inputs/fastq/` if none exists; review it
-before analysis. `workflow-run` repeats the workflow
+before analysis. `workflow-check` also prints the expected time, peak memory and storage of each step for
+your inputs and final output, learned from earlier runs on this computer (UNKNOWN for a step
+never run here). `workflow-run` repeats the workflow
 check and starts a new analysis only if it passes, exactly as the GUI **Run
-workflow** button does. `./pfvarx dry-run` and `./pfvarx pipeline --mode NEW`
+workflow** button does. The run's live progress page `runs/<RUN_ID>/progress.html` opens in
+your browser (from the GUI, in a new tab) and opens the report dashboard when the run ends. `./pfvarx dry-run` and `./pfvarx pipeline --mode NEW`
 remain available as the separate steps.
 
 ### Supported input content
