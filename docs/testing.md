@@ -23,7 +23,7 @@ scientific tests, it runs real pipelines on the synthetic fixture:
 | --- | --- |
 | Dry runs (WGS, targeted non-UMI, targeted UMI) | Each design builds its workflow and creates no run or results |
 | Annotated WGS cohort to DA002 | Alignment, calling, cohort merge, BGZF annotation and one analysis |
-| Every downstream analysis | An 11-sample WGS cohort runs DA001–DA007 to completion, and clonality calls never contradict the simulated truth |
+| Every downstream analysis | An 11-sample WGS cohort runs DA001–DA008 to completion, clonality calls never contradict the simulated truth, and DA008 finds no copy-number change where none was simulated. `tests/unit/test_cnv.py` checks DA008 on a constructed BAM with a known duplication and deletion |
 | Targeted UMI to DA002 (depth 60) | The UMI route reaches cohort, annotation and resistance analysis |
 | No sample passing QC (UMI, depth 15) | The run completes with an explicit empty-cohort outcome instead of a crash |
 | UMI with short reads | Fixed read structures and adapter dimers do not stop fgbio |

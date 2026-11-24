@@ -25,6 +25,16 @@ parameters:
   da002_min_callable_per_group: {value: 3, source: UNCALIBRATED_PROVISIONAL}
   da002_reporting_floor: {value: 0.05, source: LITERATURE_SUPPORTED, note: "MalariaGEN Pf7 2023: an allele below 5% of reads is treated as absent"}
   da002_mixed_threshold: {value: 0.95, source: LITERATURE_SUPPORTED, note: "MalariaGEN Pf7 2023: the other allele below 5% of reads is treated as absent, so >=0.95 is MUTANT rather than MIXED"}
+  da008_amplification_ratio: {value: 1.5, source: UNCALIBRATED_PROVISIONAL, note: "gene depth / core depth at or above this is AMPLIFIED (with the interval check); halfway between one and two copies"}
+  da008_amplification_lower: {value: 1.25, source: UNCALIBRATED_PROVISIONAL, note: "lower bootstrap bound of the ratio must reach this for AMPLIFIED"}
+  da008_deletion_ratio: {value: 0.1, source: UNCALIBRATED_PROVISIONAL, note: "gene depth / core depth at or below this, with covered flanks, is DELETED"}
+  da008_present_ratio: {value: 0.3, source: UNCALIBRATED_PROVISIONAL, note: "gene depth / core depth at or above this counts the gene as present; between the deletion and present ratios is UNKNOWN (ambiguous)"}
+  da008_flank_min_ratio: {value: 0.3, source: UNCALIBRATED_PROVISIONAL, note: "flank depth / core depth needed before a low gene depth is called DELETED rather than UNKNOWN"}
+  da008_min_core_depth: {value: 20, source: UNCALIBRATED_PROVISIONAL, note: "median core-genome depth below this leaves every locus UNKNOWN"}
+  da008_flank_bp: {value: 2000, source: FRAMEWORK_POLICY, note: "length of each flank and of the window searched for junction read pairs"}
+  da008_window_bp: {value: 200, source: FRAMEWORK_POLICY, note: "window size for median depths and the bootstrap interval"}
+  da008_gc_windows: {value: 3000, source: FRAMEWORK_POLICY, note: "random core-genome windows per sample that give the expected depth for each GC content"}
+  da008_bootstrap: {value: 1000, source: FRAMEWORK_POLICY, note: "bootstrap replicates for the depth-ratio interval"}
   da007_min_samples_per_unit: {value: 3, source: UNCALIBRATED_PROVISIONAL}
   da007_gam_min_samples: {value: 10, source: UNCALIBRATED_PROVISIONAL, note: "samples with valid place and date needed before a GAM is fitted"}
   da007_gam_max_basis: {value: 4, source: FRAMEWORK_POLICY, note: "largest basis dimension k for the time smooth"}

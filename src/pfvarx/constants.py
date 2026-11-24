@@ -21,7 +21,7 @@ class FinalOutput(StrEnum):
     FO001 = "FO001"  # caller-ready alignment, index and QC
     FO002 = "FO002"  # filtered per-sample variant files, evidence and QC
     FO003 = "FO003"  # compatible variant-only cohort VCF/BCF and missingness
-    FO004 = "FO004"  # user-selected eligible DA002-DA007 outputs
+    FO004 = "FO004"  # user-selected eligible DA001-DA008 outputs
 
 
 class InputType(StrEnum):
@@ -291,4 +291,4 @@ class Reason(StrEnum):
     STRICT_RUN_STOP = "STRICT_RUN_STOP"
 
 
-DOWNSTREAM_IDS = ("DA002", "DA003", "DA001", "DA004", "DA005", "DA006", "DA007")
+DOWNSTREAM_IDS = ("DA002", "DA003", "DA001", "DA004", "DA005", "DA006", "DA007", "DA008")

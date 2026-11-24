@@ -29,7 +29,7 @@ from pfvarx.quality.policy import evaluate_sample, load_policy, stage_permitted
 COHORT_GATES = {"G5"}
 CALLED = {"ALT_DOMINANT", "MIXED", "REF_DOMINANT"}
 SITE_CALL_RATE_MIN = 0.8
-DOWNSTREAM_STAGES = ["L4", "DA001", "DA002", "DA003", "DA004", "DA005", "DA006", "DA007"]
+DOWNSTREAM_STAGES = ["L4", "DA001", "DA002", "DA003", "DA004", "DA005", "DA006", "DA007", "DA008"]
 
 
 def sample_metrics(missingness: Path) -> dict[str, dict[str, Any]]:

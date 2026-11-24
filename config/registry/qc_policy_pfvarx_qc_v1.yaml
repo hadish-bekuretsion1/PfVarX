@@ -19,7 +19,7 @@ gates:
      direction: min, fail: 70, warn: null, threshold_source: LITERATURE_SUPPORTED,
      reference: "Li 2013 (BWA-MEM is designed for reads of 70 bp and longer); reported as a warning",
      designs: [wgs, targeted_no_umi, targeted_umi], mandatory: false,
-     warning_permitted_for: [L1, L2, L3, L4, DA001, DA002, DA003, DA004, DA005, DA006, DA007]}
+     warning_permitted_for: [L1, L2, L3, L4, DA001, DA002, DA003, DA004, DA005, DA006, DA007, DA008]}
   - {id: G1.q30, gate: G1, stage: L1.fastq_qc, metric: q30_fraction_after, unit: fraction,
      direction: descriptive, fail: null, warn: null, threshold_source: FRAMEWORK_POLICY,
      reference: "instrument specifications differ by platform and read length; reported, not gated",
@@ -60,7 +60,7 @@ gates:
      direction: min, fail: 100, warn: null, threshold_source: LITERATURE_SUPPORTED,
      reference: "Early 2019 (sensitivity and precision fall below 100 reads per amplicon); MAD4HatTeR guidance (>=100 reads per amplicon). Raw reads only, so not applied to UMI consensus reads; reported as a warning",
      designs: [targeted_no_umi], mandatory: false,
-     warning_permitted_for: [L1, L2, L3, L4, DA001, DA002, DA003, DA004, DA005, DA006, DA007]}
+     warning_permitted_for: [L1, L2, L3, L4, DA001, DA002, DA003, DA004, DA005, DA006, DA007, DA008]}
   - {id: G3.umi_singletons, gate: G3, stage: L1.umi, metric: umi_singleton_fraction, unit: fraction,
      direction: max, fail: null, warn: null, threshold_source: UNSET_BLOCKING,
      reference: "no published standard; reported only",
@@ -75,7 +75,7 @@ gates:
      direction: max, fail: 0.5, warn: 0.2, threshold_source: UNCALIBRATED_PROVISIONAL,
      reference: "no published standard; share of cohort sites where the sample is MISSING_LOW_DEPTH or UNCALLABLE",
      designs: [wgs, targeted_no_umi, targeted_umi], mandatory: true,
-     warning_permitted_for: [L4, DA001, DA002, DA003, DA004, DA005, DA006, DA007]}
+     warning_permitted_for: [L4, DA001, DA002, DA003, DA004, DA005, DA006, DA007, DA008]}
   - {id: G5.cohort_mixed_fraction, gate: G5, stage: L3.cohort, metric: cohort_mixed_fraction, unit: fraction,
      direction: descriptive, fail: null, warn: null, threshold_source: FRAMEWORK_POLICY,
      reference: "descriptive; share of cohort sites with MIXED evidence (mixed infection or artefact)",

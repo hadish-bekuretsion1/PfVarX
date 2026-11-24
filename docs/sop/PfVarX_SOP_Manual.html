@@ -87,7 +87,7 @@ Use <code>set -o pipefail</code> before pipelines so an upstream failure is not 
 <td>Mode-appropriate validation, annotation and scientific eligibility</td>
 </tr>
 <tr>
-<td>DA001–DA007</td>
+<td>DA001–DA008</td>
 <td>Only registry-permitted designs, scales, metadata and prerequisites</td>
 </tr>
 <tr>
@@ -339,6 +339,25 @@ scientific ineligibility must be reviewed independently of process completion.</
 <td>TSV, JSON</td>
 <td>R/downstream/DA007/</td>
 <td>Descriptive summaries and optional model output. Review ascertainment and geographic sampling bias.</td>
+</tr>
+<tr>
+<td>DA008</td>
+<td>Copy-number markers</td>
+<td>Detect amplification of pfmdr1, plasmepsin II/III and gch1 and deletion of pfhrp2/pfhrp3 from read depth</td>
+<td><code>R/alignments/SAMPLE.bam</code>, reference FASTA/GFF, core-genome BED, versioned copy-number catalogue, <code>R/qc/samples/SAMPLE/core.mosdepth.region.dist.txt</code>, Q</td>
+<td>Sample ID; population for grouped summaries</td>
+<td>BAM, FASTA, GFF3, BED, TSV, JSON</td>
+<td>E</td>
+<td>E</td>
+<td>CE</td>
+<td>CE</td>
+<td>NE</td>
+<td>NE</td>
+<td>Whole-genome only: amplicon depth is not proportional to copy number. Requires a verified matching copy-number catalogue and a median core depth of at least 20 (provisional). Depth is GC-corrected against the sample's own core genome. A locus that cannot be judged is UNKNOWN, never single copy or present.</td>
+<td><code>cnv_calls.tsv</code>, <code>prevalence.tsv</code>, <code>catalog_provenance.json</code></td>
+<td>TSV, JSON</td>
+<td>R/downstream/DA008/</td>
+<td>DNA-level copy-number estimates with bootstrap intervals; a change carried by one clone of a mixed infection gives an intermediate ratio. Thresholds are provisional.</td>
 </tr>
 </tbody>
 </table></div>
@@ -1417,7 +1436,7 @@ printf '%s\n' &quot;$ANALYSIS/runs/$RUN_ID/results/report/pfvarx_dashboard.html&
 </code></pre>
 <p>Open the printed file path in the browser. This overwrites the report HTML/JSON and centralized QC JSON only; archive their previous bytes first if required for your audit.</p>
 <p><strong>Step 2. Review the eight sections and export</strong></p>
-<p>Use them in order: Overview, Inputs, Quality Control, Variants, Downstream Analyses (DA001–DA007), Resources, Software and Logs. In Downstream Analyses open each analysis tab; its page shows all its charts and tables together. Elsewhere choose one visualization per group. Filter actual fields; inspect active counts and click/focus a sample/mark for its source evidence. CSV/XLSX exports include all filtered embedded rows; tables display 50 rows/page. PNG exports the actual selected chart. Print from the browser (Ctrl+P, or Share → Print on a phone) to save a PDF; all sections print, but tables use the visible page and downstream uses the current selected analysis. Print each desired analysis for a complete supplement.</p>
+<p>Use them in order: Overview, Inputs, Quality Control, Variants, Downstream Analyses (DA001–DA008), Resources, Software and Logs. In Downstream Analyses open each analysis tab; its page shows all its charts and tables together. Elsewhere choose one visualization per group. Filter actual fields; inspect active counts and click/focus a sample/mark for its source evidence. CSV/XLSX exports include all filtered embedded rows; tables display 50 rows/page. PNG exports the actual selected chart. Print from the browser (Ctrl+P, or Share → Print on a phone) to save a PDF; all sections print, but tables use the visible page and downstream uses the current selected analysis. Print each desired analysis for a complete supplement.</p>
 <p><strong>Step 3. Check provenance and sharing scope</strong></p>
 <p>The variant embedding cap is currently 200000; full summaries precede that cap, detailed charts use the labelled embedded subset. Missing fields stay missing. Synthetic fixtures display SYNTHETIC DEMO DATA at the top of Overview. Redacted log tails are bounded. Table pseudonymization is not full report anonymization; review source paths, free text and identifiers before sharing.</p>
 <h3>4. Expected outputs</h3>
@@ -2114,7 +2133,7 @@ inventory of that run. Snakemake temporary intermediates may disappear after suc
 │       │   ├── cohort_decisions.json
 │       │   ├── sample_analysis_eligibility.tsv
 │       │   └── sample_analysis_eligibility.json
-│       ├── downstream/DA001–DA007/         selected/internal analyses only
+│       ├── downstream/DA001–DA008/         selected/internal analyses only
 │       │   ├── status_manifest.json
 │       │   └── method-specific files listed in R11
 │       ├── report/
@@ -3275,6 +3294,12 @@ targeted designs) and from what is callable. Decisions record the territory fact
 <td>Inherits DA002</td>
 <td>Coordinates, dates, country</td>
 </tr>
+<tr>
+<td>DA008</td>
+<td>Copy-number markers</td>
+<td>Whole-genome sequencing only (amplicon depth does not follow copy number)</td>
+<td>Median core depth ≥ 20; verified copy-number catalogue; GFF</td>
+</tr>
 </tbody>
 </table>
 <p>A panel's loci are its separate target regions: sites inside one amplicon are linked, so
@@ -3304,7 +3329,7 @@ analyses:
 </code></pre>
 <p>Automatic selection requests every analysis; eligibility then records which ones the
 panel and evidence support. Supply a matching GFF to enable annotation and marker
-outcomes; without one, Layer 4 is omitted and DA002 and DA007 are blocked with recorded
+outcomes; without one, Layer 4 is omitted and DA002, DA007 and DA008 are blocked with recorded
 reasons. Keep <code>CONTINUE_INDEPENDENT</code> to let qualified independent analyses continue.</p>
 <h2 id="upgrade-from-configuration-schema-3">Upgrade from configuration schema 3</h2>
 <p>Schema 3 kept the panel, UMI and technique settings in <code>config.yaml</code>. Run:</p>

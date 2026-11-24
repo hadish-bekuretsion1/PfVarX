@@ -50,7 +50,7 @@ if "umi" in inp.keys():
     values.update(m.umi_family_sizes(Path(inp.umi)))
 policy = load_policy(Path(sm.params.root), eff["quality"]["policy_id"])
 qc = evaluate_sample(policy, values, design, stages={"G1", "G2", "G3"})
-stages = ["L1_OUTPUT", "L2", "L3", "L4", "DA002", "DA003", "DA001", "DA004", "DA005", "DA006", "DA007"]
+stages = ["L1_OUTPUT", "L2", "L3", "L4", "DA002", "DA003", "DA001", "DA004", "DA005", "DA006", "DA007", "DA008"]
 qc["permitted"] = {st: (True if st == "L1_OUTPUT" and qc["verdict"] != "FAIL" else stage_permitted(qc, st))
                    for st in stages}
 qc["sample_id"] = sm.wildcards.sample
