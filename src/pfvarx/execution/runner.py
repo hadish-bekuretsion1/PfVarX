@@ -30,6 +30,24 @@ from pfvarx.references.prepare import verify_prepared
 from pfvarx.runs import registry as runs
 
 
+def catalogue_warnings(root: Path, analyses: list[str], resistance_catalog: Path | None) -> list[dict[str, str]]:
+    """Warn before a run when DA002 or DA008 will be blocked by an unverified marker catalogue."""
+    from pfvarx.downstream.cnv import CATALOG as CNV_CATALOG
+    from pfvarx.downstream.resistance import load_catalog
+
+    out = []
+    for da, path in (("DA002", resistance_catalog or Path("config/registry/resistance_catalog_pfvarx_v1.tsv")),
+                     ("DA008", Path(CNV_CATALOG))):
+        if da not in analyses or not (root / path).is_file():
+            continue
+        status = load_catalog(root / path)[0].get("status", "UNKNOWN")
+        if status not in ("MAINTAINER_VERIFIED", "TEST_FIXTURE"):
+            out.append({"reason": "CATALOG_NOT_VERIFIED", "analysis": da,
+                        "detail": f"{da} will be blocked: {path} has status {status}. Verify the catalogue first, or "
+                                  "run now and add the analysis later with './pfvarx pipeline --mode EXTEND --run-id RUN_ID'"})
+    return out
+
+
 def build_plan(root: Path) -> dict[str, Any]:
     from pfvarx.installation import require_tools
 
@@ -68,6 +86,9 @@ def build_plan(root: Path) -> dict[str, Any]:
     resources["estimate"] = estimate([j["job"] for j in resources["jobs"]], sample_input_gb(root, {"samples": admitted}),
                                      bundle.compute.max_jobs, cfg.assay_design.value, cfg.input_type.value,
                                      layers=resources["layers"])
+    if 5 in resources["layers"]:
+        resources["warnings"] += catalogue_warnings(root, requested + internal,
+                                                    cfg.analyses.resistance_catalog)
     manifest = root / "prepared" / "manifest.json"
     ref = read_json(manifest) if manifest.is_file() else {}
     return {

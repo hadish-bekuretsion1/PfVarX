@@ -94,15 +94,15 @@ the data kind (SYNTHETIC DEMO DATA for fixtures) and the calibration status appe
 at the top of **Overview**. The sidebar
 contains eight sections, in the order a run is reviewed: **Overview** (run
 summary), **Inputs** (validation and libraries), **Quality Control** (gates and metrics; for FO003 and FO004 also the cohort QC gate G5 and each sample's cohort QC verdict),
-**Variants** (records and annotations), **Downstream Analyses** (DA001–DA007),
+**Variants** (records and annotations), **Downstream Analyses** (DA001–DA008),
 **Resources** (execution and utilization), **Software** (versions and provenance) and
 **Logs** (diagnostics and exclusions). Each section opens with one heading, such as **PfVarX · Inputs**; Downstream Analyses
 shows the name of the open analysis instead. Each is a card with an icon; the open section is
 dark with a teal bar. On a phone, **Menu** opens the same cards.
 **Downstream Analyses** has one tab per analysis across the top: Infection Complexity
 (DA001), Resistance Markers (DA002), Genetic Diversity (DA003), Genetic Relatedness (DA004),
-Population Structure (DA005), Phylogenetic Analysis (DA006) and Spatiotemporal Analysis
-(DA007). The open tab is navy with a teal bar. Each tab
+Population Structure (DA005), Phylogenetic Analysis (DA006), Spatiotemporal Analysis
+(DA007) and Copy-Number Markers (DA008). The open tab is navy with a teal bar. Each tab
 opens the analysis's own page: its full name as the title (for example *Antimalarial
 Resistance Marker Analysis*, *DA002 · Marker calls, callability and prevalence*), summary
 tiles (for DA002: samples, markers, callable denominator, UNKNOWN), and its charts and
@@ -125,6 +125,7 @@ distinct datasets have separate groups and explicitly identified denominators.
 | DA005 | PCA scatter with actual components and supplied explained variance; coordinates table; FST has its own matrix/table |
 | DA006 | Supplied Newick tree, collapse/expand and support table; distance matrix only if IQ-TREE published `tree.mldist` |
 | DA007 | Actual-coordinate grid map/table; separate country-month heatmap, time series and table for the corresponding source summary |
+| DA008 | Depth ratio per sample and locus with bootstrap interval (bar chart or table), prevalence of each amplification or deletion, per-sample calls; AMPLIFIED and DELETED are coloured as findings, UNKNOWN as gray |
 
 **Overview** and **Resources** show when the run started and finished, its total time and
 the time expected before it ran. **Resources** then compares, step by step, the estimate
@@ -136,7 +137,7 @@ dashboard is written when the run ends.
 
 **Resources** continues with **Resources by step: tool, time and RAM**, one row per workflow
 step (fastp read QC, bwa-mem2 alignment, Picard duplicate marking, the PfVarX caller,
-bcftools, SnpEff, each analysis DA001–DA007, and the others): its layer, the tools and
+bcftools, SnpEff, each analysis DA001–DA008, and the others): its layer, the tools and
 versions that ran it, the number of jobs (samples, lanes or analyses), total and longest
 job time, CPU time, peak and mean RAM, average CPU cores and its share of the summed time.
 Charts show time, peak RAM or CPU time per step. **Resources by job** below gives the same
@@ -203,7 +204,7 @@ embedded subset. Consult the evidence TSV paths for omitted records.
   as PDF. All eight sections
   print, with the open downstream analysis (all its charts and tables) and selected chart views. Tables print
   their current page. Use CSV/XLSX for complete tables and print each analysis separately
-  when a DA001–DA007 supplement is required. Browser headers/footers are user settings.
+  when a DA001–DA008 supplement is required. Browser headers/footers are user settings.
 
 **Pseudonymize sample/location fields in table exports** affects matching columns only.
 It does not anonymize the HTML, plots, free text, input paths or every identifier.

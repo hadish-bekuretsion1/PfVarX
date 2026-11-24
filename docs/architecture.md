@@ -25,7 +25,7 @@ and execution are separate entry points.
 
 FO001–FO003 installations need no downstream implementation (FO001 also leaves out the caller and its tools). Selected FO004 analyses
 add annotation and requested modules plus genuine prerequisites/shared helpers. DA004,
-DA005 and DA006 depend on DA001; DA007 currently uses DA002 outcomes. Registry/policy
+DA005 and DA006 depend on DA001; DA007 currently uses DA002 outcomes; DA008 has no prerequisite. Registry/policy
 metadata remains shared because control/provenance code reads it. Tool feature groups
 are reads, targeted, annotation, coi, related, structure, phylogeny, spatial, bench and
 dev. Valid feature combinations are locked in the single Pixi manifest/lock. Core is

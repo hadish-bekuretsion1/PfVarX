@@ -30,11 +30,12 @@ verified; no automatic cluster/container deployment claim is made.
   missing/uncallable states and an explicit outcome when no sample enters the cohort;
   reference-matched SnpEff annotation.
 - DA001 MOIRE; DA002 codon marker genotyping; DA003 diversity; DA004 hmmIBD/Dcifer;
-  DA005 haploid PCA/Hudson FST; DA006 IQ-TREE; DA007 descriptive/GAM spatial-temporal work.
+  DA005 haploid PCA/Hudson FST; DA006 IQ-TREE; DA007 descriptive/GAM spatial-temporal work;
+  DA008 GC-corrected read-depth copy number at catalogue loci (WGS).
 - Offline dashboard, exports, benchmark partitions, exact-normalized accuracy/mixture
   evaluation, wild-cluster uncertainty and resource-profile generation.
 - Typed-source checks, unit/scientific/integration tests (including a synthetic cohort
-  that runs all seven analyses), version and CLI/GUI consistency tests, isolated synthetic
+  that runs all eight analyses), version and CLI/GUI consistency tests, isolated synthetic
   end-to-end verification, browser checks, and clean-distribution tests.
 
 ## Limits that matter before scientific benchmarking
@@ -59,7 +60,8 @@ verified; no automatic cluster/container deployment claim is made.
 | Reuse/provenance | Frozen software/configuration integrity is checked; not all external reads, masks or truth files are frozen or covered by reuse keys. Maintain checksum manifests; use NEW for changed scientific inputs. |
 | Reporting | A live progress page (`runs/<RUN_ID>/progress.html`) follows a running workflow; the report dashboard is written when the run ends, so use finalized runs for interpretation. Missing upstream distributions/timestamps stay unavailable. Historical control charts are not implemented. PDF uses browser printing and visible table pages. |
 | Spatial interpretation | Descriptive aggregation/GAM only; preferential sampling is not modelled. |
-| Unsupported scope | Structural variants, copy-number/resistance amplification inference, clone-resolved trees and a validated ML classifier are not delivered by this implementation. |
+| Copy number (DA008) | Gene-level amplification and deletion at six catalogue loci from GC-corrected read depth, WGS only; the shipped copy-number catalogue is DRAFT_REQUIRES_VERIFICATION and blocks DA008 until verified. Thresholds are UNCALIBRATED_PROVISIONAL and not yet benchmarked against samples of known copy number; mapping bias in subtelomeric genes (pfhrp2/3) is not corrected; amplicon breakpoints are not resolved (junction read pairs are counted as support only). |
+| Unsupported scope | Genome-wide structural-variant and copy-number discovery, clone-resolved trees and a validated ML classifier are not delivered by this implementation. |
 
 The source release retains these limits explicitly instead of shipping simulated
 resources or successful-looking historical outputs as evidence of readiness. Read the

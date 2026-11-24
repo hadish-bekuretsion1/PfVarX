@@ -112,6 +112,7 @@ targeted designs) and from what is callable. Decisions record the territory fact
 | DA005 | Population structure | A panel needs ≥ 10 separate target regions (`da005_min_independent_loci`, `TOO_FEW_INDEPENDENT_LOCI`) | Population groups; ≥ 3 informative sites |
 | DA006 | Phylogenetics | A panel needs ≥ 10 separate target regions (`da006_min_independent_loci`) | ≥ 4 monoclonal samples, ≥ 10 parsimony-informative sites, missingness limits |
 | DA007 | Spatial and temporal | Inherits DA002 | Coordinates, dates, country |
+| DA008 | Copy-number markers | Whole-genome sequencing only (amplicon depth does not follow copy number) | Median core depth ≥ 20; verified copy-number catalogue; GFF |
 
 A panel's loci are its separate target regions: sites inside one amplicon are linked, so
 DA005 and DA006 results from a panel carry a caveat that they describe the panel loci,
@@ -149,7 +150,7 @@ analyses:
 
 Automatic selection requests every analysis; eligibility then records which ones the
 panel and evidence support. Supply a matching GFF to enable annotation and marker
-outcomes; without one, Layer 4 is omitted and DA002 and DA007 are blocked with recorded
+outcomes; without one, Layer 4 is omitted and DA002, DA007 and DA008 are blocked with recorded
 reasons. Keep `CONTINUE_INDEPENDENT` to let qualified independent analyses continue.
 
 ## Upgrade from configuration schema 3

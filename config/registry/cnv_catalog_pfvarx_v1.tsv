@@ -1,0 +1,11 @@
+#catalog_id=pfvarx_cnv_catalog
+#version=0.1.0-draft
+#status=DRAFT_REQUIRES_VERIFICATION
+#note=Copy-number loci for DA008. Gene identifiers are PlasmoDB 3D7 IDs; the gene location is read from the GFF at run time. Verify each locus and the meaning of its event against the literature before release. DA008 refuses to run until a maintainer sets status=MAINTAINER_VERIFIED and records the verification.
+locus_id	gene_id	gene_name	event	meaning	evidence_class	source
+pfmdr1_amplification	PF3D7_0523000	pfmdr1	AMPLIFICATION	associated with reduced mefloquine and lumefantrine susceptibility	TO_VERIFY	literature
+plasmepsin2_amplification	PF3D7_1408000	plasmepsin_II	AMPLIFICATION	associated with piperaquine resistance	TO_VERIFY	literature
+plasmepsin3_amplification	PF3D7_1408100	plasmepsin_III	AMPLIFICATION	associated with piperaquine resistance (amplified with plasmepsin II)	TO_VERIFY	literature
+gch1_amplification	PF3D7_1224000	gch1	AMPLIFICATION	associated with the antifolate-resistance background	TO_VERIFY	literature
+pfhrp2_deletion	PF3D7_0831800	pfhrp2	DELETION	can cause false-negative HRP2-based rapid diagnostic tests	TO_VERIFY	literature
+pfhrp3_deletion	PF3D7_1372200	pfhrp3	DELETION	contributes to false-negative HRP2-based rapid diagnostic tests (cross-reacting HRP3)	TO_VERIFY	literature

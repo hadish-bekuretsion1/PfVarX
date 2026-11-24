@@ -75,6 +75,7 @@ function lineChart(rows,{xField="month",yField="prevalence",groupField="country"
 function numericColor(value,max=1) { const n=number(value);return n===null?"#edf1f5":`rgba(31,105,148,${Math.max(.12,Math.min(1,.12+.88*n/(max||1)))})`; }
 const STATUS_COLOR = { PASS: "#0ca30c", WARNING: "#fab219", FAIL: "#d03b3b", NOT_EVALUATED: "#c3cad3", NOT_APPLICABLE: "#eceff3", UNKNOWN: "#8795ac",
   MUTANT: "#d03b3b", MIXED: "#fab219", WILD_TYPE: "#0ca30c", BELOW_REPORTING_FLOOR: "#9fb4c7",
+  AMPLIFIED: "#d03b3b", DELETED: "#d03b3b", SINGLE_COPY: "#0ca30c", PRESENT: "#0ca30c",
   // Clonality is a category, not a quality state: categorical slots 1-2 (blue / orange, validated
   // for colour-vision deficiency), gray when undecided. Charts always label them.
   MONOCLONAL: "#2a78d6", POLYCLONAL: "#eb6834", INDETERMINATE: "#a7b1bd" };

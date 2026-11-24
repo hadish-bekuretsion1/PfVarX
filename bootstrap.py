@@ -29,6 +29,7 @@ METHODS = {
     "DA005": "structure",
     "DA006": "phylogeny",
     "DA007": "spatial",
+    "DA008": "cnv",
 }
 R_SCRIPTS = {"DA001": "da001_moire.R", "DA004": "da004_dcifer.R", "DA007": "da007_gam.R"}
 ROOT_FILES = {
@@ -145,7 +146,7 @@ def export_workspace(
         raise ValueError("An on-demand workspace takes its analyses and final output from the saved configuration")
     design = design_of(design)
     if set(analyses) - set(METHODS):
-        raise ValueError("Unknown analysis; choose DA001–DA007")
+        raise ValueError("Unknown analysis; choose DA001–DA008")
     if profile in {"sample", "cohort"} and analyses:
         raise ValueError("Select downstream or benchmark profile for analyses")
     if profile == "downstream" and not analyses:
@@ -160,6 +161,8 @@ def export_workspace(
     if "DA007" in selected:
         selected.add("DA002")
     modules = {METHODS[d] for d in selected}
+    if "DA008" in selected:
+        modules.add("resistance")  # the copy-number catalogue is read with the same loader
     if selected & {"DA003", "DA001", "DA004", "DA005"}:
         modules.add("coi")  # diversity imports the shared FWS helper; no MOIRE tool unless requested/prerequisite
     if selected & {"DA001", "DA004", "DA005"}:

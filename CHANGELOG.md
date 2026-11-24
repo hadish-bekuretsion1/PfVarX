@@ -1,5 +1,29 @@
 # Changelog
 
+## Unreleased
+
+Changes on `develop` after the `v0.0.0` release. The version number stays 0.0.0 until the
+next release is tagged.
+
+### DA008 copy-number markers
+
+- New analysis **DA008 Copy-number markers** (whole-genome sequencing, FO004): amplification
+  of pfmdr1, plasmepsin II and III and gch1, and deletion of pfhrp2 and pfhrp3. For each
+  locus the gene's read depth is compared with core-genome windows of the same sample with
+  similar GC content (P. falciparum libraries cover AT-rich stretches unevenly), with a
+  bootstrap interval, the flanking depth, and read pairs that support a duplication junction
+  or span a deletion. States: AMPLIFIED / SINGLE_COPY, DELETED / PRESENT, or UNKNOWN with
+  its reason; prevalence per locus with Wilson intervals.
+- New copy-number catalogue `config/registry/cnv_catalog_pfvarx_v1.tsv` (gene IDs checked
+  against the PlasmoDB 55 GFF). Like the resistance catalogue it is
+  DRAFT_REQUIRES_VERIFICATION and blocks DA008 until a maintainer verifies it.
+- Settings `layer5.da008_*` (thresholds UNCALIBRATED_PROVISIONAL); a DA008 report tab;
+  selectable in the CLI and the GUI like the other analyses; selected automatically for
+  WGS under automatic analysis selection.
+- `workflow-check` (and `ready`) now warn before a run when DA002 or DA008 will be blocked
+  by an unverified catalogue (`CATALOG_NOT_VERIFIED`), and say how to add the analysis later
+  with `--mode EXTEND`.
+
 ## 0.0.0 (2026-11-24)
 
 First tagged release (`v0.0.0`). The release version was reset to 0.0.0 after 0.4.2, as the

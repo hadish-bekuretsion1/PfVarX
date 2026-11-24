@@ -89,7 +89,7 @@
   },
   "config.analyses.requested": {
     "example": "[] or [DA001, DA003]",
-    "help": "Use an empty list for auto or FO001–FO003. DA001 is optional for explicit selection and runs internally when another selected analysis needs it. For explicit selection, add other installed methods as needed. DA001 COI, DA002 markers, DA003 diversity, DA004 relatedness, DA005 structure, DA006 phylogeny, DA007 spatial/temporal."
+    "help": "Use an empty list for auto or FO001–FO003. DA001 is optional for explicit selection and runs internally when another selected analysis needs it. For explicit selection, add other installed methods as needed. DA001 COI, DA002 markers, DA003 diversity, DA004 relatedness, DA005 structure, DA006 phylogeny, DA007 spatial/temporal, DA008 copy-number markers (whole-genome sequencing only)."
   },
   "config.analyses.scales": {
     "example": "{} or {\"DA003\":[\"POPULATION\"]}",

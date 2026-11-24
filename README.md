@@ -62,7 +62,7 @@ Either way each final output gets only the tools it uses:
 | FO001 alignment and QC | `--final-output FO001` | fastp, bwa-mem2 (and fgbio for targeted designs, as `fgbio-minimal` without R). No variant caller, bcftools, numpy, scipy or R |
 | FO002 per-sample calls | `--final-output FO002` | adds the variant caller (numpy, scipy) and bcftools |
 | FO003 cohort | `--final-output FO003` | same tools as FO002, plus the cohort step |
-| FO004 annotation and analyses | `--final-output FO004 --analyses DA003` (or `--auto-analyses`) | adds SnpEff and only the requested analyses' tools: R with MOIRE (DA001), Dcifer and hmmIBD (DA004), scikit-allel (DA005), IQ-TREE (DA006), mgcv (DA007) |
+| FO004 annotation and analyses | `--final-output FO004 --analyses DA003` (or `--auto-analyses`) | adds SnpEff and only the requested analyses' tools: R with MOIRE (DA001), Dcifer and hmmIBD (DA004), scikit-allel (DA005), IQ-TREE (DA006), mgcv (DA007); DA002 and DA008 need no extra tool |
 | Benchmarking | `--profile benchmark` | as FO002, plus RTG Tools with `--rtg` |
 | Full development environment | `--profile development` | everything, plus the test tools |
 

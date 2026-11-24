@@ -36,6 +36,7 @@ protocol](benchmarking/README.md) is still the route to calibrated values.
 | Annotation and DA002 | GFF matching the FASTA; a marker catalogue with status `MAINTAINER_VERIFIED`. |
 | DA003, DA005 by population | Population column in the sample sheet. |
 | DA007 | `latitude`, `longitude`, `collection_date`, `country`. |
+| DA008 | GFF matching the FASTA; a copy-number catalogue with status `MAINTAINER_VERIFIED`; whole-genome sequencing. |
 
 The core genome should follow the accessible-genome definition of Miles et al. 2016,
 which excludes subtelomeric and internal hypervariable regions.
@@ -190,6 +191,11 @@ A missing record is never counted as a reference call.
 | DA007 spatial | Minimum samples per unit | 3 | Provisional. |
 | DA007 spatial | Samples with place and date before a GAM is fitted | 10 | Provisional. |
 | DA007 spatial | GAM basis dimension / interval level | k ≤ 4 / 95% | Framework policy. |
+| DA008 copy number | Amplified: depth ratio / lower bootstrap bound | ≥ 1.5 / ≥ 1.25 | Provisional (halfway between one and two copies). |
+| DA008 copy number | Deleted: depth ratio, with flank ratio | ≤ 0.1, flanks ≥ 0.3 | Provisional. |
+| DA008 copy number | Present (deletion loci) / single-copy floor | ratio ≥ 0.3; between 0.1 and 0.3 is UNKNOWN | Provisional. |
+| DA008 copy number | Median core-genome depth | ≥ 20 | Provisional; below it every locus is UNKNOWN. |
+| DA008 copy number | Windows / flanks / GC model / bootstrap | 200 bp / 2 000 bp / 3 000 core windows / 1 000 replicates | Framework policy. |
 
 Notes on interpretation:
 

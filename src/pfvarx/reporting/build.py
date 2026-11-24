@@ -26,7 +26,7 @@ from pfvarx.io import read_json, read_tsv, write_json
 
 DA_NAMES = {"DA002": "Drug-resistance markers", "DA003": "Genetic diversity", "DA001": "COI and clonal status",
             "DA004": "Relatedness and IBD", "DA005": "Population structure", "DA006": "Phylogenetics",
-            "DA007": "Spatial-temporal"}
+            "DA007": "Spatial-temporal", "DA008": "Copy-number markers"}
 
 # Fixed, analysis-specific interpretation consequences of QC warnings (Layer 6 spec, section 6).
 CONSEQUENCES = {
@@ -39,6 +39,8 @@ CONSEQUENCES = {
     "DA005": "Missingness and the dominant-allele representation of polyclonal samples can shift PCA positions and FST.",
     "DA006": "Only MONOCLONAL samples are eligible; missing data and few informative sites weaken support values.",
     "DA007": "Missing locations or dates remove samples; spatial sampling bias is not modelled.",
+    "DA008": "Low or uneven depth widens the copy-number interval; a locus that cannot be judged is UNKNOWN, "
+             "never single copy or present. pfhrp2/3 lie in subtelomeric repeats where depth is least reliable.",
 }
 
 VIEW_REGISTRY = {
@@ -60,6 +62,12 @@ VIEW_REGISTRY = {
                   "uncertainty": "none (descriptive)", "limitations": "filtering highlights; it does not refit PCA"},
     "DA006.tree": {"estimand": "maximum-likelihood tree of MONOCLONAL samples", "views": ["tree", "distance", "table"],
                    "uncertainty": "UFBoot / SH-aLRT support", "limitations": "no tree when skipped"},
+    "DA008.calls": {"estimand": "per-sample copy-number state of each locus (depth ratio to the core genome)",
+                    "views": ["table", "bar"], "uncertainty": "bootstrap interval of the depth ratio",
+                    "limitations": "DNA-level estimate; intermediate ratios in mixed infections; UNKNOWN never counted"},
+    "DA008.prevalence": {"estimand": "share of judged infections with each amplification or deletion",
+                         "views": ["bar", "table"], "uncertainty": "Wilson interval (simple random sampling)",
+                         "limitations": "provisional thresholds"},
     "DA007.summary": {"estimand": "prevalence by country and month", "views": ["map", "heatmap", "line", "table"],
                       "uncertainty": "counts shown; GAM CI where fitted", "limitations": "aggregated; preferential sampling"},
 }
@@ -163,6 +171,7 @@ ANALYSIS_TOOLS: dict[str, tuple[str, tuple[str, ...]]] = {
     "DA005": ("Population structure", ("scikit-allel",)),
     "DA006": ("Phylogenetics", ("iqtree",)),
     "DA007": ("Spatial and temporal summary", ("r-base", "r-mgcv")),
+    "DA008": ("Copy-number markers", ("python", "pysam")),
 }
 
 
@@ -439,6 +448,9 @@ def harvest(root: Path, run: Path) -> dict[str, Any]:
             entry["newick"] = tree.read_text().strip() if tree.is_file() else None
             entry["gates"] = _optional_json(d / "runtime_gates.json", warnings)
             entry["distance_matrix"] = _distance_matrix(d / "tree.mldist", warnings)
+        elif da == "DA008":
+            entry["calls"] = _read_tsv_safe(d / "cnv_calls.tsv")
+            entry["prevalence"] = _read_tsv_safe(d / "prevalence.tsv")
         elif da == "DA007":
             entry["summary"] = _read_tsv_safe(d / "country_month_summary.tsv")
             entry["grid"] = _optional_json(d / "grid_summary.json", warnings, [])

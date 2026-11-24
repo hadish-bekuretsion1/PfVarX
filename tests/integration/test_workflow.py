@@ -163,7 +163,7 @@ def test_umi_route_reaches_resistance_analysis(tmp_path: Path) -> None:
 
 
 def test_every_downstream_analysis_executes(tmp_path: Path) -> None:
-    """A WGS cohort that reaches all seven analyses (DA001-DA007), not just their skip paths.
+    """A WGS cohort that reaches all eight analyses (DA001-DA008), not just their skip paths.
 
     The synthetic genome is 48 kb, so the fixture adds variant sites (--variant-scale 4) and
     the test thins MOIRE loci at 100 bp instead of 500 bp: at 500 bp only ~90 loci exist and
@@ -181,7 +181,14 @@ def test_every_downstream_analysis_executes(tmp_path: Path) -> None:
     text, n = re.subn(r"^(  da001_thin_bp: \{value: )\d+", r"\g<1>100", layer5.read_text(), flags=re.M)
     assert n == 1
     layer5.write_text(text)
-    analyses = ["DA001", "DA002", "DA003", "DA004", "DA005", "DA006", "DA007"]
+    analyses = ["DA001", "DA002", "DA003", "DA004", "DA005", "DA006", "DA007", "DA008"]
+    # DA008 on the synthetic genes: no copy-number change was simulated, and one locus is absent.
+    (ws / "config/registry/cnv_catalog_pfvarx_v1.tsv").write_text(
+        "#catalog_id=test_cnv\n#version=test\n#status=TEST_FIXTURE\n"
+        "locus_id\tgene_id\tgene_name\tevent\tmeaning\tevidence_class\tsource\n"
+        "mdr1_amp\tPFX_MDR1\tmdr1\tAMPLIFICATION\ttest\tTEST\tfixture\n"
+        "crt_del\tPFX_CRT\tcrt\tDELETION\ttest\tTEST\tfixture\n"
+        "absent_amp\tPFX_NONE\tnone\tAMPLIFICATION\ttest\tTEST\tfixture\n")
     cfg = yaml.safe_load((ws / "config/config.yaml").read_text())
     cfg["final_output"] = "FO004"
     cfg["reference"]["gff"] = "inputs/reference/Pf3D7.gff"
@@ -206,6 +213,18 @@ def test_every_downstream_analysis_executes(tmp_path: Path) -> None:
     summary = json.loads((res / "downstream/DA004/status_manifest.json").read_text())["results_summary"]
     assert summary["pairs_estimated"] > 0, summary
     assert (res / "downstream/DA006/tree.treefile").is_file()
+    cnv_rows = [dict(zip(lines[0].split("\t"), row.split("\t")))
+                for lines in [(res / "downstream/DA008/cnv_calls.tsv").read_text().splitlines()] for row in lines[1:]]
+    by_locus: dict[str, set[str]] = {}
+    for row in cnv_rows:
+        by_locus.setdefault(row["locus_id"], set()).add(row["state"])
+    assert by_locus["mdr1_amp"] == {"SINGLE_COPY"}, cnv_rows
+    assert by_locus["crt_del"] == {"PRESENT"}, cnv_rows
+    assert {r["reason"] for r in cnv_rows if r["locus_id"] == "absent_amp"} == {"GENE_NOT_IN_GFF"}
+    # Short synthetic genes (2-3 windows at 40x) give ratios of about 0.7-1.4; the interval check keeps
+    # them from being called AMPLIFIED, and nothing is called DELETED.
+    assert all(0.5 <= float(r["depth_ratio"]) <= 1.6 for r in cnv_rows if r["locus_id"] != "absent_amp"), cnv_rows
+    assert not {r["state"] for r in cnv_rows} & {"AMPLIFIED", "DELETED"}, cnv_rows
     # Cohort QC (G5) ran and gave each cohort sample a verdict.
     cohort_qc = json.loads((res / "cohort/cohort_qc.json").read_text())
     assert set(cohort_qc["samples"]) == set((res / "cohort/cohort_samples.txt").read_text().split())

@@ -247,7 +247,7 @@ code .</pre></div>
 <tr><td>Eligibility</td><td><code>src/pfvarx/eligibility/engine.py</code></td><td>Decides which samples and cohorts qualify for each analysis</td><td><code>config/registry/downstream_analyses.yaml</code></td></tr>
 <tr><td>Human DNA removal</td><td><code>src/pfvarx/references/host.py</code></td><td>Builds the parasite+human reference and filters read pairs aligned to the human genome</td><td><code>reference.host_removal</code></td></tr>
 <tr><td>Inputs Preparation</td><td><code>src/pfvarx/inputs/preparation.py</code></td><td>Builds the sample metadata from input files and merges study metadata</td><td><code>study_metadata</code></td></tr>
-<tr><td>Downstream analyses</td><td><code>src/pfvarx/downstream/*.py</code></td><td>DA001–DA007 (section 8)</td><td><code>layer5.yaml</code></td></tr>
+<tr><td>Downstream analyses</td><td><code>src/pfvarx/downstream/*.py</code></td><td>DA001–DA008 (section 8)</td><td><code>layer5.yaml</code></td></tr>
 </table></div>
 <p>Every Python module and workflow script, with its own one-line description:</p>
 <div class="filter"><input type="search" data-filter="modules-table" placeholder="Filter modules, e.g. caller, report, inputs"></div>
@@ -287,6 +287,7 @@ code .</pre></div>
 <tr><td><code>src/pfvarx/downstream/resistance.py</code></td><td>DA002 drug-resistance markers with callable denominators.</td></tr>
 <tr><td><code>src/pfvarx/downstream/run.py</code></td><td>Layer 5 dispatcher: the eligibility checkpoint and execution of one analysis.</td></tr>
 <tr><td><code>src/pfvarx/downstream/spatial.py</code></td><td>DA007 spatial and temporal summary of a source outcome (default: DA002 markers).</td></tr>
+<tr><td><code>src/pfvarx/downstream/cnv.py</code></td><td>DA008 copy-number markers: GC-corrected gene depth ratio (GcModel from random core windows), flank ratio, junction read pairs, calls and prevalence.</td></tr>
 <tr><td><code>src/pfvarx/downstream/structure.py</code></td><td>DA005 population structure: haploid PCA and Hudson FST (scikit-allel).</td></tr>
 <tr><td><code>src/pfvarx/eligibility/__init__.py</code></td><td>Layer 0 scientific eligibility.</td></tr>
 <tr><td><code>src/pfvarx/eligibility/engine.py</code></td><td>Scientific eligibility engine (L0.5): sample-by-analysis matrix and cohort decisions.</td></tr>
@@ -447,6 +448,10 @@ code .</pre></div>
 <tr><td><code>layer5.yaml</code></td><td><code>da007_gam_min_samples</code></td><td class='num'>10</td><td><span class='pill'>UNCALIBRATED_PROVISIONAL</span></td><td>samples with valid place and date needed before a GAM is fitted</td></tr>
 <tr><td><code>layer5.yaml</code></td><td><code>da007_gam_max_basis</code></td><td class='num'>4</td><td><span class='pill'>FRAMEWORK_POLICY</span></td><td>largest basis dimension k for the time smooth</td></tr>
 <tr><td><code>layer5.yaml</code></td><td><code>da007_gam_interval_level</code></td><td class='num'>0.95</td><td><span class='pill'>FRAMEWORK_POLICY</span></td><td></td></tr>
+<tr><td><code>layer5.yaml</code></td><td><code>da008_amplification_ratio</code> / <code>da008_amplification_lower</code></td><td class='num'>1.5 / 1.25</td><td><span class='pill'>UNCALIBRATED_PROVISIONAL</span></td><td>AMPLIFIED: depth ratio and lower bootstrap bound</td></tr>
+<tr><td><code>layer5.yaml</code></td><td><code>da008_deletion_ratio</code> / <code>da008_present_ratio</code> / <code>da008_flank_min_ratio</code></td><td class='num'>0.1 / 0.3 / 0.3</td><td><span class='pill'>UNCALIBRATED_PROVISIONAL</span></td><td>DELETED, PRESENT and covered-flank limits</td></tr>
+<tr><td><code>layer5.yaml</code></td><td><code>da008_min_core_depth</code></td><td class='num'>20</td><td><span class='pill'>UNCALIBRATED_PROVISIONAL</span></td><td>below it every locus is UNKNOWN</td></tr>
+<tr><td><code>layer5.yaml</code></td><td><code>da008_flank_bp</code> / <code>da008_window_bp</code> / <code>da008_gc_windows</code> / <code>da008_bootstrap</code></td><td class='num'>2000 / 200 / 3000 / 1000</td><td><span class='pill'>FRAMEWORK_POLICY</span></td><td>flanks, windows, GC model, interval</td></tr>
 <tr><td><code>layer5.yaml</code></td><td><code>da001_moire_burnin</code></td><td class='num'>10000</td><td><span class='pill'>SOFTWARE_DEFAULT</span></td><td>moire run_mcmc default (Murphy and Greenhouse 2024); convergence still to be assessed per data set</td></tr>
 <tr><td><code>layer5.yaml</code></td><td><code>da001_moire_samples</code></td><td class='num'>1000</td><td><span class='pill'>SOFTWARE_DEFAULT</span></td><td>moire run_mcmc default samples_per_chain</td></tr>
 <tr><td><code>layer5.yaml</code></td><td><code>da001_allele_presence_floor</code></td><td class='num'>0.05</td><td><span class='pill'>LITERATURE_SUPPORTED</span></td><td>MalariaGEN Pf7 2023: an allele below 5% of reads is treated as absent</td></tr>
@@ -491,6 +496,7 @@ code .</pre></div>
 <tr><td><strong>DA005</strong></td><td>Population structure</td><td><code>src/pfvarx/downstream/structure.py</code></td><td>scikit-allel</td><td>DA001</td></tr>
 <tr><td><strong>DA006</strong></td><td>Conventional single-lineage phylogenetics</td><td><code>src/pfvarx/downstream/phylogeny.py</code></td><td>IQ-TREE</td><td>DA001</td></tr>
 <tr><td><strong>DA007</strong></td><td>Spatial and temporal summary</td><td><code>src/pfvarx/downstream/spatial.py</code><br><code>workflow/scripts/da007_gam.R</code></td><td>mgcv (R)</td><td>DA002 (its source)</td></tr>
+<tr><td><strong>DA008</strong></td><td>Copy-number markers (WGS)</td><td><code>src/pfvarx/downstream/cnv.py</code><br><code>config/registry/cnv_catalog_pfvarx_v1.tsv</code></td><td>Python, pysam</td><td>—</td></tr>
 </table></div>
 <p>Analyses, prerequisites and eligibility rules: <code>config/registry/downstream_analyses.yaml</code>. Settings: <code>config/parameters/layer5.yaml</code>. Resistance markers for DA002: <code>config/registry/resistance_catalog_pfvarx_v1.tsv</code>.</p>
 

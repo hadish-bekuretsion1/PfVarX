@@ -262,7 +262,7 @@ results -> runs/<RUN_ID>/results
 | `cohort/cohort.vcf.gz` | FO003/FO004 variant-only cohort merge |
 | `cohort/evidence_matrix.tsv.gz` | Site-forced per-sample evidence; missing is not imputed reference |
 | `cohort/sites.tsv`, `cohort/missingness.tsv` | Cohort sites and missingness summary |
-| `cohort/cohort_qc.json` | Cohort QC (gate G5) per sample: missing and mixed fractions, PASS/WARNING/FAIL; site call rates. A FAIL excludes the sample from DA001–DA007 (`COHORT_QC_FAIL`) |
+| `cohort/cohort_qc.json` | Cohort QC (gate G5) per sample: missing and mixed fractions, PASS/WARNING/FAIL; site call rates. A FAIL excludes the sample from DA001–DA008 (`COHORT_QC_FAIL`) |
 | `annotation/cohort.ann.vcf.gz`, `annotation_qc.json` | FO004 SnpEff consequences and annotation checks |
 | `eligibility/` | Per-sample/cohort scientific eligibility decisions |
 | `downstream/DAxxx/status_manifest.json` | Requested method's terminal state, denominators, exclusions and caveats |
@@ -273,6 +273,7 @@ results -> runs/<RUN_ID>/results
 | `downstream/DA005/pca.tsv`, `fst.tsv` | PCA coordinates and Hudson FST |
 | `downstream/DA006/tree.treefile` | Maximum-likelihood tree (with `tree.contree`, `tree.iqtree`) |
 | `downstream/DA007/country_month_summary.tsv` | Prevalence by place and month; GAM fit when supported |
+| `downstream/DA008/cnv_calls.tsv`, `prevalence.tsv` | Per sample and locus: GC-corrected depth ratio with bootstrap interval, flank ratio, junction read pairs and the state (AMPLIFIED / SINGLE_COPY, DELETED / PRESENT, or UNKNOWN with its reason); prevalence of each event with Wilson intervals |
 | `report/pfvarx_dashboard.html` | Offline report; open after the run finalizes |
 | `report/dashboard_data.json` | Report data backing the HTML |
 | `report/clonality_report.txt`, `.tsv` | Per sample: monoclonal, or polyclonal with the number of clones and each clone's share of the parasite DNA, for example "Sample Y is polyclonal with 3 clones: Clone 1: 50.0%, Clone 2: 30.0%, Clone 3: 20.0%" |
@@ -320,12 +321,16 @@ That is an edit fragment, not a replacement for the entire generated configurati
 | DA005 | Haploid PCA and Hudson FST; WGS, declared populations and eligible samples |
 | DA006 | IQ-TREE phylogenetics; WGS, at least four eligible monoclonal samples and sufficient sites |
 | DA007 | Spatial/temporal summaries; declared source outcome and country/date/coordinate metadata |
+| DA008 | Copy-number markers (whole-genome sequencing only): amplification of pfmdr1, plasmepsin II and III and gch1, deletion of pfhrp2 and pfhrp3. Gene depth is compared with core-genome windows of the same sample with similar GC content; flanking depth and junction read pairs are reported. Needs a GFF, a verified copy-number catalogue (`config/registry/cnv_catalog_pfvarx_v1.tsv`) and a median core depth of at least 20; thresholds are provisional |
 
 DA001 is inserted as an internal prerequisite where needed. DA006 rechecks actual
 alignment informativeness and can legitimately skip after preliminary eligibility.
 For DA007, set `spatial_outcome_source` to the appropriate implemented source (for
 example DA002); a verified catalogue is then required for real resistance outcomes.
-The shipped draft catalogue intentionally blocks real DA002 execution.
+The shipped draft catalogue intentionally blocks real DA002 execution, and the shipped
+draft copy-number catalogue blocks DA008 the same way. `workflow-check` (and `ready`)
+warn before a run when a requested analysis will be blocked this way (`CATALOG_NOT_VERIFIED`);
+such an analysis can be added afterwards with `./pfvarx pipeline --mode EXTEND --run-id RUN_ID`.
 
 Terminal states include COMPLETED, COMPLETED_WITH_EXCLUSIONS, SKIPPED_INELIGIBLE,
 BLOCKED_MISSING_PREREQUISITE and FAILED_EXECUTION. A skipped tree is not a placeholder

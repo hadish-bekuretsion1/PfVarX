@@ -17,7 +17,8 @@ const TONE = {
   NOT_APPLICABLE:"neutral", NOT_EVALUATED:"neutral", NOT_REACHED:"neutral", UNKNOWN:"neutral", SKIPPED_INELIGIBLE:"neutral", UNSUPPORTED:"neutral",
   INSUFFICIENT_DEPTH:"neutral", FOCAL_CALLABILITY_LOSS:"neutral", CONTEXT_UNRELIABLE:"neutral", BELOW_REPORTING_FLOOR:"neutral", MISSING_LOW_DEPTH:"neutral", UNCALLABLE:"neutral",
   MUTANT:"finding", ALT_DOMINANT:"finding", MIXED:"category", WILD_TYPE:"category", REF_DOMINANT:"category",
-  MONOCLONAL:"category", POLYCLONAL:"category", INDETERMINATE:"neutral"
+  MONOCLONAL:"category", POLYCLONAL:"category", INDETERMINATE:"neutral",
+  AMPLIFIED:"finding", DELETED:"finding", SINGLE_COPY:"category", PRESENT:"category"
 };
 const toneOf = state => TONE[String(state || "UNKNOWN").toUpperCase()] || null;  // used for whole status words only
 const badge = state => { const value = state || "UNKNOWN"; return el("span", {class:"badge " + String(value) + " tone-" + (toneOf(value) || "neutral"), title:String(value).replaceAll("_"," ").toLowerCase()}, value); };
