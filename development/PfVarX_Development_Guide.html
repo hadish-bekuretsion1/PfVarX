@@ -112,7 +112,7 @@ footer { margin-top: 3rem; color: var(--muted); font-size: .85rem; border-top: 1
   <h1>PfVarX Development Guide</h1>
   <p>Everything needed to maintain, change, test and update PfVarX on your own computer: every tool, package and algorithm with its path and purpose; how to test parameters and choose the best; how to replace a tool that is slow or inaccurate; and every Git and GitHub command for this project.</p>
   <div class="meta"><strong>Development only.</strong> This guide lives in <code style="background:#ffffff22;color:#fff">development/</code> of the repository and is left out of the release archive that users receive (<code style="background:#ffffff22;color:#fff">scripts/package.py</code>).</div>
-  <div class="meta">Repository <code style="background:#ffffff22;color:#fff">hadish-bekuretsion1/PfVarX</code> · development copy <code style="background:#ffffff22;color:#fff">~/PfVarX</code> · test workspaces <code style="background:#ffffff22;color:#fff">~/pfvarx-lab/</code> · inventory generated from <code style="background:#ffffff22;color:#fff">main</code> 3b36fc2 on 2026-11-22</div>
+  <div class="meta">Repository <code style="background:#ffffff22;color:#fff">hadish-bekuretsion1/PfVarX</code> · development copy <code style="background:#ffffff22;color:#fff">~/PfVarX</code> · test workspaces <code style="background:#ffffff22;color:#fff">~/pfvarx-lab/</code> · inventory generated from <code style="background:#ffffff22;color:#fff">main</code> 3b36fc2 on 2026-11-22 · workflow sections updated 2026-11-24</div>
 </header>
 
 <div class="partbanner">Part A · Start</div>
@@ -130,7 +130,7 @@ footer { margin-top: 3rem; color: var(--muted); font-size: .85rem; border-top: 1
   <li><strong>Try</strong> the alternative in a test workspace and compare it with an unchanged run on the same data (sections 9–13).</li>
   <li><strong>Decide</strong> from the numbers. Record what you tried, the data and the result.</li>
   <li><strong>Make it permanent</strong> on a branch in <code>~/PfVarX</code>: code, tests and documentation together (sections 13–16).</li>
-  <li><strong>Release</strong> it: pull request into <code>develop</code>, CI, merge, then <code>develop</code> into <code>main</code> (section 19).</li>
+  <li><strong>Release</strong> it: pull request into <code>develop</code>, full local CI (<code>development/local_ci.sh</code>) with its result on the pull request, merge, then the same for <code>develop</code> into <code>main</code> (section 19).</li>
 </ol>
 
 <h2 id="setup">2. Set up the computer (Ubuntu or WSL2)</h2>
@@ -595,6 +595,12 @@ sed -i 's/^policy_id: .*/policy_id: exp_depth10/' config/quality.yaml
 <span class="c"># seconds (s) and peak memory in MB (max_rss) for every step and sample</span>
 for f in $RUN/benchmarks/*/*.tsv; do printf "%-45s " "${f#$RUN/benchmarks/}"; tail -1 "$f" | cut -f1,3; done | sort -k2 -n -r | head -20
 <span class="c"># the same, summed per step, is in the report: Resources section</span></pre></div>
+<p>While a run works, <code>runs/&lt;RUN_ID&gt;/progress.html</code> shows the steps running now, the time so far and the expected finish (it opens by itself from a desktop terminal or the GUI). After each COMPLETED real-data run, the measurements are added to this computer's resource history, <code>~/.local/share/pfvarx/history/&lt;host&gt;.jsonl</code>; <code>./pfvarx workflow-check</code> uses it to print the expected time, peak memory and storage of each step, and the report's Resources section compares that estimate with the measured run.</p>
+<div class="cmd"><pre>./pfvarx workflow-check 2&gt;&amp;1 &gt;/dev/null | sed -n '/Expected resources/,$p'   <span class="c"># the estimate table only</span>
+./pfvarx resources-learn --run-id &lt;RUN_ID&gt;       <span class="c"># add an older run to the history</span>
+wc -l ~/.local/share/pfvarx/history/*.jsonl      <span class="c"># runs learned on this computer</span>
+PFVARX_HISTORY_DIR=~/pfvarx-lab/hist-x ./pfvarx workflow-check   <span class="c"># try a separate history</span></pre></div>
+<p>Synthetic runs are never learned from, so a fixture run does not change the estimates. A step with no real-data history shows as unknown.</p>
 <p>Compare the same step between a baseline and a variant run on the same data and the same computer. Run each at least twice; the first run may include file-cache effects.</p>
 <h3>Accuracy</h3>
 <ul>
@@ -698,9 +704,9 @@ done</pre></div>
 <tr><td>5</td><td><code>./pfvarx tool snakemake … --forcerun RULE</code> in a workspace (section 25)</td><td>seconds–minutes</td><td>one step really runs</td></tr>
 <tr><td>6</td><td><code>./pfvarx fixture</code> + <code>./pfvarx pipeline --mode NEW</code></td><td>1–6 min</td><td>the whole pipeline end to end</td></tr>
 <tr><td>7</td><td><code>scripts/check_gui_buttons.py</code>, <code>check_installs.py</code>, <code>sync_sop.py --check</code></td><td>~2 min</td><td>GUI buttons, installations, SOP copies</td></tr>
-<tr><td>8</td><td><code>pixi run pytest -q tests</code></td><td>~16 min</td><td>everything, with real pipeline runs for all designs</td></tr>
+<tr><td>8</td><td><code>development/local_ci.sh</code> (or <code>pixi run pytest -q tests</code>)</td><td>~17 min</td><td>everything the GitHub CI checks, with real pipeline runs for all designs and the release archive; required before every merge</td></tr>
 <tr><td>9</td><td><code>pixi run verify --output ~/pfvarx-lab/verify-new</code></td><td>longer</td><td>every final output and benchmarking in fresh workspaces</td></tr>
-<tr><td>10</td><td>CI on GitHub, started by hand only (Actions → PfVarX CI → Run workflow, or <code>gh workflow run ci.yaml --ref BRANCH</code>); the same steps run locally before every merge</td><td>~45 min</td><td>a clean machine from the lock file</td></tr>
+<tr><td>10</td><td>CI on GitHub, started by hand only (Actions → PfVarX CI → Run workflow, or <code>gh workflow run ci.yaml --ref BRANCH</code>); it needs free Actions minutes</td><td>~45 min</td><td>a clean machine from the lock file</td></tr>
 </table></div>
 <div class="callout stop"><strong>Software tests are not scientific validation.</strong> Passing tests on synthetic data shows the code works. Whether a value or a tool is better is decided on real data with known answers, and recorded with its evidence.</div>
 
@@ -776,14 +782,20 @@ gh pr create --base develop --fill               <span class="c"># or take title
 gh pr list                                       <span class="c"># open pull requests</span>
 gh pr view --web                                 <span class="c"># open it in the browser</span>
 
-<span class="c"># Watch CI (about 45 minutes)</span>
-gh pr checks                                     <span class="c"># state of the checks</span>
-gh run list --limit 5                            <span class="c"># recent CI runs</span>
-gh run watch                                     <span class="c"># follow a run live</span>
-gh run view --log-failed                         <span class="c"># log of a failed run</span>
-gh run rerun --failed                            <span class="c"># retry failed jobs</span>
+<span class="c"># Full local CI on the branch (about 17 minutes); GitHub CI does not start by itself</span>
+development/local_ci.sh                          <span class="c"># ends with LOCAL CI PASSED</span>
+development/local_ci.sh --quick                  <span class="c"># 3 minutes, no integration tests (while working)</span>
+grep -E "passed in|failed|LOCAL CI" ~/pfvarx-lab/local_ci_$(git rev-parse --short HEAD).log
 
-<span class="c"># Merge when CI is green (or on GitHub: Merge pull request → Confirm merge)</span>
+<span class="c"># Record the result on the pull request</span>
+gh pr comment &lt;PR-number&gt; --body "Local CI on $(git rev-parse --short HEAD): … passed — LOCAL CI PASSED."
+
+<span class="c"># Optional, when Actions minutes are available: run the GitHub CI by hand</span>
+gh workflow run ci.yaml --ref &lt;branch&gt;
+gh run list --limit 5 &amp;&amp; gh run watch            <span class="c"># follow it</span>
+gh run view --log-failed                         <span class="c"># log of a failed run</span>
+
+<span class="c"># Merge when local CI passed (or on GitHub: Merge pull request → Confirm merge)</span>
 gh pr merge --merge
 
 <span class="c"># Update your copy and remove the finished branch</span>
@@ -792,10 +804,12 @@ git branch -d step/04-markdup-tool
 git push origin --delete step/04-markdup-tool    <span class="c"># remote copy, if GitHub did not delete it</span>
 
 <span class="c"># Release: develop into main</span>
-gh pr create --base main --head develop --title "Release: markdup with samtools" --body "Changes since the last release, tests run."
-gh pr checks &lt;PR-number&gt;                         <span class="c"># wait for green</span>
+git checkout develop && git pull && development/local_ci.sh   <span class="c"># full local CI on develop first</span>
+gh pr create --base main --head develop --title "Release: markdup with samtools" --body "Changes since the last release; local CI result."
 gh pr merge &lt;PR-number&gt; --merge
-git checkout main && git pull</pre></div>
+git checkout main && git pull
+git fetch origin && git rev-parse origin/main^{tree} origin/develop^{tree}   <span class="c"># two equal hashes: main = develop</span></pre></div>
+<p>Each pull request records the local CI result (branch, commit, tests passed) in its description or a comment. The GitHub workflow <code>.github/workflows/ci.yaml</code> runs only when started by hand, so commits are not marked with a red ✕ when the free Actions minutes are used up.</p>
 <h3>What users receive</h3>
 <p>Users get the release archive, not this repository. It is built from <code>main</code> and contains only what is needed to configure and run analyses:</p>
 <div class="cmd"><pre>git checkout main &amp;&amp; git pull
@@ -889,7 +903,7 @@ git fetch --prune                                <span class="c"># forget remote
 <tr><td>Your own reads, reference strains and cohort for comparisons</td><td>Downloading outside datasets (such as Pf8) to calibrate</td></tr>
 <tr><td><code>--mode NEW</code> for each experiment; keep both runs</td><td>Overwriting the run you compare against</td></tr>
 <tr><td>CLI and GUI changed together</td><td>A setting that exists in only one of them</td></tr>
-<tr><td>Pull requests and green CI before merging</td><td>Pushing directly to <code>main</code> or <code>develop</code>; force-pushing them</td></tr>
+<tr><td>Pull requests and a passed full local CI (<code>development/local_ci.sh</code>) before merging</td><td>Pushing directly to <code>main</code> or <code>develop</code>; force-pushing them</td></tr>
 </table></div>
 
 <h2 id="cheats">25. Command cheat sheet</h2>
@@ -906,7 +920,8 @@ pixi run python scripts/check_gui_buttons.py     <span class="c"># every GUI but
 pixi run python scripts/sync_sop.py              <span class="c"># SOP appendices</span>
 pixi run python scripts/configuration_guide.py   <span class="c"># configuration guide</span>
 git add -A && git commit -m "What and why" && git push
-gh pr create --base develop --fill && gh pr checks
+development/local_ci.sh                          <span class="c"># full local CI before the pull request</span>
+gh pr create --base develop --fill
 
 <span class="c"># ---- test workspace ~/pfvarx-lab/&lt;name&gt; ----</span>
 ./pfvarx fixture --design wgs --depth 30         <span class="c"># synthetic data</span>
@@ -933,6 +948,8 @@ python3 grid_summary.py exp-baseline grid-* | column -t</pre></div>
 <tr><td><code>QC policy 'x' is not registered</code></td><td>The file must be <code>config/registry/qc_policy_x.yaml</code> and contain <code>policy_id: x</code>.</td></tr>
 <tr><td>A parameter <code>needs 'value' and 'source'</code></td><td>Each entry needs both; <code>source</code> must be an allowed class (section 6).</td></tr>
 <tr><td><code>grid.sh</code>: <code>not found in …yaml</code></td><td>Check the layer file and spelling in the parameter table (section 6).</td></tr>
+<tr><td>A red ✕ on a commit on GitHub; the check log says <code>spending limit</code> or <code>account payments</code></td><td>The free GitHub Actions minutes are used up and the check never ran; the code is not at fault. GitHub CI is now started by hand only, so new commits are not marked. Rely on <code>development/local_ci.sh</code>.</td></tr>
+<tr><td>Two local CI runs at once, or a log that looks mixed</td><td>Two copies of <code>local_ci.sh</code> on the same commit write the same log. Stop one (<code>pgrep -af local_ci.sh</code>, then <code>kill PID</code>) and run it again.</td></tr>
 <tr><td>Parity test fails</td><td>A setting is missing from <code>field-guide.json</code>, a template or the configuration guide (section 14).</td></tr>
 <tr><td><code>test_resource_plan</code> fails</td><td>A rule's threads or memory changed; update <code>src/pfvarx/planning/plan.py</code>. A rule written <code>mem(5000, job="pfvarx_call")</code> takes the plan's request, which can rise to the memory measured on this computer (<code>memory_basis: MEASURED_HISTORY</code>).</td></tr>
 <tr><td>A run shows INTERRUPTED</td><td>Its process ended before it finished (Ctrl+C, kill, out of memory, restart): <code>run_status()</code> in <code>src/pfvarx/runs/registry.py</code> checks the recorded process. Continue with <code>./pfvarx pipeline --mode RESUME --run-id RUN_ID</code>.</td></tr>
