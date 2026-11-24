@@ -5,6 +5,12 @@
 The release version was reset to 0.0.0 after 0.4.2, as the baseline for the first reviewed
 release. The sections below 0.0.0 are the earlier development numbering, kept as history.
 
+### GitHub CI started by hand only
+
+- The hosted CI workflow no longer starts on pull requests or pushes, only on demand
+  (Actions → PfVarX CI → Run workflow). The full suite is run locally before every merge and
+  release and its result is recorded on the pull request.
+
 ### Run progress page and time, memory and storage estimates
 
 - A live progress page, `runs/<RUN_ID>/progress.html`, refreshed every 15 seconds while a run
