@@ -89,7 +89,9 @@ def _job_class(rule: str) -> str | None:
 
 def snapshot(run: Path, now: dt.datetime | None = None) -> dict[str, Any]:
     now = now or dt.datetime.now(dt.UTC)
-    status = json.loads((run / "status.json").read_text()) if (run / "status.json").is_file() else {}
+    from pfvarx.runs.registry import run_status
+
+    status = run_status(run)
     plan = json.loads((run / "frozen_plan.json").read_text()) if (run / "frozen_plan.json").is_file() else {}
     estimate = (plan.get("resources") or {}).get("estimate") or {}
     started = dt.datetime.strptime(run.name[:16], "%Y%m%dT%H%M%SZ").replace(tzinfo=dt.UTC)
@@ -178,7 +180,9 @@ def snapshot(run: Path, now: dt.datetime | None = None) -> dict[str, Any]:
             "expected_finish_utc": None if remaining is None else (now + dt.timedelta(minutes=remaining)).isoformat(),
             "estimate_basis": estimate.get("basis") or "no estimate in the frozen plan",
             "estimate_confidence": estimate.get("confidence", "UNKNOWN"),
-            "steps_table": list(by_step.values()), "report": "results/report/pfvarx_dashboard.html"}
+            "steps_table": list(by_step.values()), "report": "results/report/pfvarx_dashboard.html",
+            "report_ready": finished and (run / "results/report/pfvarx_dashboard.html").is_file(),
+            "interruption": status.get("interruption")}
 
 
 def _clock(iso: str | None) -> str:
@@ -213,7 +217,7 @@ def render(p: dict[str, Any]) -> str:
     tone = {"COMPLETED": "good", "RUNNING": "info"}.get(p["status"], "warning" if "EXCLUSIONS" in p["status"] or "WITH_FAILURES" in p["status"] else "critical")
     refresh = "" if p["finished"] else '<meta http-equiv="refresh" content="15">'
     if p["finished"]:
-        refresh = f'<meta http-equiv="refresh" content="8;url={e(p["report"])}">'
+        refresh = f'<meta http-equiv="refresh" content="8;url={e(p["report"])}">' if p.get("report_ready") else ""
     running = "".join(
         f"<tr><td><strong>{e(r['step'])}</strong><br><small>{e(r['tool_group'])}</small></td><td>{e(r['sample'] or 'cohort')}</td>"
         f"<td>{_clock(r['started'])}</td><td class='num'>{_duration(r['running_min'])}</td>"
@@ -247,7 +251,8 @@ th{{background:#f3f6fa;font-size:11px;text-transform:uppercase;letter-spacing:.0
 <h2>PfVarX · Run progress</h2><p class="note">Run {e(p['run_id'])} · updated {_clock(p['updated_utc'])}{'' if p['finished'] else ' · this page refreshes every 15 seconds'}</p>
 <div class="panel"><span class="badge {tone}">{e(p['status'])}</span>
 <div class="bar"><i style="width:{percent or 0}%"></i></div><div class="note">{percent if percent is not None else '—'} % · {steps.get('done', 0)} of {steps.get('total', '?')} workflow steps done (more steps are added after the QC and eligibility checkpoints)</div>
-{f'<p><a class="btn" href="{e(p["report"])}">Open the report dashboard</a> <span class="note">opens by itself in a few seconds</span></p>' if p['finished'] else ''}
+{f'<p><a class="btn" href="{e(p["report"])}">Open the report dashboard</a> <span class="note">opens by itself in a few seconds</span></p>' if p.get('report_ready') else ''}
+{f'<p class="note"><strong>The run did not finish:</strong> {e(p["interruption"])}</p>' if p.get('interruption') else ''}
 {'<p class="warning badge">Taking longer than expected</p>' if late else ''}</div>
 <div class="kpis"><div class="kpi"><span>Started</span><b>{_clock(p['started_utc'])}</b></div>
 <div class="kpi"><span>Elapsed</span><b>{_duration(p['elapsed_min'])}</b></div>

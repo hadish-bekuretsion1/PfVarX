@@ -81,7 +81,7 @@ The editor shows project settings from `config/config.yaml`, quality settings fr
 | `compute.executor` | `local, hpc, server, cloud` | Local PC, single allocated HPC node, Linux server or cloud VM. The same single-host executor is used in each case. |
 | `compute.max_cores` | `4` | Total CPU budget, integer at least 1. Match the assigned cores. |
 | `compute.max_mem_mb` | `6500` | Total scheduling memory in MiB, at least 512. Leave room for the OS. |
-| `compute.max_jobs` | `1` | Maximum concurrent jobs, at least 1. Keep 1 for a small PC. |
+| `compute.max_jobs` | `1` | Maximum concurrent jobs, at least 1. Keep 1 for a small PC. Check workflow warns when the memory free now cannot hold this many jobs at once (other programs such as a browser count) and suggests a value. |
 | `compute.tmp_disk_mb` | `20000` | Temporary disk budget in MiB, at least 256. Allow room for actual study size. |
 | `compute.tmp_dir` | `null, /local/scratch` | Absolute directory for temporary files of each job, such as node-local scratch on HPC. Java tools (Picard, fgbio) and Snakemake use it. Leave null to use the system temporary directory. |
 | `compute.per_job.max_threads` | `4` | At least 1 and no greater than max_cores. |

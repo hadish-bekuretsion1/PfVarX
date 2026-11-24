@@ -112,6 +112,16 @@ def load_history() -> list[dict[str, Any]]:
     return [json.loads(line) for line in path.read_text().splitlines() if line.strip()]
 
 
+def measured_peak_mb(job: str, design: str | None = None, input_type: str | None = None,
+                     history: list[dict[str, Any]] | None = None) -> float | None:
+    """Highest memory one job of this class used in earlier real-data runs on this computer
+    (same design and input type when there are such runs)."""
+    runs = history if history is not None else load_history()
+    same = [r for r in runs if r.get("design") == design and r.get("input_type") == input_type] or runs
+    peaks = [j["rss_mb"] for r in same for j in r["jobs"] if j["job"] == job and j.get("rss_mb")]
+    return max(peaks) if peaks else None
+
+
 def estimate(job_classes: list[str], sample_gb: dict[str, float], max_jobs: int, design: str | None = None,
              input_type: str | None = None, history: list[dict[str, Any]] | None = None,
              layers: list[int] | None = None) -> dict[str, Any]:

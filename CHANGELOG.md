@@ -5,6 +5,21 @@
 The release version was reset to 0.0.0 after 0.4.2, as the baseline for the first reviewed
 release. The sections below 0.0.0 are the earlier development numbering, kept as history.
 
+### Safer runs: memory, stopped runs and damaged sample sheets
+
+- The variant caller's memory request rises to the peak measured on this computer in earlier
+  real-data runs plus 20 % (within `per_job.max_mem_mb`), so Snakemake does not start more
+  callers at once than `max_mem_mb` holds. `workflow-check` warns when that peak exceeds the
+  per-job ceiling, and when the memory free now cannot hold `max_jobs` jobs (with a suggested
+  `max_jobs`).
+- A run stopped by Ctrl+C or a kill is recorded as INTERRUPTED; one killed outright (out of
+  memory, restart) is reported INTERRUPTED by `status`, the GUI and the progress page once its
+  process is gone, with the RESUME command. The progress page of a stopped run no longer
+  links to a report that was not written.
+- A `samples.tsv` header with hidden characters (for example terminal codes pasted with the
+  text) or missing columns is now a clean validation FAIL that says how to fix the first line,
+  instead of a crash; a byte-order mark before the header is accepted.
+
 ### GitHub CI started by hand only
 
 - The hosted CI workflow no longer starts on pull requests or pushes, only on demand

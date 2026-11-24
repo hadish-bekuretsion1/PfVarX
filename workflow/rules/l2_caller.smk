@@ -23,7 +23,7 @@ rule pfvarx_call:
     # and beyond 8 workers the gain is small, so 8 lets several samples run at once.
     threads: threads(8)
     resources:
-        mem_mb=mem(5000),
+        mem_mb=mem(5000, job="pfvarx_call"),
         runtime=RUNTIME,
     retries: COMPUTE["max_retries"]
     log:

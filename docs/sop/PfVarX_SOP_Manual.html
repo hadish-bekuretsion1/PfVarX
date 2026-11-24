@@ -1368,7 +1368,7 @@ cat &quot;$RES/annotation/annotation_qc.json&quot;
 <h3>5. Verification and quality control</h3>
 <p>Accept technical integrity and scientific QC separately. PASS, WARNING, FAIL, NOT_APPLICABLE, NOT_EVALUATED and UNKNOWN are distinct. Report failed/blocked samples and method skips; do not hide denominator changes.</p>
 <h3>6. Error handling and troubleshooting</h3>
-<p>Missing artifact: first check mode, QC eligibility and run ID; do not interpret missing VCF as zero variants. FAILED_EXECUTION requires log diagnosis; scientific skip can be legitimate. Reject unexplained integrity failure.</p>
+<p>Missing artifact: first check mode, QC eligibility and run ID; do not interpret missing VCF as zero variants. FAILED_EXECUTION requires log diagnosis; scientific skip can be legitimate. INTERRUPTED means the run was stopped (Ctrl+C, a kill, running out of memory or a restart) before it finished: check free memory and <code>max_jobs</code>, then continue it with <code>./pfvarx pipeline --mode RESUME --run-id RUN_ID</code>. Reject unexplained integrity failure.</p>
 <h3>7. Completion criteria</h3>
 <p>Exact output contract and per-sample/method QC reviewed; all limitations, source hashes and decisions recorded before release of findings.</p>
 <h2 id="r13-diagnose-resume-or-extend-safely">R13 — Diagnose, resume or extend safely</h2>

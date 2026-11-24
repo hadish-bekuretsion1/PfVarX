@@ -13,16 +13,24 @@ ELIG = R / "eligibility"
 # --- Resources and the per-sample QC gates ---
 
 
-def mem(base, host=False):
+PLANNED_MEM = {j["job"]: j["mem_mb"] for j in PLAN.get("resources", {}).get("jobs", [])}
+
+
+def mem(base, host=False, job=None):
     """Attempt-scaled memory within the per-job ceiling (retries only on memory-scalable rules).
 
     ``host=True`` marks a bwa-mem2 job: with Human DNA removal (wgs only) it loads the
     combined parasite+host index, so the request grows by ``layer1.bwa_mem2_host_extra_mem_mb``.
+    ``job`` names the job class whose request the frozen plan may have raised to the memory
+    this computer measured in earlier runs, so Snakemake never starts more of them at once
+    than ``max_mem_mb`` holds.
     """
     cap = COMPUTE["per_job"]["max_mem_mb"]
     factor = COMPUTE["retry_memory_factor"]
     if host and HOST:
         base += P["layer1.bwa_mem2_host_extra_mem_mb"]
+    if job is not None:
+        base = max(base, PLANNED_MEM.get(job, 0))
     return lambda wc, attempt: int(min(base * factor ** (attempt - 1), cap))
 
 

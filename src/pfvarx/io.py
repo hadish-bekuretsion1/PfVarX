@@ -57,7 +57,8 @@ def write_tsv(path: Path, rows: list[dict[str, Any]], columns: list[str]) -> Non
 
 
 def read_tsv(path: Path) -> list[dict[str, str]]:
-    lines = [ln for ln in path.read_text(encoding="utf-8").splitlines() if ln and not ln.startswith("#")]
+    # utf-8-sig drops a byte-order mark that some editors put before the first column name.
+    lines = [ln for ln in path.read_text(encoding="utf-8-sig").splitlines() if ln and not ln.startswith("#")]
     if not lines:
         return []
     header = lines[0].split("\t")

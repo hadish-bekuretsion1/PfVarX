@@ -15,6 +15,7 @@ import json
 import os
 import re
 import shutil
+import socket
 import uuid
 from pathlib import Path
 from typing import Any
@@ -131,6 +132,40 @@ def set_status(run: Path, status: str, **extra: Any) -> None:
     data.update({"status": status, **extra,
                  "updated_utc": dt.datetime.now(dt.UTC).isoformat()})
     write_json(run / "status.json", data)
+
+
+def process_identity() -> dict[str, Any]:
+    """Who is running a run: recorded with RUNNING so a stopped run can be recognised later."""
+    return {"pid": os.getpid(), "host": socket.gethostname()}
+
+
+def _alive(pid: int) -> bool:
+    try:
+        os.kill(pid, 0)
+    except ProcessLookupError:
+        return False
+    except PermissionError:
+        return True  # exists, owned by someone else
+    cmdline = Path(f"/proc/{pid}/cmdline")
+    if cmdline.is_file():  # Linux: the number may have been reused by another program
+        return b"pfvarx" in cmdline.read_bytes()
+    return True
+
+
+def run_status(run: Path) -> dict[str, Any]:
+    """status.json, with RUNNING replaced by INTERRUPTED when the run's process has ended.
+
+    A run stopped by Ctrl+C, a kill or the out-of-memory killer, or by a restart of the
+    computer, never writes its final status itself. The file is not changed here.
+    """
+    data = read_json(run / "status.json") if (run / "status.json").is_file() else {}
+    if (data.get("status") == "RUNNING" and data.get("pid") and data.get("host") == socket.gethostname()
+            and not _alive(int(data["pid"]))):
+        data = {**data, "status": "INTERRUPTED", "recorded_status": "RUNNING",
+                "interruption": "the run's process is no longer running (stopped with Ctrl+C, killed, out of "
+                                "memory, or the computer restarted); resume it with "
+                                f"'./pfvarx pipeline --mode RESUME --run-id {run.name}'"}
+    return data
 
 
 def verify(root: Path, run_id: str) -> dict[str, Any]:

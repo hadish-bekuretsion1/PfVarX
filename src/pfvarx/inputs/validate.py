@@ -514,8 +514,21 @@ def validate_samples(path: Path, root: Path, input_type: InputType, design: Desi
     need |= {"fastq_1", "fastq_2"} if input_type == InputType.FASTQ else set()
     need |= {"bam"} if input_type in (InputType.BAM, InputType.CRAM) else set()
     need |= {"vcf"} if input_type == InputType.VCF else set()
-    for col in sorted(need - cols):
-        rep.fail(Reason.METADATA_MISSING_FIELD, f"column {col} missing")
+    missing = sorted(need - cols)
+    for col in missing:
+        hidden = [c for c in cols if col in c and c != col]
+        if hidden:  # e.g. terminal control codes pasted in front of the first column name
+            rep.fail(Reason.METADATA_MISSING_FIELD,
+                     f"column {col} missing: the header has {hidden[0]!r}, which contains {col!r} with hidden or "
+                     f"extra characters around it (often terminal codes pasted with the text). Retype the first "
+                     f"line of {path.name} so it starts exactly with '{col}', or rebuild it with "
+                     "'./pfvarx prepare-samples'", 1)
+        else:
+            rep.fail(Reason.METADATA_MISSING_FIELD,
+                     f"column {col} missing from the header (first line) of {path.name}; the header must contain "
+                     + ", ".join(sorted(need)), 1)
+    if missing:
+        return rep, []  # rows cannot be read without their key columns
     seen: set[tuple[str, str]] = set()
     flowcells: dict[str, str] = {}
     for i, row in enumerate(rows, start=2):
