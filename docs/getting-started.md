@@ -8,7 +8,7 @@ the same files, so you can switch between them at any point.
 
 | Item | Requirement |
 | --- | --- |
-| Computer | Linux x86-64. On Windows use WSL2 with Ubuntu; macOS and Linux ARM64 are not supported. |
+| Computer | Linux x86-64; newly enabled experimental targets: Linux ARM64 and macOS 13+ (Intel/Apple silicon). See platform support in the deployment guide. Windows uses WSL2 with supported Linux. |
 | Software | Git, Python 3.11 or later, a web browser for the GUI |
 | Network | Internet access to install Pixi and the tools (once per tools environment) |
 | Memory | About 8 GB for parasite-only analyses; about 16 GB free with Human DNA removal |
@@ -197,3 +197,4 @@ version they were created with, so their runs stay reproducible.
 
 For every command and option, see the [orchestration guide](orchestration.md); for the full
 procedures, the [SOP manual](sop/PfVarX_SOP_Manual.md).
+

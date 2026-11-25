@@ -1,5 +1,7 @@
 # Sample analysis
 
+Installation targets and native qualification limits: [platform support](../platforms.md).
+
 This guide operates the implemented PfVarX pipeline on study samples. Keep truth
 resources and calibration experiments in a separate benchmarking workspace. Read
 [scientific status](../status.md) before interpreting outputs.
@@ -383,3 +385,4 @@ failed/empty artifacts are not accepted as a verified preparation.
 
 See the [configuration editor and input procedure](../configuration.md) and the
 [sequencing and downstream eligibility matrix](../sequencing.md).
+

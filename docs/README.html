@@ -6,7 +6,7 @@
 <main>
 <h1>Run PfVarX 0.0.0</h1>
 <p>First time? <a href="getting-started.html">Getting started</a> covers installing Pixi, installing and configuring PfVarX, and every step to the report, with a troubleshooting table.</p>
-<p>This example uses paired-end WGS FASTQ for per-sample variant calls. The tools are installed on demand for the saved configuration (use <code>bootstrap.py --final-output FO002</code> to install them up front on an offline machine). Use a Linux x86-64 host with Python 3.11+ and Pixi on PATH. On Windows, use WSL2 with a Linux distribution; macOS and Linux ARM64 are not supported.</p>
+<p>This example uses paired-end WGS FASTQ for per-sample variant calls. The tools are installed on demand for the saved configuration (use <code>bootstrap.py --final-output FO002</code> to install them up front on an offline machine). Use Linux x86-64, or the newly enabled experimental Linux ARM64/macOS 13+ targets (Intel or Apple silicon), with Python 3.11+ and Pixi on PATH. Windows uses WSL2 with supported Linux. See <a href="platforms.md">platform support</a> for native CI qualification limits.</p>
 <h2>1. Download and install</h2>
 <p>Sign in to GitHub with access to the private repository. Run these commands from the parent directory. The clone creates <code>PfVarX-source/</code>, and bootstrap creates <code>pfvarx-analysis/</code> beside it.</p>
 <pre>~/demo/
@@ -52,3 +52,4 @@ nano metadata/discovered_samples.tsv
 <h2>6. Continue with the full procedures</h2>
 <p>Use the <a href="sop/PfVarX_SOP_Manual.html#procedure-index" target="_blank" rel="noopener noreferrer">Operational SOP procedure index</a> for targeted sequencing, BAM/CRAM, cohort and downstream runs, benchmarking, and troubleshooting. See the <a href="deployment.md">deployment guide</a> for server, cloud VM and single-node SLURM setup.</p>
 </main></html>
+

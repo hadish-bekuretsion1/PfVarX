@@ -1,5 +1,7 @@
 # Interactive scientific reporting
 
+Installation targets and native qualification limits: [platform support](../platforms.md).
+
 PfVarX produces a standalone offline HTML report from existing run artifacts. Reporting
 reads published scientific results; it does not call variants, refit models, change QC
 thresholds, or change input/output paths. No server, network service, CDN or database is
@@ -245,3 +247,4 @@ this reporting update. Analysis and benchmarking instructions remain in their se
 tables; `charts.js` renders SVG; `views.js` connects datasets to the eight sections;
 `exports.js` implements downloads and print. These assets ship with the source and
 Python package; generated HTML has no external runtime assets.
+

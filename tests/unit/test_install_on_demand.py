@@ -124,7 +124,8 @@ def test_the_tools_a_configuration_needs_are_listed_with_locked_versions(tmp_pat
     tools = {t["package"]: t for t in installation.status(ws)["tools"]}
     assert {"fastp", "bwa-mem2", "samtools", "picard-slim", "mosdepth", "snakemake-minimal"} <= set(tools)
     assert not {"bcftools", "scipy", "snpeff", "r-base"} & set(tools)  # FO001 runs none of these
-    fastp = next(p["conda"] for p in lock["packages"] if "/fastp-" in p.get("conda", ""))
+    platform_packages = lock["environments"]["alignment-qc"]["packages"][installation.host_platform(ws)]
+    fastp = next(p["conda"] for p in platform_packages if "/fastp-" in p.get("conda", ""))
     assert tools["fastp"]["version"] in fastp and tools["fastp"]["installed"] is False
     assert "read trimming" in tools["fastp"]["used_for"]
 
@@ -142,3 +143,4 @@ def test_the_gui_lists_tools_for_unsaved_choices(tmp_path: Path) -> None:
     assert plan["environment"] == "selected-annotation-coi-phylogeny-reads"
     assert {"SnpEff", "IQ-TREE", "MOIRE", "BCFtools"} <= set(names) and "mgcv" not in names
     assert yaml.safe_load((ws / "config/config.yaml").read_text())["final_output"] == "FO002"  # nothing saved
+

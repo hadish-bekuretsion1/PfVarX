@@ -52,7 +52,7 @@ TOOLS = [
     ("r-mgcv", "mgcv", "spatial and temporal models (DA007)"),
     ("rtg-tools", "RTG Tools", "benchmark comparison against truth VCFs (benchmarking)"),
 ]
-_LOCK_CACHE: dict[tuple[str, float], dict[str, dict[str, str]]] = {}
+_LOCK_CACHE: dict[tuple[str, float, str], dict[str, dict[str, str]]] = {}
 
 ON_DEMAND = "on-demand"
 CONTROL = "control"
@@ -92,12 +92,18 @@ def required(root: Path, cfg: Any = None) -> dict[str, Any]:
             "input_type": cfg.input_type.value, "analyses": analyses}
 
 
+def host_platform(root: Path) -> str:
+    """Use the same stdlib-only platform detection as bootstrap."""
+    return runpy.run_path(str(root / "bootstrap.py"))["host_platform"]()
+
+
 def locked_versions(root: Path) -> dict[str, dict[str, str]]:
-    """{environment: {conda package: version}} from the workspace's pixi.lock (cached by modification time)."""
+    """Locked versions for this host only; never combine builds for different platforms."""
     import yaml
 
     lock = root / "pixi.lock"
-    key = (str(lock), lock.stat().st_mtime)
+    target = host_platform(root)
+    key = (str(lock), lock.stat().st_mtime, target)
     if key not in _LOCK_CACHE:
         loader = getattr(yaml, "CSafeLoader", yaml.SafeLoader)
         data = yaml.load(lock.read_text(), Loader=loader)  # noqa: S506 - a safe loader
@@ -110,12 +116,14 @@ def locked_versions(root: Path) -> dict[str, dict[str, str]]:
                 versions.setdefault(name, version)
         environments: dict[str, dict[str, str]] = {}
         for environment, record in data.get("environments", {}).items():
+            if target not in record.get("packages", {}):
+                raise ValueError(f"Environment {environment} has no lock for {target}; use a source release "
+                                 "with this platform locked. Do not copy an installed .pixi directory between hosts.")
             names: dict[str, str] = {}
-            for packages in record.get("packages", {}).values():
-                for item in packages:
-                    url = item.get("conda") or ""
-                    if url:
-                        names[url.rsplit("/", 1)[-1].rsplit("-", 2)[0]] = versions.get(url, "")
+            for item in record.get("packages", {}).get(target, []):
+                url = item.get("conda") or ""
+                if url:
+                    names[url.rsplit("/", 1)[-1].rsplit("-", 2)[0]] = versions.get(url, "")
             environments[environment] = names
         _LOCK_CACHE.clear()
         _LOCK_CACHE[key] = environments
@@ -231,3 +239,4 @@ def stage_python(root: Path, fallback: str) -> str:
         if candidate.is_file():
             return str(candidate)
     return fallback
+
