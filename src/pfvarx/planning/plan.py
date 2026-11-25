@@ -8,6 +8,8 @@ written by the benchmarking workspace); otherwise the estimate is UNKNOWN.
 from __future__ import annotations
 
 import os
+import subprocess
+import sys
 from pathlib import Path
 from typing import Any
 
@@ -177,6 +179,19 @@ def _available_mem_mb() -> int | None:
 
 def _host_mem_mb() -> int | None:
     limits: list[int] = []
+    if sys.platform == "darwin":
+        try:
+            result = subprocess.run(["sysctl", "-n", "hw.memsize"], check=True,
+                                    capture_output=True, text=True, timeout=5)
+            size = int(result.stdout.strip()) // (1024 * 1024)
+            if size > 0:
+                limits.append(size)
+        except (OSError, ValueError, subprocess.SubprocessError):
+            pass
+        allocation = os.environ.get("SLURM_MEM_PER_NODE", "")
+        if os.environ.get("SLURM_JOB_ID") and allocation.isdigit() and int(allocation) > 0:
+            limits.append(int(allocation))
+        return min(limits) if limits else None
     try:
         for line in Path("/proc/meminfo").read_text().splitlines():
             if line.startswith("MemTotal:"):
@@ -206,3 +221,4 @@ def _host_mem_mb() -> int | None:
     if os.environ.get("SLURM_JOB_ID") and allocation.isdigit() and int(allocation) > 0:
         limits.append(int(allocation))
     return min(limits) if limits else None
+

@@ -14,9 +14,12 @@ See [scientific status](docs/status.md) before interpreting results.
 New to PfVarX? [Getting started](docs/getting-started.md) walks through every step below,
 from installing Pixi to opening the report, with a troubleshooting table.
 
-You need Linux x86-64, Git, Python 3.11+, Pixi on PATH, and access to the private
-GitHub repository. On Windows, use WSL2 with a Linux distribution; macOS and Linux ARM64
-are not supported. This example creates a workspace whose tools are installed on demand.
+Native installation targets are Linux x86-64, Linux ARM64, and macOS 13+ on Intel or
+Apple silicon. You need Git, Python 3.11+ for bootstrap, Pixi on PATH, and access to the
+private GitHub repository. On Windows, use WSL2 with a supported Linux distribution.
+macOS and Linux ARM64 are newly enabled, experimental targets pending successful native
+CI runs; a solved lock is not runtime or scientific validation. See
+[platform support](docs/platforms.md). This example creates a workspace whose tools are installed on demand.
 Run each step in order and resolve any errors before continuing.
 
 ```bash
@@ -174,4 +177,5 @@ outputs, logs and frozen configuration under `runs/<RUN_ID>/`.
 - [Caller contract](docs/caller.md) and [sequencing and downstream eligibility](docs/sequencing.md)
 - [Architecture](docs/architecture.md), including the CLI and GUI parity rule for contributors,
   and [scientific/operational limits](docs/status.md)
+
 

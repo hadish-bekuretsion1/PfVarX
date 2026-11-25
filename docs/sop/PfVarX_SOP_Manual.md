@@ -187,7 +187,7 @@ which existing files to edit, how to test a change, and when to reject it.
 
 ### 2. Prerequisites and requirements
 
-Common setup completed; finalized source available; Git and Python 3 available. `$DEV` must not exist. Linux x86-64 is the supported host.
+Common setup completed; finalized source available; Git and Python 3 available. `$DEV` must not exist. Linux x86-64 is the baseline host; macOS 13+ (Intel/Apple silicon) and Linux ARM64 are newly enabled experimental targets pending native CI qualification. See the deployment guide.
 
 ### 3. Detailed operational procedure
 
@@ -242,7 +242,7 @@ Record source archive SHA-256 or reviewed commit, branch and clean initial tree.
 
 ### 2. Prerequisites and requirements
 
-D01 complete; Linux x86-64; Pixi available; network or cached packages; disk sufficient for both installation and separate test data. The full default environment is required for all implemented methods.
+D01 complete; a native installation target listed in the deployment guide; Pixi available; network or cached packages; disk sufficient for both installation and separate test data. The full default environment is required for all implemented methods.
 
 ### 3. Detailed operational procedure
 
@@ -1102,7 +1102,7 @@ metadata are optional only when the requested analyses do not require them.
 
 ### 2. Prerequisites and requirements
 
-Common variables set; Linux x86-64; Pixi installed; matching resources to be supplied. `$ANALYSIS` must not already exist. Choose an assay-specific directory if running a targeted/BAM branch.
+Common variables set; a native installation target listed in the deployment guide; Pixi installed; matching resources to be supplied. `$ANALYSIS` must not already exist. Choose an assay-specific directory if running a targeted/BAM branch.
 
 ### 3. Detailed operational procedure
 
@@ -4114,3 +4114,4 @@ records the computed checksum and marks the download unverified. Put reference
 files in `inputs/reference/`. Register your reads or BAM/CRAM files before running
 **Workflow Readiness Checks → Run readiness checks**. The tab runs `validate`, `prepare`,
 `verify-prepared`, and `ready` in that order and stops on failure.
+

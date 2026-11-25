@@ -3,7 +3,7 @@ name = "pfvarx"
 description = "PfVarX: assay-aware SNP and small-indel analysis of Plasmodium falciparum short-read data"
 channels = ["conda-forge", "bioconda"]
 channel-priority = "strict"
-platforms = ["linux-64"]
+platforms = ["linux-64", "linux-aarch64", "osx-64", "osx-arm64"]
 conda-pypi-map = false
 
 [dependencies]
@@ -229,3 +229,4 @@ fetch-input = "pfvarx fetch-input"
 verify-prepared = "pfvarx verify-prepared"
 orchestrate = "pfvarx orchestrate"
 cleanup = "pfvarx cleanup"
+

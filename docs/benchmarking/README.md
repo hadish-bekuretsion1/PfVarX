@@ -1,5 +1,7 @@
 # Benchmarking
 
+Installation targets and native qualification limits: [platform support](../platforms.md).
+
 Benchmark the exact same caller and workflow used for analysis, in a **separate
 workspace** initialized with `purpose: benchmarking`. This guide covers software
 verification, real-truth input contracts, evaluation, interpretation and reproducibility.
@@ -303,3 +305,4 @@ products are retained. Keep them under the independent experiment archival proto
 
 For native versus external comparisons, use the [caller qualification procedure](../caller.md)
 and preserve the same truth, confidence regions, partition and resource budget across workspaces.
+

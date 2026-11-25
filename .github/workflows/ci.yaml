@@ -11,7 +11,20 @@ permissions:
   contents: read
 jobs:
   checks:
-    runs-on: ubuntu-24.04
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - runner: ubuntu-24.04
+            platform: linux-64
+          - runner: ubuntu-24.04-arm
+            platform: linux-aarch64
+          - runner: macos-15-intel
+            platform: osx-64
+          - runner: macos-15
+            platform: osx-arm64
+    name: Checks (${{ matrix.platform }})
+    runs-on: ${{ matrix.runner }}
     timeout-minutes: 60  # the suite takes 15-28 minutes on hosted runners
     steps:
       - uses: actions/checkout@v4
@@ -22,6 +35,10 @@ jobs:
           environments: default
       - name: Lint
         run: pixi run lint
+      - name: Verify native platform and lock
+        run: |
+          pixi run python -c "import runpy; assert runpy.run_path('bootstrap.py')['host_platform']() == '${{ matrix.platform }}'"
+          pixi lock --check
       - name: Type checking
         run: pixi run typecheck
       - name: Import and help smoke
@@ -36,6 +53,7 @@ jobs:
           version="$(pixi run --locked pfvarx version)"
           pixi run python scripts/package.py --output "$RUNNER_TEMP/pfvarx-release"
           cd "$RUNNER_TEMP/pfvarx-release"
-          sha256sum -c "pfvarx-${version}-source.zip.sha256"
+          python -c 'import hashlib,pathlib,sys; p=pathlib.Path(sys.argv[1]); expected,name=p.read_text().split(); assert hashlib.sha256(pathlib.Path(name).read_bytes()).hexdigest() == expected' "pfvarx-${version}-source.zip.sha256"
           python -m zipfile -e "pfvarx-${version}-source.zip" unpacked
           python unpacked/pfvarx/scripts/package.py --check
+
