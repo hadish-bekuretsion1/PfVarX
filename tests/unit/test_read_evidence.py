@@ -38,7 +38,7 @@ def test_cohort_excludes_reads_without_sequence_or_quality(reads: Path) -> None:
     site: CohortSite = {"chrom": "chr1", "pos": 11, "ref": "A", "alt": "C", "type": "SNV",
                         "n_pass": 0, "statuses": {}}
     with pysam.AlignmentFile(str(reads)) as bam:
-        assert allele_counts(bam, site, min_mapq=20, min_bq=13) == (1, 0, 1)
+        assert allele_counts(bam, site, min_mapq=20, min_bq=13, max_depth=1_000_000) == (1, 0, 1)
 
 
 def test_codon_evidence_excludes_reads_without_sequence_or_quality(reads: Path) -> None:

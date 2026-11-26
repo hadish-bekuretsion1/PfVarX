@@ -211,6 +211,26 @@ def param(params: dict[str, dict[str, Any]], key: str) -> Any:
     return entry["value"]
 
 
+LEGACY_PARAMETERS = Path(__file__).with_name("legacy_parameters.yaml")
+_LEGACY: dict[str, Any] = {}
+
+
+def frozen_param(values: dict[str, Any], key: str) -> Any:
+    """Value of maintainer parameter *key* (bare name, e.g. ``pairhmm_max_reads``) in a frozen run.
+
+    *values* maps bare parameter names to values, as read from a run's frozen_config.json. A run
+    frozen before *key* existed uses the value recorded in ``legacy_parameters.yaml`` (the
+    behaviour it was frozen with). A key in neither is an error, never a silent default.
+    """
+    if key in values:
+        return values[key]
+    if not _LEGACY:
+        _LEGACY.update(read_yaml(LEGACY_PARAMETERS)["parameters"])
+    if key not in _LEGACY:
+        raise KeyError(f"parameter {key} is missing from the frozen configuration and has no legacy value")
+    return _LEGACY[key]
+
+
 def canonical_json(data: Any) -> str:
     return json.dumps(data, sort_keys=True, separators=(",", ":"), default=str)
 

@@ -31,6 +31,7 @@ from typing import Any
 
 import pysam
 
+from pfvarx.configuration.loader import frozen_param
 from pfvarx.constants import Reason, Terminal
 from pfvarx.downstream.common import Context, decisions, wilson, write_manifest
 from pfvarx.downstream.resistance import load_catalog
@@ -87,7 +88,7 @@ class GcModel:
     """Expected depth of a window from its GC content, learned from random core-genome windows of one sample."""
 
     def __init__(self, bam: pysam.AlignmentFile, fasta: pysam.FastaFile, core: list[tuple[str, int, int]],
-                 window: int, n: int, min_mapq: int, seed: int, min_per_bin: int = 20):
+                 window: int, n: int, min_mapq: int, seed: int, min_per_bin: int):
         rng = random.Random(seed)
         spans = [(c, a, b) for c, a, b in core if b - a > window and c in bam.references]
         weights = [b - a for _, a, b in spans]
@@ -134,14 +135,16 @@ def window_medians(depth: list[int], window: int) -> list[float]:
     return out
 
 
-def ratio_interval(windows: list[float], core: float, reps: int, seed: int) -> tuple[float | None, float | None]:
-    """Percentile bootstrap (2.5 %, 97.5 %) of the median window value divided by ``core``
-    (1 when the windows are already ratios)."""
+def ratio_interval(windows: list[float], core: float, reps: int, seed: int,
+                   level: float) -> tuple[float | None, float | None]:
+    """Percentile bootstrap interval at *level* (da008_interval_level; 0.95 gives 2.5 % and
+    97.5 %) of the median window value divided by ``core`` (1 when the windows are already ratios)."""
     if not windows or core <= 0:
         return None, None
     rng = random.Random(seed)
     stats = sorted(statistics.median(rng.choices(windows, k=len(windows))) / core for _ in range(reps))
-    return stats[int(0.025 * (reps - 1))], stats[int(0.975 * (reps - 1))]
+    tail = (1 - level) / 2
+    return stats[int(tail * (reps - 1))], stats[int((1 - tail) * (reps - 1))]
 
 
 def pair_support(bam: pysam.AlignmentFile, chrom: str, start: int, end: int, flank: int,
@@ -204,7 +207,8 @@ def measure(bam: pysam.AlignmentFile, loc: tuple[str, int, int], core: float, p:
                   + window_medians(depth_profile(bam, chrom, end, min(length, end + flank), min_mapq), window))
         scale = core
     ratio = statistics.median(gene) / scale if gene and scale > 0 else None
-    lo, hi = ratio_interval(gene, scale, int(p["da008_bootstrap"]), seed)
+    lo, hi = ratio_interval(gene, scale, int(p["da008_bootstrap"]), seed,
+                            float(frozen_param(p, "da008_interval_level")))
     flank_ratio = statistics.median(flanks) / scale if flanks and scale > 0 else None
     return {"gene_depth": None if not gene_depth else statistics.median(gene_depth), "depth_ratio": ratio, "ratio_lo": lo,
             "ratio_hi": hi, "flank_ratio": flank_ratio, **pair_support(bam, chrom, start, end, flank, min_mapq)}
@@ -249,7 +253,8 @@ def run(ctx: Context, threads: int = 1) -> None:
         with pysam.AlignmentFile(str(ctx.results / "alignments" / f"{sid}.bam")) as bam, \
                 pysam.FastaFile(str(fasta_path)) as fasta:
             model = GcModel(bam, fasta, core_spans, int(p["da008_window_bp"]), int(p["da008_gc_windows"]),
-                            min_mapq, seed) if core >= min_core else None
+                            min_mapq, seed, int(frozen_param(p, "da008_gc_min_windows_per_bin"))) \
+                if core >= min_core else None
             for i, lc in enumerate(loci):
                 loc = places[lc["locus_id"]]
                 row: dict[str, Any] = {"sample_id": sid, "locus_id": lc["locus_id"], "gene_id": lc["gene_id"],

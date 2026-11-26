@@ -458,6 +458,11 @@ def test_tmp_dir_reaches_snakemake_and_must_be_absolute(tmp_path):
     with pytest.raises(ValidationError, match="absolute"):
         ComputeConfig(**base, tmp_dir="scratch")
     eff = {"config": {}, "compute": {**base, "tmp_dir": "/local/scratch"}}
+    import shutil
+
+    from pfvarx.planning.resources import RESOURCES_FILE
+    (tmp_path / RESOURCES_FILE).parent.mkdir(parents=True)
+    shutil.copy(Path(__file__).resolve().parents[2] / RESOURCES_FILE, tmp_path / RESOURCES_FILE)
     cmd = snakemake_cmd(tmp_path, tmp_path / "run", eff, dry=True)
     assert "tmpdir=/local/scratch" in cmd[cmd.index("--default-resources"):]
     eff["compute"]["tmp_dir"] = None

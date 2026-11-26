@@ -45,14 +45,17 @@ from pfvarx.constants import CallStatus
 from pfvarx.genomic_evidence import FLAG_FILTER, in_intervals, read_bed
 
 BASES = "ACGT"
-TRACT_CLASSES = ((1, 1), (2, 4), (5, 9), (10, 10_000))
+ALT_BASES = len(BASES) - 1  # a substitution error can produce any of the three other bases
+
+TractClasses = tuple[tuple[int, int], ...]
 
 
-def tract_class(length: int) -> int:
-    for i, (lo, hi) in enumerate(TRACT_CLASSES):
+def tract_class(length: int, classes: TractClasses) -> int:
+    """Index of the homopolymer tract class (layer2.homopolymer_tract_classes) holding *length*."""
+    for i, (lo, hi) in enumerate(classes):
         if lo <= length <= hi:
             return i
-    return len(TRACT_CLASSES) - 1
+    return len(classes) - 1
 
 
 @dataclass
@@ -110,20 +113,47 @@ class Params:
     level: float
     seed: int
     min_weight: float
-    candidate_min_alt_reads: int = 2
-    max_indel_length_bp: int | None = None  # declared scope (layer0); longer indels are not candidates
-    pairhmm_max_reads: int = 200
-    pairhmm_flank_bp: int = 60
-    focal_min_length_bp: int = 50
-    mixture_site_spacing_bp: int = 500
-    mixture_indel_exclusion_bp: int = 0
-    constrained_calling: bool = False
-    constrained_min_log10_lr: float = 10.0
-    error_fit_exclude_fraction: float | None = None
+    candidate_min_alt_reads: int
+    max_indel_length_bp: int | None  # declared scope (layer0); longer indels are not candidates
+    pairhmm_max_reads: int
+    pairhmm_flank_bp: int
+    focal_min_length_bp: int
+    mixture_site_spacing_bp: int
+    mixture_indel_exclusion_bp: int
+    constrained_calling: bool
+    constrained_min_log10_lr: float
+    error_fit_exclude_fraction: float | None
+    tract_classes: TractClasses
+    indel_error_init_divisor: float
+    indel_error_floor: float
+    error_rate_cap: float
+    error_fit_min_sites: int
+    error_fit_min_nonzero_for_phi: int
+    phi_bounds: tuple[float, float]
+    wsaf_grid_points: int
+    indel_anchor_bp: int
+    pileup_max_depth: int
+    evidence_chunk_bp: int
+    boot_max_iter: int
+    boot_restart_divisor: int
+    boot_min_restarts: int
 
     @classmethod
     def from_frozen(cls, eff: dict[str, Any]) -> Params:
+        """Every value comes from the run's frozen parameters (config/parameters/layer2.yaml and
+        layer0.indel_length_bound_bp); runs frozen before a parameter existed use its value in
+        configuration/legacy_parameters.yaml (frozen_param)."""
+        from pfvarx.configuration.loader import frozen_param
+
         p = {k.split(".", 1)[1]: v["value"] for k, v in eff["parameters"].items() if k.startswith("layer2.")}
+        layer0 = {k.split(".", 1)[1]: v["value"] for k, v in eff["parameters"].items() if k.startswith("layer0.")}
+
+        def get(key: str) -> Any:
+            return frozen_param(p, key)
+
+        bound = frozen_param(layer0, "indel_length_bound_bp")
+        exclude = get("error_fit_exclude_fraction")
+        lo_phi, hi_phi = get("overdispersion_phi_bounds")
         return cls(min_mapq=int(p["min_mapping_quality"]), min_bq=int(p["min_base_quality"]),
                    window=int(p["window_size_bp"]), min_depth=int(p["min_usable_depth"]),
                    lam=float(p["screening_threshold_neglog10"]), pass_min=float(p["pass_min_neglog10"]),
@@ -137,20 +167,30 @@ class Params:
                    min_mix_sites=int(p["mixture_informative_min_sites"]),
                    level=float(p["wsaf_interval_level"]), seed=int(eff["config"]["random_seed"]),
                    min_weight=float(p["mixture_min_component_weight"]),
-                   # .get keeps runs frozen before these became parameters reproducible.
-                   candidate_min_alt_reads=int(p.get("candidate_min_alt_reads", 2)),
-                   max_indel_length_bp=(int(eff["parameters"]["layer0.indel_length_bound_bp"]["value"])
-                                        if "layer0.indel_length_bound_bp" in eff["parameters"] else None),
-                   pairhmm_max_reads=int(p.get("pairhmm_max_reads", 200)),
-                   pairhmm_flank_bp=int(p.get("pairhmm_flank_bp", 60)),
-                   focal_min_length_bp=int(p.get("focal_loss_min_length_bp", 50)),
-                   mixture_site_spacing_bp=int(p.get("mixture_site_spacing_bp", 500)),
-                   mixture_indel_exclusion_bp=int(p.get("mixture_indel_exclusion_bp", 0)),
-                   constrained_calling=bool(p.get("mixture_constrained_calling", False)),
-                   constrained_min_log10_lr=float(p.get("mixture_constrained_min_log10_lr", 10.0)),
-                   error_fit_exclude_fraction=(None if p.get("error_fit_exclude_fraction") is None
-                                               else float(p["error_fit_exclude_fraction"])))
-
+                   candidate_min_alt_reads=int(get("candidate_min_alt_reads")),
+                   max_indel_length_bp=None if bound is None else int(bound),
+                   pairhmm_max_reads=int(get("pairhmm_max_reads")),
+                   pairhmm_flank_bp=int(get("pairhmm_flank_bp")),
+                   focal_min_length_bp=int(get("focal_loss_min_length_bp")),
+                   mixture_site_spacing_bp=int(get("mixture_site_spacing_bp")),
+                   mixture_indel_exclusion_bp=int(get("mixture_indel_exclusion_bp")),
+                   constrained_calling=bool(get("mixture_constrained_calling")),
+                   constrained_min_log10_lr=float(get("mixture_constrained_min_log10_lr")),
+                   error_fit_exclude_fraction=None if exclude is None else float(exclude),
+                   tract_classes=tuple((int(lo), int(hi)) for lo, hi in get("homopolymer_tract_classes")),
+                   indel_error_init_divisor=float(get("indel_error_init_divisor")),
+                   indel_error_floor=float(get("indel_error_floor")),
+                   error_rate_cap=float(get("error_rate_cap")),
+                   error_fit_min_sites=int(get("error_fit_min_sites")),
+                   error_fit_min_nonzero_for_phi=int(get("error_fit_min_nonzero_for_phi")),
+                   phi_bounds=(float(lo_phi), float(hi_phi)),
+                   wsaf_grid_points=int(get("wsaf_profile_grid_points")),
+                   indel_anchor_bp=int(get("indel_anchor_bp")),
+                   pileup_max_depth=int(get("pileup_max_depth")),
+                   evidence_chunk_bp=int(get("evidence_chunk_bp")),
+                   boot_max_iter=int(get("k_bootstrap_max_iterations")),
+                   boot_restart_divisor=int(get("k_bootstrap_restart_divisor")),
+                   boot_min_restarts=int(get("k_bootstrap_min_restarts")))
 
 def homopolymer_after(seq: str, i: int) -> int:
     """Length of the homopolymer run starting at i+1 (the context an indel at anchor i extends)."""
@@ -174,11 +214,11 @@ def run_remaining(seq: str) -> np.ndarray:
     return (run_end - np.arange(a.size) + 1).astype(np.int32)
 
 
-def tract_classes_array(seq: str) -> np.ndarray:
+def tract_classes_array(seq: str, classes: TractClasses) -> np.ndarray:
     rem = run_remaining(seq)
     after = np.concatenate([rem[1:], [1]])
-    cls = np.full(after.shape, len(TRACT_CLASSES) - 1, dtype=np.int8)
-    for i, (lo, hi) in reversed(list(enumerate(TRACT_CLASSES))):
+    cls = np.full(after.shape, len(classes) - 1, dtype=np.int8)
+    for i, (lo, hi) in reversed(list(enumerate(classes))):
         cls[(after >= lo) & (after <= hi)] = i
     return cls
 
@@ -204,7 +244,7 @@ def extract(bam: pysam.AlignmentFile, fasta: pysam.FastaFile, chrom: str,
         for col in bam.pileup(chrom, start, end, truncate=True, stepper="nofilter",
                               flag_filter=FLAG_FILTER, min_mapping_quality=p.min_mapq,
                               min_base_quality=0, ignore_overlaps=True, ignore_orphans=False,
-                              max_depth=1_000_000, compute_baq=False):
+                              max_depth=p.pileup_max_depth, compute_baq=False):
             pos = col.reference_pos
             ref = seq[pos]
             n = 0
@@ -278,30 +318,33 @@ def fit_error_model(evs: dict[str, Evidence], seqs: dict[str, str], p: Params,
         ys.append(ev.nonref[mask])
         ns.append(ev.n[mask])
         idx = np.where(mask)[0]
-        cls = tract_classes_array(seqs[chrom])[idx]
-        for c in range(len(TRACT_CLASSES)):
+        cls = tract_classes_array(seqs[chrom], p.tract_classes)[idx]
+        for c in range(len(p.tract_classes)):
             sel = idx[cls == c]
             iy[c].append(ev.indel[sel])
             inn[c].append(ev.n[sel])
     y, n = np.concatenate(ys) if ys else np.array([]), np.concatenate(ns) if ns else np.array([])
     truncation = None if p.error_fit_exclude_fraction is None else (p.min_fragments, p.error_fit_exclude_fraction)
-    snv = fit_betabinom(y, n, p.trim, p.eps0, p.phi0, exclude=truncation)
+    snv = fit_betabinom(y, n, p.trim, p.eps0, p.phi0, exclude=truncation, phi_bounds=p.phi_bounds,
+                        min_sites=p.error_fit_min_sites, min_nonzero_for_phi=p.error_fit_min_nonzero_for_phi)
     indel = {}
-    for c in range(len(TRACT_CLASSES)):
+    for c in range(len(p.tract_classes)):
         yy = np.concatenate(iy[c]) if iy[c] else np.array([])
         nn = np.concatenate(inn[c]) if inn[c] else np.array([])
-        f = fit_betabinom(yy, nn, p.trim, p.eps0 / 5, p.phi0, exclude=truncation)
-        f["mu"] = max(f["mu"], 1e-6)
+        f = fit_betabinom(yy, nn, p.trim, p.eps0 / p.indel_error_init_divisor, p.phi0, exclude=truncation,
+                          phi_bounds=p.phi_bounds, min_sites=p.error_fit_min_sites,
+                          min_nonzero_for_phi=p.error_fit_min_nonzero_for_phi)
+        f["mu"] = max(f["mu"], p.indel_error_floor)
         indel[str(c)] = f
     return {"snv_any": snv, "indel_by_tract_class": indel,
-            "tract_classes": [list(t) for t in TRACT_CLASSES],
+            "tract_classes": [list(t) for t in p.tract_classes],
             "covariates_used": ["substitution_any", "homopolymer_tract_class"],
             "calibration": "PER_SAMPLE_KNOWN_REFERENCE_FIT"}
 
 
 def screen(evs: dict[str, Evidence], seqs: dict[str, str], model: dict[str, Any], p: Params) -> list[Candidate]:
     out: list[Candidate] = []
-    mu_snv = model["snv_any"]["mu"] / 3.0
+    mu_snv = model["snv_any"]["mu"] / ALT_BASES
     phi = model["snv_any"]["phi"]
     for chrom, ev in evs.items():
         seq = seqs[chrom]
@@ -315,11 +358,11 @@ def screen(evs: dict[str, Evidence], seqs: dict[str, str], model: dict[str, Any]
                     mu, ph = mu_snv, phi
                 elif kind == "INS":
                     ref, alt = seq[pos], seq[pos] + allele
-                    m = model["indel_by_tract_class"][str(tract_class(tract))]
+                    m = model["indel_by_tract_class"][str(tract_class(tract, p.tract_classes))]
                     mu, ph = m["mu"], m["phi"]
                 else:
                     ref, alt = seq[pos] + allele, seq[pos]
-                    m = model["indel_by_tract_class"][str(tract_class(tract))]
+                    m = model["indel_by_tract_class"][str(tract_class(tract, p.tract_classes))]
                     mu, ph = m["mu"], m["phi"]
                 c = Candidate(chrom, pos, ref, alt, kind, int(y), n, int(af), int(ar), rf, rr,
                               bqs / max(y, 1), tract)
@@ -352,7 +395,9 @@ def rescore_indels(bam: pysam.AlignmentFile, seqs: dict[str, str], cands: list[C
         for read in bam.fetch(c.chrom, c.pos, c.pos + 1):
             if read.flag & FLAG_FILTER or read.mapping_quality < p.min_mapq or read.query_sequence is None or read.query_qualities is None:
                 continue
-            if read.reference_start > c.pos - 5 or read.reference_end is None or read.reference_end < c.pos + len(c.ref) + 5:
+            anchor = p.indel_anchor_bp
+            if (read.reference_start > c.pos - anchor or read.reference_end is None
+                    or read.reference_end < c.pos + len(c.ref) + anchor):
                 continue  # read must span the event with anchoring bases
             used += 1
             if used > max_reads:
@@ -422,12 +467,13 @@ def decide(cands: list[Candidate], model: dict[str, Any], p: Params, unreliable:
            focal: dict[str, list[tuple[int, int]]]) -> None:
     for c in cands:
         if c.kind == "SNV":
-            eps, phi = model["snv_any"]["mu"] / 3.0, model["snv_any"]["phi"]
+            eps, phi = model["snv_any"]["mu"] / ALT_BASES, model["snv_any"]["phi"]
         else:
-            m = model["indel_by_tract_class"][str(tract_class(c.tract))]
+            m = model["indel_by_tract_class"][str(tract_class(c.tract, p.tract_classes))]
             eps, phi = m["mu"], m["phi"]
         if c.n > 0:
-            c.wsaf, c.wsaf_lo, c.wsaf_hi = profile_interval(c.y, c.n, min(eps, 0.25), phi, p.level)
+            c.wsaf, c.wsaf_lo, c.wsaf_hi = profile_interval(c.y, c.n, min(eps, p.error_rate_cap), phi, p.level,
+                                                            p.wsaf_grid_points)
         if c.status == CallStatus.INSUFFICIENT_DEPTH:
             if in_intervals(focal.get(c.chrom, []), c.pos):
                 c.status = CallStatus.FOCAL_CALLABILITY_LOSS.value
@@ -463,7 +509,7 @@ def _runs(mask: np.ndarray) -> list[tuple[int, int]]:
     return list(zip(starts.tolist(), ends.tolist()))
 
 
-def focal_losses(evs: dict[str, Evidence], min_depth: int, median: float, min_len: int = 50) -> dict[str, list[tuple[int, int]]]:
+def focal_losses(evs: dict[str, Evidence], min_depth: int, median: float, min_len: int) -> dict[str, list[tuple[int, int]]]:
     out: dict[str, list[tuple[int, int]]] = {}
     if median < min_depth:
         return out
@@ -494,10 +540,12 @@ def without_indel_neighbours(snvs: list[Candidate], cands: list[Candidate], dist
         if c.kind != "SNV" and c.status in (CallStatus.PASS, CallStatus.LOW_CONFIDENCE):
             spans[c.chrom].append((c.pos, c.pos + max(len(c.ref), len(c.alt))))
     starts = {chrom: sorted(s) for chrom, s in spans.items()}
+    longest = max((end - start for s in spans.values() for start, end in s), default=0)
     kept = []
     for c in snvs:
         intervals = starts.get(c.chrom, [])
-        i = bisect.bisect_left(intervals, (c.pos - distance - 1000, 0))
+        # an indel starting more than distance + its length before the SNV cannot reach it
+        i = bisect.bisect_left(intervals, (c.pos - distance - longest, 0))
         close = False
         for start, end in intervals[i:]:
             if start - distance > c.pos:
@@ -519,15 +567,15 @@ def allowed_fractions(weights: list[float]) -> list[float]:
     return sorted(min(1.0, s) for s in sums)
 
 
-def constrained_score(c: Candidate, model: dict[str, Any], fractions: list[float]) -> tuple[float, float]:
+def constrained_score(c: Candidate, model: dict[str, Any], fractions: list[float], p: Params) -> tuple[float, float]:
     """Best allowed clone fraction for *c* and log10 LR of that fraction against sequencing
     error alone (the error rate of the candidate's class, as in ``decide``)."""
     if c.kind == "SNV":
-        eps, phi = model["snv_any"]["mu"] / 3.0, model["snv_any"]["phi"]
+        eps, phi = model["snv_any"]["mu"] / ALT_BASES, model["snv_any"]["phi"]
     else:
-        m = model["indel_by_tract_class"][str(tract_class(c.tract))]
+        m = model["indel_by_tract_class"][str(tract_class(c.tract, p.tract_classes))]
         eps, phi = m["mu"], m["phi"]
-    eps = min(eps, 0.25)
+    eps = min(eps, p.error_rate_cap)
     from pfvarx.caller.stats import betabinom_logpmf
 
     y, n = np.array([float(c.y)]), np.array([float(c.n)])
@@ -553,7 +601,7 @@ def apply_constrained_calling(cands: list[Candidate], model: dict[str, Any], wei
     for c in cands:
         if c.status not in (CallStatus.PASS, CallStatus.LOW_CONFIDENCE) or c.n <= 0:
             continue
-        c.mcf, c.mclr = constrained_score(c, model, fractions)
+        c.mcf, c.mclr = constrained_score(c, model, fractions, p)
         if (c.status == CallStatus.LOW_CONFIDENCE and c.mclr >= p.constrained_min_log10_lr
                 and c.y >= p.min_fragments):
             c.status = CallStatus.PASS.value
@@ -633,9 +681,6 @@ def _init_worker(bam_path: str, ref_path: str, p: Params) -> None:
     _WORKER.update(bam=pysam.AlignmentFile(bam_path), fasta=pysam.FastaFile(ref_path), p=p)
 
 
-EXTRACT_CHUNK_BP = 250_000  # work unit for parallel evidence collection; results do not depend on it
-
-
 def _extract_task(job: tuple[str, int, int]) -> tuple[str, int, int, dict[str, Any]]:
     """Evidence for one core interval piece: each position's evidence depends only on the
     reads covering it, so pieces can be collected independently and joined exactly."""
@@ -647,11 +692,12 @@ def _extract_task(job: tuple[str, int, int]) -> tuple[str, int, int, dict[str, A
     return chrom, start, end, part
 
 
-def _pieces(intervals: list[tuple[int, int]]) -> list[tuple[int, int]]:
+def _pieces(intervals: list[tuple[int, int]], chunk: int) -> list[tuple[int, int]]:
+    """Split intervals into work units of *chunk* bp (layer2.evidence_chunk_bp)."""
     out = []
     for start, end in intervals:
-        for s in range(start, end, EXTRACT_CHUNK_BP):
-            out.append((s, min(end, s + EXTRACT_CHUNK_BP)))
+        for s in range(start, end, chunk):
+            out.append((s, min(end, s + chunk)))
     return out
 
 
@@ -703,7 +749,7 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         for contig in chroms:
             seqs[contig] = fasta.fetch(contig).upper()
             evs[contig] = Evidence(len(seqs[contig]))
-        jobs = [(contig, s, e) for contig in chroms for s, e in _pieces(core[contig])]
+        jobs = [(contig, s, e) for contig in chroms for s, e in _pieces(core[contig], p.evidence_chunk_bp)]
         parts: dict[tuple[str, int], dict[str, Any]] = {}
         for chrom, start, end, part in pool.map(_extract_task, jobs, chunksize=1):
             ev = evs[chrom]
@@ -740,7 +786,7 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
     callable_iv = callable_intervals(evs, p.min_depth)
     core_bases = int(sum(ev.in_core.sum() for ev in evs.values()))
     callable_bases = sum(e - s for iv in callable_iv.values() for s, e in iv)
-    # pass one mixture on PASS biallelic SNVs, thinned to >= 500 bp apart
+    # pass one mixture on PASS biallelic SNVs, thinned to >= mixture_site_spacing_bp apart
     snv = [c for c in cands if c.kind == "SNV" and c.status == CallStatus.PASS]
     near_indel = 0
     if p.mixture_indel_exclusion_bp > 0:
@@ -758,9 +804,11 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
     if len(thinned) >= p.min_mix_sites:
         y = np.array([c.y for c in thinned])
         n = np.array([c.n for c in thinned])
-        mix = mixture.select_k(y, n, model["snv_any"]["mu"] / 3.0, model["snv_any"]["phi"],
+        mix = mixture.select_k(y, n, model["snv_any"]["mu"] / ALT_BASES, model["snv_any"]["phi"],
                                p.k_max, p.alpha, p.replicates, p.seed, p.restarts, p.agreement,
-                               p.em_tol, p.em_iter, p.min_weight, executor=pool, batch=threads)
+                               p.em_tol, p.em_iter, p.min_weight, executor=pool, batch=threads,
+                               boot_max_iter=p.boot_max_iter, boot_restart_divisor=p.boot_restart_divisor,
+                               boot_min_restarts=p.boot_min_restarts)
         mix["status"] = "ESTIMATED"
         mix["informative_sites"] = len(thinned)
         mix["snvs_excluded_near_indels"] = near_indel

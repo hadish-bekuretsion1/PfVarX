@@ -166,7 +166,27 @@ def validate_fasta(path: Path) -> FileReport:
     return rep
 
 
-def validate_bed(path: Path, contigs: dict[str, dict[str, Any]], kind: str = "BED") -> FileReport:
+NAMES_SAMPLED = 200  # column-4 names read from a BED to recognise a gene list (a format check, not a setting)
+
+
+@dataclass(frozen=True)
+class CoreMaskLimits:
+    """Plausibility limits for a core-genome mask (layer0 parameters core_mask_*)."""
+
+    fraction_min: float
+    fraction_max: float
+    max_intervals: int
+
+    @classmethod
+    def from_parameters(cls, params: dict[str, dict[str, Any]]) -> CoreMaskLimits:
+        return cls(float(params["layer0.core_mask_fraction_min"]["value"]),
+                   float(params["layer0.core_mask_fraction_max"]["value"]),
+                   int(params["layer0.core_mask_max_intervals"]["value"]))
+
+
+def validate_bed(path: Path, contigs: dict[str, dict[str, Any]], kind: str = "BED",
+                 core_limits: CoreMaskLimits | None = None) -> FileReport:
+    """Validate a BED file; a CORE_MASK is also checked against *core_limits* (required for that kind)."""
     rep = FileReport(path=str(path), kind=kind)
     if not path.is_file():
         rep.fail(Reason.FILE_MISSING, "BED not found")
@@ -179,7 +199,7 @@ def validate_bed(path: Path, contigs: dict[str, dict[str, Any]], kind: str = "BE
         if not line.strip() or line.startswith(("#", "track", "browser")):
             continue
         cells = line.split("\t")
-        if len(cells) > 3 and len(names) < 200:
+        if len(cells) > 3 and len(names) < NAMES_SAMPLED:
             names.append(cells[3])
         try:
             chrom, start, end = cells[0], int(cells[1]), int(cells[2])
@@ -197,7 +217,9 @@ def validate_bed(path: Path, contigs: dict[str, dict[str, Any]], kind: str = "BE
         rep.fail(Reason.BED_MALFORMED, "no intervals")
     rep.facts = {"intervals": n, "bases": total}
     if kind == "CORE_MASK" and n and rep.status != "FAIL":
-        concerns = core_mask_concerns(intervals, names, contigs)
+        if core_limits is None:
+            raise ValueError("validate_bed: a CORE_MASK needs core_limits (layer0 core_mask_* parameters)")
+        concerns = core_mask_concerns(intervals, names, contigs, core_limits)
         if concerns:
             rep.warn(Reason.CORE_MASK_SUSPECT, "; ".join(concerns))
     return rep
@@ -207,7 +229,7 @@ GENE_LIKE = re.compile(r"(PF3D7_\d{7}|PF3D7_[A-Z]{3}\d+|exon_|-CDS|\.\d+-p\d|gen
 
 
 def core_mask_concerns(intervals: list[tuple[str, int, int]], names: list[str],
-                       contigs: dict[str, dict[str, Any]]) -> list[str]:
+                       contigs: dict[str, dict[str, Any]], limits: CoreMaskLimits) -> list[str]:
     """Signs that a 'core mask' is really a gene or feature list. A region mask is a few dozen
     non-overlapping intervals covering most of the genome (about 89% of 3D7 for the standard
     core of Miles et al. 2016); a gene BED has thousands of named, often overlapping intervals."""
@@ -215,7 +237,7 @@ def core_mask_concerns(intervals: list[tuple[str, int, int]], names: list[str],
     if names and sum(bool(GENE_LIKE.search(x)) for x in names) >= max(1, len(names) // 2):
         concerns.append(f"column 4 holds gene or feature names (for example {names[0]!r}): this looks like a gene "
                         "BED, not a core-genome mask")
-    if len(intervals) > 1000:
+    if len(intervals) > limits.max_intervals:
         concerns.append(f"{len(intervals)} intervals: a core-genome mask normally has fewer than 200")
     last: dict[str, int] = {}
     for chrom, start, end in sorted(intervals):
@@ -225,7 +247,7 @@ def core_mask_concerns(intervals: list[tuple[str, int, int]], names: list[str],
         last[chrom] = max(last.get(chrom, -1), end)
     genome = sum(int(c["length"]) for c in contigs.values())
     covered = sum(end - start for chrom, start, end in merge_intervals(intervals))
-    if genome and not 0.70 <= covered / genome <= 0.97:
+    if genome and not limits.fraction_min <= covered / genome <= limits.fraction_max:
         concerns.append(f"covers {covered / genome:.0%} of the reference; the standard 3D7 core covers about 89%")
     return concerns
 
@@ -469,9 +491,9 @@ def _validate_alignment(path: Path, contigs: dict[str, dict[str, Any]], referenc
     return rep
 
 
-def alignment_state_evidence(path: Path, reference: Path, reads: int = 2000) -> dict[str, Any]:
+def alignment_state_evidence(path: Path, reference: Path, reads: int) -> dict[str, Any]:
     """What an imported alignment shows about its processing: @PG programs, and whether the
-    first mapped reads carry fgbio consensus tags (cD) or raw UMI tags (RX)."""
+    first *reads* mapped reads (layer0.alignment_state_reads_checked) carry fgbio consensus tags (cD) or raw UMI tags (RX)."""
     import pysam
 
     with pysam.AlignmentFile(str(path), reference_filename=str(reference)) as aln:

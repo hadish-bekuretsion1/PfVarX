@@ -45,7 +45,7 @@ def test_metrics_and_site_call_rate(tmp_path: Path) -> None:
     missing, matrix = _cohort(tmp_path)
     metrics = sample_metrics(missing)
     assert metrics["WARN"]["cohort_sites"] == 10 and metrics["WARN"]["cohort_mixed_fraction"] == 0.2
-    sites = site_summary(matrix, 3)
+    sites = site_summary(matrix, 3, 0.8)
     # Sites S0-S3 are called in all 3 samples, S4-S6 in 2 of 3, S7-S9 in at most 1 of 3.
     assert sites["sites"] == 10 and sites["sites_meeting_call_rate"] == 4
 

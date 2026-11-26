@@ -17,6 +17,7 @@ import typer
 
 from pfvarx import __version__
 from pfvarx.configuration.loader import ConfigError, effective_config, load_bundle
+from pfvarx.constants import DEFAULT_RANDOM_SEED
 
 app = typer.Typer(help="PfVarX: assay-aware SNP/small-indel analysis of P. falciparum", no_args_is_help=True,
                   add_completion=False)
@@ -256,7 +257,7 @@ def fixture(design: str = typer.Option("wgs", "--design", help="wgs | targeted_u
 
 @app.command("benchmark-partition")
 def benchmark_partition(holdout_fraction: float = typer.Option(0.25, "--holdout-fraction"),
-                        seed: int = typer.Option(20261106, "--seed")) -> None:
+                        seed: int = typer.Option(DEFAULT_RANDOM_SEED, "--seed")) -> None:
     """Lock the benchmarking / held-out partition of truth samples (once, before tuning)."""
     from pfvarx.benchmarking.partitions import lock
 

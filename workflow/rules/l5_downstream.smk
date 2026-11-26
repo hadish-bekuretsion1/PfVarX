@@ -15,7 +15,7 @@ rule da001_clonality:
         run=str(RUN),
         root=str(ROOT),
     resources:
-        mem_mb=mem(2000),
+        mem_mb=mem("da001_clonality"),
         runtime=RUNTIME,
     log:
         str(LOGS / "downstream" / "DA001.log"),
@@ -54,9 +54,9 @@ rule da_execute:
         root=str(ROOT),
     wildcard_constraints:
         da="DA00[2345678]",
-    threads: threads(2)
+    threads: threads("da_execute")
     resources:
-        mem_mb=mem(2000),
+        mem_mb=mem("da_execute"),
         runtime=RUNTIME,
     log:
         str(LOGS / "downstream" / "{da}.log"),

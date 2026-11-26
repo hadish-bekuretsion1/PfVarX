@@ -19,6 +19,7 @@ import json
 from pathlib import Path
 from typing import Any
 
+from pfvarx.configuration.loader import frozen_param
 from pfvarx.io import read_tsv, write_tsv
 
 COLUMNS = ["sample_id", "clonality", "number_of_clones", "clone_proportions", "basis", "note"]
@@ -49,7 +50,9 @@ def _components(mix: dict[str, Any]) -> tuple[int, list[float], bool, float]:
     weights = sorted((float(w) for w in fit.get("weights", [])), reverse=True)
     tests = mix.get("tests") or []
     at_limit = bool(tests) and "K_MAX" in str(tests[-1].get("note", "")) and k >= int(tests[-1].get("k", k + 1))
-    return k, weights, at_limit, float(mix.get("min_component_weight", 0.02))
+    # caller QC written before the weight was recorded used the legacy value of the parameter
+    return k, weights, at_limit, float(mix["min_component_weight"] if "min_component_weight" in mix
+                                       else frozen_param({}, "mixture_min_component_weight"))
 
 
 def classify(sample: str, mix: dict[str, Any] | None, da001_call: str | None) -> dict[str, str]:

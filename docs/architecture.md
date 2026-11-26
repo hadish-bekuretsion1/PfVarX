@@ -76,6 +76,18 @@ and interval conventions live outside the native caller package.
 See the [configuration editor and input procedure](configuration.md) and the
 [sequencing and downstream eligibility matrix](sequencing.md).
 
+## Where values are kept
+
+No threshold, analysis setting or compute request is written in the code. User choices are in
+the three user YAML files; maintainer values are in `config/parameters/layer*.yaml` (each with
+its source class), `config/registry/qc_policy_*.yaml` and `config/registry/job_resources.yaml`
+(threads and memory per workflow rule, read by both the rules and the preflight plan). Code
+reads a run's values from its frozen configuration; a run frozen before a parameter existed
+uses `configuration/legacy_parameters.yaml` through `loader.frozen_param`. To add a setting,
+add it to the matching file with a source class and a note, read it with `frozen_param`, and
+list it in [thresholds](thresholds.md#where-values-are-kept).
+`tests/unit/test_no_hardcoded_parameters.py` and `tests/unit/test_resource_plan.py` enforce it.
+
 ## CLI and GUI parity
 
 The terminal commands and the local configuration GUI are two front ends for the same

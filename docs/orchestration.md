@@ -104,7 +104,8 @@ post-alignment QC is computed only when the tools actually run.
 ## Run progress and time, memory and storage estimates
 
 **Live progress.** While a run works, PfVarX rewrites `runs/<RUN_ID>/progress.html` (and
-`progress.json`) every 15 seconds from the Snakemake log. The page shows when the run started,
+`progress.json`) every 15 seconds (`planning.progress_refresh_seconds` in
+`config/registry/job_resources.yaml`) from the Snakemake log. The page shows when the run started,
 how long it has run, the steps running now (with sample, start time, time so far and expected
 time), a count of finished, running and failed jobs per step, the expected finish time and
 the time remaining. The page refreshes itself; when the run ends it shows the final status
@@ -128,8 +129,11 @@ history; synthetic test runs are never learned from. Estimates are advice for pl
 and never change results. For runs made before this feature, add them once with
 `./pfvarx resources-learn --run-id RUN_ID`.
 
-**Memory requests.** When a job class used more memory in an earlier real-data run on this
-computer than its fixed request, the plan raises the request to that peak plus 20 %
+**Memory requests.** Each workflow rule's threads and memory are set in
+`config/registry/job_resources.yaml`, which both the rules and the preflight plan read; a job
+class requests the largest of its rules. When a job class used more memory in an earlier
+real-data run on this computer than that request, the plan raises the request to that peak
+plus 20 % (`planning.measured_memory_headroom`)
 (`memory_basis: MEASURED_HISTORY`; at present the variant caller reads it), within
 `per_job.max_mem_mb`. Snakemake then starts no more of those jobs at once than `max_mem_mb`
 holds. If the peak needs more than `per_job.max_mem_mb`, the check warns

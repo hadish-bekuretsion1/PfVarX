@@ -2,6 +2,36 @@
 
 ## Unreleased
 
+### No values written in the code
+
+- Every threshold, analysis setting and compute request now lives in a configuration file.
+  New maintainer parameters (each with a source class) replace values that were written in
+  the code: `layer0.core_mask_fraction_min` / `_max`, `core_mask_max_intervals`,
+  `alignment_state_reads_checked`; `layer2.homopolymer_tract_classes`,
+  `indel_error_init_divisor`, `indel_error_floor`, `error_rate_cap`, `error_fit_min_sites`,
+  `error_fit_min_nonzero_for_phi`, `overdispersion_phi_bounds`, `wsaf_profile_grid_points`,
+  `indel_anchor_bp`, `pileup_max_depth`, `evidence_chunk_bp`, `k_bootstrap_max_iterations`,
+  `k_bootstrap_restart_divisor`, `k_bootstrap_min_restarts`;
+  `layer3.cohort_site_call_rate_min`; `layer5.da001_moire_pt_chains`,
+  `da003_interval_level`, `da003_min_bootstrap_values`, `da004_dcifer_coi_lrank`,
+  `da004_dcifer_afreq_tol`, `da005_min_samples`, `da005_min_sites`, `da005_pca_components`,
+  `da007_gam_grid_points`, `da007_time_origin`, `da008_interval_level`,
+  `da008_gc_min_windows_per_bin`. Values are unchanged, so results are identical.
+  Parameter files layer0, layer2, layer3 and layer5 are now version 1.1.0.
+- New `config/registry/job_resources.yaml` holds the threads and memory of every workflow
+  rule and the planning factors (measured-memory headroom, temporary-disk factor, default
+  rule memory, progress refresh, slow-step marker). The rules and the preflight plan both read
+  it; before, the requests were written twice (rules and `planning/plan.py`).
+- The R scripts for DA001, DA004 and DA007 take every setting as a required argument and no
+  longer hold defaults; inline fallbacks such as `params.get("da003_bootstrap_replicates", 200)`
+  are gone. A run frozen before a parameter existed uses the value it was frozen with, from
+  `src/pfvarx/configuration/legacy_parameters.yaml` (`loader.frozen_param`).
+- The default random seed is defined once (`constants.DEFAULT_RANDOM_SEED`).
+- New test `tests/unit/test_no_hardcoded_parameters.py`; `tests/unit/test_resource_plan.py`
+  now checks that rules read their requests from `job_resources.yaml`.
+- Docs: thresholds ("Where values are kept"), architecture, orchestration, status, testing,
+  SOP Appendix B (md and html), README.
+
 Changes on `develop` after the `v0.0.0` release. The version number stays 0.0.0 until the
 next release is tagged.
 

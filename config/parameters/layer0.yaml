@@ -1,5 +1,9 @@
 # Layer 0 parameters (maintainer-owned). Every value records its source class.
-version: "1.0.0"
+version: "1.1.0"
 parameters:
   fastq_records_checked_for_encoding: {value: 10000, source: FRAMEWORK_POLICY, note: "records sampled for the quality-range check; whole-file mate/count checks are exhaustive"}
   indel_length_bound_bp: {value: 50, source: DECLARED_SCOPE, note: "SNPs and indels <=50 bp are in scope"}
+  core_mask_fraction_min: {value: 0.70, source: FRAMEWORK_POLICY, note: "core mask covering less of the genome than this is flagged CORE_MASK_SUSPECT"}
+  core_mask_fraction_max: {value: 0.97, source: FRAMEWORK_POLICY, note: "core mask covering more of the genome than this is flagged CORE_MASK_SUSPECT"}
+  alignment_state_reads_checked: {value: 2000, source: FRAMEWORK_POLICY, note: "reads read from an imported BAM/CRAM to check its documented processing state"}
+  core_mask_max_intervals: {value: 1000, source: FRAMEWORK_POLICY, note: "a core mask with more intervals than this is flagged CORE_MASK_SUSPECT (a gene list rather than a region mask; the standard 3D7 core has fewer than 200)"}

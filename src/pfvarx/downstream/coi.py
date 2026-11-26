@@ -18,6 +18,7 @@ import shutil
 import subprocess
 from typing import Any
 
+from pfvarx.configuration.loader import frozen_param
 from pfvarx.constants import Clonality, Reason, Terminal
 from pfvarx.downstream.common import Context, write_manifest
 from pfvarx.io import read_tsv, write_tsv
@@ -123,7 +124,8 @@ def run(ctx: Context, threads: int = 1) -> None:
         script = ctx.root / "workflow" / "scripts" / "da001_moire.R"
         r = subprocess.run([rscript, str(script), str(long_form), str(coi_tsv), str(af_tsv),
                             str(ctx.params["da001_moire_burnin"]), str(ctx.params["da001_moire_samples"]),
-                            str(ctx.eff["config"]["random_seed"])], capture_output=True, text=True)
+                            str(ctx.eff["config"]["random_seed"]),
+                            str(frozen_param(ctx.params, "da001_moire_pt_chains"))], capture_output=True, text=True)
         (out / "moire.log").write_text(r.stdout + r.stderr)
         if r.returncode != 0:
             raise SystemExit(f"MOIRE failed (exit {r.returncode}); see {out / 'moire.log'}")

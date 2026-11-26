@@ -71,7 +71,8 @@ def validate_all(root: Path, bundle: Bundle) -> dict[str, Any]:
     if cfg.reference.host_fasta_used is not None:
         reports.append(validate_host(root, cfg, contigs))
     if contigs:
-        reports.append(v.validate_bed(root / cfg.reference.core_mask_bed, contigs, "CORE_MASK"))
+        reports.append(v.validate_bed(root / cfg.reference.core_mask_bed, contigs, "CORE_MASK",
+                                      v.CoreMaskLimits.from_parameters(params)))
     catalog: LibraryCatalog | None = None
     if cfg.assay.library_catalog:
         catalog_report = v.FileReport(path=str(cfg.assay.library_catalog), kind="LIBRARY_CATALOG")
@@ -147,7 +148,9 @@ def validate_all(root: Path, bundle: Bundle) -> dict[str, Any]:
                 if rep.status != "FAIL" and sid in facts:
                     # The documented processing state must agree with what the file shows.
                     try:
-                        evidence = v.alignment_state_evidence(root / row["bam"], root / cfg.reference.fasta)
+                        evidence = v.alignment_state_evidence(
+                            root / row["bam"], root / cfg.reference.fasta,
+                            int(param(params, "layer0.alignment_state_reads_checked")))
                     except (OSError, ValueError) as exc:
                         rep.fail(v.Reason.ALIGNMENT_PROCESSING_STATE, f"sample {sid}: cannot read alignment records "
                                  f"to check processing_state: {exc}")

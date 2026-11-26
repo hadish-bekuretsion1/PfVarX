@@ -2204,12 +2204,16 @@ values, not universal recommendations or evidence of scientific validity.</p>
 <td>detailed variant embedding cap 200000; full totals remain distinguished from embedded details</td>
 </tr>
 <tr>
+<td><code>registry/job_resources.yaml</code></td>
+<td>threads and memory of every workflow rule (for example the caller 8 threads, 5000 MB), memory headroom 1.2 over measured peaks, temporary disk 3× input, progress refresh 15 s; read by both the rules and the preflight plan</td>
+</tr>
+<tr>
 <td><code>compute.yaml</code></td>
 <td>example total cores 4, RAM 6500 MiB, jobs 1, temp disk 20000 MB, per-job runtime estimate/ceiling field 720 minutes; <code>tmp_dir</code> null (system temporary directory)</td>
 </tr>
 </tbody>
 </table>
-<p>Every value, its source and its reference is listed in <code>docs/thresholds.md</code>. Confirm the actual release/configuration values with:</p>
+<p>No threshold, setting or compute request is written in the program code; every value, its source and its reference is listed in <code>docs/thresholds.md</code> (section “Where values are kept”). Confirm the actual release/configuration values with:</p>
 <pre><code class="language-bash">cd &quot;$ANALYSIS&quot;
 cat config/parameters/layer1.yaml config/parameters/layer2.yaml
 cat config/parameters/layer5.yaml config/parameters/layer6.yaml

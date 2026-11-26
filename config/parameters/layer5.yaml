@@ -1,4 +1,4 @@
-version: "1.0.0"
+version: "1.1.0"
 parameters:
   da001_credibility: {value: 0.95, source: UNCALIBRATED_PROVISIONAL, note: "candidate {0.90,0.95}"}
   da001_min_informative_loci: {value: 10, source: UNCALIBRATED_PROVISIONAL}
@@ -48,3 +48,15 @@ parameters:
   da004_clonal_ibd: {value: 0.9, source: LITERATURE_SUPPORTED, note: "IBD >= 0.9 as the reporting convention for near-identical (clonal) pairs; display label only"}
   da006_ufboot_support: {value: 95, source: LITERATURE_SUPPORTED, note: "IQ-TREE guidance: rely on a branch only at UFBoot >= 95 (Hoang 2018)"}
   da006_alrt_support: {value: 80, source: LITERATURE_SUPPORTED, note: "IQ-TREE guidance: SH-aLRT >= 80 (Guindon 2010)"}
+  da001_moire_pt_chains: {value: 1, source: SOFTWARE_DEFAULT, note: "moire run_mcmc pt_chains: number of parallel-tempering chains"}
+  da003_interval_level: {value: 0.95, source: FRAMEWORK_POLICY, note: "percentile bootstrap interval for expected heterozygosity"}
+  da003_min_bootstrap_values: {value: 10, source: FRAMEWORK_POLICY, note: "bootstrap replicates with a value needed before an interval is reported"}
+  da004_dcifer_coi_lrank: {value: 2, source: SOFTWARE_DEFAULT, note: "Dcifer getCOI lrank: allele-count rank for the naive COI of samples without a DA001 count"}
+  da004_dcifer_afreq_tol: {value: 1.0e-5, source: SOFTWARE_DEFAULT, note: "Dcifer calcAfreq convergence tolerance"}
+  da005_min_samples: {value: 3, source: FRAMEWORK_POLICY, note: "eligible samples needed for PCA"}
+  da005_min_sites: {value: 3, source: FRAMEWORK_POLICY, note: "polymorphic SNVs without missing calls needed for PCA; also the unlinked SNVs needed before LD pruning is used"}
+  da005_pca_components: {value: 4, source: FRAMEWORK_POLICY, note: "principal components reported (fewer when samples or sites limit it)"}
+  da007_gam_grid_points: {value: 20, source: FRAMEWORK_POLICY, note: "time points at which the GAM prevalence curve is reported"}
+  da007_time_origin: {value: "2000-01-01", source: FRAMEWORK_POLICY, note: "date from which GAM time is counted in days; only shifts the time axis"}
+  da008_interval_level: {value: 0.95, source: FRAMEWORK_POLICY, note: "percentile bootstrap interval for the depth ratio"}
+  da008_gc_min_windows_per_bin: {value: 20, source: FRAMEWORK_POLICY, note: "core-genome windows closest in GC content whose median depth is the expected depth"}

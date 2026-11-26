@@ -1,0 +1,102 @@
+# Maintainer-owned compute requests and planning factors (FRAMEWORK_POLICY).
+#
+# This is the only place these values are written. The Snakemake rules read the per-rule
+# requests (workflow/rules/common.smk: threads() and mem()); the preflight resource plan
+# (pfvarx/planning) reports, for each job class, the largest request among its rules.
+# Requests are starting points: threads are capped at compute.yaml per_job.max_threads,
+# memory grows on retry by retry_memory_factor up to per_job.max_mem_mb, and memory measured
+# in earlier runs on the same computer can raise a class's request (MEASURED_HISTORY).
+# None of these values changes a scientific result.
+version: "1.0.0"
+
+job_classes:
+  fastp:
+    layer: 1
+    per_gb_mb: 0          # extra memory per GB of input per sample
+    rules:
+      fastp: {threads: 4, mem_mb: 2000}
+  bwa_mem2_index:
+    layer: 0
+    per_gb_mb: 0
+    threads: 1            # built during reference preparation, not by a workflow rule
+    mem_mb: 4000
+  bwa_mem2_align:
+    layer: 1
+    per_gb_mb: 0
+    host_index: true      # loads the parasite+host index with Human DNA removal (layer1.bwa_mem2_host_extra_mem_mb)
+    rules:
+      bwa_mem2_lane: {threads: 4, mem_mb: 6000}
+      merge_lanes: {threads: 2, mem_mb: 1000}
+  markdup:
+    layer: 1
+    per_gb_mb: 500
+    rules:
+      mark_duplicates: {threads: 1, mem_mb: 4000}
+  fgbio_umi:
+    layer: 1
+    per_gb_mb: 500
+    rules:
+      umi_fastq_to_bam: {threads: 1, mem_mb: 2000}
+      umi_align_zipper: {threads: 4, mem_mb: 6000}
+      umi_group: {threads: 2, mem_mb: 4000}
+      umi_consensus: {threads: 2, mem_mb: 4000}
+      umi_realign: {threads: 4, mem_mb: 6000}
+      umi_preclip_and_trim: {threads: 1, mem_mb: 3000}
+  alignment_entry:
+    layer: 1
+    per_gb_mb: 0
+    rules:
+      alignment_entry: {threads: 1, mem_mb: 4000}
+  fgbio_clip:
+    layer: 1
+    per_gb_mb: 0
+    rules:
+      trim_primers: {threads: 1, mem_mb: 3000}
+      entry_trim_primers: {threads: 1, mem_mb: 3000}
+  metrics:
+    layer: 1
+    per_gb_mb: 0
+    rules:
+      mosdepth_core: {threads: 2, mem_mb: 1000}
+      mosdepth_targets: {threads: 2, mem_mb: 1000}
+  pfvarx_call:
+    layer: 2
+    per_gb_mb: 0
+    # Workers share nothing and results do not depend on the thread count. Measured on a 29x
+    # WGS sample (20.8 Mb core): 579 s and 3.6 GB with 8 workers, 474 s and 3.8 GB with 24.
+    rules:
+      pfvarx_call: {threads: 8, mem_mb: 5000}
+  cohort_merge:
+    layer: 3
+    per_gb_mb: 0
+    rules:
+      cohort_merge: {threads: 1, mem_mb: 0}
+      cohort_evidence: {threads: 1, mem_mb: 2000}
+  snpeff:
+    layer: 4
+    per_gb_mb: 0
+    rules:
+      snpeff_build: {threads: 1, mem_mb: 4000}
+      snpeff_annotate: {threads: 1, mem_mb: 4000}
+  downstream:
+    layer: 5
+    per_gb_mb: 0
+    rules:
+      da001_clonality: {threads: 1, mem_mb: 2000}
+      da_execute: {threads: 2, mem_mb: 2000}
+  dashboard:
+    layer: 6
+    per_gb_mb: 0
+    threads: 1
+    mem_mb: 1000
+
+# fgbio ZipperBams runs in the same job as bwa-mem2: its Java heap is the job's memory divided
+# by heap_divisor, and never less than heap_min_mb.
+zipper_heap: {heap_divisor: 3, heap_min_mb: 1000}
+
+planning:
+  default_rule_mem_mb: 1000          # Snakemake --default-resources for rules without a request (capped at per_job.max_mem_mb)
+  measured_memory_headroom: 1.2      # memory measured in an earlier run is requested with this factor (20 % headroom)
+  tmp_disk_per_input_factor: 3       # temporary disk needed = this x input size (heuristic, not measured)
+  slow_step_factor: 1.5              # progress page marks a step slow when it runs this many times longer than expected
+  progress_refresh_seconds: 15       # how often the run progress page is rewritten while Snakemake runs
