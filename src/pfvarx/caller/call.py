@@ -739,7 +739,7 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
     seqs: dict[str, str] = {}
     threads = max(1, int(getattr(args, "threads", 1) or 1))
     _T0[0] = time.monotonic()
-    _progress(f"sample {args.sample}: {threads} worker(s)")
+    _progress(f"sample {args.sample}: {threads} worker(s); pair-HMM backend {pairhmm.BACKEND}")
     chroms = [c for c in fasta.references if c in core]
     # Chromosomes, indel candidates and bootstrap replicates are independent: with several
     # threads they run in worker processes, with results identical to the serial run.
