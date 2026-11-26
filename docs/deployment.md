@@ -6,7 +6,7 @@ The native local executor targets Linux x86-64 (`linux-64`), Linux ARM64
 (`linux-aarch64`), Intel macOS (`osx-64`) and Apple silicon macOS (`osx-arm64`).
 All four platforms have locked dependencies; macOS requires version 13 or later, and
 Linux locks declare glibc 2.28+ and kernel 4.18+. macOS and Linux ARM64 are experimental
-until the native CI matrix passes. See [platform support](platforms.md) for qualification
+until native qualification runs pass. See [platform support](platforms.md) for qualification
 limits. Windows uses WSL2 with a supported Linux distribution. Git/source access,
 Python 3.11+ for bootstrap and Pixi are prerequisites. Private GitHub repositories require
 authorized login. Clone alone cannot run setup; use an explicit post-clone command:

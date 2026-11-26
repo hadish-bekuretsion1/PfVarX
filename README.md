@@ -18,7 +18,7 @@ Native installation targets are Linux x86-64, Linux ARM64, and macOS 13+ on Inte
 Apple silicon. You need Git, Python 3.11+ for bootstrap, Pixi on PATH, and access to the
 private GitHub repository. On Windows, use WSL2 with a supported Linux distribution.
 macOS and Linux ARM64 are newly enabled, experimental targets pending successful native
-CI runs; a solved lock is not runtime or scientific validation. See
+qualification runs; a solved lock is not runtime or scientific validation. See
 [platform support](docs/platforms.md). This example creates a workspace whose tools are installed on demand.
 Run each step in order and resolve any errors before continuing.
 
