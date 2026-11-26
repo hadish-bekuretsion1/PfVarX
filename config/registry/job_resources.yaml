@@ -100,4 +100,6 @@ planning:
   measured_memory_headroom: 1.2      # memory measured in an earlier run is requested with this factor (20 % headroom)
   tmp_disk_per_input_factor: 3       # temporary disk needed = this x input size (heuristic, not measured)
   slow_step_factor: 1.5              # progress page marks a step slow when it runs this many times longer than expected
-  progress_refresh_seconds: 15       # how often the run progress page is rewritten while Snakemake runs
+  progress_refresh_seconds: 15
+  cohort_matrix_bytes_per_cell: 32    # measured cost of one cohort evidence cell in Layer 5 (samples x sites);
+                                      # used to warn before a run whose cohort will not fit in per_job.max_mem_mb       # how often the run progress page is rewritten while Snakemake runs

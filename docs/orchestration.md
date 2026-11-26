@@ -141,6 +141,15 @@ holds. If the peak needs more than `per_job.max_mem_mb`, the check warns
 check time cannot hold `max_jobs` of the largest job, and suggests a `max_jobs` value: other
 programs (a browser, an editor) count, and when memory runs out the system can stop the run.
 
+**Cohort size before the analyses run.** At the Layer 5 eligibility checkpoint the run records
+`cohort_scale` in `eligibility/cohort_decisions.json`: the samples, cohort sites, cells and the
+memory the evidence matrix needs (25 bytes per cell, measured; the factor is
+`planning.cohort_matrix_bytes_per_cell`). When that passes half of `per_job.max_mem_mb` for the
+analyses that read it, the run warns `RESOURCE_MEMORY_TIGHT` in the decisions and the event log
+and names what to do: raise `per_job.max_mem_mb` and `max_mem_mb` if the machine has the memory,
+request fewer analyses, or analyse a smaller cohort. It is a warning, not a block, because the
+estimate is approximate and an analysis may still finish.
+
 **Stopped runs.** A run records its process; pressing Ctrl+C or a polite kill marks it
 INTERRUPTED. A run killed outright (for example by the out-of-memory killer) or ended by a
 restart cannot write that itself, so `status`, the GUI and the progress page report it as

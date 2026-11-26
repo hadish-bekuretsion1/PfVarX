@@ -3295,7 +3295,7 @@ values, not universal recommendations or evidence of scientific validity.
 | `layer5.yaml` | DA003/DA005 population minimum 3; DA003 bootstrap 200; DA002 minimum callable/group 3, reporting floor 0.05 and MIXED below 0.95; DA007 GAM after 10 samples; provisional settings require scientific review |
 | `layer3.yaml` | microhaplotype floors: fragment depth 10 per sample and locus, haplotype 2 fragments and 5% of them, at most 32 variable positions per locus, 10 loci before DA001/DA004 prefer microhaplotypes to biallelic SNVs; cohort site call rate 0.8 |
 | `layer6.yaml` | detailed variant embedding cap 200000; full totals remain distinguished from embedded details |
-| `registry/job_resources.yaml` | threads and memory of every workflow rule (for example the caller 8 threads, 5000 MB), memory headroom 1.2 over measured peaks, temporary disk 3× input, progress refresh 15 s; read by both the rules and the preflight plan |
+| `registry/job_resources.yaml` | threads and memory of every workflow rule (for example the caller 8 threads, 5000 MB), memory headroom 1.2 over measured peaks, temporary disk 3× input, progress refresh 15 s, cohort evidence 32 bytes per cell for the Layer 5 memory warning; read by both the rules and the preflight plan |
 | `compute.yaml` | example total cores 4, RAM 6500 MiB, jobs 1, temp disk 20000 MB, per-job runtime estimate/ceiling field 720 minutes; `tmp_dir` null (system temporary directory) |
 
 No threshold, setting or compute request is written in the program code; every value, its source and its reference is listed in `docs/thresholds.md` (section "Where values are kept"). Confirm the actual release/configuration values with:

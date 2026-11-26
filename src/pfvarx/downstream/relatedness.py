@@ -26,6 +26,9 @@ from pfvarx.downstream.diversity import dominant
 from pfvarx.downstream.loci import allele_set
 from pfvarx.io import read_tsv, write_tsv
 
+# Layer 5 memory: the cohort evidence matrix is loaded for this analysis only when it reads it
+# (dominant alleles (through diversity) and allele presence). tests/unit/test_matrix_declarations.py checks the declaration against the code.
+USES_COHORT_MATRIX = True
 
 def run(ctx: Context, threads: int = 1) -> None:
     out = ctx.out("DA004")

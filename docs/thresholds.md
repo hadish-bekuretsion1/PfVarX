@@ -297,6 +297,7 @@ These settings of the numerical methods are design decisions (`FRAMEWORK_POLICY`
 | `layer5.da007_gam_grid_points`, `da007_time_origin` | 20, 2000-01-01 | GAM curve points and time axis origin |
 | `layer5.da009_min_control_amplicons`, `da009_interval_level` | 2, 0.95 | control targets a panel must carry for DA009; its Wilson interval level |
 | `layer3.microhap_max_variable_positions` | 32 | variable positions used per microhaplotype locus |
+| `planning.cohort_matrix_bytes_per_cell` | 32 | measured cost of one cohort evidence cell (25 bytes observed; the margin keeps the warning conservative) |
 | `layer5.da008_interval_level`, `da008_gc_min_windows_per_bin` | 0.95, 20 | depth-ratio interval and GC-matched windows per expected depth |
 
 What stays in code is not a setting: file-format facts (VCF, GFF and BED columns, BAM flags,

@@ -16,7 +16,8 @@ import sys
 from pathlib import Path
 from typing import Any
 
-from pfvarx.constants import Reason, Terminal
+from pfvarx.constants import Reason, Severity, Terminal
+from pfvarx.diagnostics.events import append, event
 from pfvarx.downstream.common import Context, load_context, write_manifest
 from pfvarx.eligibility.engine import SampleState, apply_strict, assess, load_registry
 from pfvarx.io import read_tsv, write_json, write_tsv
@@ -159,17 +160,80 @@ def run_eligibility(ctx: Context) -> None:
     write_json(out / "sample_analysis_eligibility.json", res["matrix"])
     write_json(out / "cohort_decisions.json", {"schema": "pfvarx.cohort_decisions/1", "analyses": analyses,
                                                "run_policy": run_ctx["run_policy"],
-                                               "internal_prerequisites": internal})
+                                               "internal_prerequisites": internal,
+                                               "cohort_scale": cohort_scale(ctx, das)})
+
+
+def analysis_module(da: str) -> str:
+    """Module implementing an analysis."""
+    modules = {"DA002": "resistance", "DA003": "diversity", "DA001": "coi", "DA004": "relatedness",
+               "DA005": "structure", "DA006": "phylogeny", "DA007": "spatial", "DA008": "cnv",
+               "DA009": "hrp"}
+    return modules[da]
+
+
+def needs_matrix(da: str) -> bool:
+    """Whether an analysis reads the cohort evidence matrix (``USES_COHORT_MATRIX``).
+
+    A few hundred samples over tens of thousands of sites is gigabytes of evidence, and the
+    analyses that work from the alignments (DA002, DA007, DA008, DA009) never read it. An
+    analysis that does not declare itself gets the matrix, so a new one cannot lose its data
+    by omission.
+    """
+    import importlib
+
+    module = importlib.import_module("pfvarx.downstream." + analysis_module(da))
+    return bool(getattr(module, "USES_COHORT_MATRIX", True))
+
+
+def cohort_scale(ctx: Context, das: list[str]) -> dict[str, Any]:
+    """How much memory this cohort's evidence will need, and a warning while there is still time.
+
+    The analyses that read the evidence matrix hold one cell per sample per cohort site. The
+    cost per cell is measured (``planning.cohort_matrix_bytes_per_cell``), and the sample and
+    site counts are known here, so a cohort too large for ``per_job.max_mem_mb`` can be said
+    before the analyses start rather than discovered as an out-of-memory kill. It is a warning,
+    not a block: the estimate is approximate and an analysis may still succeed.
+    """
+    from pfvarx.downstream.common import cohort_sites, matrix_memory_mb
+    from pfvarx.planning import resources
+
+    samples, sites = len(ctx.samples), cohort_sites(ctx.run)
+    try:
+        per_cell = int(resources.planning(ctx.root)["cohort_matrix_bytes_per_cell"])
+    except (OSError, KeyError):  # a workspace frozen before the factor existed
+        per_cell = 32
+    needed = matrix_memory_mb(samples, sites, per_cell)
+    limit = int(ctx.eff["compute"]["per_job"]["max_mem_mb"])
+    reading = sorted(da for da in das if needs_matrix(da))
+    scale: dict[str, Any] = {"samples": samples, "cohort_sites": sites, "cells": samples * sites,
+                             "bytes_per_cell": per_cell, "evidence_matrix_mb": needed,
+                             "per_job_max_mem_mb": limit, "analyses_reading_the_matrix": reading,
+                             "warning": None}
+    # Half the job's memory: an analysis needs working memory beyond the matrix it reads.
+    if reading and needed > limit / 2:
+        scale["warning"] = {
+            "reason": "RESOURCE_MEMORY_TIGHT",
+            "detail": (f"{samples} samples x {sites} cohort sites is about {needed} MB of evidence, and "
+                       f"per_job.max_mem_mb is {limit} MB. {', '.join(reading)} read it and need working "
+                       "memory besides. Raise per_job.max_mem_mb and max_mem_mb if the machine has it, "
+                       "request fewer analyses, or analyse a smaller cohort."),
+        }
+        append(ctx.run / "logs" / "events.jsonl", event(
+            run_id=ctx.run.name, layer="L5", stage="eligibility", status="WARNING",
+            severity=Severity.WARNING, code="RESOURCE_MEMORY_TIGHT", failure_class=None,
+            observed=f"{needed} MB", expected=f"<= {limit // 2} MB",
+            criterion="cohort evidence matrix within half of per_job.max_mem_mb",
+            interpretation_impact="none: this is a resource estimate, not a scientific decision",
+            project_id=ctx.eff["config"]["project_id"]))
+    return scale
 
 
 def run_da(ctx: Context, da: str, threads: int) -> None:
     import importlib
 
-    modules = {"DA002": "resistance", "DA003": "diversity", "DA001": "coi", "DA004": "relatedness",
-               "DA005": "structure", "DA006": "phylogeny", "DA007": "spatial", "DA008": "cnv",
-               "DA009": "hrp"}
     try:
-        importlib.import_module("pfvarx.downstream." + modules[da]).run(ctx, threads=threads)
+        importlib.import_module("pfvarx.downstream." + analysis_module(da)).run(ctx, threads=threads)
     except (Exception, SystemExit) as exc:
         if ctx.eff["config"]["run_policy"] != "CONTINUE_INDEPENDENT":
             raise
@@ -199,7 +263,8 @@ def main(argv: list[str] | None = None) -> None:
     ap.add_argument("--empty", action="store_true", help="with --cohort-status: no sample entered Layer 3")
     ap.add_argument("--threads", type=int, default=1)
     a = ap.parse_args(argv)
-    ctx = load_context(Path(a.root), Path(a.run_dir), with_matrix=not (a.eligibility or a.cohort_status))
+    with_matrix = bool(a.da) and needs_matrix(a.da)
+    ctx = load_context(Path(a.root), Path(a.run_dir), with_matrix=with_matrix)
     if a.cohort_status:
         write_cohort_status(ctx, a.empty)
     elif a.eligibility:

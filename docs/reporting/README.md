@@ -145,6 +145,11 @@ dashboard is written when the run ends.
 
 **Resources** continues with **Resources by step: tool, time and RAM**, one row per workflow
 step (fastp read QC, bwa-mem2 alignment, Picard duplicate marking, the PfVarX caller,
+**Software** opens with the graphics processors found on the machine that produced the run, and
+states that PfVarX computes on CPUs only, so a reader never has to wonder whether an accelerator
+changed a number.
+
+The same section lists every step (alignment, duplicate marking, the caller,
 bcftools, SnpEff, each analysis DA001–DA009, and the others): its layer, the tools and
 versions that ran it, the number of jobs (samples, lanes or analyses), total and longest
 job time, CPU time, peak and mean RAM, average CPU cores and its share of the summed time.

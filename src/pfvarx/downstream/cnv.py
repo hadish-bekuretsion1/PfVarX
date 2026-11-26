@@ -39,6 +39,9 @@ from pfvarx.genomic_evidence import FLAG_FILTER
 from pfvarx.io import write_json, write_tsv
 from pfvarx.quality.metrics import mosdepth_region_dist
 
+# Layer 5 memory: the cohort evidence matrix is loaded for this analysis only when it reads it
+# (measures read depth from the alignments, not the matrix). tests/unit/test_matrix_declarations.py checks the declaration against the code.
+USES_COHORT_MATRIX = False
 CATALOG = "config/registry/cnv_catalog_pfvarx_v1.tsv"
 CATALOG_COLUMNS = ("locus_id", "gene_id", "gene_name", "event", "meaning", "evidence_class", "source")
 EVENTS = ("AMPLIFICATION", "DELETION")

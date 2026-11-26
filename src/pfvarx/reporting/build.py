@@ -522,7 +522,8 @@ def harvest(root: Path, run: Path) -> dict[str, Any]:
                 "qc_policy": eff["quality"]["policy_id"], "parameters": eff["parameters"],
                 "frozen_files": len(snap["files"]), "warnings": snap.get("warnings", []),
                 "configuration": eff["config"], "compute": eff["compute"],
-                "environment": {k: snap.get(k) for k in ("python", "platform", "created_utc")}}
+                "environment": {k: snap.get(k) for k in ("python", "platform", "created_utc")},
+                "accelerators": snap.get("accelerators")}
     validation = _optional_json(root / "metadata" / "validation_report.json", warnings)
     geo_path = root / "config" / "geo" / "ne_110m_countries.geojson"
     input_files = []

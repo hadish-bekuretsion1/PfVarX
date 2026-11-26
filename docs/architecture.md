@@ -77,6 +77,18 @@ and interval conventions live outside the native caller package.
 See the [configuration editor and input procedure](configuration.md) and the
 [sequencing and downstream eligibility matrix](sequencing.md).
 
+## Cohort evidence in memory
+
+Layer 5 analyses that need a genotype at every cohort site read `cohort/evidence_matrix.tsv.gz`
+into memory. The cohort's sample order is known before the file is read, so each site holds
+columns addressed by the sample's position: one pass, constant-time lookup and no intermediate
+copy. That costs a measured 25 bytes per cell against 473 for a dict per cell, and `wsaf` is
+kept as a float64 exactly as the file holds it, so no comparison against a reporting floor can
+move. Each analysis declares whether it reads the matrix (`USES_COHORT_MATRIX`); the four that
+work from the alignments never pay for it, and an analysis that does not declare itself is given
+the matrix, so a new one cannot lose its evidence by omission
+(`tests/unit/test_matrix_declarations.py`).
+
 ## Microhaplotype loci
 
 Layer 3 writes one multiallelic marker per catalogue locus (`cohort/microhaplotypes.tsv.gz`)

@@ -2,6 +2,34 @@
 
 ## Unreleased
 
+### Cohort scale on CPUs, and accelerators recorded rather than claimed
+
+- **The Layer 5 cohort evidence matrix now costs a measured 25 bytes per cell instead of 473, an
+  18.8x reduction**, and lookups became faster (3.1 million cell reads a second, constant time).
+  Each cohort site holds columns addressed by the sample's position, built in one pass because
+  the cohort's sample order is known before the file is read. A cohort of 200 samples over 5 000
+  sites needs about 25 MB where it needed 474; 500 over 50 000 needs about 630 MB where it needed
+  11.8 GB. `wsaf` is kept as a float64 exactly as the file holds it, so no comparison against a
+  reporting floor (0.05, 0.95) can move, and `tests/unit/test_cohort_matrix.py` pins every value
+  against the mapping it replaces.
+- **Analyses that do not read cohort evidence no longer load it.** DA002, DA007, DA008 and DA009
+  work from the alignments; each analysis declares `USES_COHORT_MATRIX`, an analysis that does not
+  declare itself is given the matrix (so none can lose its evidence by omission), and
+  `tests/unit/test_matrix_declarations.py` checks every declaration against the code, following
+  imports inside the package.
+- **A cohort too large for the machine is now said before the analyses run**, not discovered as an
+  out-of-memory kill: the eligibility checkpoint records `cohort_scale` in
+  `eligibility/cohort_decisions.json` and warns `RESOURCE_MEMORY_TIGHT` with what to do when the
+  estimate passes half of `per_job.max_mem_mb`. The cost per cell is a planning factor
+  (`planning.cohort_matrix_bytes_per_cell`), measured rather than guessed.
+- **Graphics processors are detected and recorded in provenance** (`nvidia-smi`,
+  `system_profiler`), with `used_for_compute: false`, and the report's Software section states
+  plainly that PfVarX computes on CPUs only. Nothing computes on a GPU: every pinned tool is a CPU
+  program and no result depends on an accelerator. A machine with a GPU runs correctly on its CPUs.
+- Evidence is still read whole into memory rather than streamed, so a cohort of several thousand
+  samples over a dense site set remains beyond one host; that limit is now stated in
+  `docs/status.md` with the measured numbers behind it.
+
 ### Multiplexed microhaplotypes for DA001 and DA004
 
 - New Layer 3 step **multiplexed microhaplotypes** (`cohort/microhaplotypes.tsv.gz`,
