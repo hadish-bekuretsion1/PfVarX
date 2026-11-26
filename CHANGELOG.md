@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 1.0.0 (2026-11-26)
 
 ### Dashboard tables no longer draw long values over the next column
 
