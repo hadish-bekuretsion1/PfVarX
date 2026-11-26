@@ -24,10 +24,10 @@ def test_fo001_installs_alignment_and_qc_only(tmp_path: Path) -> None:
     result = export(ROOT, tmp_path / "fo001", None, "wgs", [], False, "FASTQ", "FO001")
     ws = tmp_path / "fo001"
     assert result["environment"] == "alignment-qc" and result["max_final_output"] == "FO001"
-    assert features("alignment-qc") == {"pipeline", "reads"}  # no "calling": no caller, bcftools, numpy or scipy
+    assert features("alignment-qc") == {"pipeline", "reads"}  # no "calling": no caller, bcftools, numpy, scipy or numba
     base = set(PIXI["dependencies"])
-    assert not base & {"bcftools", "numpy", "scipy"}
-    assert set(PIXI["feature"]["calling"]["dependencies"]) == {"bcftools", "numpy", "scipy"}
+    assert not base & {"bcftools", "numpy", "scipy", "numba"}
+    assert set(PIXI["feature"]["calling"]["dependencies"]) == {"bcftools", "numpy", "scipy", "numba"}
     assert not (ws / "src/pfvarx/caller").exists() and not (ws / "workflow/rules/l2_caller.smk").exists()
     assert (ws / "src/pfvarx/caller_adapter.py").is_file()  # imported by the runner; checks for the caller
     for absent in ("src/pfvarx/cohort", "src/pfvarx/annotation", "src/pfvarx/downstream",

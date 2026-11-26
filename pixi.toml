@@ -35,6 +35,8 @@ pfvarx = { path = ".", editable = true }
 [feature.calling.dependencies]
 numpy = ">=1.26,<3"
 scipy = ">=1.11,<2"
+# Compiles the pair-HMM indel rescoring (same results, faster); the caller falls back to numpy without it.
+numba = ">=0.60,<1"
 bcftools = ">=1.21,<2"
 
 [feature.targeted.dependencies]
