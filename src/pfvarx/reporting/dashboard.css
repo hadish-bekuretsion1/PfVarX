@@ -86,9 +86,9 @@ input[type=search]{min-width:180px}
 /* Tables, charts, details */
 .tablewrap{overflow:auto;border:1px solid var(--line);border-radius:10px;max-height:520px}
 table{width:100%;border-collapse:separate;border-spacing:0;font-size:12px}
-th,td{text-align:left;padding:8px 12px;border-bottom:1px solid var(--line-soft);vertical-align:top;max-width:420px;overflow-wrap:anywhere}
+th,td{text-align:left;padding:8px 12px;border-bottom:1px solid var(--line-soft);vertical-align:top;max-width:420px;overflow-wrap:break-word}
 th{background:#f3f6fa;position:sticky;top:0;white-space:nowrap;cursor:pointer;font-size:11px;font-weight:750;letter-spacing:.05em;text-transform:uppercase;color:#3f5568;border-bottom:1px solid var(--line)}
-td{white-space:nowrap;font-variant-numeric:tabular-nums}
+td{white-space:normal;font-variant-numeric:tabular-nums}td.long{overflow-wrap:anywhere;min-width:24ch}
 tbody tr:nth-child(even) td{background:#fafcfe}
 tbody tr:hover td,tbody tr.sel td{background:#e9f3fb}tbody tr:focus td{background:#e1effa}
 .pager{display:flex;justify-content:space-between;gap:9px;align-items:center;flex-wrap:wrap;margin-top:12px;font-size:12px;color:var(--muted)}.pager .btn{padding:4px 10px}
@@ -162,7 +162,7 @@ input[type=range]{max-width:190px;accent-color:var(--teal)}
 .cell-tone.tone-warning{color:var(--warning);background:var(--warning-bg)}.cell-tone.tone-warning::after{content:" \25B2";font-size:9px}
 .cell-tone.tone-critical{color:var(--critical);background:var(--critical-bg)}.cell-tone.tone-critical::after{content:" \2716";font-size:9px}
 .cell-bar{display:inline-block;min-width:74px;padding:1px 6px;border-radius:4px;background:linear-gradient(90deg,var(--bar) var(--v),transparent var(--v));box-shadow:inset 0 0 0 1px #dbe6f3}
-td.num{text-align:right}th{text-align:left}
+td.num{text-align:right;white-space:nowrap}th{text-align:left}
 thead th{background:linear-gradient(180deg,#f4f7fb,#e9eff6);color:#2b4257;border-bottom:2px solid #d3dde8}
 tbody tr:nth-child(even) td{background:#f9fbfd}
 .kpi.kpi-good::before{background:var(--good-mark)}.kpi.kpi-warning::before{background:var(--warning-mark)}.kpi.kpi-critical::before{background:var(--critical-mark)}
