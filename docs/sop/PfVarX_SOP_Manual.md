@@ -1,8 +1,8 @@
-# PfVarX 0.0.0 — Operational SOP manual
+# PfVarX 1.0.0 — Operational SOP manual
 
 **Document:** PFVARX-SOP-001 · **Revision:** 3.2 · **Prepared:** 12 November 2026.
 **Audience:** Linux bioinformatics researchers, developers and benchmark analysts.
-**Authority:** finalized local 0.0.0 implementation, workflow rules, parameter/policy
+**Authority:** finalized local 1.0.0 implementation, workflow rules, parameter/policy
 registries and the included operating manuals. This is an operational companion, not
 a change to the software, calibrated settings or scientific claims. A laboratory must
 approve its study-specific validation protocol before routine surveillance decisions.
@@ -3336,11 +3336,10 @@ experiment. Do not relabel provisional values as calibrated merely because tests
 
 # Appendix D — Documentation basis and verification of this manual
 
-Commands and output contracts were checked against the finalized 0.0.0 local CLI,
+Commands and output contracts were checked against the finalized 1.0.0 local CLI,
 configuration models/templates, Snakemake rules, caller/benchmark/downstream source and
-analysis/benchmarking/reporting/deployment manuals. Release 0.0.0 (tag `v0.0.0`) passed the full local
-CI (lint, type checking, unit, scientific and integration tests, and the release-archive check) before it was merged;
-the hosted GitHub workflow is started by hand and was not run for this release.
+analysis/benchmarking/reporting/deployment manuals. Release 1.0.0 (tag `v1.0.0`) passed lint, type checking and the full unit, scientific and
+integration test suite on the development branch before it was released.
 This document itself does not claim a real study or new benchmark was executed.
 
 Authoritative companion sources in the release are `docs/analysis/README.md`,
