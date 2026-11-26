@@ -23,7 +23,7 @@ scientific tests, it runs real pipelines on the synthetic fixture:
 | --- | --- |
 | Dry runs (WGS, targeted non-UMI, targeted UMI) | Each design builds its workflow and creates no run or results |
 | Annotated WGS cohort to DA002 | Alignment, calling, cohort merge, BGZF annotation and one analysis |
-| Every downstream analysis | An 11-sample WGS cohort runs DA001–DA008 to completion, clonality calls never contradict the simulated truth, and DA008 finds no copy-number change where none was simulated. `tests/unit/test_cnv.py` checks DA008 on a constructed BAM with a known duplication and deletion |
+| Every downstream analysis | An 11-sample WGS cohort runs DA001–DA009 to completion, clonality calls never contradict the simulated truth, DA008 finds no copy-number change where none was simulated, and DA009 calls every judged sample NO_DELETION with the WGS evidence class. `tests/unit/test_cnv.py` checks DA008 on a constructed BAM with a known duplication and deletion; `tests/unit/test_hrp.py` checks DA009's joint states, both evidence models (including a dropout with failed controls), prevalence, co-occurrence and trend |
 | Targeted UMI to DA002 (depth 60) | The UMI route reaches cohort, annotation and resistance analysis |
 | No sample passing QC (UMI, depth 15) | The run completes with an explicit empty-cohort outcome instead of a crash |
 | UMI with short reads | Fixed read structures and adapter dimers do not stop fgbio |
@@ -37,6 +37,7 @@ Consistency checks that fail when one part changes without another:
 | `tests/unit/test_validation_guidance.py` | A validation failure stops explaining its cause and fix, or a gene list passes as a core mask |
 | `tests/unit/test_no_hardcoded_parameters.py` | Code repeats a maintainer parameter as an inline fallback, a parameter name is used in two layer files, a number in a parameter file is read as text, or `legacy_parameters.yaml` names an unknown parameter |
 | `tests/unit/test_resource_plan.py` | A workflow rule writes its threads or memory as a number instead of reading `config/registry/job_resources.yaml`, or a rule with requests is missing from that file |
+| `tests/unit/test_dashboard_views.py` | A dashboard analysis tab builds its charts in `daKpis` (which returns early, so they never render), an analysis lacks a tab, headline numbers or a view block, or a visual group is built outside `daViews`. No Python test executes the dashboard JavaScript, so this structural check stands in for it |
 
 `pixi run python scripts/check_installs.py` compares each kind of installation with the tools
 its final output runs, from `pixi.lock` (see [deployment](deployment.md#check-what-an-installation-contains)).

@@ -31,11 +31,13 @@ verified; no automatic cluster/container deployment claim is made.
   reference-matched SnpEff annotation.
 - DA001 MOIRE; DA002 codon marker genotyping; DA003 diversity; DA004 hmmIBD/Dcifer;
   DA005 haploid PCA/Hudson FST; DA006 IQ-TREE; DA007 descriptive/GAM spatial-temporal work;
-  DA008 GC-corrected read-depth copy number at catalogue loci (WGS).
+  DA008 GC-corrected read-depth copy number at catalogue loci (WGS); DA009 pfhrp2/pfhrp3
+  joint deletion on every design, by depth ratio for WGS and by amplicon presence against
+  control amplicons for targeted panels.
 - Offline dashboard, exports, benchmark partitions, exact-normalized accuracy/mixture
   evaluation, wild-cluster uncertainty and resource-profile generation.
 - Typed-source checks, unit/scientific/integration tests (including a synthetic cohort
-  that runs all eight analyses), version and CLI/GUI consistency tests, isolated synthetic
+  that runs all nine analyses), version and CLI/GUI consistency tests, isolated synthetic
   end-to-end verification, browser checks, and clean-distribution tests.
 
 ## Limits that matter before scientific benchmarking
@@ -61,6 +63,7 @@ verified; no automatic cluster/container deployment claim is made.
 | Reporting | A live progress page (`runs/<RUN_ID>/progress.html`) follows a running workflow; the report dashboard is written when the run ends, so use finalized runs for interpretation. Missing upstream distributions/timestamps stay unavailable. Historical control charts are not implemented. PDF uses browser printing and visible table pages. |
 | Spatial interpretation | Descriptive aggregation/GAM only; preferential sampling is not modelled. |
 | Copy number (DA008) | Gene-level amplification and deletion at six catalogue loci from GC-corrected read depth, WGS only; the shipped copy-number catalogue is DRAFT_REQUIRES_VERIFICATION and blocks DA008 until verified. Thresholds are UNCALIBRATED_PROVISIONAL and not yet benchmarked against samples of known copy number; mapping bias in subtelomeric genes (pfhrp2/3) is not corrected; amplicon breakpoints are not resolved (junction read pairs are counted as support only). |
+| pfhrp2/3 deletion (DA009) | Joint single and dual deletion, their co-occurrence against independence and a country-month trend. The WGS evidence is the DA008 depth measurement; a targeted panel gives amplicon presence against control amplicons, which is not a copy number, and a mutated primer site or a failed PCR produces the same dropout as a deletion. The two evidence classes are recorded per row and prevalence is published pooled and stratified; results from runs with different designs are comparable only with that composition in view. Thresholds are UNCALIBRATED_PROVISIONAL and the catalogue must be verified. Not a patient-level diagnosis and not evidence of selection. |
 | Unsupported scope | Genome-wide structural-variant and copy-number discovery, clone-resolved trees and a validated ML classifier are not delivered by this implementation. |
 
 The source release retains these limits explicitly instead of shipping simulated

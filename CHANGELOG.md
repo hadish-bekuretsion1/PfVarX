@@ -2,6 +2,41 @@
 
 ## Unreleased
 
+### DA009 pfhrp2/pfhrp3 joint deletion, on every assay design
+
+- New analysis **DA009 pfhrp2/pfhrp3 joint deletion** (FO004, every design): the joint state of
+  the two genes per infection (`DOUBLE_DELETION`, `PFHRP2_ONLY`, `PFHRP3_ONLY`, `NO_DELETION`,
+  or `INDETERMINATE` when either gene cannot be judged), joint prevalence with Wilson
+  intervals, the co-occurrence of the two deletions against independence (Fisher exact test),
+  and joint prevalence by country and month.
+- Two evidence models, recorded in every row as `evidence_class`:
+  `DEPTH_RATIO` for whole-genome sequencing, which is the DA008 measurement unchanged, so the
+  two analyses call WGS deletions identically; and `AMPLICON_DROPOUT` for targeted panels,
+  where gene amplicon depth is compared with the panel's control amplicons. The second is a
+  presence/absence statement, not a copy number, and a mutated primer site or a failed PCR
+  produces the same dropout as a deletion, so a panel must carry a pfhrp2 or pfhrp3 target
+  (`PANEL_LACKS_HRP_TARGETS`) and at least `da009_min_control_amplicons` control targets
+  (`CONTROL_AMPLICONS_INSUFFICIENT`), and a low control depth leaves every gene UNKNOWN.
+- Prevalence is published twice: pooled over evidence classes (each row naming the classes it
+  pooled) and stratified by evidence class, so a pooled figure's composition is never hidden.
+- New settings `layer5.da009_*` (targeted thresholds UNCALIBRATED_PROVISIONAL); the two
+  catalogue loci DA009 reports are named in `config/registry/downstream_analyses.yaml`
+  (registry 2.3.0), so no gene identifier is written in the code. Parameter file layer5 is
+  version 1.2.0.
+- Selectable in the CLI and the GUI like the other analyses and chosen by automatic selection
+  for every design; a new DA009 report tab; `workflow-check` (and `ready`) warn when an
+  unverified copy-number catalogue will block DA009, as for DA002 and DA008.
+- New test `tests/unit/test_hrp.py`; the synthetic end-to-end cohort now runs nine analyses.
+
+### Fixed
+
+- The **DA008 dashboard tab showed only its manifest panel**: its depth-ratio chart, prevalence
+  table and per-sample call table were built inside `daKpis`, which returns early for each
+  analysis, so the block never ran (found while rendering the new DA009 tab in a browser). Both
+  blocks now sit in `daViews`, and `tests/unit/test_dashboard_views.py` fails if any analysis
+  builds its charts in the headline-numbers function again. No analysis output changes; only
+  the report's DA008 tab gains the charts it was meant to show.
+
 ### No values written in the code
 
 - Every threshold, analysis setting and compute request now lives in a configuration file.

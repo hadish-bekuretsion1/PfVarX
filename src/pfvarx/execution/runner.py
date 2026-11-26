@@ -32,13 +32,13 @@ from pfvarx.runs import registry as runs
 
 
 def catalogue_warnings(root: Path, analyses: list[str], resistance_catalog: Path | None) -> list[dict[str, str]]:
-    """Warn before a run when DA002 or DA008 will be blocked by an unverified marker catalogue."""
+    """Warn before a run when DA002, DA008 or DA009 will be blocked by an unverified catalogue."""
     from pfvarx.downstream.cnv import CATALOG as CNV_CATALOG
     from pfvarx.downstream.resistance import load_catalog
 
     out = []
     for da, path in (("DA002", resistance_catalog or Path("config/registry/resistance_catalog_pfvarx_v1.tsv")),
-                     ("DA008", Path(CNV_CATALOG))):
+                     ("DA008", Path(CNV_CATALOG)), ("DA009", Path(CNV_CATALOG))):
         if da not in analyses or not (root / path).is_file():
             continue
         status = load_catalog(root / path)[0].get("status", "UNKNOWN")

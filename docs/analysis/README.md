@@ -276,6 +276,9 @@ results -> runs/<RUN_ID>/results
 | `downstream/DA006/tree.treefile` | Maximum-likelihood tree (with `tree.contree`, `tree.iqtree`) |
 | `downstream/DA007/country_month_summary.tsv` | Prevalence by place and month; GAM fit when supported |
 | `downstream/DA008/cnv_calls.tsv`, `prevalence.tsv` | Per sample and locus: GC-corrected depth ratio with bootstrap interval, flank ratio, junction read pairs and the state (AMPLIFIED / SINGLE_COPY, DELETED / PRESENT, or UNKNOWN with its reason); prevalence of each event with Wilson intervals |
+| `downstream/DA009/joint_calls.tsv`, `gene_calls.tsv` | Per sample: the pfhrp2 and pfhrp3 states and the joint state (DOUBLE_DELETION / PFHRP2_ONLY / PFHRP3_ONLY / NO_DELETION / INDETERMINATE), with the evidence model used (`DEPTH_RATIO` for WGS, `AMPLICON_DROPOUT` for targeted panels) and the measurement behind each gene state |
+| `downstream/DA009/joint_prevalence.tsv`, `joint_prevalence_by_evidence.tsv` | Share of judged infections with pfhrp2, pfhrp3, dual or any deletion, with Wilson intervals: pooled over evidence classes (each row names the classes pooled) and the same table stratified by evidence class |
+| `downstream/DA009/cooccurrence.tsv`, `trend.tsv` | The 2x2 pfhrp2-by-pfhrp3 table with the dual-deletion count expected under independence and a Fisher exact p-value; joint prevalence by country and month |
 | `report/pfvarx_dashboard.html` | Offline report; open after the run finalizes |
 | `report/dashboard_data.json` | Report data backing the HTML |
 | `report/clonality_report.txt`, `.tsv` | Per sample: monoclonal, or polyclonal with the number of clones and each clone's share of the parasite DNA, for example "Sample Y is polyclonal with 3 clones: Clone 1: 50.0%, Clone 2: 30.0%, Clone 3: 20.0%" |
@@ -325,12 +328,14 @@ That is an edit fragment, not a replacement for the entire generated configurati
 | DA007 | Spatial/temporal summaries; declared source outcome and country/date/coordinate metadata |
 | DA008 | Copy-number markers (whole-genome sequencing only): amplification of pfmdr1, plasmepsin II and III and gch1, deletion of pfhrp2 and pfhrp3. Gene depth is compared with core-genome windows of the same sample with similar GC content; flanking depth and junction read pairs are reported. Needs a GFF, a verified copy-number catalogue (`config/registry/cnv_catalog_pfvarx_v1.tsv`) and a median core depth of at least 20; thresholds are provisional |
 
+| DA009 | pfhrp2/pfhrp3 joint deletion (every design): single and dual deletion, their co-occurrence against independence, and joint prevalence by country and month. WGS uses the DA008 depth measurement (`DEPTH_RATIO`); targeted panels use amplicon presence against the panel's control amplicons (`AMPLICON_DROPOUT`), which is not a copy number. Needs a GFF and the same verified copy-number catalogue; a targeted panel must carry a pfhrp2 or pfhrp3 target and at least two control targets |
+
 DA001 is inserted as an internal prerequisite where needed. DA006 rechecks actual
 alignment informativeness and can legitimately skip after preliminary eligibility.
 For DA007, set `spatial_outcome_source` to the appropriate implemented source (for
 example DA002); a verified catalogue is then required for real resistance outcomes.
 The shipped draft catalogue intentionally blocks real DA002 execution, and the shipped
-draft copy-number catalogue blocks DA008 the same way. `workflow-check` (and `ready`)
+draft copy-number catalogue blocks DA008 and DA009 the same way. `workflow-check` (and `ready`)
 warn before a run when a requested analysis will be blocked this way (`CATALOG_NOT_VERIFIED`);
 such an analysis can be added afterwards with `./pfvarx pipeline --mode EXTEND --run-id RUN_ID`.
 

@@ -38,6 +38,7 @@ protocol](benchmarking/README.md) is still the route to calibrated values.
 | DA003, DA005 by population | Population column in the sample sheet. |
 | DA007 | `latitude`, `longitude`, `collection_date`, `country`. |
 | DA008 | GFF matching the FASTA; a copy-number catalogue with status `MAINTAINER_VERIFIED`; whole-genome sequencing. |
+| DA009 | GFF matching the FASTA; the same verified copy-number catalogue. On a targeted panel: a pfhrp2 or pfhrp3 target and at least two control targets. |
 
 The core genome should follow the accessible-genome definition of Miles et al. 2016,
 which excludes subtelomeric and internal hypervariable regions.
@@ -198,6 +199,13 @@ A missing record is never counted as a reference call.
 | DA008 copy number | Present (deletion loci) / single-copy floor | ratio ≥ 0.3; between 0.1 and 0.3 is UNKNOWN | Provisional. |
 | DA008 copy number | Median core-genome depth | ≥ 20 | Provisional; below it every locus is UNKNOWN. |
 | DA008 copy number | Windows / flanks / GC model / bootstrap | 200 bp / 2 000 bp / 3 000 core windows / 1 000 replicates | Framework policy. |
+| DA009 pfhrp2/3 (WGS) | Deletion and presence | The DA008 deletion thresholds, unchanged (`DEPTH_RATIO` evidence) | The two analyses call WGS deletions identically by design. |
+| DA009 pfhrp2/3 (targeted) | Deleted: gene amplicon depth / control amplicon depth | ≤ 0.05 (`da009_dropout_max_ratio`) | Provisional. No published cut-off: WHO-aligned protocols read dropout against controls qualitatively. A mutated primer site or a failed PCR gives the same dropout. |
+| DA009 pfhrp2/3 (targeted) | Present / ambiguous | ratio ≥ 0.2 (`da009_present_min_ratio`); between 0.05 and 0.2 is UNKNOWN | Provisional. |
+| DA009 pfhrp2/3 (targeted) | Control-amplicon depth and count | median control depth ≥ 20 (`da009_min_control_depth`), ≥ 2 control targets (`da009_min_control_amplicons`) | Provisional / framework policy: without working controls a missing amplicon is UNKNOWN, never a deletion. |
+| DA009 pfhrp2/3 | Joint state | Either gene UNKNOWN gives INDETERMINATE | Framework policy: a gene is never assumed present. |
+| DA009 pfhrp2/3 | Samples per country-month before a trend is reported | 3 (`da009_min_samples_per_unit`) | Provisional; below it counts are reported and the prevalence withheld. |
+| DA009 pfhrp2/3 | Prevalence interval / co-occurrence test | Wilson at 95% (`da009_interval_level`); Fisher exact test of pfhrp2 by pfhrp3 | Framework policy. Describes the cohort's joint pattern, not selection. |
 
 Notes on interpretation:
 
@@ -270,6 +278,7 @@ These settings of the numerical methods are design decisions (`FRAMEWORK_POLICY`
 | `layer5.da004_dcifer_afreq_tol` | 10⁻⁵ | Dcifer allele-frequency tolerance |
 | `layer5.da005_min_samples`, `da005_min_sites`, `da005_pca_components` | 3, 3, 4 | PCA minimums and components reported |
 | `layer5.da007_gam_grid_points`, `da007_time_origin` | 20, 2000-01-01 | GAM curve points and time axis origin |
+| `layer5.da009_min_control_amplicons`, `da009_interval_level` | 2, 0.95 | control targets a panel must carry for DA009; its Wilson interval level |
 | `layer5.da008_interval_level`, `da008_gc_min_windows_per_bin` | 0.95, 20 | depth-ratio interval and GC-matched windows per expected depth |
 
 What stays in code is not a setting: file-format facts (VCF, GFF and BED columns, BAM flags,

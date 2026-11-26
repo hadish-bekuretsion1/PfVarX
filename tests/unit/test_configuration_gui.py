@@ -45,8 +45,10 @@ def test_auto_selection_uses_declared_targeted_branch(workspace: Path) -> None:
     saved = save(workspace, values, state["revision"], False)
     assert "inputs/targets" in saved["directories"]
     resolved = load_bundle(workspace).config.analyses
-    # Every analysis applies to every design; the panel and callable evidence decide at run time.
-    assert resolved.requested == ["DA001", "DA002", "DA003", "DA004", "DA005", "DA006", "DA007"]
+    # Every analysis applies to every design, except DA008, whose depth model needs whole-genome
+    # data; the panel and callable evidence decide the rest at run time (DA009 needs pfhrp2/pfhrp3
+    # and control targets in the panel, which eligibility records).
+    assert resolved.requested == ["DA001", "DA002", "DA003", "DA004", "DA005", "DA006", "DA007", "DA009"]
     assert resolved.spatial_outcome_source == "DA002"
     assert config["analyses"]["requested"] == []
 

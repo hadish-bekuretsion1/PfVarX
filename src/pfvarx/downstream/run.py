@@ -109,14 +109,14 @@ def run_eligibility(ctx: Context) -> None:
     res = assess(das, scales, registry, states, ctx.params, run_ctx)
     if 4 not in ctx.plan["layers"]:
         for decision in res["cohort"]:
-            if decision["analysis_id"] in {"DA002", "DA007", "DA008"}:
-                # DA002 and DA008 place their markers and genes with the GFF; DA007 needs DA002.
+            if decision["analysis_id"] in {"DA002", "DA007", "DA008", "DA009"}:
+                # DA002, DA008 and DA009 place their markers and genes with the GFF; DA007 needs DA002.
                 reason = "SOURCE_OUTCOME_INCOMPLETE" if decision["analysis_id"] == "DA007" else "ANNOTATION_NOT_CONFIGURED"
                 decision.update(decision=Terminal.BLOCKED_MISSING_PREREQUISITE.value,
                                 reason_codes=[*decision["reason_codes"], reason],
                                 excluded=sorted(states), eligible=[], conditional=[])
         for row in res["matrix"]:
-            if row["analysis_id"] in {"DA002", "DA007", "DA008"}:
+            if row["analysis_id"] in {"DA002", "DA007", "DA008", "DA009"}:
                 row["eligibility"] = "INELIGIBLE"
                 row["failure_class"] = "SCIENTIFIC_EXCLUSION"
                 row["reason_codes"].append(
@@ -166,7 +166,8 @@ def run_da(ctx: Context, da: str, threads: int) -> None:
     import importlib
 
     modules = {"DA002": "resistance", "DA003": "diversity", "DA001": "coi", "DA004": "relatedness",
-               "DA005": "structure", "DA006": "phylogeny", "DA007": "spatial", "DA008": "cnv"}
+               "DA005": "structure", "DA006": "phylogeny", "DA007": "spatial", "DA008": "cnv",
+               "DA009": "hrp"}
     try:
         importlib.import_module("pfvarx.downstream." + modules[da]).run(ctx, threads=threads)
     except (Exception, SystemExit) as exc:

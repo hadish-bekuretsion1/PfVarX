@@ -1,4 +1,4 @@
-version: "1.1.0"
+version: "1.2.0"
 parameters:
   da001_credibility: {value: 0.95, source: UNCALIBRATED_PROVISIONAL, note: "candidate {0.90,0.95}"}
   da001_min_informative_loci: {value: 10, source: UNCALIBRATED_PROVISIONAL}
@@ -60,3 +60,9 @@ parameters:
   da007_time_origin: {value: "2000-01-01", source: FRAMEWORK_POLICY, note: "date from which GAM time is counted in days; only shifts the time axis"}
   da008_interval_level: {value: 0.95, source: FRAMEWORK_POLICY, note: "percentile bootstrap interval for the depth ratio"}
   da008_gc_min_windows_per_bin: {value: 20, source: FRAMEWORK_POLICY, note: "core-genome windows closest in GC content whose median depth is the expected depth"}
+  da009_dropout_max_ratio: {value: 0.05, source: UNCALIBRATED_PROVISIONAL, note: "targeted designs: gene amplicon depth / control amplicon depth at or below this is DELETED (amplicon dropout). No published standard; WHO protocols use a qualitative dropout against controls"}
+  da009_present_min_ratio: {value: 0.2, source: UNCALIBRATED_PROVISIONAL, note: "gene amplicon depth / control amplicon depth at or above this counts the gene as PRESENT; in between is UNKNOWN (ambiguous)"}
+  da009_min_control_depth: {value: 20, source: UNCALIBRATED_PROVISIONAL, note: "median depth of the panel's control amplicons needed before a missing gene amplicon may be called DELETED; below it the assay did not work for that sample and every gene is UNKNOWN"}
+  da009_min_control_amplicons: {value: 2, source: FRAMEWORK_POLICY, note: "control target regions outside pfhrp2/pfhrp3 the panel must carry: without controls a missing amplicon cannot be told from a failed PCR"}
+  da009_min_samples_per_unit: {value: 3, source: UNCALIBRATED_PROVISIONAL, note: "judged samples needed before a country-month joint prevalence is reported; below it counts are given and the prevalence withheld"}
+  da009_interval_level: {value: 0.95, source: FRAMEWORK_POLICY, note: "Wilson interval level for joint prevalence and the level recorded with the co-occurrence test"}
