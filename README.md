@@ -171,7 +171,9 @@ outputs, logs and frozen configuration under `runs/<RUN_ID>/`.
 - [Step-by-step HTML quick start](docs/README.html)
 - [HTML Operational SOP](docs/sop/PfVarX_SOP_Manual.html) and [GitHub-readable SOP](docs/sop/PfVarX_SOP_Manual.md)
 - [Complete orchestration/command guide](docs/orchestration.md)
-- [Sample analysis](docs/analysis/README.md) and [benchmarking](docs/benchmarking/README.md)
+- [Sample analysis](docs/analysis/README.md) and [benchmarking](docs/benchmarking/README.md); step-by-step HTML guides
+  with commands and expected output: [sample analysis](docs/PfVarX_Sample_Analysis_Guide.html) and
+  [benchmarking](docs/PfVarX_Benchmarking_Guide.html)
 - [Reporting](docs/reporting/README.md), [deployment](docs/deployment.md), [testing](docs/testing.md)
 - [Configuration guide](docs/configuration-guide.md) and [thresholds and their sources](docs/thresholds.md);
   every threshold, setting and compute request is in a configuration file, none in the code

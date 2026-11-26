@@ -1,0 +1,781 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>PfVarX Sample Analysis</title>
+<style>
+:root{--bg:#f4f6f9;--paper:#fff;--ink:#1b2b3a;--muted:#55687a;--line:#d9e1e8;--accent:#1f5f8b;--accent-soft:#e8f1f8;--code:#f1f4f7;--ok:#1d7a46;--ok-bg:#e6f4ec;--warn:#8a5a00;--warn-bg:#fff4d9;--bad:#a3271f;--bad-bg:#fde9e7;--side:#eaf0f5}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#11171d;--paper:#182129;--ink:#e3eaf0;--muted:#9fb0bf;--line:#2c3a46;--accent:#7cb8e4;--accent-soft:#1d3142;--code:#121a21;--ok:#6fd39a;--ok-bg:#163525;--warn:#f0c46b;--warn-bg:#3a2e12;--bad:#f39a90;--bad-bg:#3d1c19;--side:#141c23}}
+:root[data-theme="dark"]{--bg:#11171d;--paper:#182129;--ink:#e3eaf0;--muted:#9fb0bf;--line:#2c3a46;--accent:#7cb8e4;--accent-soft:#1d3142;--code:#121a21;--ok:#6fd39a;--ok-bg:#163525;--warn:#f0c46b;--warn-bg:#3a2e12;--bad:#f39a90;--bad-bg:#3d1c19;--side:#141c23}
+*{box-sizing:border-box}html{scroll-behavior:smooth}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.6 system-ui,-apple-system,"Segoe UI",sans-serif}
+header{background:var(--accent);color:#fff;padding:22px 28px}
+:root[data-theme="dark"] header{color:#0d1720}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) header{color:#0d1720}}
+header h1{margin:0;font-size:26px}header p{margin:6px 0 0;opacity:.92}
+.layout{display:flex;align-items:flex-start}
+nav{width:280px;flex:none;position:sticky;top:0;max-height:100vh;overflow:auto;background:var(--side);padding:18px 14px;font-size:13.5px;border-right:1px solid var(--line)}
+nav a{display:block;color:var(--accent);text-decoration:none;padding:5px 8px;border-radius:5px}nav a:hover{background:var(--paper)}
+nav .grp{font-weight:700;color:var(--muted);text-transform:uppercase;font-size:11.5px;letter-spacing:.06em;margin:14px 8px 4px}
+main{flex:1;min-width:0;max-width:1100px;padding:26px 40px 80px;background:var(--paper)}
+h2{font-size:24px;margin:48px 0 14px;padding:12px 16px;background:var(--accent-soft);border-left:5px solid var(--accent);border-radius:4px;scroll-margin-top:12px}
+h3{font-size:18px;margin:28px 0 8px;color:var(--accent)}h4{margin:18px 0 6px}
+p,li{max-width:80ch}
+code{font:13.5px ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;background:var(--code);padding:1px 5px;border-radius:4px;overflow-wrap:anywhere}
+pre{background:var(--code);border:1px solid var(--line);border-radius:6px;padding:14px 16px;overflow:auto;line-height:1.45}pre code{background:none;padding:0;font-size:13px}
+pre.out{border-left:4px solid var(--ok)}pre.out::before{content:"Expected output";display:block;font:600 11px system-ui;color:var(--ok);text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px}
+pre.dry{border-left:4px solid var(--warn)}pre.dry::before{content:"Dry run: shows what would happen, changes nothing";display:block;font:600 11px system-ui;color:var(--warn);text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px}
+table{border-collapse:collapse;width:100%;margin:10px 0 16px;font-size:14px;display:block;overflow-x:auto}
+th,td{border:1px solid var(--line);padding:7px 10px;text-align:left;vertical-align:top}th{background:var(--accent-soft)}
+.step{border:1px solid var(--line);border-radius:8px;padding:4px 18px 10px;margin:18px 0;background:var(--paper)}
+.meta{display:grid;grid-template-columns:150px 1fr;gap:4px 12px;font-size:14.5px;margin:10px 0}.meta b{color:var(--muted)}
+.note,.warn,.bad{border-radius:6px;padding:10px 14px;margin:12px 0}
+.note{background:var(--accent-soft)}.warn{background:var(--warn-bg)}.bad{background:var(--bad-bg)}
+.ok{color:var(--ok);font-weight:700}
+.toolbar{float:right}.toolbar button{font:inherit;font-size:13px;padding:4px 10px;border-radius:5px;border:1px solid #ffffff88;background:transparent;color:inherit;cursor:pointer}
+@media (max-width:860px){.layout{display:block}nav{position:static;width:auto;max-height:none;border-right:0}main{padding:18px 16px 60px}.meta{grid-template-columns:1fr}}
+@media print{nav,.toolbar{display:none}main{max-width:none;padding:0}h2{break-before:page}}
+</style>
+</head>
+<body>
+<header>
+<div class="toolbar"><button type="button" onclick="toggleTheme()">Light / dark</button></div>
+<h1>PfVarX 1.0.0 — Sample Analysis</h1>
+<p>Step-by-step: what to do, which command, which tools and dependencies, and what the output looks like. For paired-end WGS, targeted (with or without UMI) FASTQ and existing BAM/CRAM.</p>
+</header>
+<div class="layout">
+<nav aria-label="Contents">
+<div class="grp">Before you start</div>
+<a href="#overview">0. Overview of the run</a>
+<a href="#requirements">1. Requirements</a>
+<a href="#pixi">2. Install Pixi</a>
+<a href="#source">3. Get PfVarX</a>
+<a href="#bootstrap">4. Create the workspace</a>
+<div class="grp">Configure</div>
+<a href="#choose">5. Choose output and design</a>
+<a href="#configure">6. Configure the study</a>
+<a href="#dirs">7. Create input folders</a>
+<a href="#tools">8. Install the tools</a>
+<a href="#inputs">9. Add input files</a>
+<a href="#targeted">10. Targeted designs</a>
+<a href="#bam">11. BAM / CRAM input</a>
+<a href="#host">12. Human DNA removal</a>
+<a href="#compute">13. Compute limits</a>
+<div class="grp">Check and run</div>
+<a href="#layout">14. Check the layout</a>
+<a href="#validate">15. Validate inputs</a>
+<a href="#prepare">16. Prepare references and samples</a>
+<a href="#ready">17. Readiness</a>
+<a href="#dryrun">18. Dry run</a>
+<a href="#run">19. Run the pipeline</a>
+<a href="#verify">20. Status and verification</a>
+<div class="grp">Results</div>
+<a href="#results">21. Where results are</a>
+<a href="#qc">22. QC gates</a>
+<a href="#fo004">23. Downstream analyses</a>
+<a href="#report">24. Report dashboard</a>
+<div class="grp">Afterwards</div>
+<a href="#resume">25. Resume, extend, rebuild</a>
+<a href="#cleanup">26. Clean-up and archive</a>
+<a href="#orchestrate">27. One-command chain</a>
+<a href="#trouble">28. Troubleshooting</a>
+<a href="#cheat">29. Command summary</a>
+</nav>
+<main id="top">
+
+<div class="note"><b>About the example outputs.</b> Every "Expected output" block below was produced by running the command on PfVarX 1.0.0 with the built-in synthetic test dataset (9 samples, whole-genome, project <code>VERIFY_WGS</code>), on 26 November 2026. Long absolute paths are shortened to <code>…/</code>. Your sample names, counts, hashes, run IDs and times will differ. Synthetic data tests the software; it is not a biological result.</div>
+
+<h2 id="overview">0. Overview of the run</h2>
+<p>One analysis happens in one <b>workspace</b>, a folder that holds the study's configuration, inputs, prepared references and runs. The order of work is always:</p>
+<table>
+<tr><th>#</th><th>Stage</th><th>Command</th><th>GUI tab</th><th>Changes files?</th></tr>
+<tr><td>1</td><td>Create workspace</td><td><code>python3 PfVarX-source/bootstrap.py --workspace DIR</code></td><td>–</td><td>Creates DIR</td></tr>
+<tr><td>2</td><td>Configure</td><td><code>./pfvarx configure --gui</code> or edit <code>config/*.yaml</code></td><td>1 Input directories</td><td><code>config/</code></td></tr>
+<tr><td>3</td><td>Create input folders</td><td><code>./pfvarx input-directories</code></td><td>1 (Save)</td><td><code>inputs/</code></td></tr>
+<tr><td>4</td><td>Install tools</td><td><code>./pfvarx install-tools</code></td><td>1 (Install required tools)</td><td><code>.pixi/</code></td></tr>
+<tr><td>5</td><td>Add inputs</td><td><code>./pfvarx add-input</code> / <code>fetch-input</code></td><td>2 Input files</td><td><code>inputs/</code></td></tr>
+<tr><td>6</td><td>Validate</td><td><code>./pfvarx validate</code></td><td>3 Input Files Validation</td><td><code>metadata/</code> only</td></tr>
+<tr><td>7</td><td>Prepare</td><td><code>./pfvarx inputs-preparation</code></td><td>4 Inputs Preparation</td><td><code>prepared/</code></td></tr>
+<tr><td>8</td><td>Readiness</td><td><code>./pfvarx workflow-readiness-checks</code></td><td>5 Workflow Readiness Checks</td><td>No</td></tr>
+<tr><td>9</td><td>Plan (dry run)</td><td><code>./pfvarx workflow-check</code> (or <code>dry-run</code>)</td><td>6 Check workflow</td><td>No</td></tr>
+<tr><td>10</td><td>Run</td><td><code>./pfvarx workflow-run</code> (or <code>pipeline</code>)</td><td>6 Run workflow</td><td><code>runs/RUN_ID/</code></td></tr>
+<tr><td>11</td><td>Review</td><td>open <code>runs/RUN_ID/results/report/pfvarx_dashboard.html</code></td><td>Run progress page</td><td>No</td></tr>
+</table>
+<p>Inside the run, the workflow has seven layers. Which layers run depends on the <b>final output</b> you choose:</p>
+<table>
+<tr><th>Layer</th><th>What happens</th><th>Tools (version in the 1.0.0 lock)</th><th>Runs for</th></tr>
+<tr><td>L0</td><td>Input checks, reference preparation</td><td>PfVarX, samtools 1.24, Picard 3.5.0, bwa-mem2 2.3</td><td>all</td></tr>
+<tr><td>L1</td><td>Read trimming/QC, alignment, duplicate marking or primer clipping, UMI consensus, coverage, QC gate</td><td>fastp 1.1.0, bwa-mem2 2.3, samtools 1.24, Picard MarkDuplicates 3.5.0, fgbio 4.1.1 (targeted), mosdepth 0.3.14</td><td>FO001–FO004</td></tr>
+<tr><td>L2</td><td>Per-sample SNP / small-indel calling with mixture (WSAF) model, normalisation</td><td>PfVarX native caller (Python 3.12, NumPy 2.5.4, SciPy 1.18.1, pysam 0.23.3), bcftools 1.24</td><td>FO002–FO004</td></tr>
+<tr><td>L3</td><td>Cohort merge, evidence matrix, microhaplotypes, cohort QC</td><td>bcftools 1.24, PfVarX</td><td>FO003–FO004</td></tr>
+<tr><td>L4</td><td>Functional annotation</td><td>SnpEff 5.4.0c (Java, OpenJDK 25)</td><td>FO004</td></tr>
+<tr><td>L5</td><td>Eligibility and downstream analyses DA001–DA009</td><td>R 4.5.3 + moire 3.7.0, dcifer 1.5.2, mgcv 1.9-4; hmmIBD 2.1.3; scikit-allel 1.3.13; IQ-TREE 2.4.0</td><td>FO004</td></tr>
+<tr><td>L6</td><td>Offline report dashboard, clonality report</td><td>PfVarX</td><td>all</td></tr>
+</table>
+
+<h2 id="requirements">1. Requirements</h2>
+<table>
+<tr><th>Item</th><th>Requirement</th><th>How to check</th></tr>
+<tr><td>Operating system</td><td>Linux x86-64 (supported). Linux ARM64 and macOS 13+ (Intel/Apple silicon) are experimental. Windows: use WSL2 with Ubuntu.</td><td><code>uname -m</code> → <code>x86_64</code></td></tr>
+<tr><td>Git</td><td>Any recent version</td><td><code>git --version</code></td></tr>
+<tr><td>Python</td><td>3.11 or later, only to run <code>bootstrap.py</code> (Pixi installs Python 3.12 for the pipeline)</td><td><code>python3 --version</code></td></tr>
+<tr><td>Pixi</td><td>Installed once per computer (step 2)</td><td><code>pixi --version</code></td></tr>
+<tr><td>Internet</td><td>To install Pixi and the tools (conda-forge, bioconda). Not needed while the pipeline runs.</td><td><code>curl -sI https://conda.anaconda.org | head -1</code></td></tr>
+<tr><td>Memory</td><td>About 8 GB for parasite-only analysis; about 16 GB free with Human DNA removal</td><td><code>free -g</code></td></tr>
+<tr><td>CPU</td><td>4 cores is the default compute envelope</td><td><code>nproc</code></td></tr>
+<tr><td>Disk</td><td>1–3 GB per tools environment, plus reads, references and results (alignments are roughly the size of the FASTQ)</td><td><code>df -h ~</code></td></tr>
+<tr><td>Browser</td><td>Any modern browser for the configuration GUI and the dashboard</td><td>–</td></tr>
+<tr><td>Repository access</td><td>Access to <code>hadish-bekuretsion1/PfVarX</code> (private): <code>gh auth login</code> or a personal access token</td><td><code>gh auth status</code></td></tr>
+</table>
+<p>Unix utilities used in this guide: <code>bash</code>, <code>git</code>, <code>curl</code>, <code>sha256sum</code>, <code>gzip</code>/<code>zcat</code>, <code>head</code>, <code>less</code>, <code>xdg-open</code>, a text editor (<code>nano</code> shown).</p>
+
+<h2 id="pixi">2. Install Pixi (once per computer)</h2>
+<div class="step">
+<div class="meta"><b>Why</b><span>Pixi installs every pipeline tool in a locked, reproducible environment per workspace.</span><b>Needs</b><span>curl, internet</span><b>Creates</b><span><code>~/.pixi/bin/pixi</code></span></div>
+<pre><code>curl -fsSL https://pixi.sh/install.sh | bash
+exec bash            # reload the shell so 'pixi' is on PATH
+pixi --version</code></pre>
+<pre class="out"><code>pixi 0.83.0</code></pre>
+<p>If <code>pixi: command not found</code>: add <code>export PATH="$HOME/.pixi/bin:$PATH"</code> to <code>~/.bashrc</code> and open a new terminal.</p>
+</div>
+
+<h2 id="source">3. Get PfVarX</h2>
+<div class="step">
+<div class="meta"><b>Why</b><span>The source checkout is the read-only master copy; workspaces are exported from it.</span><b>Needs</b><span>git, GitHub access</span><b>Creates</b><span><code>~/pfvarx/PfVarX-source/</code></span></div>
+<pre><code>gh auth login && gh auth setup-git          # private repository: log in once
+mkdir -p ~/pfvarx && cd ~/pfvarx
+git clone https://github.com/hadish-bekuretsion1/PfVarX.git PfVarX-source
+cd PfVarX-source && git checkout v1.0.0 && cd ..</code></pre>
+<p>Or download <code>pfvarx-1.0.0-source.zip</code> and its <code>.sha256</code> from the GitHub release and check it:</p>
+<pre><code>sha256sum -c pfvarx-1.0.0-source.zip.sha256
+unzip -q pfvarx-1.0.0-source.zip        # creates PfVarX-source/</code></pre>
+<pre class="out"><code>pfvarx-1.0.0-source.zip: OK</code></pre>
+<p>The source contains: <code>bootstrap.py</code>, <code>pfvarx</code> (launcher), <code>pixi.toml</code>, <code>pixi.lock</code>, <code>pyproject.toml</code>, <code>src/pfvarx/</code>, <code>workflow/</code>, <code>config/</code> (templates, parameters, registry), <code>scripts/</code>, <code>docs/</code>.</p>
+</div>
+
+<h2 id="bootstrap">4. Create the study workspace</h2>
+<div class="step">
+<div class="meta"><b>Why</b><span>One workspace per study keeps configuration, inputs and runs together and reproducible.</span><b>Needs</b><span>Python 3.11+, Pixi, internet</span><b>Creates</b><span>The workspace folder with <code>pfvarx</code>, <code>config/</code>, <code>src/</code>, <code>workflow/</code>, <code>pixi.toml</code>, <code>pixi.lock</code></span></div>
+<h4>Option A — tools on demand (default, recommended on a workstation)</h4>
+<pre><code>cd ~/pfvarx
+python3 PfVarX-source/bootstrap.py --workspace ~/pfvarx/my-study
+cd ~/pfvarx/my-study
+./pfvarx version</code></pre>
+<pre class="out"><code>1.0.0</code></pre>
+<p>Only the small <b>control</b> environment (configuration, GUI, validation) is installed. The pipeline tools are installed in step 8 for exactly what your saved configuration needs.</p>
+<h4>Option B — tools up front (for a machine without internet later, for example an HPC node)</h4>
+<pre><code>python3 PfVarX-source/bootstrap.py --workspace ~/pfvarx/my-study --final-output FO002
+python3 PfVarX-source/bootstrap.py --workspace ~/pfvarx/my-study --final-output FO004 --analyses DA001 DA002 DA003
+python3 PfVarX-source/bootstrap.py --workspace ~/pfvarx/my-study --final-output FO004 --auto-analyses
+python3 PfVarX-source/bootstrap.py --workspace ~/pfvarx/amp-study --final-output FO002 --design targeted_no_umi
+python3 PfVarX-source/bootstrap.py --workspace ~/pfvarx/bam-study --final-output FO002 --input-type BAM</code></pre>
+<table>
+<tr><th>Option</th><th>Values</th><th>Effect</th></tr>
+<tr><td><code>--workspace</code></td><td>new path</td><td>Destination; must not exist</td></tr>
+<tr><td><code>--final-output</code></td><td>FO001 FO002 FO003 FO004</td><td>Installs now only the tools for that output</td></tr>
+<tr><td><code>--design</code></td><td>wgs, targeted_no_umi, targeted_umi</td><td>Adds fgbio for targeted designs</td></tr>
+<tr><td><code>--analyses</code> / <code>--auto-analyses</code></td><td>DA001 … DA009</td><td>Only the tools of these analyses (FO004)</td></tr>
+<tr><td><code>--input-type</code></td><td>FASTQ, BAM, CRAM</td><td>BAM/CRAM skips fastp and read alignment tools</td></tr>
+<tr><td><code>--profile</code></td><td>sample, cohort, downstream, benchmark, development</td><td><code>development</code> = every tool</td></tr>
+<tr><td><code>--no-install</code></td><td>–</td><td>Export files only; install later</td></tr>
+</table>
+<div class="warn">A workspace cannot be promoted above what it installed by editing a YAML file: an FO001 workspace refuses <code>final_output: FO004</code> and names the bootstrap option to use. Create a new workspace instead.</div>
+</div>
+
+<h2 id="choose">5. Choose the final output and assay design</h2>
+<table>
+<tr><th>Final output</th><th>Runs through</th><th>Main products</th><th>Use it for</th></tr>
+<tr><td><b>FO001</b></td><td>L1 read processing and QC (FASTQ only)</td><td>BAM + index, QC decisions, coverage</td><td>Review alignment quality before calling</td></tr>
+<tr><td><b>FO002</b></td><td>+ L2 per-sample calling</td><td>Per-sample VCF, evidence TSV, callable BED</td><td>First real-data pilot</td></tr>
+<tr><td><b>FO003</b></td><td>+ L3 cohort integration</td><td>Cohort VCF, evidence matrix, cohort QC, microhaplotypes</td><td>A multi-sample variant set</td></tr>
+<tr><td><b>FO004</b></td><td>+ L4 annotation + L5 analyses</td><td>Annotated VCF, DA001–DA009 results</td><td>Scientific downstream analysis (needs the GFF)</td></tr>
+</table>
+<table>
+<tr><th><code>assay_design</code></th><th>Libraries</th><th>Processing branch</th></tr>
+<tr><td><code>wgs</code></td><td>Direct WGS and selective WGS (sWGA)</td><td>fastp → bwa-mem2 → merge lanes → Picard MarkDuplicates → mosdepth core → QC gate</td></tr>
+<tr><td><code>targeted_no_umi</code></td><td>Amplicon / panel, TBS without UMI</td><td>fastp → bwa-mem2 → fgbio TrimPrimers (primer clipping) → mosdepth targets → QC gate</td></tr>
+<tr><td><code>targeted_umi</code></td><td>Amplicon / panel with inline UMIs</td><td>fgbio FastqToBam → bwa-mem2 + ZipperBams → GroupReadsByUmi → CallMolecularConsensusReads → FilterConsensusReads → realign → TrimPrimers → QC gate</td></tr>
+</table>
+<p>Record whether a WGS library is direct or sWGA in the sample manifest (<code>amplification_route: DIRECT</code> or <code>SWGA</code>), not in the run settings. Never infer amplification or UMI design from file names.</p>
+
+<h2 id="configure">6. Configure the study</h2>
+<div class="step">
+<div class="meta"><b>Why</b><span>The three YAML files define the whole run; the GUI edits the same files.</span><b>Needs</b><span>control environment (installed by bootstrap), a browser for the GUI</span><b>Changes</b><span><code>config/config.yaml</code>, <code>config/quality.yaml</code>, <code>config/compute.yaml</code> (old versions go to <code>config/backups/</code>)</span></div>
+<h4>With the GUI</h4>
+<pre><code>./pfvarx configure --gui</code></pre>
+<pre class="out"><code>Configuration editor: http://127.0.0.1:34569/jn1dnGM8uro-9vTr-M6d3OWZuo1FIAdf/
+Press Ctrl+C to stop.</code></pre>
+<p>The editor runs only on this computer and the token in the address protects it. Tab <b>1 Input directories</b> holds every setting; required fields have a red <code>*</code>, and each field shows its help and example values. Click <b>Create Configuration and Input Directories</b>. If a configuration exists (bootstrap writes one), tick <b>Save with backup if existing YAML differs</b> first.</p>
+<h4>Or edit the files</h4>
+<pre><code>nano config/config.yaml</code></pre>
+<p>Lines are marked <code>FIXED</code> (leave), <code>EDIT</code> (must set) or <code>REVIEW</code> (check). The template as shipped:</p>
+<pre><code>schema_version: "pfvarx.config/4"          # FIXED
+purpose: analysis                          # FIXED
+project_id: MY_PROJECT                     # EDIT: letters, digits, _ or -
+final_output: FO002                        # EDIT: FO001 | FO002 | FO003 | FO004 (exactly one per run)
+input_type: FASTQ                          # EDIT: FASTQ | BAM | CRAM
+assay_design: wgs                          # EDIT: wgs | targeted_umi | targeted_no_umi
+assay:
+  library_catalog: null                    # EDIT for targeted designs: inputs/metadata/library_catalog.yaml
+  two_colour_chemistry: false              # REVIEW: true for NextSeq/NovaSeq (poly-G trimming)
+  platform: ILLUMINA                       # REVIEW
+reference:
+  fasta: inputs/reference/Pf3D7.fasta      # EDIT
+  gff: null                                # EDIT: matching GFF path required for FO004
+  core_mask_bed: inputs/reference/core_genome.bed   # EDIT: versioned core-genome mask
+  host_removal: false                      # REVIEW: Human DNA removal, wgs only
+  host_fasta: null                         # EDIT when host_removal is true
+  release_label: SET_REFERENCE_RELEASE     # EDIT: exact release used for FASTA and GFF
+  snpeff_genome_id: null                   # OPTIONAL
+samples_tsv: prepared/samples.tsv          # FIXED: built by Inputs Preparation
+study_metadata: false                      # REVIEW: true = merge a study table
+study_metadata_dir: inputs/metadata        # EDIT when study_metadata is true
+analyses:
+  selection: explicit                      # auto: FO004, empty requested and scales
+  requested: []                            # EDIT for FO004, e.g. [DA002, DA001, DA006]
+  scales: {}                               # EDIT for FO004, e.g. {DA002: [SAMPLE, POPULATION]}
+  population_column: null
+  resistance_catalog: null
+  microhap_loci: "off"                     # off | derived | catalogue
+  microhap_panel: null
+  spatial_outcome_source: null             # EDIT if DA007 requested, e.g. DA002
+run_policy: CONTINUE_INDEPENDENT           # REVIEW: CONTINUE_INDEPENDENT | STRICT
+random_seed: 20261106                      # REVIEW
+retention:
+  intermediates: successful                # successful | keep
+caller:
+  backend: native                          # native or external (docs/caller.md)</code></pre>
+<table>
+<tr><th>Setting</th><th>What to put</th></tr>
+<tr><td><code>project_id</code></td><td>Study name, 1–64 letters/digits/<code>_</code>/<code>-</code>, starting with a letter or digit</td></tr>
+<tr><td><code>reference.fasta</code></td><td>Exact parasite assembly (stable contig IDs and lengths)</td></tr>
+<tr><td><code>reference.core_mask_bed</code></td><td>Accessible core genome (Core regions of Miles et al. 2016, as used by MalariaGEN), zero-based BED. A gene list is not a core mask: validation warns <code>CORE_MASK_SUSPECT</code>.</td></tr>
+<tr><td><code>reference.gff</code></td><td>GFF3 of the same release; required for FO004</td></tr>
+<tr><td><code>reference.release_label</code></td><td>The real release, for example <code>PlasmoDB 68</code>. The placeholder <code>SET_REFERENCE_RELEASE</code> is refused.</td></tr>
+<tr><td><code>run_policy</code></td><td><code>CONTINUE_INDEPENDENT</code>: a failing sample is excluded and the others continue. <code>STRICT</code>: any failure stops the run.</td></tr>
+</table>
+<p>Every setting with its allowed values is in <code>docs/configuration-guide.html</code> of the source.</p>
+</div>
+
+<h2 id="dirs">7. Create the input folders</h2>
+<div class="step">
+<div class="meta"><b>Why</b><span>Only the folders your configuration needs are created.</span><b>Command</b><span><code>./pfvarx input-directories</code> (same as <code>./pfvarx init</code>)</span><b>Changes</b><span><code>inputs/…</code></span></div>
+<pre><code>./pfvarx init</code></pre>
+<pre class="out"><code>{
+  "directories": [
+    "inputs/reference/",
+    "inputs/metadata/",
+    "inputs/fastq/"
+  ],
+  "created_dirs": [
+    "inputs/reference",
+    "inputs/metadata",
+    "inputs/fastq"
+  ],
+  "samples_template_written": false,
+  "result_dirs_created": [],
+  "library_catalog_template_written": null
+}</code></pre>
+<p>For a targeted design the output also lists <code>inputs/targets/</code> and <code>"library_catalog_template_written": "inputs/metadata/library_catalog.yaml"</code>.</p>
+</div>
+
+<h2 id="tools">8. Install the required tools</h2>
+<div class="step">
+<div class="meta"><b>Why</b><span>Installs exactly the tools the saved final output, design, input type and analyses use.</span><b>Needs</b><span>internet to conda-forge and bioconda</span><b>GUI</b><span>Tab 1, <b>Install required tools</b></span><b>Log</b><span><code>metadata/install_tools.log</code></span></div>
+<pre><code>./pfvarx install-tools --check     # report only
+./pfvarx install-tools             # install what is missing</code></pre>
+<p><code>--check</code> lists each tool with its version and whether it is installed. Skip this step for a workspace bootstrapped with <code>--final-output</code>. Run it again whenever you raise the final output or add analyses.</p>
+<table>
+<tr><th>Need</th><th>Tools installed</th></tr>
+<tr><td>Every run</td><td>Snakemake 9.27.1, samtools 1.24, Picard 3.5.0, mosdepth 0.3.14</td></tr>
+<tr><td>FASTQ input</td><td>fastp 1.1.0, bwa-mem2 2.3</td></tr>
+<tr><td>FO002+</td><td>NumPy 2.5.4, SciPy 1.18.1, bcftools 1.24</td></tr>
+<tr><td>Targeted designs</td><td>fgbio 4.1.1</td></tr>
+<tr><td>FO004</td><td>SnpEff 5.4.0c</td></tr>
+<tr><td>DA001</td><td>R 4.5.3, moire 3.7.0, jsonlite 2.0.0</td></tr>
+<tr><td>DA004</td><td>dcifer 1.5.2, hmmIBD 2.1.3</td></tr>
+<tr><td>DA005</td><td>scikit-allel 1.3.13</td></tr>
+<tr><td>DA006</td><td>IQ-TREE 2.4.0</td></tr>
+<tr><td>DA007</td><td>R 4.5.3, mgcv 1.9-4</td></tr>
+</table>
+</div>
+
+<h2 id="inputs">9. Add the input files</h2>
+<div class="step">
+<div class="meta"><b>Why</b><span>Files go into the right folder with the same checks as the GUI upload.</span><b>GUI</b><span>Tab 2 Input files (upload or HTTPS download with optional SHA-256)</span></div>
+<pre><code># reads (FASTQ pairs)
+./pfvarx add-input --file /data/run1/S01_L001_R1.fastq.gz --file /data/run1/S01_L001_R2.fastq.gz
+# reference files
+./pfvarx add-input --role reference --file /data/ref/Pf3D7.fasta --file /data/ref/Pf3D7.gff --file /data/ref/core_genome.bed
+# a file from the web, checked against a trusted checksum
+./pfvarx fetch-input --url https://example.org/Pf3D7.fasta --name Pf3D7.fasta --role reference --sha256 &lt;64-hex&gt;
+# list where each kind of file goes
+./pfvarx input-files</code></pre>
+<table>
+<tr><th>Folder</th><th>Put here</th><th>Role</th></tr>
+<tr><td><code>inputs/fastq/</code></td><td>Paired reads, for example <code>S01_L001_R1.fastq.gz</code> + <code>S01_L001_R2.fastq.gz</code></td><td>raw</td></tr>
+<tr><td><code>inputs/bam/</code></td><td>BAM or CRAM with index (BAM/CRAM input)</td><td>raw</td></tr>
+<tr><td><code>inputs/reference/</code></td><td>Parasite FASTA, core BED, GFF (FO004), human FASTA (host removal)</td><td>reference</td></tr>
+<tr><td><code>inputs/metadata/</code></td><td>Study table with a <code>sample_id</code> column; library catalog (targeted)</td><td>metadata</td></tr>
+<tr><td><code>inputs/targets/</code></td><td>Target BED and primer TSV (targeted)</td><td>targets</td></tr>
+</table>
+<p>Files are recognised by content, not by name (a gzip FASTQ must still end in <code>.gz</code>). Existing files on shared storage can be registered without copying:</p>
+<pre><code>./pfvarx discover-inputs --directory /data/run1          # writes a review-required candidate sheet
+./pfvarx register-inputs --manifest reviewed.tsv --mode reference   # or --mode link; reads are never copied</code></pre>
+<p>The study table (when <code>study_metadata: true</code>) is tab-separated with <code>sample_id</code> plus any of <code>population</code>, <code>country</code>, <code>latitude</code>, <code>longitude</code>, <code>collection_date</code> (YYYY-MM-DD). DA007 needs country, coordinates and dates; grouped analyses need population.</p>
+</div>
+
+<h2 id="targeted">10. Targeted designs: library catalog, targets, primers</h2>
+<div class="step">
+<p>Set <code>assay_design: targeted_no_umi</code> or <code>targeted_umi</code> and <code>assay.library_catalog: inputs/metadata/library_catalog.yaml</code> (a template is written by <code>init</code>).</p>
+<table>
+<tr><th>Record</th><th>Without UMI</th><th>With UMI</th></tr>
+<tr><td>Catalog panel</td><td><code>panel_id</code>, <code>panel_version</code>, targets BED, primer TSV (or probes BED)</td><td>Same</td></tr>
+<tr><td>Catalog library protocol</td><td>Optional</td><td><code>umi.read_structure</code>, for example <code>8M+T 8M+T</code></td></tr>
+<tr><td>Manifest columns</td><td><code>panel_id</code>, <code>panel_version</code>; optional <code>technique</code> (AMPLICON, TBS_NON_UMI)</td><td>+ <code>library_protocol_id</code>; optional technique (AMPLICON, TBS_UMI)</td></tr>
+</table>
+<p><b>Targets BED</b>: zero-based, half-open. <b>Primer TSV</b> (fgbio TrimPrimers header):</p>
+<pre><code>chrom	left_start	left_end	right_start	right_end
+Pf3D7_07_v3	403500	403520	403780	403800</code></pre>
+<p>Coordinates are one-based inclusive with <code>1 ≤ left_start ≤ left_end &lt; right_start ≤ right_end ≤ contig length</code>. A UMI structure must match the sequenced reads. A run uses one panel.</p>
+</div>
+
+<h2 id="bam">11. BAM / CRAM input</h2>
+<div class="step">
+<p>Set <code>input_type: BAM</code> or <code>CRAM</code>, put files in <code>inputs/bam/</code> and record in <code>processing_state</code> what was already done. Only missing steps run.</p>
+<table>
+<tr><th>Design</th><th>Allowed <code>processing_state</code></th></tr>
+<tr><td>wgs</td><td><code>aligned</code>, <code>duplicates_marked</code></td></tr>
+<tr><td>targeted_no_umi</td><td><code>aligned</code>, <code>primers_trimmed</code></td></tr>
+<tr><td>targeted_umi</td><td><code>aligned</code> (raw reads with <code>RX</code> UMIs), <code>consensus</code>, <code>consensus_primers_trimmed</code></td></tr>
+</table>
+<p>Requirements: coordinate-sorted, indexed, same reference dictionary/MD5, read group <code>@RG SM</code> equal to the <code>sample_id</code>. The state is checked against the reads (<code>cD</code>, <code>RX</code> tags) and <code>@PG</code> records; contradictions are rejected. CRAM is implemented but less validated than WGS BAM. VCF input is not supported.</p>
+</div>
+
+<h2 id="host">12. Human DNA removal (optional, WGS FASTQ only)</h2>
+<div class="step">
+<p>Set <code>reference.host_removal: true</code> and <code>reference.host_fasta: inputs/reference/GRCh38_no_alt.fasta</code>. Each read pair is aligned once to parasite + human together; pairs whose best hit is human are removed before duplicate marking and counted as <code>host_fraction</code>.</p>
+<p>You build the bwa-mem2 index of the combined reference yourself on a machine with enough memory for a human-sized genome.<code>./pfvarx prepare</code> lists the exact steps and stops with <code>HOST_INDEX_REQUIRED</code> until the index files (<code>combined.fasta.0123 .amb .ann .bwt.2bit.64 .pac</code>) are in <code>prepared/reference/</code>.</p>
+</div>
+
+<h2 id="compute">13. Set the compute limits</h2>
+<div class="step">
+<p>Edit <code>config/compute.yaml</code> to match the machine. Shipped values:</p>
+<pre><code>schema_version: "pfvarx.compute/2"   # FIXED
+executor: local                      # local | hpc | server | cloud (recorded only, one host)
+max_cores: 4                         # total cores PfVarX may use
+max_mem_mb: 6500                     # total RAM
+max_jobs: 1                          # concurrent jobs
+tmp_disk_mb: 20000
+tmp_dir: null                        # absolute path for temporary files (e.g. node scratch)
+per_job:
+  max_threads: 4
+  max_mem_mb: 6500
+  max_runtime_min: 720
+max_retries: 2                       # transient failures only
+retry_memory_factor: 1.5</code></pre>
+<p>Rules: per-job limits ≤ totals; leave memory for the OS. bwa-mem2 alignment requests 6.5 GB, so <code>max_mem_mb</code> below that blocks the plan (<code>RESOURCE_MEMORY_EXCEEDED</code>). On HPC, submit the run inside one node allocation (all executors use a single host).</p>
+</div>
+
+<h2 id="layout">14. Check the layout</h2>
+<div class="step">
+<div class="meta"><b>Purpose</b><span>Read-only check that required folders and files exist and nothing is misplaced.</span><b>Changes</b><span>Nothing</span></div>
+<pre><code>./pfvarx check-layout</code></pre>
+<pre class="out"><code>{
+  "status": "PASS",
+  "missing_dirs": [],
+  "missing_files": {},
+  "misplaced": []
+}</code></pre>
+</div>
+
+<h2 id="validate">15. Validate every input</h2>
+<div class="step">
+<div class="meta"><b>Purpose</b><span>Checks FASTQ pairing, read counts and names, quality encoding, BAM headers, FASTA, BED, GFF and metadata.</span><b>GUI</b><span>Tab 3, <b>Validate inputs</b></span><b>Writes</b><span><code>metadata/validation_report.json</code> only</span><b>Same as</b><span><code>./pfvarx validate-input-files</code></span></div>
+<pre><code>./pfvarx validate</code></pre>
+<pre class="out"><code>{
+  "status": "PASS",
+  "summary": [
+    "Validation PASS: inputs are ready for ./pfvarx prepare."
+  ],
+  "samples": {
+    "PF001": "PASS",
+    "PF002": "PASS",
+    …
+    "PF009": "PASS"
+  },
+  "failures": [],
+  "warnings": [],
+  "report": "metadata/validation_report.json"
+}</code></pre>
+<p>On failure each entry names the problem, why the input matters and numbered steps to fix it. Under <code>CONTINUE_INDEPENDENT</code> a failing sample can be isolated; reference or configuration errors must be fixed. Archive the report with your input checksums.</p>
+</div>
+
+<h2 id="prepare">16. Prepare references and the sample sheet</h2>
+<div class="step">
+<div class="meta"><b>Purpose</b><span>Builds the sample sheet <code>prepared/samples.tsv</code> from the input files, merges the study table, and builds reference derivatives.</span><b>Tools</b><span>samtools faidx, Picard CreateSequenceDictionary, bwa-mem2 index</span><b>GUI</b><span>Tab 4, <b>Prepare inputs</b></span><b>Writes</b><span><code>prepared/</code>, <code>metadata/preparation_report.json</code>, <code>metadata/preparation_logs/</code></span></div>
+<pre><code>./pfvarx inputs-preparation          # sample sheet + metadata merge + references + checks
+#   or step by step:
+./pfvarx prepare-samples             # steps 1-2: sample sheet, optional metadata merge
+./pfvarx prepare --dry-run           # plan only
+./pfvarx prepare                     # build what is missing or stale
+./pfvarx verify-prepared             # hashes, FASTA/FAI/dictionary agreement</code></pre>
+<pre class="dry"><code>./pfvarx prepare --dry-run   (on a new workspace)
+"dry_run": true, "stale": true,
+"actions": [ write_combined_fasta, samtools_faidx, picard_dict, bwa_mem2_index, write_parasite_fasta ]</code></pre>
+<pre class="out"><code>./pfvarx prepare
+{
+  "dry_run": false,
+  "stale": true,
+  "actions": [
+    {"action": "write_combined_fasta", "output": "…/prepared/reference/combined.fasta"},
+    {"action": "samtools_faidx",       "output": "…/prepared/reference/combined.fasta.fai"},
+    {"action": "picard_dict",          "output": "…/prepared/reference/combined.dict"},
+    {"action": "bwa_mem2_index",       "output": "…/prepared/reference/combined.fasta.*"},
+    {"action": "write_parasite_fasta", "output": "…/prepared/reference/parasite.fasta"}
+  ],
+  "source_fingerprints": {
+    "inputs/reference/Pf3D7.fasta": "a2e64f3860911049e2f0573c9954ea55f8a17ba85e7617d29277a8eaeda38c14"
+  },
+  "manifest": "…/prepared/manifest.json",
+  "performed": ["write_combined_fasta","samtools_faidx","picard_dict","bwa_mem2_index","write_parasite_fasta"],
+  "verification": { "status": "PASS", … }
+}</code></pre>
+<p>Running the plan again must show nothing left to do:</p>
+<pre class="dry"><code>{
+  "dry_run": true,
+  "stale": false,
+  "actions": [],
+  "source_fingerprints": { "inputs/reference/Pf3D7.fasta": "a2e64f38…8c14" },
+  "manifest": "…/prepared/manifest.json"
+}</code></pre>
+<h4>Review the sample sheet</h4>
+<pre><code>column -t -s $'\t' prepared/samples.tsv | less -S</code></pre>
+<pre class="out"><code>sample_id lane fastq_1                             fastq_2                             library_id flowcell_type technique amplification_route population country  latitude longitude collection_date
+PF001     L001 inputs/fastq/PF001_L001_R1.fastq.gz inputs/fastq/PF001_L001_R2.fastq.gz PF001_lib1 unpatterned   WGS       DIRECT              POP_A      Ethiopia 9.000    38.700    2025-01-15
+PF002     L001 inputs/fastq/PF002_L001_R1.fastq.gz inputs/fastq/PF002_L001_R2.fastq.gz PF002_lib1 unpatterned   WGS       DIRECT              POP_B      Ethiopia 7.010    39.510    2025-02-15</code></pre>
+<p>Full column list: <code>sample_id lane fastq_1 fastq_2 bam vcf library_id flowcell_type technique amplification_route panel_id panel_version library_protocol_id processing_state adapter_kit population country latitude longitude collection_date</code>. Sample and lane IDs come from file names: check them. <code>sample_id</code>/<code>lane</code> pairs must be unique; all lanes of a WGS sample must share a flow-cell type (<code>patterned</code>/<code>unpatterned</code>, which sets Picard's optical-duplicate distance).</p>
+</div>
+
+<h2 id="ready">17. Readiness checks</h2>
+<div class="step">
+<div class="meta"><b>Purpose</b><span>Validation, preparation, eligibility pre-plan and resource feasibility in one read-only report.</span><b>GUI</b><span>Tab 5, <b>Run readiness checks</b> (<code>./pfvarx workflow-readiness-checks</code> also re-validates and re-verifies)</span></div>
+<pre><code>./pfvarx ready</code></pre>
+<pre class="out"><code>{
+  "ready": true,
+  "validation": "PASS",
+  "preparation_current": true,
+  "samples": ["PF001", "PF002", …, "PF009"],
+  "samples_failed_validation": [],
+  "layers": [0, 1, 2, 3, 4, 5, 6],
+  "analyses_requested": ["DA001","DA002","DA003","DA004","DA005","DA006","DA007"],
+  "analyses_internal_prerequisites": [],
+  "resources": {
+    "jobs": [
+      {"job": "fastp",          "layer": 1, "threads": 4, "mem_mb": 2000, "runtime": {"confidence": "UNKNOWN", …}},
+      {"job": "bwa_mem2_align", "layer": 1, "threads": 4, "mem_mb": 6500, "memory_basis": "MEASURED_HISTORY"},
+      …
+    ]
+  }
+}</code></pre>
+<p><code>"ready": true</code> is required. Runtime is <code>UNKNOWN</code> until this computer has finished real runs (<code>./pfvarx resources-learn</code> adds a run to the history).</p>
+</div>
+
+<h2 id="dryrun">18. Dry run: plan the workflow without creating outputs</h2>
+<div class="step">
+<div class="meta"><b>Purpose</b><span>Scientific preflight plus <code>snakemake -n</code> in a temporary directory; no <code>runs/</code> or <code>results</code> is created.</span><b>Tools</b><span>Snakemake 9.27.1</span><b>GUI</b><span>Tab 6, <b>Check workflow</b> (<code>./pfvarx workflow-check</code>)</span></div>
+<pre><code>./pfvarx dry-run</code></pre>
+<pre class="dry"><code>{
+  "status": "OK",
+  "snakemake_exit": 0,
+  "jobs_before_checkpoints": "…
+Building DAG of jobs...
+Job stats:
+job                count
+---------------  -------
+fastp                  9
+bwa_mem2_lane          9
+merge_lanes            9
+mark_duplicates        9
+flagstat               9
+mosdepth_core          9
+l1_gate                9
+all                    1
+total                 64
+DAG of jobs will be updated after completion.  …"
+}
+
+Expected resources for FO004 from FASTQ input: 9 sample(s), 0.02 GB of input, 1 job(s) at a time
+
+Step (tools)                               Jobs  Time         Peak RAM  Based on
+--------------------------------------------------------------------------------
+Read QC and trimming (fastp)               9     under 1 min  1.2 GB    median of 3 earlier job(s) on this computer
+Read alignment (bwa-mem2)                  9     under 1 min  6.6 GB    median of 3 earlier job(s) on this computer
+Alignment QC (samtools, mosdepth)          9     under 1 min  63 MB     median of 3 earlier job(s) on this computer
+Mark duplicates (Picard)                   9     under 1 min  4.2 GB    median of 3 earlier job(s) on this computer
+Variant calling (PfVarX caller, bcftools)  9     under 1 min  4.4 GB    …
+Cohort merge, evidence and QC (bcftools)   1     under 1 min  193 MB    …
+Annotation (SnpEff)                        1     under 1 min  685 MB    …
+Downstream analyses                        1     under 1 min  284 MB    …
+
+Total time: about under 1 min
+Peak memory of one job: 6.6 GB
+Storage of the results: alignments 20 MB; total 20 MB</code></pre>
+<p>Only the jobs before the QC checkpoint are listed: calling, cohort and analyses depend on QC outcomes and are added during the run ("DAG of jobs will be updated after completion"). Check afterwards that no <code>runs/</code> directory was created: <code>ls runs 2&gt;/dev/null || echo "no runs (correct)"</code>.</p>
+</div>
+
+<h2 id="run">19. Run the pipeline</h2>
+<div class="step">
+<div class="meta"><b>Purpose</b><span>Executes the one configured final output as a new run.</span><b>GUI</b><span>Tab 6, <b>Run workflow</b> (<code>./pfvarx workflow-run</code> repeats the check, then runs); a live progress page opens</span><b>Writes</b><span><code>runs/RUN_ID/</code> and the link <code>results → runs/RUN_ID/results</code></span></div>
+<pre><code>./pfvarx pipeline                 # same as: ./pfvarx pipeline --mode NEW</code></pre>
+<pre class="out"><code>{
+  "run_id": "20261126T160227Z-VERIFY_WGS-9dde0372",
+  "status": "COMPLETED",
+  "passes": [
+    {"pass": 1, "exit_code": 0, "failed_samples": {}, "log": "…/runs/20261126T160227Z-VERIFY_WGS-9dde0372/logs/snakemake.pass1.log"}
+  ],
+  "downstream_failures": [],
+  "report": {
+    "dashboard": "runs/20261126T160227Z-VERIFY_WGS-9dde0372/results/report/pfvarx_dashboard.html",
+    "bytes": 1199468,
+    "dashboard_data": "runs/…/results/report/dashboard_data.json",
+    "qc_matrix": "runs/…/results/qc/centralized_quality_matrix.json"
+  },
+  "cleanup": {"schema": "pfvarx.cleanup/1", "apply": true, "files": [], "bytes_eligible": 0, "deleted": []}
+}
+
+Run progress page: …/runs/20261126T160227Z-VERIFY_WGS-9dde0372/progress.html</code></pre>
+<p>The example (9 synthetic samples, FO004) took about 3.5 minutes and ran 97 workflow steps. A real <i>P. falciparum</i> genome takes far longer, mostly in alignment and the caller. <b>Record the run ID.</b> The run ID is <code>&lt;UTC time&gt;-&lt;project_id&gt;-&lt;hash&gt;</code>. Closing the browser does not stop the run.</p>
+<p>What each executed job does (from <code>logs/snakemake.pass1.log</code>), for a WGS FASTQ sample:</p>
+<table>
+<tr><th>Rule</th><th>Tool and key settings</th><th>Output</th></tr>
+<tr><td><code>fastp</code></td><td><code>fastp -w 4 --qualified_quality_phred 15 --unqualified_percent_limit 40 --n_base_limit 5 --length_required 50</code>, TruSeq adapters, poly-G trimming only with two-colour chemistry</td><td><code>work/trimmed/*.fastq.gz</code>, <code>qc/samples/S/S.L001.fastp.json</code></td></tr>
+<tr><td><code>bwa_mem2_lane</code></td><td><code>bwa-mem2 mem</code> per lane, then <code>samtools sort</code></td><td>lane BAM</td></tr>
+<tr><td><code>merge_lanes</code></td><td><code>samtools merge</code></td><td>sample BAM</td></tr>
+<tr><td><code>mark_duplicates</code></td><td>Picard MarkDuplicates (optical distance from flow-cell type)</td><td><code>alignments/S.bam</code> + <code>.bai</code></td></tr>
+<tr><td><code>flagstat</code>, <code>mosdepth_core</code></td><td><code>samtools flagstat</code>, <code>mosdepth</code> on the core mask</td><td>mapping and depth metrics</td></tr>
+<tr><td><code>l1_gate</code></td><td>QC gates G1–G2</td><td><code>qc/samples/S/qc_decision.json</code></td></tr>
+<tr><td><code>pfvarx_call</code></td><td>PfVarX native caller (up to <code>per_job.max_threads</code> workers)</td><td>VCF, evidence TSV, callable BED, caller QC</td></tr>
+<tr><td><code>normalise_sample</code></td><td><code>bcftools norm</code>, <code>index</code></td><td><code>variants/samples/S.vcf.gz</code> + <code>.tbi</code></td></tr>
+<tr><td><code>cohort_merge</code> … <code>cohort_qc</code></td><td><code>bcftools merge</code>, PfVarX evidence, microhaplotypes, gate G5</td><td><code>cohort/</code></td></tr>
+<tr><td><code>snpeff_build</code>, <code>snpeff_annotate</code></td><td>SnpEff database from your FASTA+GFF, then annotation</td><td><code>annotation/cohort.ann.vcf.gz</code></td></tr>
+<tr><td><code>da001_clonality</code>, <code>da_eligibility</code>, <code>da_execute</code></td><td>Eligibility, then each requested analysis</td><td><code>eligibility/</code>, <code>downstream/DAxxx/</code></td></tr>
+</table>
+</div>
+
+<h2 id="verify">20. Status and run verification</h2>
+<div class="step">
+<pre><code>./pfvarx status</code></pre>
+<pre class="out"><code>{
+  "effective_config_hash": "c5e295a2ae4ec7d58bfa2ae519b1b23655723a36e8604863bf97a44c2f7bc568",
+  "latest_run": "20261126T160227Z-VERIFY_WGS-9dde0372",
+  "latest_status": {
+    "downstream_failures": [],
+    "mode": "NEW",
+    "passes": [{"exit_code": 0, "failed_samples": {}, "pass": 1, …}],
+    "reuse_key": "66f3525b43801d92dbeeeadf5c675269b49371ea10e7b4919445c2dc2873b5a1",
+    "run_id": "20261126T160227Z-VERIFY_WGS-9dde0372",
+    "status": "COMPLETED",
+    "updated_utc": "2026-11-26T16:05:56.037132+00:00"
+  }
+}</code></pre>
+<pre><code>./pfvarx run-verify --run-id 20261126T160227Z-VERIFY_WGS-9dde0372</code></pre>
+<pre class="out"><code>{
+  "run_id": "20261126T160227Z-VERIFY_WGS-9dde0372",
+  "frozen_integrity": "PASS",
+  "tampered": [],
+  "workspace_drift": [],
+  "status": { …, "status": "COMPLETED" }
+}</code></pre>
+<p><code>frozen_integrity: PASS</code> means the frozen configuration and software copied into the run are unchanged. <code>workspace_drift</code> lists workspace files changed since the run. It does not verify external input files: keep your own checksum manifest (<code>sha256sum inputs/fastq/* &gt; inputs.sha256</code>).</p>
+<p>A completed process is not the same as every sample being eligible: check per-sample QC, exclusions and each analysis manifest.</p>
+</div>
+
+<h2 id="results">21. Where the results are</h2>
+<pre><code>runs/&lt;RUN_ID&gt;/
+  frozen/  frozen_config.json  frozen_plan.json  snapshot.json   # what defined the run
+  status.json  progress.json  progress.html  attempts.jsonl
+  logs/        # snakemake.pass1.log, per-tool logs, events.jsonl
+  benchmarks/  # measured time and memory per job
+  results/
+    alignments/    qc/    variants/samples/    cohort/
+    annotation/    eligibility/    downstream/DA00x/    report/
+results -&gt; runs/&lt;RUN_ID&gt;/results</code></pre>
+<p>From the example run (<code>results/</code>, two levels):</p>
+<pre class="out"><code>alignments/PF001.bam  PF001.bam.bai  … PF009.bam.bai
+annotation/annotation_qc.json  cohort.ann.vcf.gz  cohort.ann.vcf.gz.tbi
+cohort/cohort_qc.json  cohort_samples.txt  cohort_status.json  cohort.vcf.gz  cohort.vcf.gz.tbi
+       evidence_matrix.tsv.gz  microhaplotype_loci.tsv  microhaplotypes.json  microhaplotypes.tsv.gz
+       missingness.tsv  sites.tsv
+downstream/DA001 … DA007
+eligibility/cohort_decisions.json  sample_analysis_eligibility.json  sample_analysis_eligibility.tsv
+qc/centralized_quality_matrix.json  qc/samples/
+report/clonality_report.tsv  clonality_report.txt  dashboard_data.json  pfvarx_dashboard.html
+variants/samples/</code></pre>
+<table>
+<tr><th>File</th><th>Meaning</th></tr>
+<tr><td><code>alignments/S.bam</code></td><td>Processed alignment</td></tr>
+<tr><td><code>qc/samples/S/qc_decision.json</code></td><td>QC verdict, each gate, observed value and thresholds</td></tr>
+<tr><td><code>qc/samples/S/S.caller_qc.json</code></td><td>Caller depth, callability, fit and mixture evidence</td></tr>
+<tr><td><code>variants/samples/S.vcf.gz</code></td><td>Variant-only SNP/indel records (including non-PASS)</td></tr>
+<tr><td><code>variants/samples/S.evidence.tsv</code></td><td>Counts, uncertainty and status per candidate</td></tr>
+<tr><td><code>variants/samples/S.callable.bed</code></td><td>Where the caller could decide</td></tr>
+<tr><td><code>cohort/cohort.vcf.gz</code>, <code>evidence_matrix.tsv.gz</code></td><td>Cohort variants and per-sample evidence at every site (missing is not reference)</td></tr>
+<tr><td><code>cohort/cohort_qc.json</code></td><td>Gate G5 per sample; a FAIL excludes it from DA001–DA008</td></tr>
+<tr><td><code>downstream/DAxxx/status_manifest.json</code></td><td>Terminal state, denominators, exclusions, caveats</td></tr>
+<tr><td><code>report/pfvarx_dashboard.html</code></td><td>Offline report</td></tr>
+</table>
+<p>Quick looks:</p>
+<pre><code>zcat results/variants/samples/PF001.vcf.gz | grep -vc '^#'                    # records
+./pfvarx tool bcftools view -H -f PASS results/variants/samples/PF001.vcf.gz | wc -l   # PASS records
+python3 -m json.tool results/qc/samples/PF001/qc_decision.json | head -30</code></pre>
+<pre class="out"><code>{
+ "verdict": "PASS",
+ "decisions": [
+  {
+   "gate_id": "G1.read_retention", "gate": "G1", "stage": "L1.fastq_qc",
+   "metric": "reads_retained_fraction", "unit": "fraction", "observed": 1.0,
+   "fail_threshold": 0.5, "warn_threshold": 0.7, "direction": "min",
+   "threshold_source": "UNCALIBRATED_PROVISIONAL", "policy_version": "1.3.0",
+   "mandatory": true, "calibrated": false, "status": "PASS"
+  }, …</code></pre>
+<div class="warn">Count accepted variants by <code>FILTER=PASS</code>, not all VCF rows. A position absent from a variant-only VCF is not a reference call. Caller technical K is not biological COI. UNKNOWN resistance markers are not wild type.</div>
+
+<h2 id="qc">22. QC gates (policy pfvarx_qc_v1, version 1.3.0)</h2>
+<table>
+<tr><th>Gate</th><th>Stage</th><th>Metric</th><th>Direction</th><th>Fail</th><th>Warn</th><th>Designs</th><th>Threshold source</th></tr>
+<tr><td>G1</td><td>FASTQ QC</td><td>reads_retained_fraction</td><td>min</td><td>0.5</td><td>0.7</td><td>all</td><td>uncalibrated provisional</td></tr>
+<tr><td>G1</td><td>FASTQ QC</td><td>mean_read_length_after (bp)</td><td>min</td><td>70</td><td>–</td><td>all</td><td>literature</td></tr>
+<tr><td>G1</td><td>FASTQ QC</td><td>q30_fraction_after</td><td>reported</td><td>–</td><td>–</td><td>all</td><td>framework</td></tr>
+<tr><td>G2</td><td>Alignment</td><td>mapped_fraction</td><td>min</td><td>0.5</td><td>0.8</td><td>all</td><td>uncalibrated provisional</td></tr>
+<tr><td>G2</td><td>Alignment</td><td>host_fraction</td><td>reported</td><td>–</td><td>–</td><td>all</td><td>framework</td></tr>
+<tr><td>G2</td><td>Alignment</td><td>duplicate_fraction</td><td>max</td><td>0.6</td><td>0.3</td><td>wgs</td><td>uncalibrated provisional</td></tr>
+<tr><td>G2</td><td>Coverage</td><td>median_depth_core (reads)</td><td>min</td><td>5</td><td>20</td><td>wgs</td><td>literature</td></tr>
+<tr><td>G2</td><td>Coverage</td><td>callable_fraction_core</td><td>min</td><td>0.5</td><td>0.8</td><td>wgs</td><td>literature</td></tr>
+<tr><td>G3</td><td>Targets</td><td>on_target_fraction</td><td>min</td><td>0.5</td><td>0.7</td><td>targeted</td><td>uncalibrated provisional</td></tr>
+<tr><td>G3</td><td>Targets</td><td>amplicon_dropout_fraction</td><td>max</td><td>0.5</td><td>0.2</td><td>targeted</td><td>uncalibrated provisional</td></tr>
+<tr><td>G3</td><td>Targets</td><td>median_amplicon_depth</td><td>min</td><td>100</td><td>–</td><td>targeted_no_umi</td><td>literature</td></tr>
+<tr><td>G4</td><td>Caller mixture</td><td>mixture_converged</td><td>min</td><td>1 (true)</td><td>–</td><td>all</td><td>framework</td></tr>
+<tr><td>G5</td><td>Cohort</td><td>cohort_missing_fraction</td><td>max</td><td>0.5</td><td>0.2</td><td>all</td><td>uncalibrated provisional</td></tr>
+<tr><td>G5</td><td>Cohort</td><td>cohort_mixed_fraction</td><td>reported</td><td>–</td><td>–</td><td>all</td><td>framework</td></tr>
+</table>
+<p>Thresholds live in <code>config/registry/qc_policy_pfvarx_qc_v1.yaml</code>. Do not change them to make a sample pass; a failed sample is excluded and recorded with its reason.</p>
+
+<h2 id="fo004">23. Downstream analyses (FO004)</h2>
+<div class="step">
+<p>Bootstrap with <code>--final-output FO004 --analyses …</code> (or install them with <code>install-tools</code>), supply the matching GFF, then set:</p>
+<pre><code>final_output: FO004
+reference:
+  gff: inputs/reference/Pf3D7.gff
+analyses:
+  selection: explicit            # or auto: every design-compatible analysis
+  requested: [DA001, DA002, DA003, DA005, DA006]
+  scales:
+    DA003: [POPULATION]
+    DA005: [BETWEEN_POPULATIONS]
+  population_column: population
+  spatial_outcome_source: null   # DA002 when DA007 is requested</code></pre>
+<table>
+<tr><th>ID</th><th>Analysis</th><th>Tools</th><th>Requirements</th><th>Main outputs</th></tr>
+<tr><td>DA001</td><td>COI and clonal status</td><td>R moire</td><td>≥10 informative samples for COI and Fws; smaller cohorts use the caller's mixture test</td><td><code>clonality.tsv</code>, <code>moire_coi.tsv</code></td></tr>
+<tr><td>DA002</td><td>Drug-resistance markers</td><td>PfVarX</td><td>Independently verified catalogue (the shipped draft blocks real DA002: <code>CATALOG_NOT_VERIFIED</code>)</td><td><code>marker_calls.tsv</code>, <code>prevalence.tsv</code></td></tr>
+<tr><td>DA003</td><td>Genetic diversity</td><td>PfVarX</td><td>Callable coverage; group sizes</td><td><code>within_host_fws.tsv</code>, <code>population_diversity.tsv</code></td></tr>
+<tr><td>DA004</td><td>Relatedness / IBD</td><td>hmmIBD, R dcifer</td><td>DA001; WGS pairs need 200 informative markers, targeted 20</td><td><code>pairwise_relatedness.tsv</code></td></tr>
+<tr><td>DA005</td><td>Population structure</td><td>scikit-allel</td><td>WGS; population labels</td><td><code>pca.tsv</code>, <code>fst.tsv</code></td></tr>
+<tr><td>DA006</td><td>Phylogeny</td><td>IQ-TREE</td><td>WGS; ≥4 monoclonal samples; enough sites</td><td><code>tree.treefile</code></td></tr>
+<tr><td>DA007</td><td>Spatial / temporal</td><td>R mgcv</td><td>DA002 outcomes; country, coordinates, dates</td><td><code>country_month_summary.tsv</code>, <code>gam_fit.tsv</code></td></tr>
+<tr><td>DA008</td><td>Copy-number markers</td><td>PfVarX</td><td>WGS; GFF; verified copy-number catalogue; median core depth ≥20</td><td><code>cnv_calls.tsv</code></td></tr>
+<tr><td>DA009</td><td>pfhrp2/pfhrp3 joint deletion</td><td>PfVarX</td><td>Every design; GFF; verified copy-number catalogue; targeted panels need pfhrp targets and ≥2 controls</td><td><code>joint_calls.tsv</code>, <code>threshold_sensitivity.tsv</code></td></tr>
+</table>
+<p>Check each analysis's terminal state:</p>
+<pre><code>for f in results/downstream/DA00*/status_manifest.json; do
+  python3 -c "import json,sys;d=json.load(open(sys.argv[1]));print(sys.argv[1].split('/')[-2], d['terminal_state'])" "$f"; done</code></pre>
+<pre class="out"><code>DA001 COMPLETED
+DA002 COMPLETED
+DA003 COMPLETED
+DA004 SKIPPED_INELIGIBLE
+DA005 COMPLETED
+DA006 COMPLETED_WITH_EXCLUSIONS
+DA007 COMPLETED</code></pre>
+<p>In the example, DA004 skipped with the caveat "Every pair had fewer than 200 informative markers; no relatedness was estimated." That is a correct result, not an error. Terminal states: <code>COMPLETED</code>, <code>COMPLETED_WITH_EXCLUSIONS</code>, <code>SKIPPED_INELIGIBLE</code>, <code>BLOCKED_MISSING_PREREQUISITE</code>, <code>FAILED_EXECUTION</code>.</p>
+</div>
+
+<h2 id="report">24. Report dashboard</h2>
+<div class="step">
+<pre><code>xdg-open results/report/pfvarx_dashboard.html          # WSL2: explorer.exe results/report/pfvarx_dashboard.html</code></pre>
+<p>A single offline HTML file with eight pages: Overview (run identity, where results are saved, summary cards, run metadata), Inputs, Quality Control, Variants, Downstream Analyses, Resources, Software and Logs. Tables can be filtered and exported to CSV/XLSX; charts to PNG; print to PDF from the browser. View filters never recompute scientific estimates. <code>report/clonality_report.txt</code> states each sample as monoclonal or polyclonal with clone shares.</p>
+</div>
+
+<h2 id="resume">25. Resume, extend and rebuild the report</h2>
+<div class="step">
+<pre><code>./pfvarx pipeline --mode RESUME --run-id RUN_ID     # continue an interrupted run (configuration unchanged)
+./pfvarx pipeline --mode EXTEND --run-id RUN_ID     # new run reusing per-sample results, e.g. after adding analyses
+./pfvarx report --run-id RUN_ID                     # redraw the dashboard only; nothing is re-analysed</code></pre>
+<p>Use a new run (<code>--mode NEW</code>) when reads, masks, primers, reference, scientific policy or preprocessing change.</p>
+</div>
+
+<h2 id="cleanup">26. Clean-up and archive</h2>
+<div class="step">
+<pre class="dry"><code>./pfvarx cleanup --run-id RUN_ID            # preview completed-run work files that may be removed</code></pre>
+<pre><code>./pfvarx cleanup --run-id RUN_ID --apply    # remove only those
+./pfvarx benchmark-resources --run-id RUN_ID   # optional: summarise measured resources
+./pfvarx resources-learn --run-id RUN_ID       # optional: improve future time/memory estimates</code></pre>
+<p>Failed runs, inputs, references, final results, QC, logs and frozen records are always kept. Archive: the whole <code>runs/RUN_ID/</code>, <code>config/</code>, <code>metadata/validation_report.json</code>, <code>prepared/samples.tsv</code>, your input checksum file and the PfVarX version (<code>./pfvarx version</code>).</p>
+</div>
+
+<h2 id="orchestrate">27. One-command chain</h2>
+<div class="step">
+<pre><code>./pfvarx orchestrate                        # initialize → validate → prepare → verify → preflight → execute/report/retain
+./pfvarx orchestrate --through validate     # stop after validation (also: prepare, verify)</code></pre>
+<p>Stops at the first failure. Use the separate commands above when you need to review each stage.</p>
+</div>
+
+<h2 id="trouble">28. Troubleshooting</h2>
+<table>
+<tr><th>Message or symptom</th><th>Cause</th><th>Fix</th></tr>
+<tr><td><code>pixi: command not found</code></td><td>Pixi not on PATH</td><td>Repeat step 2; open a new terminal</td></tr>
+<tr><td>GUI does not open</td><td>No default browser</td><td>Copy the printed link with its token into a browser</td></tr>
+<tr><td>Create Configuration greyed out</td><td>Required field empty or release label not chosen</td><td>Fill every red <code>*</code> field; choose the Reference release label</td></tr>
+<tr><td><code>TOOLS_NOT_INSTALLED</code></td><td>Tools for the saved configuration missing</td><td><code>./pfvarx install-tools</code></td></tr>
+<tr><td>Tool install fails</td><td>No access to conda channels</td><td>Check internet/proxy; read <code>metadata/install_tools.log</code></td></tr>
+<tr><td>Validation FAIL</td><td>Input problem</td><td>Follow the numbered steps printed; details in <code>metadata/validation_report.json</code></td></tr>
+<tr><td><code>CORE_MASK_SUSPECT</code></td><td>BED looks like a gene list</td><td>Use the real core-genome mask</td></tr>
+<tr><td><code>RESOURCE_MEMORY_EXCEEDED</code></td><td>A job needs more memory than allowed</td><td>Raise <code>max_mem_mb</code> if the machine has it, or use a larger machine</td></tr>
+<tr><td><code>HOST_INDEX_REQUIRED</code></td><td>Host removal without combined index</td><td>Build the bwa-mem2 index as listed by <code>./pfvarx prepare</code></td></tr>
+<tr><td><code>CATALOG_NOT_VERIFIED</code></td><td>Shipped draft catalogue</td><td>Supply an independently verified catalogue; add the analysis later with <code>--mode EXTEND</code></td></tr>
+<tr><td>Sample excluded</td><td>A QC gate failed</td><td>Read its <code>qc_decision.json</code>; do not relax thresholds</td></tr>
+<tr><td>Run stopped</td><td>Tool failure</td><td>Read <code>status.json</code>, <code>logs/snakemake.pass*.log</code>, the tool log and <code>logs/events.jsonl</code>; then <code>--mode RESUME</code></td></tr>
+<tr><td>Caller seems idle</td><td>Long CPU work without log lines</td><td>Normal on a full genome; do not restart a running job</td></tr>
+</table>
+
+<h2 id="cheat">29. Command summary</h2>
+<pre><code># once per computer
+curl -fsSL https://pixi.sh/install.sh | bash
+# once per study
+python3 PfVarX-source/bootstrap.py --workspace ~/pfvarx/my-study && cd ~/pfvarx/my-study
+./pfvarx configure --gui                 # or: nano config/config.yaml && ./pfvarx input-directories
+./pfvarx install-tools
+./pfvarx add-input --file R1.fastq.gz --file R2.fastq.gz
+./pfvarx add-input --role reference --file Pf3D7.fasta --file core_genome.bed --file Pf3D7.gff
+# check
+./pfvarx check-layout
+./pfvarx validate
+./pfvarx inputs-preparation
+./pfvarx verify-prepared
+./pfvarx ready
+./pfvarx dry-run
+# run and review
+./pfvarx pipeline
+./pfvarx status
+./pfvarx run-verify --run-id RUN_ID
+xdg-open results/report/pfvarx_dashboard.html</code></pre>
+<p style="color:var(--muted);font-size:14px;margin-top:40px">PfVarX 1.0.0 · Sample analysis guide · generated 26 November 2026 from the release source and a live synthetic run.</p>
+</main>
+</div>
+<script>
+function toggleTheme(){var r=document.documentElement;var dark=r.dataset.theme?r.dataset.theme==="dark":matchMedia("(prefers-color-scheme: dark)").matches;r.dataset.theme=dark?"light":"dark";try{localStorage.setItem("pfvarx-theme",r.dataset.theme)}catch(e){}}
+try{var t=localStorage.getItem("pfvarx-theme");if(t)document.documentElement.dataset.theme=t}catch(e){}
+</script>
+</body>
+</html>

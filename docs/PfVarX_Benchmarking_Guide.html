@@ -1,0 +1,574 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>PfVarX Benchmarking</title>
+<style>
+:root{--bg:#f4f6f9;--paper:#fff;--ink:#1b2b3a;--muted:#55687a;--line:#d9e1e8;--accent:#1f5f8b;--accent-soft:#e8f1f8;--code:#f1f4f7;--ok:#1d7a46;--ok-bg:#e6f4ec;--warn:#8a5a00;--warn-bg:#fff4d9;--bad:#a3271f;--bad-bg:#fde9e7;--side:#eaf0f5}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#11171d;--paper:#182129;--ink:#e3eaf0;--muted:#9fb0bf;--line:#2c3a46;--accent:#7cb8e4;--accent-soft:#1d3142;--code:#121a21;--ok:#6fd39a;--ok-bg:#163525;--warn:#f0c46b;--warn-bg:#3a2e12;--bad:#f39a90;--bad-bg:#3d1c19;--side:#141c23}}
+:root[data-theme="dark"]{--bg:#11171d;--paper:#182129;--ink:#e3eaf0;--muted:#9fb0bf;--line:#2c3a46;--accent:#7cb8e4;--accent-soft:#1d3142;--code:#121a21;--ok:#6fd39a;--ok-bg:#163525;--warn:#f0c46b;--warn-bg:#3a2e12;--bad:#f39a90;--bad-bg:#3d1c19;--side:#141c23}
+*{box-sizing:border-box}html{scroll-behavior:smooth}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.6 system-ui,-apple-system,"Segoe UI",sans-serif}
+header{background:var(--accent);color:#fff;padding:22px 28px}
+:root[data-theme="dark"] header{color:#0d1720}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) header{color:#0d1720}}
+header h1{margin:0;font-size:26px}header p{margin:6px 0 0;opacity:.92}
+.layout{display:flex;align-items:flex-start}
+nav{width:280px;flex:none;position:sticky;top:0;max-height:100vh;overflow:auto;background:var(--side);padding:18px 14px;font-size:13.5px;border-right:1px solid var(--line)}
+nav a{display:block;color:var(--accent);text-decoration:none;padding:5px 8px;border-radius:5px}nav a:hover{background:var(--paper)}
+nav .grp{font-weight:700;color:var(--muted);text-transform:uppercase;font-size:11.5px;letter-spacing:.06em;margin:14px 8px 4px}
+main{flex:1;min-width:0;max-width:1100px;padding:26px 40px 80px;background:var(--paper)}
+h2{font-size:24px;margin:48px 0 14px;padding:12px 16px;background:var(--accent-soft);border-left:5px solid var(--accent);border-radius:4px;scroll-margin-top:12px}
+h3{font-size:18px;margin:28px 0 8px;color:var(--accent)}h4{margin:18px 0 6px}
+p,li{max-width:80ch}
+code{font:13.5px ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;background:var(--code);padding:1px 5px;border-radius:4px;overflow-wrap:anywhere}
+pre{background:var(--code);border:1px solid var(--line);border-radius:6px;padding:14px 16px;overflow:auto;line-height:1.45}pre code{background:none;padding:0;font-size:13px}
+pre.out{border-left:4px solid var(--ok)}pre.out::before{content:"Expected output";display:block;font:600 11px system-ui;color:var(--ok);text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px}
+pre.dry{border-left:4px solid var(--warn)}pre.dry::before{content:"Dry run: shows what would happen, changes nothing";display:block;font:600 11px system-ui;color:var(--warn);text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px}
+table{border-collapse:collapse;width:100%;margin:10px 0 16px;font-size:14px;display:block;overflow-x:auto}
+th,td{border:1px solid var(--line);padding:7px 10px;text-align:left;vertical-align:top}th{background:var(--accent-soft)}
+.step{border:1px solid var(--line);border-radius:8px;padding:4px 18px 10px;margin:18px 0;background:var(--paper)}
+.meta{display:grid;grid-template-columns:150px 1fr;gap:4px 12px;font-size:14.5px;margin:10px 0}.meta b{color:var(--muted)}
+.note,.warn,.bad{border-radius:6px;padding:10px 14px;margin:12px 0}
+.note{background:var(--accent-soft)}.warn{background:var(--warn-bg)}.bad{background:var(--bad-bg)}
+.ok{color:var(--ok);font-weight:700}
+.toolbar{float:right}.toolbar button{font:inherit;font-size:13px;padding:4px 10px;border-radius:5px;border:1px solid #ffffff88;background:transparent;color:inherit;cursor:pointer}
+@media (max-width:860px){.layout{display:block}nav{position:static;width:auto;max-height:none;border-right:0}main{padding:18px 16px 60px}.meta{grid-template-columns:1fr}}
+@media print{nav,.toolbar{display:none}main{max-width:none;padding:0}h2{break-before:page}}
+</style>
+</head>
+<body>
+<header>
+<div class="toolbar"><button type="button" onclick="toggleTheme()">Light / dark</button></div>
+<h1>PfVarX 1.0.0 — Benchmarking</h1>
+<p>Every step to measure how well the PfVarX caller and workflow agree with independently known truth: separate workspace, truth files, locked partition, run, scoring, metrics, cross-checks, resources and archiving.</p>
+</header>
+<div class="layout">
+<nav aria-label="Contents">
+<div class="grp">Plan</div>
+<a href="#idea">0. What benchmarking is (and is not)</a>
+<a href="#flow">1. The whole procedure at a glance</a>
+<a href="#req">2. Requirements and tools</a>
+<a href="#protocol">3. Write the protocol first</a>
+<div class="grp">Set up</div>
+<a href="#ws">4. Create a separate workspace</a>
+<a href="#config">5. Configure the experiment</a>
+<a href="#tools">6. Install the tools</a>
+<div class="grp">Smoke test</div>
+<a href="#smoke">7. Synthetic smoke experiment</a>
+<a href="#verify">8. Automated verification runner</a>
+<div class="grp">Real experiment</div>
+<a href="#inputs">9. Reads, reference and sample sheet</a>
+<a href="#truth">10. Truth resources</a>
+<a href="#truthcheck">11. Check the truth before use</a>
+<a href="#partition">12. Lock the partition</a>
+<a href="#preflight">13. Validate, prepare, dry run</a>
+<a href="#run">14. Run without truth</a>
+<a href="#review">15. Review QC and exclusions</a>
+<a href="#dev">16. Score the development set</a>
+<a href="#freeze">17. Freeze the protocol</a>
+<a href="#holdout">18. Score the held-out set once</a>
+<div class="grp">Interpret</div>
+<a href="#files">19. Output files</a>
+<a href="#metrics">20. Metrics and how they are computed</a>
+<a href="#mixture">21. Mixtures, WSAF and K</a>
+<a href="#rtg">22. RTG vcfeval cross-check</a>
+<a href="#compare">23. Compare with another caller</a>
+<a href="#resources">24. Measure resources</a>
+<a href="#archive">25. Reproducibility and archive</a>
+<a href="#trouble">26. Troubleshooting</a>
+<a href="#cheat">27. Command summary</a>
+</nav>
+<main>
+
+<div class="note"><b>About the example outputs.</b> The "Expected output" blocks come from a real run of PfVarX 1.0.0 on 26 November 2026: a synthetic WGS benchmark of 14 samples (10 monoclonal, 3 mixtures, 1 deliberately low-depth), project <code>VERIFY_BENCHMARK</code>, run <code>20261126T160637Z-VERIFY_BENCHMARK-0bf55604</code>. Synthetic scores test the software; they are <b>not</b> field or clinical accuracy. Your numbers will differ.</div>
+
+<h2 id="idea">0. What benchmarking is (and is not)</h2>
+<table>
+<tr><th>Activity</th><th>Inputs</th><th>What it establishes</th></tr>
+<tr><td>Software tests</td><td>Small generated examples (development branch)</td><td>Code behaviour and mathematics</td></tr>
+<tr><td>Synthetic end-to-end verification</td><td><code>pfvarx fixture</code></td><td>Tool integration, QC, eligibility, outputs, evaluation plumbing</td></tr>
+<tr><td><b>Real-truth benchmarking</b></td><td>Independently established truth + confidence regions</td><td>Agreement with that truth for the tested assay and context</td></tr>
+<tr><td>Calibration</td><td>Predeclared development experiments</td><td>Empirical settings with provenance; not done automatically</td></tr>
+<tr><td><b>Held-out evaluation</b></td><td>Locked, unseen truth partition</td><td>The final performance estimate for the frozen experiment</td></tr>
+</table>
+<div class="warn">Benchmark the <b>same</b> caller and workflow you use for analysis, in a <b>separate</b> workspace with <code>purpose: benchmarking</code>. Never reuse an analysis workspace. Never derive truth from PfVarX's own output. A successful pilot without independent truth is not accuracy validation.</div>
+
+<h2 id="flow">1. The whole procedure at a glance</h2>
+<table>
+<tr><th>#</th><th>Step</th><th>Command</th><th>Writes</th></tr>
+<tr><td>1</td><td>Separate workspace</td><td><code>python3 PfVarX-source/bootstrap.py --profile benchmark --workspace DIR</code></td><td>DIR</td></tr>
+<tr><td>2</td><td>Configure</td><td>edit <code>config/config.yaml</code> (<code>purpose: benchmarking</code>)</td><td><code>config/</code></td></tr>
+<tr><td>3</td><td>Smoke test</td><td><code>./pfvarx fixture … --low-depth-sample</code> in a throw-away workspace</td><td>synthetic inputs</td></tr>
+<tr><td>4</td><td>Supply reads, reference, truth</td><td><code>add-input</code>, files in <code>inputs/truth/</code></td><td><code>inputs/</code></td></tr>
+<tr><td>5</td><td>Lock partition (once, before tuning)</td><td><code>./pfvarx benchmark-partition --holdout-fraction 0.25 --seed N</code></td><td><code>inputs/partitions/partition.json</code></td></tr>
+<tr><td>6</td><td>Validate → prepare → verify → ready → dry run</td><td><code>validate</code>, <code>prepare</code>, <code>verify-prepared</code>, <code>ready</code>, <code>dry-run</code></td><td><code>metadata/</code>, <code>prepared/</code></td></tr>
+<tr><td>7</td><td>Run calls (truth not used)</td><td><code>./pfvarx pipeline</code>, <code>run-verify</code></td><td><code>runs/RUN_ID/</code></td></tr>
+<tr><td>8</td><td>Score development set</td><td><code>./pfvarx benchmark-evaluate --run-id RUN_ID --out benchmarks/development</code></td><td><code>benchmarks/development/</code></td></tr>
+<tr><td>9</td><td>Freeze protocol</td><td>written record</td><td>your protocol</td></tr>
+<tr><td>10</td><td>Score held-out set, <b>once</b></td><td><code>… --holdout --out benchmarks/heldout</code></td><td><code>benchmarks/heldout/</code> + attempt record</td></tr>
+<tr><td>11</td><td>Resources, archive</td><td><code>./pfvarx benchmark-resources --run-id RUN_ID</code></td><td><code>config/profiles/resources.yaml</code></td></tr>
+</table>
+
+<h2 id="req">2. Requirements and tools</h2>
+<p>Everything in the sample analysis guide (Linux x86-64, Git, Python 3.11+, Pixi, internet for installation, ≈8 GB RAM, 4 cores), plus:</p>
+<table>
+<tr><th>Tool (1.0.0 lock)</th><th>Used for</th><th>Installed by</th></tr>
+<tr><td>bcftools 1.24</td><td><code>bcftools norm</code>: left-align and decompose calls and truth before matching</td><td>FO002+ (every benchmark)</td></tr>
+<tr><td>PfVarX evaluator (Python 3.12, NumPy, SciPy)</td><td>Matching, sensitivity/precision, wild cluster bootstrap, WSAF calibration, K agreement</td><td>always</td></tr>
+<tr><td>RTG Tools 3.13 (optional)</td><td>Manual haplotype-aware cross-check with <code>rtg vcfeval</code></td><td><code>--rtg</code> at bootstrap, or the development profile</td></tr>
+<tr><td>fastp, bwa-mem2, samtools, Picard, mosdepth, fgbio, the caller</td><td>The same processing as analysis</td><td>per design and input type</td></tr>
+<tr><td>SnpEff, R/moire, …</td><td>Only if FO004 analyses are part of the experiment</td><td><code>--analyses …</code></td></tr>
+<tr><td><code>sha256sum</code></td><td>Checksums of every truth and input file</td><td>coreutils</td></tr>
+</table>
+
+<h2 id="protocol">3. Write the protocol before you look at any result</h2>
+<p>Record, in a file outside the workspace (for example <code>~/pfvarx-lab/records/BENCH_2026_01_protocol.md</code>):</p>
+<ol>
+<li>Assay and design (<code>wgs</code>, <code>targeted_no_umi</code>, <code>targeted_umi</code>), input type, final output (FO002 for caller-only scoring).</li>
+<li>Variant scope (SNV, small indels), coverage range, mixture proportions to be tested.</li>
+<li>Reference FASTA, GFF and core mask with release and SHA-256.</li>
+<li>Truth provenance for every sample: how it was established, independent of PfVarX.</li>
+<li>Confident regions: source and how they were derived.</li>
+<li>Exclusion rules (QC failures, contamination) and the denominators you will report.</li>
+<li>Acceptance criteria (for example SNV sensitivity ≥ X with 95% interval lower bound ≥ Y).</li>
+<li>Partition seed and held-out fraction; who may see held-out results and when.</li>
+</ol>
+
+<h2 id="ws">4. Create a separate benchmarking workspace</h2>
+<div class="step">
+<div class="meta"><b>Why</b><span>Keeps truth, partitions and evaluations apart from routine analysis.</span><b>Needs</b><span>Python 3.11+, Pixi, internet</span><b>Creates</b><span>workspace with <code>purpose: benchmarking</code> config, truth/partition folders, blank sample registry</span></div>
+<pre><code>cd ~/pfvarx
+python3 PfVarX-source/bootstrap.py --profile benchmark --workspace ~/pfvarx/bench-2026-01
+# variants:
+python3 PfVarX-source/bootstrap.py --profile benchmark --rtg --workspace ~/pfvarx/bench-2026-01            # + RTG Tools
+python3 PfVarX-source/bootstrap.py --profile benchmark --design targeted_umi --workspace ~/pfvarx/bench-umi
+python3 PfVarX-source/bootstrap.py --profile benchmark --analyses DA002 DA001 --workspace ~/pfvarx/bench-fo004
+python3 PfVarX-source/bootstrap.py --profile benchmark --input-type BAM --workspace ~/pfvarx/bench-bam
+cd ~/pfvarx/bench-2026-01 && ./pfvarx version</code></pre>
+<pre class="out"><code>1.0.0</code></pre>
+<p>Use <code>./pfvarx</code> and <code>./pfvarx tool TOOL …</code> from this workspace so the recorded locked environment is used. Capabilities cannot be expanded by editing installation metadata: bootstrap a new workspace instead.</p>
+</div>
+
+<h2 id="config">5. Configure the experiment</h2>
+<div class="step">
+<p><code>config-init --purpose benchmarking</code> (run by bootstrap) writes the benchmarking template. It differs from the analysis template only in:</p>
+<pre><code>purpose: benchmarking                         # FIXED
+project_id: MY_BENCHMARK                      # EDIT: letters, digits, _ or -</code></pre>
+<p>Set at least:</p>
+<pre><code>project_id: BENCH_2026_01
+final_output: FO002                 # caller-only scoring; FO004 only with a matching GFF
+input_type: FASTQ
+assay_design: wgs
+reference:
+  fasta: inputs/reference/Pf3D7.fasta
+  core_mask_bed: inputs/reference/core_genome.bed
+  release_label: PlasmoDB 68        # the exact release of your FASTA/GFF
+random_seed: 20261106</code></pre>
+<p>Compute limits are set in <code>config/compute.yaml</code> exactly as for analysis. Keep them identical across experiments you intend to compare for runtime.</p>
+</div>
+
+<h2 id="tools">6. Install the tools</h2>
+<div class="step">
+<pre><code>./pfvarx install-tools --check
+./pfvarx install-tools</code></pre>
+<p>Not needed if the workspace was bootstrapped with <code>--profile benchmark</code> (tools installed up front).</p>
+</div>
+
+<h2 id="smoke">7. Synthetic smoke experiment (do this first)</h2>
+<div class="step">
+<div class="meta"><b>Why</b><span>Proves the chain runs on this computer before you spend time on real truth.</span><b>Where</b><span>A <b>new, empty</b> benchmarking workspace only. <code>fixture</code> writes synthetic data at the standard input paths.</span></div>
+<p>Set <code>reference.release_label: SYNTHETIC_SOFTWARE_FIXTURE</code> and keep the template reference file names. Then:</p>
+<pre><code>./pfvarx fixture --design wgs --purpose benchmarking --n-mono 10 --low-depth-sample</code></pre>
+<p>Options: <code>--depth</code> (default 40), <code>--seed</code> (7), <code>--n-mono</code> (6), <code>--n-poly</code> (3), <code>--low-depth-sample</code>, <code>--variant-scale N</code>. The example created 14 samples with truth:</p>
+<pre class="out"><code>{
+  "samples": ["PF001", "PF002", …, "PF014"],
+  "design": "wgs",
+  "truth": {
+    "PF001": {"components": [{"clone": "clone0", "proportion": 1.0}], "true_k": 1, "clonality": "MONOCLONAL"},
+    …
+  }
+}</code></pre>
+<p>Files written:</p>
+<pre class="out"><code>inputs/fastq/PF001_L001_R1.fastq.gz … PF014_L001_R2.fastq.gz
+inputs/reference/Pf3D7.fasta  core_genome.bed  (Pf3D7.gff)
+inputs/truth/truth.json  confident_regions.bed
+inputs/truth/PF001.truth.vcf … PF010.truth.vcf  PF014.truth.vcf     # monoclonal samples only</code></pre>
+<p>Then run the chain:</p>
+<pre><code>./pfvarx benchmark-partition --holdout-fraction 0.25
+./pfvarx check-layout
+./pfvarx validate
+./pfvarx prepare
+./pfvarx prepare --dry-run       # must show no actions
+./pfvarx verify-prepared
+./pfvarx ready
+./pfvarx dry-run
+./pfvarx pipeline
+./pfvarx status</code></pre>
+<p>Expected: every command exits 0, <code>pipeline</code> reports <code>"status": "COMPLETED"</code> (the example took about 4.5 minutes), and the deliberately low-depth sample is excluded at its own QC gate while the others continue:</p>
+<pre class="out"><code>PF014 QC=FAIL
+G2.depth     observed 3     fail below 5     FAIL
+G2.callable  observed 0.19  fail below 0.5   FAIL</code></pre>
+<div class="warn">Do not change thresholds to make the low-depth sample pass. Its exclusion is the expected result.</div>
+</div>
+
+<h2 id="verify">8. Automated verification runner (full installation)</h2>
+<div class="step">
+<p>From a full source checkout with the complete environment (<code>pixi install --locked</code>), the runner creates new scenario workspaces, makes fixtures, runs everything and checks the outputs, including both partitions and the refusal of a second held-out evaluation:</p>
+<pre><code>cd ~/pfvarx/PfVarX-source
+pixi run python scripts/verify.py benchmark --output /absolute/path/new-bench-verification
+pixi run python scripts/verify.py --dry-run-only --output /absolute/path/new-preflight     # all scenarios, no pipeline</code></pre>
+<p>Commands the <code>benchmark</code> scenario runs, in order (from its <code>verification.json</code>):</p>
+<pre class="out"><code>config-init --purpose benchmarking
+init
+fixture --design wgs --purpose benchmarking --n-mono 10 --low-depth-sample
+benchmark-partition --holdout-fraction 0.25
+check-layout
+validate
+prepare
+prepare --dry-run
+ready
+dry-run
+pipeline
+run-verify --run-id 20261126T160637Z-VERIFY_BENCHMARK-0bf55604
+benchmark-evaluate --out benchmarks/development
+benchmark-evaluate --holdout --out benchmarks/heldout
+benchmark-evaluate --holdout --out benchmarks/heldout      # must be refused</code></pre>
+<p>The output folder must not exist. Scenarios: <code>wgs targeted umi benchmark fo001 fo003 auto</code>. Each scenario writes <code>verification.json</code> with <code>"status": "PASSED"</code> and one log per command.</p>
+</div>
+
+<h2 id="inputs">9. Real experiment: reads, reference and sample sheet</h2>
+<div class="step">
+<p>Use a <b>fresh</b> benchmarking workspace. Supply reads and references exactly as in the sample analysis guide:</p>
+<pre><code>./pfvarx add-input --file /data/truthset/PURE_A_L001_R1.fastq.gz --file /data/truthset/PURE_A_L001_R2.fastq.gz
+./pfvarx add-input --role reference --file /data/ref/Pf3D7.fasta --file /data/ref/core_genome.bed
+./pfvarx inputs-preparation          # builds prepared/samples.tsv from the files
+column -t -s $'\t' prepared/samples.tsv | less -S</code></pre>
+<p>Every truth sample ID must equal the registered <code>sample_id</code>.</p>
+</div>
+
+<h2 id="truth">10. Truth resources</h2>
+<div class="step">
+<div class="meta"><b>Where</b><span><code>inputs/truth/</code> (role <code>truth</code>: <code>./pfvarx add-input --role truth --file …</code>)</span><b>Shipped?</b><span>No. Truth is never downloaded or invented.</span></div>
+<pre><code>inputs/truth/
+  truth.json                      # sample composition and clone variants
+  confident_regions.bed           # where truth is complete (zero-based, half-open)
+  &lt;MONOCLONAL_SAMPLE_ID&gt;.truth.vcf  # one uncompressed VCF per pure sample</code></pre>
+<h4>truth.json (structure)</h4>
+<pre><code>{
+  "samples": {
+    "PURE_A": {"clonality": "MONOCLONAL", "true_k": 1, "components": [{"clone": "cloneA", "proportion": 1.0}]},
+    "PURE_B": {"clonality": "MONOCLONAL", "true_k": 1, "components": [{"clone": "cloneB", "proportion": 1.0}]},
+    "MIX_AB": {"clonality": "POLYCLONAL", "true_k": 2,
+               "components": [{"clone": "cloneA", "proportion": 0.7}, {"clone": "cloneB", "proportion": 0.3}]}
+  },
+  "clones": {
+    "cloneA": [{"chrom": "Pf3D7_01_v3", "pos": 12345, "ref": "A", "alt": "G"}],
+    "cloneB": []
+  }
+}</code></pre>
+<p>Positions in JSON and VCF are one-based; BED is zero-based. Mixture proportions are real DNA proportions and sum to 1; list every constituent clone. An empty <code>clones</code> object is valid for an all-monoclonal experiment but gives no mixture truth.</p>
+<h4>confident_regions.bed and a truth VCF (synthetic example)</h4>
+<pre class="out"><code>$ head -2 inputs/truth/confident_regions.bed
+ctg1	1500	28500
+ctg2	1500	22500
+
+$ grep -v '^##' inputs/truth/PF004.truth.vcf | head -3
+#CHROM	POS	ID	REF	ALT	QUAL	FILTER	INFO	FORMAT	PF004
+ctg1	2104	.	A	G	.	PASS	.	GT	1
+ctg1	2266	.	G	C	.	PASS	.	GT	1</code></pre>
+<p>Truth VCFs must use the same assembly, contig names and alleles as the analysis reference. The built-in evaluator uses one shared confidence BED for all samples.</p>
+</div>
+
+<h2 id="truthcheck">11. Check the truth before use</h2>
+<div class="step">
+<p>The evaluator is not a complete truth validator. Check yourself:</p>
+<pre><code># contigs in truth exist in the reference
+cut -f1 prepared/reference/parasite.fasta.fai | sort > /tmp/ref.contigs
+grep -hv '^#' inputs/truth/*.truth.vcf | cut -f1 | sort -u | comm -23 - /tmp/ref.contigs     # must print nothing
+# REF alleles agree with the reference (errors are reported)
+for v in inputs/truth/*.truth.vcf; do ./pfvarx tool bcftools norm -f prepared/reference/parasite.fasta --check-ref e -Ou "$v" > /dev/null || echo "REF mismatch: $v"; done
+# BED within contig bounds
+awk 'NR==FNR{len[$1]=$2;next} !($1 in len) || $3>len[$1] || $2&lt;0 || $2&gt;=$3 {print "bad BED line: "$0}' prepared/reference/parasite.fasta.fai inputs/truth/confident_regions.bed
+# mixture proportions sum to 1
+python3 -c "import json;d=json.load(open('inputs/truth/truth.json'));[print(s,sum(c['proportion'] for c in v['components'])) for s,v in d['samples'].items()]"
+# checksums for the archive
+sha256sum inputs/truth/* inputs/reference/* > ~/pfvarx-lab/records/BENCH_2026_01_inputs.sha256</code></pre>
+<p>Run the reference checks after <code>prepare</code> (they read <code>prepared/reference/parasite.fasta</code>).</p>
+</div>
+
+<h2 id="partition">12. Lock the development / held-out partition (once, before tuning)</h2>
+<div class="step">
+<div class="meta"><b>Purpose</b><span>Splits truth samples into a development set (<code>benchmarking</code>) and a held-out set, with a content hash.</span><b>Writes</b><span><code>inputs/partitions/partition.json</code></span><b>Refuses</b><span>a second lock</span></div>
+<pre><code>./pfvarx benchmark-partition --holdout-fraction 0.25 --seed 20261106</code></pre>
+<pre class="out"><code>{
+  "schema": "pfvarx.partition/1",
+  "locked_utc": "2026-11-26T16:06:10.430783+00:00",
+  "seed": 20261106,
+  "benchmarking": ["PF004","PF005","PF006","PF007","PF008","PF009","PF010","PF012","PF013","PF014"],
+  "held_out": ["PF001","PF002","PF003","PF011"],
+  "sha256": "d761666214b211e4b037583607e0851836963eed8a1fb4527958f3d32678e070"
+}</code></pre>
+<p>The fraction must be strictly between 0 and 1. The split is random by sample ID, not stratified or lineage-aware: prevent leakage by design (technical replicates or related isolates are not independent). Keep held-out results inaccessible during development; the software does not enforce access control.</p>
+</div>
+
+<h2 id="preflight">13. Validate, prepare and dry run</h2>
+<div class="step">
+<pre><code>./pfvarx check-layout
+./pfvarx validate
+./pfvarx prepare --dry-run
+./pfvarx prepare
+./pfvarx verify-prepared
+./pfvarx ready
+./pfvarx dry-run</code></pre>
+<p>Outputs have the same form as in analysis (<code>"status": "PASS"</code>, <code>"ready": true</code>, dry-run <code>"status": "OK"</code> with no <code>runs/</code> created). <code>verify-prepared</code> must pass; <code>pipeline</code> enforces it again.</p>
+</div>
+
+<h2 id="run">14. Run the calls (truth is not used)</h2>
+<div class="step">
+<pre><code>./pfvarx pipeline
+./pfvarx run-verify --run-id 20261126T160637Z-VERIFY_BENCHMARK-0bf55604</code></pre>
+<pre class="out"><code>{
+  "run_id": "20261126T160637Z-VERIFY_BENCHMARK-0bf55604",
+  "status": "COMPLETED",
+  "passes": [{"pass": 1, "exit_code": 0, "failed_samples": {}, "log": "…/logs/snakemake.pass1.log"}],
+  "downstream_failures": [],
+  "report": {"dashboard": "runs/20261126T160637Z-VERIFY_BENCHMARK-0bf55604/results/report/pfvarx_dashboard.html", "bytes": 1462367, …}
+}
+{
+  "run_id": "20261126T160637Z-VERIFY_BENCHMARK-0bf55604",
+  "frozen_integrity": "PASS",
+  "tampered": [],
+  "workspace_drift": [],
+  …
+}</code></pre>
+<p>Record the run ID in the protocol.</p>
+</div>
+
+<h2 id="review">15. Review QC and exclusions before scoring</h2>
+<div class="step">
+<pre><code>for d in results/qc/samples/*/; do s=$(basename "$d");
+  python3 -c "import json,sys;print(sys.argv[1], json.load(open(sys.argv[2]))['verdict'])" "$s" "$d/qc_decision.json"; done</code></pre>
+<p>Record each excluded sample and its reason. An excluded sample is not scored and is never treated as perfect. In the example, PF014 (low depth) was excluded, so the development set scored 7 of its pure samples. Do not evaluate an incomplete run.</p>
+</div>
+
+<h2 id="dev">16. Score the development set</h2>
+<div class="step">
+<div class="meta"><b>Tools</b><span>bcftools norm (left-align, decompose), PfVarX evaluator</span><b>Writes</b><span><code>benchmarks/development/</code></span></div>
+<pre><code>./pfvarx benchmark-evaluate --run-id 20261126T160637Z-VERIFY_BENCHMARK-0bf55604 --out benchmarks/development</code></pre>
+<pre class="out"><code>{
+  "schema": "pfvarx.benchmark_report/1",
+  "run_id": "20261126T160637Z-VERIFY_BENCHMARK-0bf55604",
+  "partition": "benchmarking",
+  "partition_sha256": "d761666214b211e4b037583607e0851836963eed8a1fb4527958f3d32678e070",
+  "accuracy": {
+    "SNV": {
+      "sensitivity": {"estimate": 1.0, "lo": 1.0, "hi": 1.0, "clusters": 7, "weights": "Webb six-point", "vectors": "9999 random draws"},
+      "precision":   {"estimate": 0.9965576592082617, "lo": 0.9926050240418388, "hi": 1.0, "clusters": 7,
+                      "weights": "Webb six-point", "vectors": "9999 random draws", "design_effect": 0.824552094387924},
+      "f1": 0.9982758620689656,
+      "samples": 7
+    },
+    "INDEL": {
+      "sensitivity": {"estimate": 1.0, "lo": 1.0, "hi": 1.0, "clusters": 7, …},
+      "precision":   {"estimate": 1.0, "lo": 1.0, "hi": 1.0, "clusters": 7, …},
+      "f1": 1.0,
+      "samples": 7
+    }
+  },
+  "vcfeval": "RTG vcfeval available; run 'rtg format' on the reference and 'rtg vcfeval' for cross-check (not automated)",
+  "wsaf_calibration": {"sites": 269, "slope": 0.9909889597425299, "intercept": 0.006334046163612623,
+                       "rmse": 0.06128059512023332, "interval_coverage": 0.9628252788104089, "nominal": 0.95},
+  "detection_by_expected_fraction": {
+    "0.1-0.2":   {"sites": 57,  "detected_pass": 43,  "detection_rate": 0.7543859649122807},
+    "0.2-0.35":  {"sites": 71,  "detected_pass": 69,  "detection_rate": 0.971830985915493},
+    "0.5-0.999": {"sites": 144, "detected_pass": 144, "detection_rate": 1.0}
+  },
+  "k_selection": {"correct": 9, "total": 9},
+  "truth_note": "scores describe agreement with the declared truth set only (synthetic fixtures: software testing, not field accuracy)",
+  "matching": "exact after bcftools norm (left-aligned, decomposed); within confident regions"
+}</code></pre>
+<p>Read it as: SNV sensitivity 1.0 (95% interval 1.0–1.0) and precision 0.997 (0.993–1.0) over 7 pure samples; low-frequency alleles at 10–20% were detected 75% of the time; technical K was right for 9 of 9 samples.</p>
+<pre><code>column -t benchmarks/development/per_sample_accuracy.tsv | head</code></pre>
+<pre class="out"><code>sample_id  variant_type  status  tp  fp  fn  sensitivity  precision           fp_per_callable_mb
+PF004      SNV           SCORED  83  0   0   1.0          1.0                 0.0
+PF004      INDEL         SCORED  7   0   0   1.0          1.0                 0.0
+PF005      SNV           SCORED  81  1   0   1.0          0.9878048780487805  20.834635498051963</code></pre>
+<p>Repeat development rounds as needed (a new run per change, a new <code>--out</code> folder per evaluation, everything recorded).</p>
+</div>
+
+<h2 id="freeze">17. Freeze the protocol</h2>
+<p>Before the held-out step, record and stop changing: preprocessing, parameters (<code>config/parameters/*.yaml</code>), QC policy, reference and masks, caller version (<code>./pfvarx version</code>, <code>pixi.lock</code> hash), the run ID to be scored and the acceptance criteria. Calibrated settings need their parameter source entries and review; the evaluator never tunes anything.</p>
+
+<h2 id="holdout">18. Score the held-out set — once</h2>
+<div class="step">
+<pre><code>./pfvarx benchmark-evaluate --run-id 20261126T160637Z-VERIFY_BENCHMARK-0bf55604 --holdout --out benchmarks/heldout</code></pre>
+<pre class="out"><code>{
+  "schema": "pfvarx.benchmark_report/1",
+  "partition": "held_out",
+  "partition_sha256": "d761666214b211e4b037583607e0851836963eed8a1fb4527958f3d32678e070",
+  "accuracy": {
+    "SNV":   {"sensitivity": {"estimate": 1.0, "lo": 1.0, "hi": 1.0, "clusters": 3, "weights": "Webb six-point", "vectors": "enumerated"},
+              "precision":   {"estimate": 1.0, "lo": 1.0, "hi": 1.0, "clusters": 3, …}, "f1": 1.0, "samples": 3},
+    "INDEL": {"sensitivity": {"estimate": 1.0, …}, "precision": {"estimate": 1.0, …}, "f1": 1.0, "samples": 3}
+  },
+  "wsaf_calibration": {"sites": 117, "slope": 1.001172789812647, "intercept": -0.0035750512295082445,
+                       "rmse": 0.06204225538285542, "interval_coverage": 0.9743589743589743, "nominal": 0.95},
+  "detection_by_expected_fraction": {
+    "0.2-0.35":  {"sites": 56, "detected_pass": 56, "detection_rate": 1.0},
+    "0.5-0.999": {"sites": 61, "detected_pass": 61, "detection_rate": 1.0}
+  },
+  "k_selection": {"correct": 4, "total": 4},
+  …
+}</code></pre>
+<p>A second attempt in the same output folder is refused, even after a failed attempt:</p>
+<pre class="out"><code>{
+  "status": "ERROR",
+  "error": "held-out evaluation already performed once; record a new experiment instead"
+}</code></pre>
+<p><code>benchmarks/heldout/holdout_attempts.jsonl</code> records the attempt:</p>
+<pre class="out"><code>{"run_id": "20261126T160637Z-VERIFY_BENCHMARK-0bf55604", "partition_sha256": "d761666214b211e4b037583607e0851836963eed8a1fb4527958f3d32678e070"}</code></pre>
+<div class="warn">The guard is per output folder, not a global lock. Changing <code>--out</code> is not permission to look again. If the protocol truly changes, start and record a new experiment, and never reuse exposed held-out samples as unseen.</div>
+</div>
+
+<h2 id="files">19. Output files of an evaluation</h2>
+<table>
+<tr><th>File</th><th>Contents</th></tr>
+<tr><td><code>benchmark_report.json</code></td><td>Summary accuracy with intervals, WSAF calibration, detection by frequency, K agreement, partition identity</td></tr>
+<tr><td><code>per_sample_accuracy.tsv</code></td><td>Per sample and type: TP, FP, FN, sensitivity, precision, FP per callable Mb</td></tr>
+<tr><td><code>mixture_sites.tsv</code></td><td>Per mixture site: expected and observed WSAF, interval, status, covered</td></tr>
+<tr><td><code>k_selection.tsv</code></td><td>Declared true K versus the caller's technical K, with mixture weights</td></tr>
+<tr><td><code>S.calls.norm.vcf.gz</code>, <code>S.truth.norm.vcf.gz</code></td><td>Normalised comparison inputs (inspect when a sample looks wrong)</td></tr>
+<tr><td><code>holdout_attempts.jsonl</code></td><td>Held-out only: the one-attempt record</td></tr>
+</table>
+<pre class="out"><code>$ head -3 benchmarks/development/k_selection.tsv
+sample_id	true_k	technical_k	status	weights
+PF004	1	1	ESTIMATED	[1.0]
+PF005	1	1	ESTIMATED	[1.0]
+
+$ head -3 benchmarks/development/mixture_sites.tsv
+sample_id	chrom	pos	expected	observed	lo	hi	status	covered
+PF012	ctg1	1763	0.7	0.7000000000000001	0.5245	0.843	PASS	True
+PF012	ctg1	2132	0.5	0.639	0.47650000000000003	0.782	PASS	True</code></pre>
+
+<h2 id="metrics">20. Metrics and how they are computed</h2>
+<table>
+<tr><th>Item</th><th>Definition in PfVarX 1.0.0</th></tr>
+<tr><td>Matching</td><td>Exact <code>(chrom, pos, ref, alt)</code> after <code>bcftools norm</code> left-alignment and multiallelic decomposition</td></tr>
+<tr><td>Calls scored</td><td>Only PASS calls, with variant anchor inside the confidence BED</td></tr>
+<tr><td>Sensitivity</td><td>TP / (TP + FN)</td></tr>
+<tr><td>Precision</td><td>TP / (TP + FP)</td></tr>
+<tr><td>F1</td><td>Harmonic mean of sensitivity and precision</td></tr>
+<tr><td>FP per callable Mb</td><td>FP divided by the caller's callable span (not intersected with the confidence BED)</td></tr>
+<tr><td>Intervals</td><td>Wild cluster bootstrap of the linearised ratio estimator over pure samples: Rademacher weights with ≥10 clusters, Webb six-point below; enumerated when small enough</td></tr>
+<tr><td>Truth outside callable</td><td>Truth variants outside the callability BED still count as FN: report this</td></tr>
+</table>
+<p>Report the denominator choices when you compare with an external tool. Very small truth sets cannot establish general performance. Investigate any reference-mismatch warning from normalisation.</p>
+
+<h2 id="mixture">21. Mixtures, WSAF and K</h2>
+<ul>
+<li><b>WSAF calibration</b>: regression of observed on expected within-sample allele frequency at mixture sites (slope, intercept, RMSE) and the share of sites whose interval covers the expected value, against nominal 0.95.</li>
+<li><b>Detection by expected fraction</b>: PASS detection rate in bins (0.1–0.2, 0.2–0.35, 0.5–0.999).</li>
+<li><b>K agreement</b>: declared true K versus the caller's technical K.</li>
+</ul>
+<div class="warn">Technical mixture K and biological COI (DA001 MOIRE) are different quantities. A summary alone does not establish mixture identifiability or clinical COI: read <code>mixture_sites.tsv</code> and the exclusions.</div>
+
+<h2 id="rtg">22. RTG vcfeval cross-check (optional, manual)</h2>
+<div class="step">
+<div class="meta"><b>Needs</b><span>RTG Tools 3.13 (<code>--rtg</code> or development profile)</span><b>Automated?</b><span>No: the evaluator only reports that RTG is available</span></div>
+<p>For one pure haploid truth sample:</p>
+<pre><code>TRUTH_SAMPLE=PF004
+mkdir -p benchmarks/rtg
+./pfvarx tool rtg format -o benchmarks/rtg/reference.sdf prepared/reference/parasite.fasta
+./pfvarx tool bcftools norm -f prepared/reference/parasite.fasta -m -any --check-ref e -Oz \
+    -o benchmarks/rtg/truth.vcf.gz "inputs/truth/${TRUTH_SAMPLE}.truth.vcf"
+./pfvarx tool bcftools view -f PASS -Oz -o benchmarks/rtg/calls.vcf.gz "results/variants/samples/${TRUTH_SAMPLE}.vcf.gz"
+./pfvarx tool bcftools index -t benchmarks/rtg/truth.vcf.gz
+./pfvarx tool bcftools index -t benchmarks/rtg/calls.vcf.gz
+./pfvarx tool rtg vcfeval --baseline benchmarks/rtg/truth.vcf.gz --calls benchmarks/rtg/calls.vcf.gz \
+    --template benchmarks/rtg/reference.sdf --evaluation-regions inputs/truth/confident_regions.bed \
+    --sample "$TRUTH_SAMPLE" --sample-ploidy 1 --vcf-score-field QUAL --at-score 0 --threads 2 \
+    --output benchmarks/rtg/evaluation
+cat benchmarks/rtg/evaluation/summary.txt</code></pre>
+<p><code>QUAL</code> is explicit because PfVarX does not write the RTG default <code>GQ</code>; ploidy 1 suits a pure haploid sample; the score threshold is fixed in advance. Use a new output folder per comparison. Exact matching and haplotype-aware scoring can disagree on complex indels: report it.</p>
+</div>
+
+<h2 id="compare">23. Compare with another caller</h2>
+<p>PfVarX does not run alternative callers automatically. For a fair comparison, run the other caller through the Layer 2 adapter contract (<code>caller.backend: external</code>, <code>caller.executable</code>, <code>caller.sha256</code>; see SOP Appendix E / <code>docs/caller.md</code>) in its own benchmarking workspace, with the same reads, reference, masks, truth, confidence BED, partition and compute budget, and score both runs with <code>benchmark-evaluate</code>.</p>
+<pre><code>sha256sum /absolute/path/to/adapter
+# config/config.yaml
+caller:
+  backend: external
+  executable: /absolute/path/to/adapter
+  sha256: "&lt;64 lowercase hexadecimal characters&gt;"</code></pre>
+
+<h2 id="resources">24. Measure resources</h2>
+<div class="step">
+<pre><code>./pfvarx benchmark-resources --run-id 20261126T160637Z-VERIFY_BENCHMARK-0bf55604</code></pre>
+<pre class="out"><code>{
+  "profile": "config/profiles/resources.yaml",
+  "schema": "pfvarx.resource_profile/1",
+  "measured_on": {"run_id": "20261126T160637Z-VERIFY_BENCHMARK-0bf55604", "input_gb": 0.0291, "samples": 14,
+                  "cpu_count": 24, "platform": "Linux-7.0.0-44-generic-x86_64-with-glibc2.43", "executor": "local"},
+  "jobs": {
+    "bwa_mem2_align": {"peak_rss_mb": 24.5,    "wall_min": 0.024, "n": 14, …},
+    "downstream":     {"peak_rss_mb": 186.02,  "wall_min": 0.20,  "n": 7,  …},
+    "fastp":          {"peak_rss_mb": 1111.84, "wall_min": 0.015, "n": 14, …},
+    "markdup":        {"peak_rss_mb": 1480.18, "wall_min": 0.28,  "n": 14, …},
+    "pfvarx_call":    {"peak_rss_mb": 481.67,  "wall_min": 0.33,  "n": 13, …}
+  }
+}</code></pre>
+<p>Writes <code>config/profiles/resources.yaml</code> from the run's Snakemake benchmark records (maximum per job type). It covers instrumented rules only and records the dataset and hardware basis. A synthetic run says nothing about full-genome runtime. Check compatibility before using the profile on another assay, machine or cohort.</p>
+</div>
+
+<h2 id="archive">25. Reproducibility and archive</h2>
+<p>Keep, outside the software distribution:</p>
+<ul>
+<li>The whole <code>runs/RUN_ID/</code> folder (frozen configuration, plan, snapshot, logs, benchmarks)</li>
+<li><code>inputs/partitions/partition.json</code> and every <code>benchmarks/*/</code> folder, including <code>holdout_attempts.jsonl</code></li>
+<li>Checksums of reads, reference, masks, truth VCFs, <code>truth.json</code>, confidence BED, catalogues</li>
+<li><code>./pfvarx version</code>, <code>sha256sum pixi.lock</code>, <code>config/</code></li>
+<li>QC exclusions with reasons, resource measurements, the written protocol and all deviations</li>
+</ul>
+<pre><code>tar -czf ~/pfvarx-lab/archive/BENCH_2026_01.tar.gz runs/ benchmarks/ inputs/partitions/ inputs/truth/ config/ metadata/ prepared/samples.tsv
+sha256sum ~/pfvarx-lab/archive/BENCH_2026_01.tar.gz &gt; ~/pfvarx-lab/archive/BENCH_2026_01.tar.gz.sha256</code></pre>
+<p><code>run-verify</code> checks frozen software and configuration integrity only; external files need your checksum manifest. Promote calibrated settings to analysis only after documented scientific review.</p>
+
+<h2 id="trouble">26. Troubleshooting</h2>
+<table>
+<tr><th>Message or symptom</th><th>Cause</th><th>Fix</th></tr>
+<tr><td>Partition refused</td><td>A partition is already locked</td><td>Intended: one lock per experiment. Start a new workspace for a new experiment</td></tr>
+<tr><td>Partition hash rejected at evaluation</td><td><code>partition.json</code> changed</td><td>Restore the original; never edit it</td></tr>
+<tr><td><code>held-out evaluation already performed once</code></td><td>Second held-out attempt</td><td>Intended. Record a new experiment</td></tr>
+<tr><td>A sample is missing from the scores</td><td>QC exclusion or not in that partition</td><td>Check <code>qc_decision.json</code> and <code>partition.json</code>; report the denominator</td></tr>
+<tr><td>Many FN outside expected regions</td><td>Truth outside callable regions</td><td>Expected interpretation; document it, check the confidence BED</td></tr>
+<tr><td>REF mismatch from <code>bcftools norm</code></td><td>Truth on a different assembly</td><td>Fix the truth; do not evaluate until it matches</td></tr>
+<tr><td>Evaluation needs a run ID</td><td>Several runs exist</td><td>Always pass <code>--run-id</code></td></tr>
+<tr><td><code>fixture</code> refuses</td><td>FASTQ fixture already present</td><td>Use a new empty workspace; never run fixture over real data</td></tr>
+</table>
+
+<h2 id="cheat">27. Command summary</h2>
+<pre><code>python3 PfVarX-source/bootstrap.py --profile benchmark --workspace ~/pfvarx/bench-2026-01 && cd ~/pfvarx/bench-2026-01
+nano config/config.yaml                                   # project_id, final_output, reference, release_label
+./pfvarx add-input --file R1.fastq.gz --file R2.fastq.gz
+./pfvarx add-input --role reference --file Pf3D7.fasta --file core_genome.bed
+./pfvarx add-input --role truth --file truth.json --file confident_regions.bed --file PURE_A.truth.vcf
+./pfvarx inputs-preparation
+./pfvarx benchmark-partition --holdout-fraction 0.25 --seed 20261106     # once, before tuning
+./pfvarx validate && ./pfvarx prepare && ./pfvarx verify-prepared && ./pfvarx ready && ./pfvarx dry-run
+./pfvarx pipeline
+./pfvarx run-verify --run-id RUN_ID
+./pfvarx benchmark-evaluate --run-id RUN_ID --out benchmarks/development
+# … freeze the protocol …
+./pfvarx benchmark-evaluate --run-id RUN_ID --holdout --out benchmarks/heldout   # once
+./pfvarx benchmark-resources --run-id RUN_ID</code></pre>
+<p style="color:var(--muted);font-size:14px;margin-top:40px">PfVarX 1.0.0 · Benchmarking guide · generated 26 November 2026 from the release source and a live synthetic benchmark run.</p>
+</main>
+</div>
+<script>
+function toggleTheme(){var r=document.documentElement;var dark=r.dataset.theme?r.dataset.theme==="dark":matchMedia("(prefers-color-scheme: dark)").matches;r.dataset.theme=dark?"light":"dark";try{localStorage.setItem("pfvarx-theme",r.dataset.theme)}catch(e){}}
+try{var t=localStorage.getItem("pfvarx-theme");if(t)document.documentElement.dataset.theme=t}catch(e){}
+</script>
+</body>
+</html>
