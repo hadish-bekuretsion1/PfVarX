@@ -31,7 +31,7 @@ BOOTSTRAP = runpy.run_path(str(ROOT / "bootstrap.py"))
 
 # Tools every final output runs, and the tools each part of the pipeline adds.
 BASE = {"python", "snakemake-minimal", "samtools", "htslib", "pysam", "picard-slim", "mosdepth"}
-TOOLS = ["fastp", "bwa-mem2", "fgbio", "bcftools", "numpy", "scipy", "snpeff", "r-base", "r-moire",
+TOOLS = ["fastp", "bwa-mem2", "fgbio", "bcftools", "numpy", "scipy", "numba", "snpeff", "r-base", "r-moire",
          "r-dcifer", "hmmibd", "scikit-allel", "iqtree", "r-mgcv", "rtg-tools"]
 # The conda package that provides each tool, where the names differ.
 PACKAGE = {"fgbio": "fgbio-minimal"}
@@ -68,7 +68,7 @@ def needed(design: str, analyses: set[str], rtg: bool, input_type: str, final_ou
         if design == "targeted_umi":
             tools.add("bwa-mem2")  # consensus reads are realigned
     if final_output >= "FO002":
-        tools |= {"bcftools", "numpy", "scipy"}
+        tools |= {"bcftools", "numpy", "scipy", "numba"}
     if final_output == "FO004":
         tools.add("snpeff")
     if analyses & {"DA001", "DA004", "DA005", "DA006"}:
