@@ -5,4 +5,4 @@ metadata reads it through ``[tool.hatch.version]`` in pyproject.toml, and every 
 VCF header, snapshot and source archive takes it from here. Change it only here.
 """
 
-__version__ = "0.0.0"
+__version__ = "1.0.0"
