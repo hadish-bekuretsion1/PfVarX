@@ -1,6 +1,6 @@
 # Implementation and scientific status
 
-This distribution contains the complete **implemented** PfVarX 0.0.0 software, including
+This distribution contains the complete **implemented** PfVarX 1.0.0 software, including
 subsequent type-safety and source-distribution cleanup. It is ready for controlled
 benchmark experiments. It is not a claim that every proposed research method exists,
 that empirical thresholds are calibrated, or that biological accuracy is established.

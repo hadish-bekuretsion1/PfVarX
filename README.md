@@ -1,6 +1,6 @@
 # PfVarX
 
-PfVarX 0.0.0 is a configuration-driven pipeline for paired-end *Plasmodium falciparum*
+PfVarX 1.0.0 is a configuration-driven pipeline for paired-end *Plasmodium falciparum*
 SNP/small-indel analysis, with a custom caller, QC, cohort integration, annotation,
 eligibility-gated downstream methods and one offline scientific dashboard.
 
