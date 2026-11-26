@@ -723,7 +723,7 @@ def rescore_parallel(pool: ProcessPoolExecutor, seqs: dict[str, str], cands: lis
 
 
 def run(args: argparse.Namespace) -> dict[str, Any]:
-    # Fault injection for failure-isolation tests only (documented in docs/testing.md).
+    # Fault injection for failure-isolation checks only; never set PFVARX_FAULT_INJECT in a real run.
     if os.environ.get("PFVARX_FAULT_INJECT") == f"pfvarx_call:{args.sample}":
         print(f"PFVARX_FAULT_INJECT: deliberate failure for {args.sample} (test only)", file=sys.stderr)
         raise SystemExit(70)
