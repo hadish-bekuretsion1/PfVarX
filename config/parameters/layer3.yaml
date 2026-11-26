@@ -1,7 +1,15 @@
-version: "1.1.0"
+version: "1.3.0"
 parameters:
   norm_multiallelic: {value: "-any", source: FRAMEWORK_POLICY}
   norm_check_ref: {value: "e", source: FRAMEWORK_POLICY}
   norm_multi_overlaps: {value: ".", source: FRAMEWORK_POLICY, note: "replaces version default 0 (reference)"}
   dominant_allele_fraction: {value: 0.95, source: LITERATURE_SUPPORTED, note: "MalariaGEN Pf7 2023: an allele below 5% of reads is treated as absent, so >=0.95 is a single-allele call (1 - value for REF)"}
   cohort_site_call_rate_min: {value: 0.8, source: FRAMEWORK_POLICY, note: "cohort QC summary: sites called (ALT, MIXED or REF) in at least this share of samples are counted as complete; reported, not gated"}
+  microhap_min_depth: {value: 10, source: UNCALIBRATED_PROVISIONAL, note: "complete fragments (both mates resolved at every variable position) a sample needs at a microhaplotype locus; below it the locus is UNCALLABLE for that sample, never read as no haplotype. No published standard; amplicon panels normally run far above this"}
+  microhap_min_haplotype_reads: {value: 2, source: LITERATURE_SUPPORTED, note: "MalariaGEN Pf7 2023: an allele seen in fewer than 2 reads is treated as absent; applied here to fragments carrying a haplotype"}
+  microhap_min_haplotype_fraction: {value: 0.05, source: LITERATURE_SUPPORTED, note: "MalariaGEN Pf7 2023: an allele below 5% of reads is treated as absent; applied to a haplotype's share of the locus's complete fragments"}
+  microhap_max_variable_positions: {value: 32, source: FRAMEWORK_POLICY, note: "variable positions used per locus; a locus with more is truncated to the first 32 and recorded (VARIABLE_POSITIONS_CAPPED), which bounds the haplotype string and the work per fragment"}
+  microhap_min_loci_for_basis: {value: 10, source: UNCALIBRATED_PROVISIONAL, note: "microhaplotype loci called in the cohort before DA001 and DA004 use microhaplotypes instead of biallelic SNVs; with fewer, the larger biallelic set is kept and the basis is recorded. Same floor as da001_min_informative_loci"}
+  microhap_derived_window_bp: {value: 150, source: FRAMEWORK_POLICY, note: "wgs: length of each derived microhaplotype locus. A haplotype needs fragments that resolve every variable position, so a locus must be spannable by one fragment; 150 bp matches a common Illumina read length. Longer loci are allowed but produce more incomplete fragments, which the artifact counts"}
+  microhap_derived_min_sites: {value: 2, source: FRAMEWORK_POLICY, note: "PASS SNVs a derived locus needs: with one site a microhaplotype is just that biallelic site and gains nothing"}
+  microhap_derived_max_loci: {value: 2000, source: FRAMEWORK_POLICY, note: "derived loci used, bounding the work per sample; the excess is recorded as DERIVED_LOCI_CAPPED"}

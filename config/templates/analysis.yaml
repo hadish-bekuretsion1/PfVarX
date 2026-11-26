@@ -28,6 +28,8 @@ analyses:
   scales: {}                               # EDIT for FO004, e.g. {DA002: [SAMPLE, POPULATION]}
   population_column: null                  # OPTIONAL: metadata column holding population labels
   resistance_catalog: null                 # OPTIONAL: versioned catalogue (default: config/registry/resistance_catalog_pfvarx_v1.tsv)
+  microhap_loci: "off"                       # OPTIONAL: off | derived (your panel targets or core windows) | catalogue
+  microhap_panel: null                     # OPTIONAL: microhaplotype loci for DA001/DA004 (default: config/registry/microhap_panel_pfvarx_v1.tsv, which has no loci)
   spatial_outcome_source: null             # EDIT if DA007 requested, e.g. DA002
 run_policy: CONTINUE_INDEPENDENT           # REVIEW: CONTINUE_INDEPENDENT | STRICT
 random_seed: 20261106                      # REVIEW

@@ -31,6 +31,7 @@ METHODS = {
     "DA006": "phylogeny",
     "DA007": "spatial",
     "DA008": "cnv",
+    "DA009": "hrp",
 }
 R_SCRIPTS = {"DA001": "da001_moire.R", "DA004": "da004_dcifer.R", "DA007": "da007_gam.R"}
 ROOT_FILES = {
@@ -160,7 +161,7 @@ def export_workspace(
         raise ValueError("An on-demand workspace takes its analyses and final output from the saved configuration")
     design = design_of(design)
     if set(analyses) - set(METHODS):
-        raise ValueError("Unknown analysis; choose DA001–DA008")
+        raise ValueError("Unknown analysis; choose DA001–DA009")
     if profile in {"sample", "cohort"} and analyses:
         raise ValueError("Select downstream or benchmark profile for analyses")
     if profile == "downstream" and not analyses:
@@ -175,8 +176,10 @@ def export_workspace(
     if "DA007" in selected:
         selected.add("DA002")
     modules = {METHODS[d] for d in selected}
-    if "DA008" in selected:
+    if selected & {"DA008", "DA009"}:
         modules.add("resistance")  # the copy-number catalogue is read with the same loader
+    if "DA009" in selected:
+        modules.add("cnv")  # pfhrp2/3 reuses the copy-number depth model for whole-genome evidence
     if selected & {"DA003", "DA001", "DA004", "DA005"}:
         modules.add("coi")  # diversity imports the shared FWS helper; no MOIRE tool unless requested/prerequisite
     if selected & {"DA001", "DA004", "DA005"}:
@@ -232,7 +235,7 @@ def export_workspace(
             continue
         if profile not in ("development", ON_DEMAND):  # on demand: all code, tools installed later
             if name.startswith("src/pfvarx/downstream/") and (
-                not selected or Path(name).stem not in modules | {"__init__", "common", "run"}
+                not selected or Path(name).stem not in modules | {"__init__", "common", "run", "loci"}
             ):
                 continue
             if name.startswith("src/pfvarx/annotation/") and not selected:

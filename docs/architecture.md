@@ -25,7 +25,8 @@ and execution are separate entry points.
 
 FO001–FO003 installations need no downstream implementation (FO001 also leaves out the caller and its tools). Selected FO004 analyses
 add annotation and requested modules plus genuine prerequisites/shared helpers. DA004,
-DA005 and DA006 depend on DA001; DA007 currently uses DA002 outcomes; DA008 has no prerequisite. Registry/policy
+DA005 and DA006 depend on DA001; DA007 currently uses DA002 outcomes; DA008 and DA009 have no
+prerequisite, and DA009 reuses DA008's depth model for whole-genome evidence. Registry/policy
 metadata remains shared because control/provenance code reads it. Tool feature groups
 are reads, targeted, annotation, coi, related, structure, phylogeny, spatial, bench and
 dev. Valid feature combinations are locked in the single Pixi manifest/lock. Core is
@@ -75,6 +76,27 @@ and interval conventions live outside the native caller package.
 
 See the [configuration editor and input procedure](configuration.md) and the
 [sequencing and downstream eligibility matrix](sequencing.md).
+
+## Cohort evidence in memory
+
+Layer 5 analyses that need a genotype at every cohort site read `cohort/evidence_matrix.tsv.gz`
+into memory. The cohort's sample order is known before the file is read, so each site holds
+columns addressed by the sample's position: one pass, constant-time lookup and no intermediate
+copy. That costs a measured 25 bytes per cell against 473 for a dict per cell, and `wsaf` is
+kept as a float64 exactly as the file holds it, so no comparison against a reporting floor can
+move. Each analysis declares whether it reads the matrix (`USES_COHORT_MATRIX`); the four that
+work from the alignments never pay for it, and an analysis that does not declare itself is given
+the matrix, so a new one cannot lose its evidence by omission
+(`tests/unit/test_matrix_declarations.py`).
+
+## Microhaplotype loci
+
+Layer 3 writes one multiallelic marker per catalogue locus (`cohort/microhaplotypes.tsv.gz`)
+from the reads of each sample, using this cohort's PASS SNVs inside the locus: no variant is
+discovered there, so a haplotype cannot contain a site the caller did not pass. DA001 and DA004
+prefer those loci, because MOIRE and Dcifer are built for multiallelic markers, and fall back to
+biallelic SNVs when the cohort has too few loci. The choice, the locus count and the reason are
+recorded in each analysis manifest (`locus_basis`), never left implicit.
 
 ## Where values are kept
 

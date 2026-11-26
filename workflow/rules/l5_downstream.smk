@@ -53,7 +53,7 @@ rule da_execute:
         run=str(RUN),
         root=str(ROOT),
     wildcard_constraints:
-        da="DA00[2345678]",
+        da="DA00[23456789]",
     threads: threads("da_execute")
     resources:
         mem_mb=mem("da_execute"),

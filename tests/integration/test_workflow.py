@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import gzip
 import shutil
 import subprocess
 from pathlib import Path
@@ -163,7 +164,7 @@ def test_umi_route_reaches_resistance_analysis(tmp_path: Path) -> None:
 
 
 def test_every_downstream_analysis_executes(tmp_path: Path) -> None:
-    """A WGS cohort that reaches all eight analyses (DA001-DA008), not just their skip paths.
+    """A WGS cohort that reaches all nine analyses (DA001-DA009), not just their skip paths.
 
     The synthetic genome is 48 kb, so the fixture adds variant sites (--variant-scale 4) and
     the test thins MOIRE loci at 100 bp instead of 500 bp: at 500 bp only ~90 loci exist and
@@ -181,14 +182,17 @@ def test_every_downstream_analysis_executes(tmp_path: Path) -> None:
     text, n = re.subn(r"^(  da001_thin_bp: \{value: )\d+", r"\g<1>100", layer5.read_text(), flags=re.M)
     assert n == 1
     layer5.write_text(text)
-    analyses = ["DA001", "DA002", "DA003", "DA004", "DA005", "DA006", "DA007", "DA008"]
+    analyses = ["DA001", "DA002", "DA003", "DA004", "DA005", "DA006", "DA007", "DA008", "DA009"]
     # DA008 on the synthetic genes: no copy-number change was simulated, and one locus is absent.
     (ws / "config/registry/cnv_catalog_pfvarx_v1.tsv").write_text(
         "#catalog_id=test_cnv\n#version=test\n#status=TEST_FIXTURE\n"
         "locus_id\tgene_id\tgene_name\tevent\tmeaning\tevidence_class\tsource\n"
         "mdr1_amp\tPFX_MDR1\tmdr1\tAMPLIFICATION\ttest\tTEST\tfixture\n"
         "crt_del\tPFX_CRT\tcrt\tDELETION\ttest\tTEST\tfixture\n"
-        "absent_amp\tPFX_NONE\tnone\tAMPLIFICATION\ttest\tTEST\tfixture\n")
+        "absent_amp\tPFX_NONE\tnone\tAMPLIFICATION\ttest\tTEST\tfixture\n"
+        # DA009 reads these two loci: both genes exist in the synthetic GFF, so no deletion is simulated.
+        "pfhrp2_deletion\tPFX_CRT\tpfhrp2\tDELETION\ttest\tTEST\tfixture\n"
+        "pfhrp3_deletion\tPFX_K13\tpfhrp3\tDELETION\ttest\tTEST\tfixture\n")
     cfg = yaml.safe_load((ws / "config/config.yaml").read_text())
     cfg["final_output"] = "FO004"
     cfg["reference"]["gff"] = "inputs/reference/Pf3D7.gff"
@@ -225,6 +229,85 @@ def test_every_downstream_analysis_executes(tmp_path: Path) -> None:
     # them from being called AMPLIFIED, and nothing is called DELETED.
     assert all(0.5 <= float(r["depth_ratio"]) <= 1.6 for r in cnv_rows if r["locus_id"] != "absent_amp"), cnv_rows
     assert not {r["state"] for r in cnv_rows} & {"AMPLIFIED", "DELETED"}, cnv_rows
+    # DA009: both genes are present in the simulated data, so every judged sample is NO_DELETION,
+    # the WGS evidence model is recorded, and the pooled prevalence is zero with its interval.
+    joint = [dict(zip(lines[0].split("\t"), row.split("\t")))
+             for lines in [(res / "downstream/DA009/joint_calls.tsv").read_text().splitlines()] for row in lines[1:]]
+    assert joint and {r["joint_state"] for r in joint} <= {"NO_DELETION", "INDETERMINATE"}, joint
+    assert {r["evidence_class"] for r in joint} == {"DEPTH_RATIO"}, joint
+    hrp_prev = [dict(zip(lines[0].split("\t"), row.split("\t")))
+                for lines in [(res / "downstream/DA009/joint_prevalence.tsv").read_text().splitlines()]
+                for row in lines[1:]]
+    pooled = [r for r in hrp_prev if r["group"] == "ALL" and r["measure"] == "double_deletion"]
+    assert len(pooled) == 1 and pooled[0]["carriers"] == "0" and pooled[0]["evidence_classes"] == "DEPTH_RATIO"
+    assert (res / "downstream/DA009/joint_prevalence_by_evidence.tsv").is_file()
+    assert (res / "downstream/DA009/cooccurrence.tsv").is_file()
+    # Microhaplotypes: the default is off, so the artifact is empty with its reason recorded and
+    # DA001 says which locus basis it used.
+    mh = json.loads((res / "cohort/microhaplotypes.json").read_text())
+    assert mh["loci_used"] == 0 and mh["reason"] == "MICROHAPLOTYPES_OFF" and mh["mode"] == "off"
+    assert (res / "cohort/microhaplotype_loci.tsv").is_file()
+    da001_method = json.loads((res / "downstream/DA001/status_manifest.json").read_text())["method"]
+    assert da001_method["locus_basis"] == "BIALLELIC_SNV", da001_method
+    assert "no microhaplotype locus" in da001_method["basis_reason"], da001_method
+
+    # Both other modes, run against this run's own alignments and sites (no second pipeline run).
+    run_dir = ws / "runs" / result["run_id"]
+    plan = json.loads((run_dir / "frozen_plan.json").read_text())
+
+    def microhaplotypes(mode: str) -> dict:
+        work = tmp_path / f"mh_{mode}"
+        work.mkdir()
+        frozen = json.loads((run_dir / "frozen_config.json").read_text())
+        frozen["config"]["analyses"]["microhap_loci"] = mode
+        (work / "frozen_config.json").write_text(json.dumps(frozen))
+        shutil.copy(run_dir / "frozen_plan.json", work / "frozen_plan.json")
+        done = subprocess.run(["python", "-m", "pfvarx.cohort.microhap",
+                               "--sites", str(res / "cohort/sites.tsv"),
+                               "--samples", str(res / "cohort/cohort_samples.txt"),
+                               "--bams", *[str(p) for p in sorted((res / "alignments").glob("*.bam"))],
+                               "--callable", *[str(p) for p in sorted((res / "variants/samples").glob("*.callable.bed"))],
+                               "--reference", str(ws / plan["reference"]["parasite_fasta"]),
+                               "--root", str(ws),
+                               "--frozen-config", str(work / "frozen_config.json"),
+                               "--out-haplotypes", str(work / "mh.tsv.gz"),
+                               "--out-loci", str(work / "loci.tsv"),
+                               "--out-summary", str(work / "summary.json")], cwd=ws, capture_output=True, text=True)
+        assert done.returncode == 0, done.stdout[-2000:] + done.stderr[-2000:]
+        return {"summary": json.loads((work / "summary.json").read_text()), "dir": work}
+
+    # Derived: loci come from this run's own core-genome windows, with no panel file at all.
+    derived = microhaplotypes("derived")
+    assert derived["summary"]["locus_source"] == "DERIVED_CORE_WINDOWS", derived["summary"]
+    assert derived["summary"]["loci_used"] >= 1 and derived["summary"]["haplotypes"] >= 1, derived["summary"]
+    assert "comparable only with cohorts" in derived["summary"]["comparability"]
+
+    # Catalogue: a fixture panel over the same cohort's SNV-dense windows.
+    sites = [row.split("\t") for row in (res / "cohort/sites.tsv").read_text().splitlines()[1:]]
+    windows: dict[tuple[str, int], int] = {}
+    for chrom, pos, _ref, _alt, kind, n_pass in ((r[1], int(r[2]), r[3], r[4], r[5], int(r[6])) for r in sites):
+        if kind == "SNV" and n_pass > 0:
+            windows[(chrom, pos // 300)] = windows.get((chrom, pos // 300), 0) + 1
+    chosen = [(chrom, block) for (chrom, block), n in sorted(windows.items()) if n >= 2][:12]
+    if not chosen:  # a locus with one variable position is still a valid (if uninformative) locus
+        chosen = [(chrom, block) for (chrom, block), n in sorted(windows.items()) if n >= 1][:12]
+    assert chosen, "the synthetic cohort should have PASS SNVs to build loci from"
+    (ws / "config/registry/microhap_panel_pfvarx_v1.tsv").write_text(
+        "#catalog_id=test_microhap\n#version=test\n#status=TEST_FIXTURE\n"
+        "locus_id\tchrom\tstart\tend\tgene_id\tname\tsource\n"
+        + "".join(f"mh{i}\t{chrom}\t{block * 300 + 1}\t{block * 300 + 300}\t\twindow\tfixture\n"
+                  for i, (chrom, block) in enumerate(chosen)))
+    catalogue = microhaplotypes("catalogue")
+    summary, work = catalogue["summary"], catalogue["dir"]
+    assert summary["panel_verified"] and summary["loci_used"] >= 1, summary
+    assert summary["haplotypes"] >= 1 and summary["count_unit"] == "reads", summary
+    called = [row.split("\t") for row in
+              gzip.decompress((work / "mh.tsv.gz").read_bytes()).decode().splitlines()[1:]]
+    assert any(r[5] == "CALLED" and r[2] for r in called), called[:5]
+    # Every haplotype is as long as its locus has variable positions, and holds no unresolved base.
+    positions = {r.split("\t")[0]: int(r.split("\t")[7] or 0)
+                 for r in (work / "loci.tsv").read_text().splitlines()[1:]}
+    assert all(len(r[2]) == positions[r[0]] and "N" not in r[2] for r in called if r[5] == "CALLED")
     # Cohort QC (G5) ran and gave each cohort sample a verdict.
     cohort_qc = json.loads((res / "cohort/cohort_qc.json").read_text())
     assert set(cohort_qc["samples"]) == set((res / "cohort/cohort_samples.txt").read_text().split())

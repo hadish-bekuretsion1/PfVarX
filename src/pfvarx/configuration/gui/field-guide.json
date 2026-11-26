@@ -103,6 +103,14 @@
     "example": "null or inputs/metadata/verified_catalog.tsv",
     "help": "Use a reference-matched, independently verified catalogue for real marker outcomes. Null selects the shipped catalogue, whose draft status blocks real marker analysis. If you give only a folder, PfVarX uses the one file in it whose content is a marker catalogue; with none or several, validation asks for the full path."
   },
+  "config.analyses.microhap_loci": {
+    "example": "off, derived or catalogue",
+    "help": "Choose where microhaplotype loci come from. Off keeps biallelic SNVs for DA001 and DA004. Derived needs no panel file: each of your panel's target regions holding at least two PASS SNVs becomes one locus, and whole-genome runs use core-genome windows instead, so the coordinates are your own inputs and nothing is assumed about a published panel. Catalogue uses the file in microhap_panel and is the better choice when your panel publishes its own loci, because derived loci are specific to this run's panel or window length and compare only with cohorts defined the same way."
+  },
+  "config.analyses.microhap_panel": {
+    "example": "null or inputs/metadata/microhap_panel.tsv",
+    "help": "Give your panel's microhaplotype loci to turn several biallelic sites into one multiallelic marker per locus, which DA001 and DA004 are built for. Null selects the shipped panel, which contains no loci, so those analyses keep using biallelic SNVs and record that they did. Each locus needs a genomic range or a gene identifier; set the file's status to MAINTAINER_VERIFIED once every locus is checked against the panel documentation and your reference release."
+  },
   "config.analyses.spatial_outcome_source": {
     "example": "null or DA002",
     "help": "For explicit DA007 choose DA002 and provide valid geographic and collection-date metadata. Auto resolves the source."

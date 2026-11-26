@@ -38,6 +38,7 @@ protocol](benchmarking/README.md) is still the route to calibrated values.
 | DA003, DA005 by population | Population column in the sample sheet. |
 | DA007 | `latitude`, `longitude`, `collection_date`, `country`. |
 | DA008 | GFF matching the FASTA; a copy-number catalogue with status `MAINTAINER_VERIFIED`; whole-genome sequencing. |
+| DA009 | GFF matching the FASTA; the same verified copy-number catalogue. On a targeted panel: a pfhrp2 or pfhrp3 target and at least two control targets. |
 
 The core genome should follow the accessible-genome definition of Miles et al. 2016,
 which excludes subtelomeric and internal hypervariable regions.
@@ -109,6 +110,31 @@ The fgbio authors state that their filter values "aim for a balance between gene
 high quality consensus reads and yield" and need tuning for the library preparation.
 Molecules seen fewer than three times are filtered out; a library with small UMI
 families will lose depth at this step.
+
+### Microhaplotypes (Layer 3)
+
+| Decision | Value | Source |
+| --- | --- | --- |
+| Fragments a sample needs at a locus | ≥ 10 (`microhap_min_depth`); below it the locus is UNCALLABLE for that sample, never "no haplotype" | Provisional. No published standard; amplicon panels normally run far above it. |
+| Fragments a haplotype needs | ≥ 2 (`microhap_min_haplotype_reads`) | MalariaGEN Pf7 2023 (an allele in fewer than 2 reads is treated as absent), applied to fragments. |
+| Share of fragments a haplotype needs | ≥ 5% (`microhap_min_haplotype_fraction`) | MalariaGEN Pf7 2023 (an allele below 5% of reads is treated as absent). |
+| Variable positions per locus | ≤ 32 (`microhap_max_variable_positions`); more are truncated and recorded | Framework policy: bounds the haplotype and the work per fragment. |
+| Loci before DA001/DA004 use microhaplotypes | ≥ 10 (`microhap_min_loci_for_basis`) | Provisional; the same floor as `da001_min_informative_loci`. With fewer, the larger biallelic set is kept and the basis is recorded. |
+| What counts as one observation | One DNA fragment (read name), not one read: overlapping mates count once, disagreeing mates leave the position unresolved and the fragment incomplete | Framework policy. |
+| Which positions form a haplotype | This cohort's PASS SNVs inside the locus; indels excluded | Framework policy: no variant is discovered here, and an indel moves the positions after it within a read. |
+
+`analyses.microhap_loci` chooses where loci come from:
+
+| Value | Loci | When to use it |
+| --- | --- | --- |
+| `off` (default) | none | DA001 and DA004 keep biallelic SNVs, as before. |
+| `derived` | each of this run's panel target regions holding at least `microhap_derived_min_sites` PASS SNVs, or, for whole-genome runs, core-mask windows of `microhap_derived_window_bp` | No panel file needed: an amplicon *is* a microhaplotype locus, and every coordinate comes from the panel or core mask the run was given. The loci are specific to that definition, so frequencies compare only with cohorts defined the same way. |
+| `catalogue` | the file in `analyses.microhap_panel` | Best when your panel publishes its own loci. The shipped registry panel holds no loci, because panel coordinates belong to a published panel and a reference release and are not invented here; a catalogue must be marked `MAINTAINER_VERIFIED`. |
+
+Derived loci need no maintainer verification, because they assert nothing about a published
+panel: their coordinates are the run's own inputs. A locus longer than one fragment simply
+produces more incomplete fragments, which the artifact counts, so an over-long window degrades
+visibly rather than silently.
 
 ## Stage 2 — variant calling
 
@@ -198,6 +224,15 @@ A missing record is never counted as a reference call.
 | DA008 copy number | Present (deletion loci) / single-copy floor | ratio ≥ 0.3; between 0.1 and 0.3 is UNKNOWN | Provisional. |
 | DA008 copy number | Median core-genome depth | ≥ 20 | Provisional; below it every locus is UNKNOWN. |
 | DA008 copy number | Windows / flanks / GC model / bootstrap | 200 bp / 2 000 bp / 3 000 core windows / 1 000 replicates | Framework policy. |
+| DA009 pfhrp2/3 (WGS) | Deletion and presence | The DA008 deletion thresholds, unchanged (`DEPTH_RATIO` evidence) | The two analyses call WGS deletions identically by design. |
+| DA009 pfhrp2/3 (targeted) | Deleted: gene amplicon depth / control amplicon depth | ≤ 0.05 (`da009_dropout_max_ratio`) | Provisional. No published cut-off: WHO-aligned protocols read dropout against controls qualitatively. A mutated primer site or a failed PCR gives the same dropout. |
+| DA009 pfhrp2/3 (targeted) | Present / ambiguous | ratio ≥ 0.2 (`da009_present_min_ratio`); between 0.05 and 0.2 is UNKNOWN | Provisional. |
+| DA009 pfhrp2/3 (targeted) | Control-amplicon depth and count | median control depth ≥ 20 (`da009_min_control_depth`), ≥ 2 control targets (`da009_min_control_amplicons`) | Provisional / framework policy: without working controls a missing amplicon is UNKNOWN, never a deletion. |
+| DA009 pfhrp2/3 | Joint state | Either gene UNKNOWN gives INDETERMINATE | Framework policy: a gene is never assumed present. |
+| DA009 pfhrp2/3 | Samples per country-month before a trend is reported | 3 (`da009_min_samples_per_unit`) | Provisional; below it counts are reported and the prevalence withheld. |
+| DA009 pfhrp2/3 (WGS) | Evidence needing no cut-off | `background_percentile` in `gene_calls.tsv`: where the gene's depth ratio falls among the sample's own random core-genome windows, which are almost all single copy. The manifest gives the spread per gene and state | Self-calibrating against the sample itself, so it carries no threshold and stands while the cut-offs remain provisional. **Compare it across samples at the same locus, not as an absolute test:** the background is core sequence while pfhrp2 and pfhrp3 are subtelomeric, where depth and mappability differ, so a gene that is present can sit low in the distribution. A locus whose deleted samples sit far below its present ones separates on the data; one where they overlap rests on the cut-off. |
+| DA009 pfhrp2/3 | How much a call depends on its cut-off | `threshold_sensitivity.tsv` recomputes every gene state across `da009_dropout_ratio_grid` (targeted) or `da009_deletion_ratio_grid` (WGS); the manifest counts the calls that move | Framework policy. A call that holds across the grid stands on the data; one that moves within it rests on the chosen number. No reported call changes. |
+| DA009 pfhrp2/3 | Prevalence interval / co-occurrence test | Wilson at 95% (`da009_interval_level`); Fisher exact test of pfhrp2 by pfhrp3 | Framework policy. Describes the cohort's joint pattern, not selection. |
 
 Notes on interpretation:
 
@@ -270,6 +305,9 @@ These settings of the numerical methods are design decisions (`FRAMEWORK_POLICY`
 | `layer5.da004_dcifer_afreq_tol` | 10⁻⁵ | Dcifer allele-frequency tolerance |
 | `layer5.da005_min_samples`, `da005_min_sites`, `da005_pca_components` | 3, 3, 4 | PCA minimums and components reported |
 | `layer5.da007_gam_grid_points`, `da007_time_origin` | 20, 2000-01-01 | GAM curve points and time axis origin |
+| `layer5.da009_min_control_amplicons`, `da009_interval_level` | 2, 0.95 | control targets a panel must carry for DA009; its Wilson interval level |
+| `layer3.microhap_max_variable_positions` | 32 | variable positions used per microhaplotype locus |
+| `planning.cohort_matrix_bytes_per_cell` | 32 | measured cost of one cohort evidence cell (25 bytes observed; the margin keeps the warning conservative) |
 | `layer5.da008_interval_level`, `da008_gc_min_windows_per_bin` | 0.95, 20 | depth-ratio interval and GC-matched windows per expected depth |
 
 What stays in code is not a setting: file-format facts (VCF, GFF and BED columns, BAM flags,

@@ -39,6 +39,9 @@ from pfvarx.genomic_evidence import FLAG_FILTER
 from pfvarx.io import write_json, write_tsv
 from pfvarx.quality.metrics import mosdepth_region_dist
 
+# Layer 5 memory: the cohort evidence matrix is loaded for this analysis only when it reads it
+# (measures read depth from the alignments, not the matrix). tests/unit/test_matrix_declarations.py checks the declaration against the code.
+USES_COHORT_MATRIX = False
 CATALOG = "config/registry/cnv_catalog_pfvarx_v1.tsv"
 CATALOG_COLUMNS = ("locus_id", "gene_id", "gene_name", "event", "meaning", "evidence_class", "source")
 EVENTS = ("AMPLIFICATION", "DELETION")
@@ -108,6 +111,42 @@ class GcModel:
             return None
         nearest = sorted(self.points, key=lambda x: abs(x[0] - gc))[: self.min_per_bin]
         return float(statistics.median(d for _, d in nearest))
+
+
+def background_ratios(model: GcModel) -> list[float]:
+    """Observed / GC-expected depth of the sample's own random core-genome windows, sorted.
+
+    The windows are random core-genome sequence, so all but a negligible share of them are single
+    copy (a real amplification covers a few genes out of thousands of windows). Their ratios are
+    therefore the spread this measurement has in this sample: GC bias, mappability and sampling
+    noise included, and a gene's ratio can be read against the sample itself rather than against
+    a threshold carried in from elsewhere.
+
+    The windows are core-genome sequence, so they are not a like-for-like background for a locus
+    outside the core: pfhrp2 and pfhrp3 are subtelomeric, where depth and mappability differ
+    systematically, and a gene that is present there can still sit low in this distribution. The
+    percentile is therefore for comparing samples at the same locus, not an absolute test of
+    presence.
+    """
+    out = []
+    for gc, depth in model.points:
+        expected = model.expected(gc)
+        if expected and expected > 0:
+            out.append(depth / expected)
+    return sorted(out)
+
+
+def background_percentile(ratios: list[float], value: float | None) -> float | None:
+    """Share of the sample's own core windows whose ratio is at or below *value*.
+
+    A deleted gene sits near 0, a single-copy gene near 0.5 and a duplication near 1. It needs no
+    calibrated cut-off, so it stands even while the deletion thresholds remain provisional.
+    """
+    if value is None or not ratios:
+        return None
+    import bisect
+
+    return bisect.bisect_right(ratios, value) / len(ratios)
 
 
 def window_ratios(bam: pysam.AlignmentFile, fasta: pysam.FastaFile, chrom: str, start: int, end: int,

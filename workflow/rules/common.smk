@@ -260,6 +260,9 @@ def cohort_status_inputs(wc):
 def common_inputs(wc=None):
     base = {"matrix": str(R / "cohort" / "evidence_matrix.tsv.gz"), "sites": str(R / "cohort" / "sites.tsv"),
             "missing": str(R / "cohort" / "missingness.tsv"), "samples": str(R / "cohort" / "cohort_samples.txt")}
+    if 3 in LAYERS:
+        # DA001 and DA004 read the microhaplotype artifact when it holds loci.
+        base["microhaplotypes"] = str(R / "cohort" / "microhaplotypes.tsv.gz")
     if 4 in LAYERS:
         base["ann"] = str(R / "annotation" / "cohort.ann.vcf.gz")
     return base

@@ -21,8 +21,12 @@ from typing import Any
 from pfvarx.configuration.loader import frozen_param
 from pfvarx.constants import Clonality, Reason, Terminal
 from pfvarx.downstream.common import Context, write_manifest
+from pfvarx.downstream.loci import allele_set
 from pfvarx.io import read_tsv, write_tsv
 
+# Layer 5 memory: the cohort evidence matrix is loaded for this analysis only when it reads it
+# (allele presence at every cohort site). tests/unit/test_matrix_declarations.py checks the declaration against the code.
+USES_COHORT_MATRIX = True
 
 def informative_sites(ctx: Context) -> list[dict[str, str]]:
     thin = int(ctx.params["da001_thin_bp"])
@@ -76,19 +80,12 @@ def run(ctx: Context, threads: int = 1) -> None:
     min_population = int(ctx.params["population_frequency_min_samples"])
     eligible = [s for s in ctx.samples if ctx.gate(s)["permitted"].get("DA001")]
     excluded = {"QC_GATE": [s for s in ctx.samples if s not in eligible]}
+    # Multiallelic microhaplotype loci when the cohort has enough of them, else biallelic SNVs;
+    # MOIRE is built for multiallelic loci, and the basis is recorded either way.
+    alleles = allele_set(ctx, eligible, floor)
     sites = informative_sites(ctx)
-    rows = []
-    loci_per_sample = {s: 0 for s in eligible}
-    for s in sites:
-        for sid in eligible:
-            c = ctx.matrix[s["site_id"]].get(sid)
-            if not c or c["wsaf"] is None:
-                continue
-            loci_per_sample[sid] += 1
-            if c["wsaf"] <= 1 - floor:
-                rows.append({"sample_id": sid, "locus": s["site_id"], "allele": "R"})
-            if c["wsaf"] >= floor:
-                rows.append({"sample_id": sid, "locus": s["site_id"], "allele": "A"})
+    rows = alleles.rows
+    loci_per_sample = alleles.loci_per_sample
     low_information = [sid for sid in eligible if loci_per_sample[sid] < min_loci]
     low_set = set(low_information)
     rows = [row for row in rows if row["sample_id"] not in low_set]
@@ -192,5 +189,6 @@ def run(ctx: Context, threads: int = 1) -> None:
                    excluded=excluded, analysed=assessed, outputs=outputs if assessed else [], caveats=caveats,
                    method={"estimator": "MOIRE" if population_ok else "CALLER_MIXTURE_LRT", "credibility": cred,
                            "sites": len(sites), "population_min_samples": min_population,
-                           "moire_run": population_ok, "presence_floor": floor, "thin_bp": ctx.params["da001_thin_bp"]},
+                           "moire_run": population_ok, "presence_floor": floor, "thin_bp": ctx.params["da001_thin_bp"],
+                           **alleles.provenance},
                    results_summary={"classification_counts": counts})

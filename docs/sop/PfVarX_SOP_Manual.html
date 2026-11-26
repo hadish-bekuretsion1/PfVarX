@@ -87,7 +87,7 @@ Use <code>set -o pipefail</code> before pipelines so an upstream failure is not 
 <td>Mode-appropriate validation, annotation and scientific eligibility</td>
 </tr>
 <tr>
-<td>DA001–DA008</td>
+<td>DA001–DA009</td>
 <td>Only registry-permitted designs, scales, metadata and prerequisites</td>
 </tr>
 <tr>
@@ -358,6 +358,25 @@ scientific ineligibility must be reviewed independently of process completion.</
 <td>TSV, JSON</td>
 <td>R/downstream/DA008/</td>
 <td>DNA-level copy-number estimates with bootstrap intervals; a change carried by one clone of a mixed infection gives an intermediate ratio. Thresholds are provisional.</td>
+</tr>
+<tr>
+<td>DA009</td>
+<td>pfhrp2/pfhrp3 joint deletion</td>
+<td>Report single and dual pfhrp2/pfhrp3 deletion, their co-occurrence and a country-month trend for RDT surveillance</td>
+<td><code>R/alignments/SAMPLE.bam</code>, reference FASTA/GFF, core-genome BED, versioned copy-number catalogue, <code>R/qc/samples/SAMPLE/core.mosdepth.region.dist.txt</code>, Q</td>
+<td>Sample ID; population for grouped summaries</td>
+<td>BAM, FASTA, GFF3, BED, TSV, JSON</td>
+<td>E</td>
+<td>E</td>
+<td>CE</td>
+<td>CE</td>
+<td>NE</td>
+<td>NE</td>
+<td>Every design: whole-genome sequencing uses the DA008 depth measurement; a targeted panel gives amplicon presence against at least two control amplicons, which is not a copy number and shares its failure mode with primer-site mutation and failed PCR. Requires a verified matching copy-number catalogue and a median core depth of at least 20 (provisional). Depth is GC-corrected against the sample's own core genome. A locus that cannot be judged is UNKNOWN, never single copy or present.</td>
+<td><code>joint_calls.tsv</code>, <code>gene_calls.tsv</code>, <code>joint_prevalence.tsv</code>, <code>joint_prevalence_by_evidence.tsv</code>, <code>cooccurrence.tsv</code>, <code>trend.tsv</code></td>
+<td>TSV, JSON</td>
+<td>R/downstream/DA009/</td>
+<td>Cohort-level surveillance evidence, not a patient diagnosis. A gene that cannot be judged leaves the sample INDETERMINATE. Prevalence is published pooled and stratified by evidence class; the co-occurrence test describes this cohort, not selection.</td>
 </tr>
 </tbody>
 </table></div>
@@ -1436,7 +1455,7 @@ printf '%s\n' &quot;$ANALYSIS/runs/$RUN_ID/results/report/pfvarx_dashboard.html&
 </code></pre>
 <p>Open the printed file path in the browser. This overwrites the report HTML/JSON and centralized QC JSON only; archive their previous bytes first if required for your audit.</p>
 <p><strong>Step 2. Review the eight sections and export</strong></p>
-<p>Use them in order: Overview, Inputs, Quality Control, Variants, Downstream Analyses (DA001–DA008), Resources, Software and Logs. In Downstream Analyses open each analysis tab; its page shows all its charts and tables together. Elsewhere choose one visualization per group. Filter actual fields; inspect active counts and click/focus a sample/mark for its source evidence. CSV/XLSX exports include all filtered embedded rows; tables display 50 rows/page. PNG exports the actual selected chart. Print from the browser (Ctrl+P, or Share → Print on a phone) to save a PDF; all sections print, but tables use the visible page and downstream uses the current selected analysis. Print each desired analysis for a complete supplement.</p>
+<p>Use them in order: Overview, Inputs, Quality Control, Variants, Downstream Analyses (DA001–DA009), Resources, Software and Logs. In Downstream Analyses open each analysis tab; its page shows all its charts and tables together. Elsewhere choose one visualization per group. Filter actual fields; inspect active counts and click/focus a sample/mark for its source evidence. CSV/XLSX exports include all filtered embedded rows; tables display 50 rows/page. PNG exports the actual selected chart. Print from the browser (Ctrl+P, or Share → Print on a phone) to save a PDF; all sections print, but tables use the visible page and downstream uses the current selected analysis. Print each desired analysis for a complete supplement.</p>
 <p><strong>Step 3. Check provenance and sharing scope</strong></p>
 <p>The variant embedding cap is currently 200000; full summaries precede that cap, detailed charts use the labelled embedded subset. Missing fields stay missing. Synthetic fixtures display SYNTHETIC DEMO DATA at the top of Overview. Redacted log tails are bounded. Table pseudonymization is not full report anonymization; review source paths, free text and identifiers before sharing.</p>
 <h3>4. Expected outputs</h3>
@@ -2133,7 +2152,7 @@ inventory of that run. Snakemake temporary intermediates may disappear after suc
 │       │   ├── cohort_decisions.json
 │       │   ├── sample_analysis_eligibility.tsv
 │       │   └── sample_analysis_eligibility.json
-│       ├── downstream/DA001–DA008/         selected/internal analyses only
+│       ├── downstream/DA001–DA009/         selected/internal analyses only
 │       │   ├── status_manifest.json
 │       │   └── method-specific files listed in R11
 │       ├── report/
@@ -2197,7 +2216,15 @@ values, not universal recommendations or evidence of scientific validity.</p>
 </tr>
 <tr>
 <td><code>layer5.yaml</code></td>
+<td>DA009 targeted dropout ratio 0.05, present ratio 0.2, control depth 20, control amplicons 2, samples per country-month 3, Wilson level 0.95; WGS uses the DA008 deletion thresholds</td>
+</tr>
+<tr>
+<td><code>layer5.yaml</code></td>
 <td>DA003/DA005 population minimum 3; DA003 bootstrap 200; DA002 minimum callable/group 3, reporting floor 0.05 and MIXED below 0.95; DA007 GAM after 10 samples; provisional settings require scientific review</td>
+</tr>
+<tr>
+<td><code>layer3.yaml</code></td>
+<td>microhaplotype floors: fragment depth 10 per sample and locus, haplotype 2 fragments and 5% of them, at most 32 variable positions per locus, 10 loci before DA001/DA004 prefer microhaplotypes to biallelic SNVs; cohort site call rate 0.8</td>
 </tr>
 <tr>
 <td><code>layer6.yaml</code></td>
@@ -2205,7 +2232,7 @@ values, not universal recommendations or evidence of scientific validity.</p>
 </tr>
 <tr>
 <td><code>registry/job_resources.yaml</code></td>
-<td>threads and memory of every workflow rule (for example the caller 8 threads, 5000 MB), memory headroom 1.2 over measured peaks, temporary disk 3× input, progress refresh 15 s; read by both the rules and the preflight plan</td>
+<td>threads and memory of every workflow rule (for example the caller 8 threads, 5000 MB), memory headroom 1.2 over measured peaks, temporary disk 3× input, progress refresh 15 s, cohort evidence 32 bytes per cell for the Layer 5 memory warning; read by both the rules and the preflight plan</td>
 </tr>
 <tr>
 <td><code>compute.yaml</code></td>
@@ -3259,7 +3286,7 @@ targeted designs) and from what is callable. Decisions record the territory fact
 <tr>
 <td>DA001</td>
 <td>Clone inference (COI, clonality)</td>
-<td>—</td>
+<td>Multiallelic microhaplotype loci when the cohort has ≥ <code>microhap_min_loci_for_basis</code> of them (<code>analyses.microhap_panel</code>), else biallelic SNVs; the basis is recorded</td>
 <td>≥ 10 informative loci per sample; MOIRE needs ≥ 10 informative samples, otherwise the caller's mixture test</td>
 </tr>
 <tr>
@@ -3277,8 +3304,8 @@ targeted designs) and from what is callable. Decisions record the territory fact
 <tr>
 <td>DA004</td>
 <td>Relatedness and IBD</td>
-<td>—</td>
-<td>200 informative markers per WGS pair, 20 per targeted pair (low precision below 200)</td>
+<td>Dcifer uses the same microhaplotype loci as DA001 when available; hmmIBD always uses biallelic SNVs</td>
+<td>200 informative markers per WGS pair, 20 per targeted pair (low precision below 200). The marker thresholds were derived for biallelic markers (Taylor 2019) and are applied to the locus count, so a low-precision label on a microhaplotype panel is conservative</td>
 </tr>
 <tr>
 <td>DA005</td>
@@ -3303,6 +3330,12 @@ targeted designs) and from what is callable. Decisions record the territory fact
 <td>Copy-number markers</td>
 <td>Whole-genome sequencing only (amplicon depth does not follow copy number)</td>
 <td>Median core depth ≥ 20; verified copy-number catalogue; GFF</td>
+</tr>
+<tr>
+<td>DA009</td>
+<td>pfhrp2/pfhrp3 joint deletion</td>
+<td>Every design, with a different evidence model each: WGS by depth ratio (as DA008), targeted panels by amplicon presence against control amplicons. A panel must carry a pfhrp2 or pfhrp3 target (<code>PANEL_LACKS_HRP_TARGETS</code>) and at least <code>da009_min_control_amplicons</code> other targets (<code>CONTROL_AMPLICONS_INSUFFICIENT</code>)</td>
+<td>WGS: median core depth ≥ 20. Targeted: control-amplicon depth ≥ <code>da009_min_control_depth</code>, else every gene is UNKNOWN. Verified copy-number catalogue; GFF</td>
 </tr>
 </tbody>
 </table>
@@ -3333,7 +3366,7 @@ analyses:
 </code></pre>
 <p>Automatic selection requests every analysis; eligibility then records which ones the
 panel and evidence support. Supply a matching GFF to enable annotation and marker
-outcomes; without one, Layer 4 is omitted and DA002, DA007 and DA008 are blocked with recorded
+outcomes; without one, Layer 4 is omitted and DA002, DA007, DA008 and DA009 are blocked with recorded
 reasons. Keep <code>CONTINUE_INDEPENDENT</code> to let qualified independent analyses continue.</p>
 <h2 id="upgrade-from-configuration-schema-3">Upgrade from configuration schema 3</h2>
 <p>Schema 3 kept the panel, UMI and technique settings in <code>config.yaml</code>. Run:</p>

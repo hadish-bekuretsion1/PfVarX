@@ -26,7 +26,8 @@ from pfvarx.io import read_json, read_tsv, write_json
 
 DA_NAMES = {"DA002": "Drug-resistance markers", "DA003": "Genetic diversity", "DA001": "COI and clonal status",
             "DA004": "Relatedness and IBD", "DA005": "Population structure", "DA006": "Phylogenetics",
-            "DA007": "Spatial-temporal", "DA008": "Copy-number markers"}
+            "DA007": "Spatial-temporal", "DA008": "Copy-number markers",
+            "DA009": "pfhrp2/3 joint deletion"}
 
 # Fixed, analysis-specific interpretation consequences of QC warnings (Layer 6 spec, section 6).
 CONSEQUENCES = {
@@ -41,6 +42,9 @@ CONSEQUENCES = {
     "DA007": "Missing locations or dates remove samples; spatial sampling bias is not modelled.",
     "DA008": "Low or uneven depth widens the copy-number interval; a locus that cannot be judged is UNKNOWN, "
              "never single copy or present. pfhrp2/3 lie in subtelomeric repeats where depth is least reliable.",
+    "DA009": "A gene that cannot be judged leaves the sample INDETERMINATE, never 'no deletion'. On a targeted "
+             "panel the call is amplicon presence, not copy number: a mutated primer site or a failed PCR looks "
+             "like a deletion, which the control amplicons reduce but do not remove.",
 }
 
 VIEW_REGISTRY = {
@@ -68,6 +72,18 @@ VIEW_REGISTRY = {
     "DA008.prevalence": {"estimand": "share of judged infections with each amplification or deletion",
                          "views": ["bar", "table"], "uncertainty": "Wilson interval (simple random sampling)",
                          "limitations": "provisional thresholds"},
+    "DA009.joint": {"estimand": "joint pfhrp2/pfhrp3 state of each infection (single, dual or no deletion)",
+                    "views": ["bar", "table"], "uncertainty": "none (per-sample states)",
+                    "limitations": "INDETERMINATE whenever either gene is UNKNOWN; evidence class differs by design"},
+    "DA009.prevalence": {"estimand": "share of judged infections with pfhrp2, pfhrp3, dual or any deletion",
+                         "views": ["bar", "table"], "uncertainty": "Wilson interval (simple random sampling)",
+                         "limitations": "pooled across evidence classes; the stratified table is published beside it"},
+    "DA009.sensitivity": {"estimand": "each gene state recomputed across a grid of provisional cut-offs",
+                          "views": ["table"], "uncertainty": "shows which calls depend on the cut-off",
+                          "limitations": "no reported call changes; a state that moves within the grid rests on the chosen number"},
+    "DA009.cooccurrence": {"estimand": "whether the two deletions co-occur more than independence predicts",
+                           "views": ["table"], "uncertainty": "Fisher exact test p-value",
+                           "limitations": "describes this cohort; not evidence of selection"},
     "DA007.summary": {"estimand": "prevalence by country and month", "views": ["map", "heatmap", "line", "table"],
                       "uncertainty": "counts shown; GAM CI where fitted", "limitations": "aggregated; preferential sampling"},
 }
@@ -172,6 +188,7 @@ ANALYSIS_TOOLS: dict[str, tuple[str, tuple[str, ...]]] = {
     "DA006": ("Phylogenetics", ("iqtree",)),
     "DA007": ("Spatial and temporal summary", ("r-base", "r-mgcv")),
     "DA008": ("Copy-number markers", ("python", "pysam")),
+    "DA009": ("pfhrp2/pfhrp3 joint deletion", ("python", "pysam")),
 }
 
 
@@ -451,6 +468,14 @@ def harvest(root: Path, run: Path) -> dict[str, Any]:
         elif da == "DA008":
             entry["calls"] = _read_tsv_safe(d / "cnv_calls.tsv")
             entry["prevalence"] = _read_tsv_safe(d / "prevalence.tsv")
+        elif da == "DA009":
+            entry["gene_calls"] = _read_tsv_safe(d / "gene_calls.tsv")
+            entry["joint"] = _read_tsv_safe(d / "joint_calls.tsv")
+            entry["prevalence"] = _read_tsv_safe(d / "joint_prevalence.tsv")
+            entry["prevalence_by_evidence"] = _read_tsv_safe(d / "joint_prevalence_by_evidence.tsv")
+            entry["cooccurrence"] = _read_tsv_safe(d / "cooccurrence.tsv")
+            entry["trend"] = _read_tsv_safe(d / "trend.tsv")
+            entry["sensitivity"] = _read_tsv_safe(d / "threshold_sensitivity.tsv")
         elif da == "DA007":
             entry["summary"] = _read_tsv_safe(d / "country_month_summary.tsv")
             entry["grid"] = _optional_json(d / "grid_summary.json", warnings, [])
@@ -501,7 +526,8 @@ def harvest(root: Path, run: Path) -> dict[str, Any]:
                 "qc_policy": eff["quality"]["policy_id"], "parameters": eff["parameters"],
                 "frozen_files": len(snap["files"]), "warnings": snap.get("warnings", []),
                 "configuration": eff["config"], "compute": eff["compute"],
-                "environment": {k: snap.get(k) for k in ("python", "platform", "created_utc")}}
+                "environment": {k: snap.get(k) for k in ("python", "platform", "created_utc")},
+                "accelerators": snap.get("accelerators")}
     validation = _optional_json(root / "metadata" / "validation_report.json", warnings)
     geo_path = root / "config" / "geo" / "ne_110m_countries.geojson"
     input_files = []
@@ -532,6 +558,8 @@ def harvest(root: Path, run: Path) -> dict[str, Any]:
         "analysis_selection": plan.get("analysis_selection", "explicit"),
         "analyses_not_applicable": plan.get("analyses_not_applicable", {}),
         "requested_analyses": requested, "internal_analyses": internal, "samples": samples, "qc_matrix": qc_matrix,
+        "microhaplotypes": _optional_json(res / "cohort" / "microhaplotypes.json", warnings),
+        "microhaplotype_loci": _read_tsv_safe(res / "cohort" / "microhaplotype_loci.tsv"),
         "variants": variants, "variant_summary": counts, "variants_total": variants_total, "variants_embedded": len(variants),
         "variants_full_table": "results/variants/samples/<sample>.evidence.tsv", "annotation": ann, "downstream": downstream, "eligibility": elig, "diagnostics": events,
         "resources": resources_, "software": software, "report_warnings": warnings,
