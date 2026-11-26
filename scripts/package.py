@@ -10,7 +10,8 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 ROOT_FILES = ("README.md", "CHANGELOG.md", "LICENSE", "bootstrap.py", "pfvarx", "pyproject.toml", "pixi.toml", "pixi.lock", ".gitignore")
-SOP_HTML = ("docs/sop/PfVarX_SOP_Manual.html", "docs/README.html", "docs/configuration-guide.html")
+SOP_HTML = ("docs/sop/PfVarX_SOP_Manual.html", "docs/README.html", "docs/configuration-guide.html",
+            "docs/PfVarX_Sample_Analysis_Guide.html", "docs/PfVarX_Benchmarking_Guide.html")
 REQUIRED = (*ROOT_FILES, *SOP_HTML, ".github/workflows/ci.yaml", "src/pfvarx/cli.py", "workflow/Snakefile",
             "config/templates/analysis.yaml", "config/templates/benchmarking.yaml",
             "config/templates/quality.yaml", "config/templates/compute.yaml",

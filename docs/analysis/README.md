@@ -2,6 +2,9 @@
 
 Installation targets and native qualification limits: [platform support](../platforms.md).
 
+For every step with its command, tools and expected output, see the
+[step-by-step HTML guide](../PfVarX_Sample_Analysis_Guide.html).
+
 This guide operates the implemented PfVarX pipeline on study samples. Keep truth
 resources and calibration experiments in a separate benchmarking workspace. Read
 [scientific status](../status.md) before interpreting outputs.

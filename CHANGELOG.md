@@ -1,5 +1,16 @@
 # Changelog
 
+## Unreleased
+
+### Step-by-step HTML guides
+
+- `docs/PfVarX_Sample_Analysis_Guide.html` and `docs/PfVarX_Benchmarking_Guide.html`: every step with
+  its purpose, tools and versions, command, dry run and expected output, taken from real runs of
+  1.0.0 on the synthetic test data. Linked from the README and the analysis and benchmarking guides,
+  and included in the source archive.
+- `development/PfVarX_Development_Guide_1.0.0.html` (not released): the same for development, testing,
+  packaging and releasing.
+
 ## 1.0.0 (2026-11-26)
 
 ### Dashboard tables no longer draw long values over the next column
