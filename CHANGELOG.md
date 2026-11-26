@@ -24,6 +24,20 @@ next release is tagged.
   by an unverified catalogue (`CATALOG_NOT_VERIFIED`), and say how to add the analysis later
   with `--mode EXTEND`.
 
+### macOS and Linux ARM64 installation targets
+
+- Add `linux-aarch64`, `osx-64` and `osx-arm64` to the Pixi manifest and lock every
+  environment for each platform, retaining the previous `linux-64` package selections.
+- Bootstrap identifies native Linux/macOS x86-64 and ARM64 and gives unsupported hosts
+  an actionable error before creating an installation. The GUI and CLI tool table now
+  selects locked versions for the actual host, never merging packages across platforms.
+- Detect total physical memory on macOS with `sysctl`, retaining the memory-budget gate.
+  Current available-memory warnings remain Linux-only.
+- Expand manually dispatched CI to the four native targets, including integration tests
+  and a portable source-archive checksum check. Native macOS/ARM execution remains
+  experimental until those jobs pass; dependency resolution alone is not qualification.
+- No caller algorithms, scientific thresholds, GPU support or scheduler backends change.
+
 ## 0.0.0 (2026-11-24)
 
 First tagged release (`v0.0.0`). The release version was reset to 0.0.0 after 0.4.2, as the
@@ -714,4 +728,5 @@ This historical 0.2.0 distribution retained its existing runtime version and too
   retained fixture generation and all dashboard source.
 - Restricted packaged documentation to Markdown, added deployment/dependency guidance,
   and added CI source-archive validation. Scientific algorithms and output contracts unchanged.
+
 

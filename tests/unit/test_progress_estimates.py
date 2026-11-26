@@ -159,6 +159,7 @@ def test_measured_peak_raises_the_plan_request(monkeypatch) -> None:
 
     design = bundle(1, 1).config.assay_design.value
     runs[0]["design"] = design
+    monkeypatch.setattr(plan, "_host_mem_mb", lambda: 100000)
     monkeypatch.setattr(plan, "_available_mem_mb", lambda: 100000)
     rows = {r["job"]: r for r in plan.resource_plan(Path("."), bundle(6500, 1), 4.0, 2)["jobs"]}
     assert rows["pfvarx_call"]["mem_mb"] == 5000 and rows["pfvarx_call"]["memory_basis"] == "FRAMEWORK_POLICY_REQUEST"
@@ -184,3 +185,4 @@ def test_damaged_sample_sheet_header_fails_cleanly(tmp_path: Path) -> None:
     sheet.write_text("﻿sample_id\tlane\tlibrary_id\tbam\nS1\tL1\tlib\tx.bam\n")  # byte-order mark is fine
     rep, rows = validate_samples(sheet, tmp_path, InputType.BAM, Design.WGS, set())
     assert rows and rows[0]["sample_id"] == "S1"
+

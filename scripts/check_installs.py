@@ -21,6 +21,7 @@ from __future__ import annotations
 import runpy
 import sys
 import tempfile
+from functools import lru_cache
 from pathlib import Path
 
 import yaml
@@ -84,13 +85,18 @@ def needed(design: str, analyses: set[str], rtg: bool, input_type: str, final_ou
     return tools
 
 
-def locked_packages(environment: str) -> set[str]:
-    lock = yaml.safe_load((ROOT / "pixi.lock").read_text())
+@lru_cache(maxsize=1)
+def lock_data() -> dict:
+    return yaml.load((ROOT / "pixi.lock").read_text(), Loader=yaml.CSafeLoader)
+
+
+def locked_packages(environment: str, target: str | None = None) -> set[str]:
+    lock = lock_data()
+    target = target or BOOTSTRAP["host_platform"]()
     names = set()
-    for packages in lock["environments"][environment]["packages"].values():
-        for package in packages:
-            url = package.get("conda") or package.get("pypi") or ""
-            names.add(url.rsplit("/", 1)[-1].rsplit("-", 2)[0])
+    for package in lock["environments"][environment]["packages"][target]:
+        url = package.get("conda") or package.get("pypi") or ""
+        names.add(url.rsplit("/", 1)[-1].rsplit("-", 2)[0])
     return names
 
 
@@ -105,6 +111,11 @@ def main() -> int:
             final = meta["max_final_output"]
             installed = locked_packages(meta["environment"])
             want = needed(design, set(meta["analyses_available"]), rtg, input_type, final)
+            for target in (p["name"] for p in lock_data()["platforms"]):
+                absent = {PACKAGE.get(tool, tool) for tool in want} - locked_packages(meta["environment"], target)
+                if absent:
+                    print(f"MISSING on {target}, {label}: {', '.join(sorted(absent))}")
+                    missing_any = True
             rows, missing, extra = [], [], []
             for tool in sorted(BASE) + TOOLS:
                 has, uses = PACKAGE.get(tool, tool) in installed, tool in want
@@ -128,3 +139,4 @@ def main() -> int:
 
 if __name__ == "__main__":
     sys.exit(main())
+

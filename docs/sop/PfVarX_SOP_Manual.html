@@ -372,7 +372,7 @@ which existing files to edit, how to test a change, and when to reject it.</p>
 <p><strong>Module:</strong> repository and packaging. <strong>Workflow:</strong> development.</p>
 <p><strong>Purpose and scope:</strong> Create the actual source/module/workflow tree without bringing study outputs into development.</p>
 <h3>2. Prerequisites and requirements</h3>
-<p>Common setup completed; finalized source available; Git and Python 3 available. <code>$DEV</code> must not exist. Linux x86-64 is the supported host.</p>
+<p>Common setup completed; finalized source available; Git and Python 3 available. <code>$DEV</code> must not exist. Linux x86-64 is the baseline host; macOS 13+ (Intel/Apple silicon) and Linux ARM64 are newly enabled experimental targets pending native CI qualification. See the deployment guide.</p>
 <h3>3. Detailed operational procedure</h3>
 <p><strong>Step 1. Create the development directory tree</strong></p>
 <pre><code class="language-bash">test ! -e &quot;$DEV&quot;
@@ -403,7 +403,7 @@ git switch -c codex/development
 <p><strong>Module:</strong> Pixi and declared Bioconda/Conda dependencies. <strong>Workflow:</strong> development.</p>
 <p><strong>Purpose and scope:</strong> Install the release-supported dependency environment without altering the lockfile.</p>
 <h3>2. Prerequisites and requirements</h3>
-<p>D01 complete; Linux x86-64; Pixi available; network or cached packages; disk sufficient for both installation and separate test data. The full default environment is required for all implemented methods.</p>
+<p>D01 complete; a native installation target listed in the deployment guide; Pixi available; network or cached packages; disk sufficient for both installation and separate test data. The full default environment is required for all implemented methods.</p>
 <h3>3. Detailed operational procedure</h3>
 <p><strong>Step 1. Inspect hardware and install</strong></p>
 <pre><code class="language-bash">cd &quot;$DEV&quot;
@@ -869,7 +869,7 @@ metadata are optional only when the requested analyses do not require them.</p>
 <p><strong>Module:</strong> initialization and dependency management. <strong>Workflow:</strong> routine analysis.</p>
 <p><strong>Purpose and scope:</strong> Create a writable workspace independent of pristine source and benchmarking.</p>
 <h3>2. Prerequisites and requirements</h3>
-<p>Common variables set; Linux x86-64; Pixi installed; matching resources to be supplied. <code>$ANALYSIS</code> must not already exist. Choose an assay-specific directory if running a targeted/BAM branch.</p>
+<p>Common variables set; a native installation target listed in the deployment guide; Pixi installed; matching resources to be supplied. <code>$ANALYSIS</code> must not already exist. Choose an assay-specific directory if running a targeted/BAM branch.</p>
 <h3>3. Detailed operational procedure</h3>
 <p><strong>Step 1. Create an isolated analysis workspace</strong></p>
 <pre><code class="language-bash">test ! -e &quot;$ANALYSIS&quot;

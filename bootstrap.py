@@ -16,6 +16,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import platform
 import shutil
 import subprocess
 from pathlib import Path
@@ -52,6 +53,19 @@ FINAL_OUTPUT_PROFILE = {"FO001": "sample", "FO002": "sample", "FO003": "cohort",
 
 
 ON_DEMAND = "on-demand"
+
+
+def host_platform(system: str | None = None, machine: str | None = None) -> str:
+    """Conda platform for this Python process (use a native terminal on Apple silicon)."""
+    system = platform.system() if system is None else system
+    machine = (platform.machine() if machine is None else machine).lower()
+    machine = {"amd64": "x86_64", "arm64": "aarch64"}.get(machine, machine)
+    target = {("Linux", "x86_64"): "linux-64", ("Linux", "aarch64"): "linux-aarch64",
+              ("Darwin", "x86_64"): "osx-64", ("Darwin", "aarch64"): "osx-arm64"}.get((system, machine))
+    if target is None:
+        raise ValueError(f"Unsupported native platform: {system}/{machine}. Use 64-bit Linux or macOS "
+                         "on x86-64 or ARM64; on Windows use WSL2 with a supported Linux distribution.")
+    return target
 
 
 def profile_for(final_output: str | None, profile: str | None, default: str = "sample") -> str:
@@ -292,6 +306,8 @@ def main() -> None:
     p.add_argument("--no-install", action="store_true")
     a = p.parse_args()
     try:
+        if not a.no_install:
+            host_platform()  # reject unsupported hosts before creating a workspace
         destination = a.workspace.expanduser().resolve()
         if a.auto_analyses:
             a.analyses = sorted(METHODS)  # eligibility is decided per run from the panel and callable evidence
@@ -329,3 +345,4 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
+

@@ -2,11 +2,14 @@
 
 ## Supported native installation
 
-Linux x86-64 / local executor is supported. Git/source access, Python 3.11+ for bootstrap
-and Pixi are prerequisites. The lockfile covers only `linux-64`: on Windows use WSL2 with a
-Linux distribution; macOS (Intel or Apple silicon) and Linux ARM64 are not supported, because
-several Bioconda tools have no builds there and none are locked. Private GitHub repositories require authorized login. Clone
-alone cannot run setup; use an explicit post-clone command:
+The native local executor targets Linux x86-64 (`linux-64`), Linux ARM64
+(`linux-aarch64`), Intel macOS (`osx-64`) and Apple silicon macOS (`osx-arm64`).
+All four platforms have locked dependencies; macOS requires version 13 or later, and
+Linux locks declare glibc 2.28+ and kernel 4.18+. macOS and Linux ARM64 are experimental
+until the native CI matrix passes. See [platform support](platforms.md) for qualification
+limits. Windows uses WSL2 with a supported Linux distribution. Git/source access,
+Python 3.11+ for bootstrap and Pixi are prerequisites. Private GitHub repositories require
+authorized login. Clone alone cannot run setup; use an explicit post-clone command:
 
 ```bash
 git clone --filter=blob:none --sparse https://github.com/hadish-bekuretsion1/PfVarX.git PfVarX-source
@@ -68,7 +71,7 @@ workspaces rather than accidentally installing the full default with plain `pixi
 
 ## Dependencies and scientific resources
 
-`pixi.toml` declares direct feature requirements; `pixi.lock` pins Linux package URLs,
+`pixi.toml` declares direct feature requirements; `pixi.lock` pins platform-specific package URLs,
 versions and hashes. The one source manifest declares valid combinations; only the
 selected environment is installed. The `control` environment (on-demand workspaces before
 `install-tools`) has the Python control plane, pysam and HTSlib only. Every tools environment
@@ -176,3 +179,4 @@ Match the batch request and compute YAML to the study. Set `tmp_dir` in
 created before the job; YAML does not expand `$USER`) so Snakemake, Picard and fgbio temporary files do not fill a small `/tmp`.
 This uses one node per workflow run. Per-rule distributed scheduling and managed cloud batch
 services require separate executor integration and qualification.
+
