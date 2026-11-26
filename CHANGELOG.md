@@ -2,6 +2,16 @@
 
 ## Unreleased
 
+### Dashboard tables no longer draw long values over the next column
+
+- A long value in a dashboard table cell (a file path, a FASTQ pair, JSON facts) used to stay on
+  one line and run over the neighbouring columns, most visibly in the Inputs page's validated
+  input records. Text cells now wrap inside their column. Values longer than 40 characters may
+  break anywhere. Shorter values keep whole words, and numbers stay on one line, right-aligned.
+- Display only: table data, filters and CSV/XLSX/PDF exports are unchanged. An existing
+  dashboard picks up the fix when it is rebuilt with `pfvarx report --run-id RUN_ID`; the
+  pipeline does not need to run again.
+
 ### Microhaplotype loci from your own inputs, and pfhrp2/3 evidence that needs no cut-off
 
 Both open scientific issues from the previous three changes, resolved without inventing any
