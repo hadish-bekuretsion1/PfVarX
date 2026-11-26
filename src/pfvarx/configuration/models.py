@@ -13,6 +13,7 @@ from typing import Literal
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
 from pfvarx.constants import (
+    DEFAULT_RANDOM_SEED,
     DOWNSTREAM_IDS,
     Design,
     FinalOutput,
@@ -145,7 +146,7 @@ class ProjectConfig(Strict):
     )
     analyses: AnalysesConfig = Field(default_factory=AnalysesConfig)
     run_policy: Literal["CONTINUE_INDEPENDENT", "STRICT"] = "CONTINUE_INDEPENDENT"
-    random_seed: int = Field(default=20261106, ge=0)
+    random_seed: int = Field(default=DEFAULT_RANDOM_SEED, ge=0)
     caller: CallerConfig = Field(default_factory=CallerConfig)
     retention: RetentionConfig = Field(default_factory=RetentionConfig)
 

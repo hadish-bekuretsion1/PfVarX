@@ -141,7 +141,7 @@ def test_unverified_catalogues_warn_before_the_run(tmp_path: Path) -> None:
 
 def test_gc_corrected_ratios_match_the_simulated_copy_numbers(bam: Path, fasta: Path) -> None:
     with pysam.AlignmentFile(str(bam)) as b, pysam.FastaFile(str(fasta)) as fa:
-        model = cnv.GcModel(b, fa, [("ctg", 1000, 4000), ("ctg", 14500, 19000)], 200, 300, 20, seed=1)
+        model = cnv.GcModel(b, fa, [("ctg", 1000, 4000), ("ctg", 14500, 19000)], 200, 300, 20, seed=1, min_per_bin=20)
         assert len(model.points) == 300 and 15 <= (model.expected(0.2) or 0) <= 25
         amp = cnv.measure(b, ("ctg", *AMP), 20.0, PARAMS, 20, 1, fa, model)
         gone = cnv.measure(b, ("ctg", *DEL), 20.0, PARAMS, 20, 2, fa, model)

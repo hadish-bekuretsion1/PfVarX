@@ -2,18 +2,20 @@
 
 from pathlib import Path
 
+from pfvarx.configuration.loader import load_parameters
 from pfvarx.execution.preflight import summarise
 from pfvarx.inputs import validate as v
 from pfvarx.inputs.guidance import explain
 
 CONTIGS = {"Pf3D7_01_v3": {"length": 10_000}, "Pf3D7_02_v3": {"length": 10_000}}
+LIMITS = v.CoreMaskLimits.from_parameters(load_parameters(Path(__file__).resolve().parents[2]))
 
 
 def test_missing_core_mask_explains_folder_shortcut_and_lists_candidates(tmp_path: Path) -> None:
     ref = tmp_path / "inputs/reference"
     ref.mkdir(parents=True)
     (ref / "pf3D7_genes.bed").write_text("Pf3D7_01_v3\t0\t10\tPF3D7_0100100\n")
-    report = v.validate_bed(ref / "core_genome.bed", CONTIGS, "CORE_MASK").as_dict()
+    report = v.validate_bed(ref / "core_genome.bed", CONTIGS, "CORE_MASK", LIMITS).as_dict()
     finding = report["findings"][0]
     advice = explain(finding, "CORE_MASK", tmp_path, {"reference": {"core_mask_bed": "inputs/reference/"}})
     assert advice["file"] == "Core-genome mask BED" and "accessible core" in advice["used_for"]
@@ -27,7 +29,7 @@ def test_gene_bed_used_as_core_mask_is_flagged(tmp_path: Path) -> None:
     genes = tmp_path / "core_genome.bed"
     rows = [f"Pf3D7_01_v3\t{i * 4}\t{i * 4 + 6}\tPF3D7_01{i:05d}\t0\t+" for i in range(1200)]
     genes.write_text("\n".join(rows) + "\n")
-    rep = v.validate_bed(genes, {"Pf3D7_01_v3": {"length": 10_000}}, "CORE_MASK")
+    rep = v.validate_bed(genes, {"Pf3D7_01_v3": {"length": 10_000}}, "CORE_MASK", LIMITS)
     assert rep.status == "WARNING"
     (warning,) = rep.findings
     assert warning.reason == "CORE_MASK_SUSPECT"
@@ -37,7 +39,7 @@ def test_gene_bed_used_as_core_mask_is_flagged(tmp_path: Path) -> None:
 def test_genuine_core_mask_passes_without_warning(tmp_path: Path) -> None:
     core = tmp_path / "core_genome.bed"
     core.write_text("Pf3D7_01_v3\t500\t9500\nPf3D7_02_v3\t400\t9300\n")
-    rep = v.validate_bed(core, CONTIGS, "CORE_MASK")
+    rep = v.validate_bed(core, CONTIGS, "CORE_MASK", LIMITS)
     assert rep.status == "PASS" and not rep.findings
     # The same content as a targets BED is never judged as a mask.
     assert v.validate_bed(core, CONTIGS, "TARGETS").status == "PASS"

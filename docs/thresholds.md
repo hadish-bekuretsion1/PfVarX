@@ -3,7 +3,8 @@
 Every numeric decision PfVarX makes is listed here with its three outcomes — accepted,
 accepted with warning, rejected or filtered out — and where the value comes from.
 The values live in `config/registry/qc_policy_pfvarx_qc_v1.yaml` (policy version 1.3.0) and
-`config/parameters/layer*.yaml`. Each entry there carries a source class:
+`config/parameters/layer*.yaml`; no threshold or setting is written in the program code (see
+[Where values are kept](#where-values-are-kept)). Each entry there carries a source class:
 
 | Source class | Meaning |
 | --- | --- |
@@ -73,7 +74,8 @@ stage is not permitted).
 | G5.cohort_mixed_fraction | Fraction of cohort sites with MIXED evidence | reported | — | — | Descriptive: mixed infection or artefact (for example paralog mismapping). |
 
 The same file reports how many cohort sites are called (ALT, MIXED or REF) in at least
-80 % of the samples; that site completeness is reported, not gated.
+80 % of the samples (`layer3.cohort_site_call_rate_min`); that site completeness is reported,
+not gated.
 
 Basis for the literature-supported rows:
 
@@ -166,7 +168,7 @@ A missing record is never counted as a reference call.
 | DA001 COI | MOIRE burn-in / samples per chain | 10 000 / 1 000 | MOIRE defaults (Murphy and Greenhouse 2024). |
 | DA001 COI | Fws comparison line | Fws ≥ 0.95 read as clonal | Manske 2012; Auburn 2012; MalariaGEN Pf7 and Pf8. Descriptive only. |
 | DA001 / DA003 | Samples needed for MOIRE and Fws | ≥ 10 samples with enough informative loci (`population_frequency_min_samples`). Fewer: MOIRE is not run; the monoclonal/polyclonal call comes from the caller's per-sample mixture test (`basis` = `CALLER_MIXTURE_LRT`); COI count and Fws are left blank | Provisional. MOIRE estimates allele frequencies and COI jointly: on a 9-sample synthetic cohort, P(COI > 1) of truly single-clone samples ranged from 0.00 to 1.00 across five random seeds (mixtures stayed at 1.00). Fws uses frequencies in which each sample is 1/n of its own reference (one sample: Fws 0 by construction). |
-| DA004 relatedness | COI given to Dcifer | DA001's MOIRE count; monoclonal samples 1; otherwise Dcifer's naive estimate (`getCOI`, `lrank = 2`) | Gerlovina 2022. |
+| DA004 relatedness | COI given to Dcifer | DA001's MOIRE count; monoclonal samples 1; otherwise Dcifer's naive estimate (`getCOI`, `lrank = 2`, `da004_dcifer_coi_lrank`) | Gerlovina 2022. |
 | DA002 resistance | Marker callable | ≥ 5 reads spanning the codon; fewer: `UNKNOWN` | MalariaGEN Pf7. |
 | DA002 resistance | `MUTANT` | mutant fraction ≥ 95% | MalariaGEN Pf7. |
 | DA002 resistance | `MIXED` | 5% to 95% | MalariaGEN Pf7. |
@@ -227,6 +229,53 @@ marker prevalence; it never declares resistance.
 
 The shipped catalogue remains `DRAFT_REQUIRES_VERIFICATION`. Check it against the current
 WHO list before use; the list changes.
+
+## Where values are kept
+
+Every threshold, analysis setting and compute request is read from a configuration file; the
+program code holds none of them, and `tests/unit/test_no_hardcoded_parameters.py` fails if a
+parameter is repeated in the code as a fallback.
+
+| File | Holds | Who edits it |
+| --- | --- | --- |
+| `config/analysis.yaml`, `config/quality.yaml`, `config/compute.yaml` | the project's choices: inputs, design, outputs, analyses, QC policy, computer limits | the user (CLI or GUI) |
+| `config/registry/qc_policy_*.yaml` | QC gate thresholds | maintainer |
+| `config/parameters/layer0.yaml` … `layer6.yaml` | every numeric setting of input checks, read processing, the caller, cohort, annotation, analyses and report, with its source class | maintainer |
+| `config/registry/job_resources.yaml` | threads and memory of each workflow rule, and the planning factors (memory headroom, temporary-disk factor, progress refresh) | maintainer |
+| `config/registry/*.tsv`, `downstream_analyses.yaml` | marker catalogues and analysis contracts | maintainer |
+
+A run freezes the parameters it used (`frozen_config.json`). A run frozen before a parameter
+was added takes the value it was frozen with from `src/pfvarx/configuration/legacy_parameters.yaml`;
+that file records history and is not a place to change behaviour.
+
+These settings of the numerical methods are design decisions (`FRAMEWORK_POLICY`, or
+`SOFTWARE_DEFAULT` for a tool's own default) and are listed here for completeness:
+
+| Parameter | Value | What it does |
+| --- | --- | --- |
+| `layer0.core_mask_fraction_min` / `_max`, `core_mask_max_intervals` | 0.70 / 0.97, 1000 | a core mask outside these limits is flagged `CORE_MASK_SUSPECT` |
+| `layer0.alignment_state_reads_checked` | 2000 | reads read from an imported BAM/CRAM to check its processing state |
+| `layer2.homopolymer_tract_classes` | 1, 2–4, 5–9, ≥ 10 bp | homopolymer classes with their own indel error model |
+| `layer2.indel_error_init_divisor`, `indel_error_floor` | 5, 10⁻⁶ | starting value (error_mean_default / 5) and floor of the indel error rate |
+| `layer2.error_rate_cap` | 0.25 | largest error rate used for WSAF intervals and constrained scoring |
+| `layer2.error_fit_min_sites`, `error_fit_min_nonzero_for_phi` | 50, 50 | sites needed to fit the error model and its overdispersion |
+| `layer2.overdispersion_phi_bounds` | 10 – 10⁷ | range of the fitted overdispersion |
+| `layer2.wsaf_profile_grid_points` | 2001 | grid of the WSAF profile likelihood (step 0.0005) |
+| `layer2.indel_anchor_bp` | 5 | reference bases a read must cover on each side of an indel to be re-scored |
+| `layer2.pileup_max_depth` | 1 000 000 | pileup depth cap, far above any real depth |
+| `layer2.evidence_chunk_bp` | 250 000 | work unit for parallel evidence collection; results do not depend on it |
+| `layer2.k_bootstrap_max_iterations`, `k_bootstrap_restart_divisor`, `k_bootstrap_min_restarts` | 200, 10, 2 | EM limits of the bootstrap replicate fits in the clone-number test |
+| `layer5.da001_moire_pt_chains` | 1 | MOIRE parallel-tempering chains |
+| `layer5.da003_interval_level`, `da003_min_bootstrap_values` | 0.95, 10 | heterozygosity bootstrap interval |
+| `layer5.da004_dcifer_afreq_tol` | 10⁻⁵ | Dcifer allele-frequency tolerance |
+| `layer5.da005_min_samples`, `da005_min_sites`, `da005_pca_components` | 3, 3, 4 | PCA minimums and components reported |
+| `layer5.da007_gam_grid_points`, `da007_time_origin` | 20, 2000-01-01 | GAM curve points and time axis origin |
+| `layer5.da008_interval_level`, `da008_gc_min_windows_per_bin` | 0.95, 20 | depth-ratio interval and GC-matched windows per expected depth |
+
+What stays in code is not a setting: file-format facts (VCF, GFF and BED columns, BAM flags,
+the Phred+33 offset), mathematical constants (three alternative bases, the normal quantile
+computed from a level), unit conversions, numerical-safety bounds of the optimisers, and the
+status and reason vocabularies in `src/pfvarx/constants.py`.
 
 ## What still has no published basis
 

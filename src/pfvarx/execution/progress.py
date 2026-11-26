@@ -175,6 +175,7 @@ def snapshot(run: Path, now: dt.datetime | None = None) -> dict[str, Any]:
             "started_utc": started.isoformat(), "updated_utc": now.isoformat(),
             "finished_utc": end.isoformat() if finished else None, "elapsed_min": round(elapsed_min, 1),
             "steps": parsed["steps"], "running": running_rows,
+            "slow_step_factor": ((plan.get("resources") or {}).get("planning") or {}).get("slow_step_factor"),
             "failed": [{"rule": j["rule"], "sample": j["sample"]} for j in failed],
             "expected_total_min": total_expected, "remaining_min": None if remaining is None else round(remaining, 1),
             "expected_finish_utc": None if remaining is None else (now + dt.timedelta(minutes=remaining)).isoformat(),
@@ -200,8 +201,11 @@ def _duration(minutes: float | None) -> str:
     return f"{whole // 60} h {whole % 60:02d} min" if whole >= 60 else f"{whole} min"
 
 
-def _over(r: dict[str, Any]) -> str:
-    if r.get("expected_min") and r.get("running_min") and r["running_min"] > 1.5 * max(r["expected_min"], 1):
+def _over(r: dict[str, Any], slow_factor: float | None) -> str:
+    """Mark a step running more than ``planning.slow_step_factor`` times its expected time
+    (config/registry/job_resources.yaml, frozen with the plan); runs frozen without it are not marked."""
+    if (slow_factor and r.get("expected_min") and r.get("running_min")
+            and r["running_min"] > slow_factor * max(r["expected_min"], 1)):
         return "<br><small class='warn'>longer than expected</small>"
     return ""
 
@@ -221,7 +225,7 @@ def render(p: dict[str, Any]) -> str:
     running = "".join(
         f"<tr><td><strong>{e(r['step'])}</strong><br><small>{e(r['tool_group'])}</small></td><td>{e(r['sample'] or 'cohort')}</td>"
         f"<td>{_clock(r['started'])}</td><td class='num'>{_duration(r['running_min'])}</td>"
-        f"<td class='num'>{_duration(r['expected_min'])}{_over(r)}</td></tr>" for r in p["running"]) or \
+        f"<td class='num'>{_duration(r['expected_min'])}{_over(r, p.get('slow_step_factor'))}</td></tr>" for r in p["running"]) or \
         "<tr><td colspan='5' class='muted'>No step is running right now.</td></tr>"
     table = "".join(
         f"<tr><td>{e(s['name'])}</td><td class='num'>{s['done']}</td><td class='num'>{s['running']}</td>"

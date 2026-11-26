@@ -10,7 +10,7 @@ the frozen QC policy's G5 gates to those counts, the same way Layer 1 applies G1
 * ``G5.cohort_mixed_fraction``: the share of cohort sites with MIXED evidence (descriptive).
 
 It also summarises site completeness across the cohort (how many sites are called in at least
-``site_call_rate_min`` of the samples), which is reported, not gated.
+``layer3.cohort_site_call_rate_min`` of the samples), which is reported, not gated.
 """
 
 from __future__ import annotations
@@ -23,12 +23,12 @@ from collections import Counter
 from pathlib import Path
 from typing import Any
 
+from pfvarx.configuration.loader import frozen_param
 from pfvarx.constants import Design
 from pfvarx.quality.policy import evaluate_sample, load_policy, stage_permitted
 
 COHORT_GATES = {"G5"}
 CALLED = {"ALT_DOMINANT", "MIXED", "REF_DOMINANT"}
-SITE_CALL_RATE_MIN = 0.8
 DOWNSTREAM_STAGES = ["L4", "DA001", "DA002", "DA003", "DA004", "DA005", "DA006", "DA007", "DA008"]
 
 
@@ -45,7 +45,7 @@ def sample_metrics(missingness: Path) -> dict[str, dict[str, Any]]:
     return out
 
 
-def site_summary(matrix: Path, n_samples: int, call_rate_min: float = SITE_CALL_RATE_MIN) -> dict[str, Any]:
+def site_summary(matrix: Path, n_samples: int, call_rate_min: float) -> dict[str, Any]:
     """How many cohort sites are called (ALT/MIXED/REF) in at least *call_rate_min* of the samples."""
     called: Counter[str] = Counter()
     sites: set[str] = set()
@@ -73,7 +73,14 @@ def evaluate(root: Path, frozen: dict[str, Any], plan: dict[str, Any], missingne
         samples[sid] = qc
     return {"schema": "pfvarx.cohort_qc/1", "policy_id": policy["policy_id"], "policy_version": policy["version"],
             "gates": sorted(COHORT_GATES), "samples": samples,
-            "sites": site_summary(matrix, len(metrics)) if matrix is not None and matrix.is_file() else None}
+            "sites": site_summary(matrix, len(metrics), site_call_rate_min(frozen))
+            if matrix is not None and matrix.is_file() else None}
+
+
+def site_call_rate_min(frozen: dict[str, Any]) -> float:
+    """layer3.cohort_site_call_rate_min from the run's frozen parameters."""
+    layer3 = {k.split(".", 1)[1]: v["value"] for k, v in frozen.get("parameters", {}).items() if k.startswith("layer3.")}
+    return float(frozen_param(layer3, "cohort_site_call_rate_min"))
 
 
 def main(argv: list[str] | None = None) -> None:

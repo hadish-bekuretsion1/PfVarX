@@ -61,7 +61,7 @@ rule cohort_evidence:
         frozen=FROZEN,
         ref=PREF,
     resources:
-        mem_mb=mem(2000),
+        mem_mb=mem("cohort_evidence"),
         runtime=RUNTIME,
     benchmark:
         str(BENCH / "cohort_evidence" / "cohort_evidence.tsv")

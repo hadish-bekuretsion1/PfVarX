@@ -35,6 +35,8 @@ Consistency checks that fail when one part changes without another:
 | `tests/unit/test_version.py` | A current-release reference disagrees with `__version__` in `src/pfvarx/__init__.py` |
 | `tests/unit/test_cli_gui_parity.py` | A setting lacks GUI help, a template entry or a guide row; guide text differs from the GUI; or a GUI tab or stage has no CLI command |
 | `tests/unit/test_validation_guidance.py` | A validation failure stops explaining its cause and fix, or a gene list passes as a core mask |
+| `tests/unit/test_no_hardcoded_parameters.py` | Code repeats a maintainer parameter as an inline fallback, a parameter name is used in two layer files, a number in a parameter file is read as text, or `legacy_parameters.yaml` names an unknown parameter |
+| `tests/unit/test_resource_plan.py` | A workflow rule writes its threads or memory as a number instead of reading `config/registry/job_resources.yaml`, or a rule with requests is missing from that file |
 
 `pixi run python scripts/check_installs.py` compares each kind of installation with the tools
 its final output runs, from `pixi.lock` (see [deployment](deployment.md#check-what-an-installation-contains)).

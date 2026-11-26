@@ -21,9 +21,9 @@ rule pfvarx_call:
     # depend on the thread count. Measured on a 29x WGS sample (20.8 Mb core): 579 s and 3.6 GB
     # with 8 workers, 474 s and 3.8 GB with 24. Memory is set by the genome, not the workers,
     # and beyond 8 workers the gain is small, so 8 lets several samples run at once.
-    threads: threads(8)
+    threads: threads("pfvarx_call")
     resources:
-        mem_mb=mem(5000, job="pfvarx_call"),
+        mem_mb=mem("pfvarx_call", job="pfvarx_call"),
         runtime=RUNTIME,
     retries: COMPUTE["max_retries"]
     log:

@@ -19,6 +19,7 @@ import shutil
 import subprocess
 from itertools import combinations
 
+from pfvarx.configuration.loader import frozen_param
 from pfvarx.constants import Reason, Terminal
 from pfvarx.downstream.coi import informative_sites
 from pfvarx.downstream.common import Context, decisions, write_manifest
@@ -98,8 +99,10 @@ def run(ctx: Context, threads: int = 1) -> None:
         write_tsv(out / "dcifer_coi.tsv", coi_rows, ["sample_id", "coi"])
         r = subprocess.run(["Rscript", str(ctx.root / "workflow" / "scripts" / "da004_dcifer.R"), str(lf),
                             str(out / "dcifer_coi.tsv"), str(out / "dcifer_pairs.tsv"),
-                            str(ctx.params.get("da004_dcifer_alpha", 0.05)),
-                            str(ctx.params.get("da004_dcifer_null_grid", 1000))], capture_output=True, text=True)
+                            str(frozen_param(ctx.params, "da004_dcifer_alpha")),
+                            str(frozen_param(ctx.params, "da004_dcifer_null_grid")),
+                            str(frozen_param(ctx.params, "da004_dcifer_coi_lrank")),
+                            str(frozen_param(ctx.params, "da004_dcifer_afreq_tol"))], capture_output=True, text=True)
         (out / "dcifer.log").write_text(r.stdout + r.stderr)
         if r.returncode != 0:
             raise SystemExit(f"Dcifer failed with exit code {r.returncode}")

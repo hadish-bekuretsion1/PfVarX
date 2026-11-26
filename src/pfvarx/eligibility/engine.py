@@ -13,6 +13,7 @@ from typing import Any
 
 import yaml
 
+from pfvarx.configuration.loader import frozen_param
 from pfvarx.constants import (
     QC,
     Clonality,
@@ -178,7 +179,7 @@ def cohort_decision(da: str, contract: dict[str, Any], records: list[Eligibility
         if len(good) < need:
             terminal = Terminal.SKIPPED_INELIGIBLE.value
             reasons.append(Reason.GROUP_TOO_SMALL.value)
-    if da == "DA005" and not conditional and len(eligible) < 3:
+    if da == "DA005" and not conditional and len(eligible) < int(frozen_param(params, "da005_min_samples")):
         terminal = Terminal.SKIPPED_INELIGIBLE.value
         reasons.append(Reason.GROUP_TOO_SMALL.value)
     if not eligible and not conditional and terminal is None:

@@ -11,6 +11,9 @@ from enum import StrEnum
 
 STATUS_SCHEMA_VERSION = "pfvarx.status/1"
 
+# Default random seed of a project (config random_seed) and of the benchmark partition.
+DEFAULT_RANDOM_SEED = 20261106
+
 
 class Purpose(StrEnum):
     ANALYSIS = "analysis"

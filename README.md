@@ -173,7 +173,9 @@ outputs, logs and frozen configuration under `runs/<RUN_ID>/`.
 - [Complete orchestration/command guide](docs/orchestration.md)
 - [Sample analysis](docs/analysis/README.md) and [benchmarking](docs/benchmarking/README.md)
 - [Reporting](docs/reporting/README.md), [deployment](docs/deployment.md), [testing](docs/testing.md)
-- [Configuration guide](docs/configuration-guide.md) and [thresholds and their sources](docs/thresholds.md)
+- [Configuration guide](docs/configuration-guide.md) and [thresholds and their sources](docs/thresholds.md);
+  every threshold, setting and compute request is in a configuration file, none in the code
+  ([where values are kept](docs/thresholds.md#where-values-are-kept))
 - [Caller contract](docs/caller.md) and [sequencing and downstream eligibility](docs/sequencing.md)
 - [Architecture](docs/architecture.md), including the CLI and GUI parity rule for contributors,
   and [scientific/operational limits](docs/status.md)

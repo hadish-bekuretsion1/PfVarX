@@ -1,4 +1,4 @@
-version: "1.0.0"
+version: "1.1.0"
 parameters:
   min_mapping_quality: {value: 20, source: UNCALIBRATED_PROVISIONAL, note: "grid {1,10,20,30}; Experiment C"}
   min_base_quality: {value: 13, source: UNCALIBRATED_PROVISIONAL, note: "grid {10,13,20}; Experiment C"}
@@ -32,3 +32,17 @@ parameters:
   mixture_constrained_calling: {value: false, source: FRAMEWORK_POLICY, note: "pass-two: promote LOW_CONFIDENCE candidates whose reads fit an allowed clone fraction; off until benchmarked"}
   mixture_constrained_min_log10_lr: {value: 10.0, source: UNCALIBRATED_PROVISIONAL, note: "log10 LR of the best allowed clone fraction against error needed for promotion; to be set from simulated mixtures"}
   focal_loss_min_length_bp: {value: 50, source: UNCALIBRATED_PROVISIONAL, note: "shortest low-depth run reported as focal callability loss"}
+  homopolymer_tract_classes: {value: [[1, 1], [2, 4], [5, 9], [10, 10000]], source: FRAMEWORK_POLICY, note: "homopolymer run lengths (bp, inclusive) that each get their own indel error model; the last class also takes every longer run"}
+  indel_error_init_divisor: {value: 5, source: FRAMEWORK_POLICY, note: "starting indel error rate = error_mean_default / this, before each tract class is fitted"}
+  indel_error_floor: {value: 1.0e-6, source: FRAMEWORK_POLICY, note: "smallest fitted indel error rate used"}
+  error_rate_cap: {value: 0.25, source: FRAMEWORK_POLICY, note: "largest per-allele error rate used for WSAF intervals and constrained scoring (0.25: all four bases equally likely)"}
+  error_fit_min_sites: {value: 50, source: FRAMEWORK_POLICY, note: "known-reference sites needed to fit the error model; with fewer, error_mean_default and overdispersion_phi_default are used"}
+  error_fit_min_nonzero_for_phi: {value: 50, source: FRAMEWORK_POLICY, note: "sites with error reads needed to estimate phi; with fewer, mu is fitted and phi stays at overdispersion_phi_default"}
+  overdispersion_phi_bounds: {value: [10.0, 1.0e+7], source: FRAMEWORK_POLICY, note: "range of the fitted phi; the lower bound (intra-sample correlation <= 0.09) because near-all-zero data cannot identify stronger overdispersion"}
+  wsaf_profile_grid_points: {value: 2001, source: FRAMEWORK_POLICY, note: "grid points on [0, 1] for the profile-likelihood WSAF estimate and interval (step 0.0005)"}
+  indel_anchor_bp: {value: 5, source: FRAMEWORK_POLICY, note: "a read re-scored for an indel must cover this many reference bases on each side of the event"}
+  pileup_max_depth: {value: 1000000, source: FRAMEWORK_POLICY, note: "pysam pileup depth cap, far above any expected depth so that no read is dropped"}
+  evidence_chunk_bp: {value: 250000, source: FRAMEWORK_POLICY, note: "work unit for parallel evidence collection; results do not depend on it"}
+  k_bootstrap_max_iterations: {value: 200, source: FRAMEWORK_POLICY, note: "EM iteration cap for the bootstrap replicate fits of the K test (never above em_max_iterations)"}
+  k_bootstrap_restart_divisor: {value: 10, source: FRAMEWORK_POLICY, note: "bootstrap replicate fits use em_restarts / this EM starts, and at least k_bootstrap_min_restarts"}
+  k_bootstrap_min_restarts: {value: 2, source: FRAMEWORK_POLICY}

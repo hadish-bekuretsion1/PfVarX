@@ -18,25 +18,8 @@ import yaml
 from pfvarx.configuration.models import Bundle
 from pfvarx.constants import Design, FinalOutput, InputType, Reason
 
-# Starting requests, summarising the rules in workflow/rules (tests/unit/test_resource_plan.py
-# keeps the two equal); memory scales with input size where a predictor is known.
-JOB_CLASSES: dict[str, dict[str, Any]] = {
-    "fastp": {"layer": 1, "threads": 4, "mem_mb": 2000, "per_gb_mb": 0},
-    "bwa_mem2_index": {"layer": 0, "threads": 1, "mem_mb": 4000, "per_gb_mb": 0},
-    "bwa_mem2_align": {"layer": 1, "threads": 4, "mem_mb": 6000, "per_gb_mb": 0},
-    "markdup": {"layer": 1, "threads": 1, "mem_mb": 4000, "per_gb_mb": 500},
-    "fgbio_umi": {"layer": 1, "threads": 4, "mem_mb": 6000, "per_gb_mb": 500},
-    "alignment_entry": {"layer": 1, "threads": 1, "mem_mb": 4000, "per_gb_mb": 0},
-    "fgbio_clip": {"layer": 1, "threads": 1, "mem_mb": 3000, "per_gb_mb": 0},
-    "metrics": {"layer": 1, "threads": 2, "mem_mb": 1000, "per_gb_mb": 0},
-    "pfvarx_call": {"layer": 2, "threads": 8, "mem_mb": 5000, "per_gb_mb": 0},
-    "cohort_merge": {"layer": 3, "threads": 1, "mem_mb": 2000, "per_gb_mb": 0},
-    "snpeff": {"layer": 4, "threads": 1, "mem_mb": 4000, "per_gb_mb": 0},
-    "downstream": {"layer": 5, "threads": 2, "mem_mb": 2000, "per_gb_mb": 0},
-    "dashboard": {"layer": 6, "threads": 1, "mem_mb": 1000, "per_gb_mb": 0},
-}
-# Job classes whose bwa-mem2 step loads the combined parasite+host index (Human DNA removal, wgs only).
-HOST_INDEX_JOBS = ("bwa_mem2_align",)
+# Starting requests per job class come from config/registry/job_resources.yaml (pfvarx.planning.resources),
+# the same file the workflow rules read.
 
 
 def layers_for(cfg_final: FinalOutput, input_type: InputType) -> list[int]:
@@ -90,22 +73,26 @@ def resource_plan(root: Path, bundle: Bundle, input_gb: float, n_samples: int) -
         from pfvarx.configuration.loader import load_parameters
 
         host_extra = int(load_parameters(root)["layer1.bwa_mem2_host_extra_mem_mb"]["value"])
+    from pfvarx.planning import resources
     from pfvarx.planning.history import measured_peak_mb
 
+    classes = resources.job_classes(root)
+    factors = resources.planning(root)
+    headroom = float(factors["measured_memory_headroom"])
     rows, blocked = [], []
     warnings = []
     for name in jobs:
-        jc = JOB_CLASSES[name]
+        jc = classes[name]
         threads = min(jc["threads"], comp.per_job.max_threads)
         mem = jc["mem_mb"] + int(jc["per_gb_mb"] * input_gb / max(n_samples, 1))
-        mem += host_extra if name in HOST_INDEX_JOBS else 0
+        mem += host_extra if jc["host_index"] else 0
         prof = profiles.get(name)
         basis = "MEASURED_PROFILE" if prof else "FRAMEWORK_POLICY_REQUEST"
-        # Memory a job of this class really used here before, with 20 % headroom (MEASURED_HISTORY).
+        # Memory a job of this class really used here before, with the planning headroom (MEASURED_HISTORY).
         # Kept within the per-job ceiling; a tighter ceiling is a warning, not a block.
         peak = measured_peak_mb(name, bundle.config.assay_design.value, bundle.config.input_type.value)
-        if peak and int(peak * 1.2) > mem:
-            needed = int(peak * 1.2)
+        if peak and int(peak * headroom) > mem:
+            needed = int(peak * headroom)
             mem, basis = min(needed, comp.per_job.max_mem_mb), "MEASURED_HISTORY"
             if needed > comp.per_job.max_mem_mb:
                 warnings.append({"reason": "RESOURCE_MEMORY_TIGHT", "job": name,
@@ -113,7 +100,7 @@ def resource_plan(root: Path, bundle: Bundle, input_gb: float, n_samples: int) -
                                            f"per_job.max_mem_mb is {comp.per_job.max_mem_mb}. Raise it if the "
                                            "machine has the memory, or the job may run out of memory"})
         if prof:
-            mem = max(mem, int(prof["peak_rss_mb"] * 1.2))
+            mem = max(mem, int(prof["peak_rss_mb"] * headroom))
             runtime = {"value_min": prof["wall_min"], "confidence": "MEASURED_PROFILE",
                        "basis": prof.get("basis", "benchmark workspace")}
         else:
@@ -129,7 +116,7 @@ def resource_plan(root: Path, bundle: Bundle, input_gb: float, n_samples: int) -
                                          "split inputs into smaller samples/lanes"]
                             + (["host-read removal loads the parasite+host bwa-mem2 index "
                                 f"(+{host_extra} MB, layer1.bwa_mem2_host_extra_mem_mb): run on a machine with more "
-                                "memory, or set reference.host_removal to false"] if host_extra and name in HOST_INDEX_JOBS
+                                "memory, or set reference.host_removal to false"] if host_extra and jc["host_index"]
                                else [])})
         rows.append(row)
     host_cpus = len(os.sched_getaffinity(0)) if hasattr(os, "sched_getaffinity") else (os.cpu_count() or 1)
@@ -151,18 +138,19 @@ def resource_plan(root: Path, bundle: Bundle, input_gb: float, n_samples: int) -
         blocked.append({"job": "all", "reason": Reason.RESOURCE_MEMORY_EXCEEDED.value, "requested_mb": comp.max_mem_mb,
                         "limit_mb": host_mem, "basis": "compute.yaml max_mem_mb exceeds the detected memory limit",
                         "remedies": [f"set max_mem_mb <= {host_mem}"]})
-    tmp_need = int(input_gb * 3 * 1024)
+    tmp_factor = factors["tmp_disk_per_input_factor"]
+    tmp_need = int(input_gb * tmp_factor * 1024)
     if tmp_need > comp.tmp_disk_mb:
         blocked.append({"job": "all", "reason": Reason.RESOURCE_DISK_EXHAUSTED.value,
                         "requested_mb": tmp_need, "limit_mb": comp.tmp_disk_mb,
-                        "basis": "3x input size (FRAMEWORK_POLICY heuristic, not measured)",
+                        "basis": f"{tmp_factor}x input size (FRAMEWORK_POLICY heuristic, not measured)",
                         "remedies": ["increase tmp_disk_mb", "free disk space"]})
     total = None
     if all(r["runtime"]["value_min"] is not None for r in rows):
         total = sum(r["runtime"]["value_min"] for r in rows) * n_samples / max(comp.max_jobs, 1)
     return {"layers": layers, "jobs": rows, "blocked": blocked, "feasible": not blocked, "warnings": warnings,
             "host": {"cpus": host_cpus, "mem_mb": host_mem},
-            "estimated_total_runtime_min": total,
+            "estimated_total_runtime_min": total, "planning": factors,
             "estimate_confidence": "MEASURED_PROFILE" if total is not None else "UNKNOWN"}
 
 

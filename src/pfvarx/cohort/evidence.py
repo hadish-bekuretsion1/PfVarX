@@ -18,6 +18,7 @@ from typing import TypedDict
 
 import pysam
 
+from pfvarx.configuration.loader import frozen_param
 from pfvarx.genomic_evidence import FLAG_FILTER, in_intervals, read_bed
 
 STATES = ("ALT_DOMINANT", "MIXED", "REF_DOMINANT", "MISSING_LOW_DEPTH", "UNCALLABLE")
@@ -46,15 +47,17 @@ def site_list(vcf: Path) -> list[CohortSite]:
     return sites
 
 
-def allele_counts(bam: pysam.AlignmentFile, site: CohortSite, min_mapq: int, min_bq: int) -> tuple[int, int, int]:
-    """(ref, alt, depth) at one site; indels counted from CIGAR at the anchor."""
+def allele_counts(bam: pysam.AlignmentFile, site: CohortSite, min_mapq: int, min_bq: int,
+                  max_depth: int) -> tuple[int, int, int]:
+    """(ref, alt, depth) at one site; indels counted from CIGAR at the anchor; *max_depth* is
+    layer2.pileup_max_depth."""
     chrom, pos = str(site["chrom"]), int(site["pos"]) - 1
     ref, alt = str(site["ref"]), str(site["alt"])
     kind = "SNV" if len(ref) == len(alt) == 1 else ("INS" if len(alt) > len(ref) else "DEL")
     r = a = d = 0
     for col in bam.pileup(chrom, pos, pos + 1, truncate=True, stepper="nofilter", flag_filter=FLAG_FILTER,
                           min_mapping_quality=min_mapq, min_base_quality=0, ignore_overlaps=True,
-                          ignore_orphans=False, max_depth=1_000_000, compute_baq=False):
+                          ignore_orphans=False, max_depth=max_depth, compute_baq=False):
         for pr in col.pileups:
             if pr.is_del or pr.is_refskip or pr.query_position is None:
                 continue
@@ -98,6 +101,8 @@ def main(argv: list[str] | None = None) -> None:
     eff = json.loads(Path(a.frozen_config).read_text())
     prm = {k: v["value"] for k, v in eff["parameters"].items()}
     min_mapq, min_bq = int(prm["layer2.min_mapping_quality"]), int(prm["layer2.min_base_quality"])
+    max_depth = int(frozen_param({k.split(".", 1)[1]: v for k, v in prm.items() if k.startswith("layer2.")},
+                                 "pileup_max_depth"))
     min_depth = int(prm["layer2.min_usable_depth"])
     dom = float(prm["layer3.dominant_allele_fraction"])
     samples = Path(a.samples).read_text().split()
@@ -118,7 +123,7 @@ def main(argv: list[str] | None = None) -> None:
                     if not in_intervals(callable_iv.get(str(s["chrom"]), []), int(s["pos"]) - 1):
                         state, r, al, d, w = "UNCALLABLE", 0, 0, 0, ""
                     else:
-                        r, al, d = allele_counts(bam, s, min_mapq, min_bq)
+                        r, al, d = allele_counts(bam, s, min_mapq, min_bq, max_depth)
                         tot = r + al
                         if tot < min_depth:
                             state, w = "MISSING_LOW_DEPTH", ""
