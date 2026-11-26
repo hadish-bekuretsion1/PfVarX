@@ -19,7 +19,7 @@ from pfvarx.genomic_evidence import read_bed
 from pfvarx.io import write_tsv
 
 # Layer 5 memory: the cohort evidence matrix is loaded for this analysis only when it reads it
-# (dominant alleles and FWS at every cohort site). tests/unit/test_matrix_declarations.py checks the declaration against the code.
+# (dominant alleles and FWS at every cohort site).
 USES_COHORT_MATRIX = True
 
 def callable_intersection_bases(ctx: Context, samples: list[str]) -> int:

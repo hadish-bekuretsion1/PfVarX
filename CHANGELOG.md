@@ -2,6 +2,19 @@
 
 ## Unreleased
 
+### The published repository holds the analysis software only
+
+- Development material is no longer on `main`: the test suite (`tests/`), the GitHub CI
+  workflow, `development/`, `docs/testing.md`, the maintainer notes and the maintainer-only
+  scripts (`package.py`, `sync_sop.py`, `configuration_guide.py`, `check_gui_buttons.py`).
+  It continues on the `develop` branch.
+- The SOP manual (`.md` and `.html`) drops Part I, the development procedures D01–D16. It now
+  covers routine analysis (Part II), benchmarking (Part III) and the appendices.
+- `pixi.toml` drops the `test`, `test-unit` and `package` tasks. `scripts/verify.py`,
+  `scripts/check_installs.py` and `scripts/build_container.py` remain for users.
+- Documentation no longer points to tests, CI or the removed scripts. Analysis code and
+  results are unchanged.
+
 ### Microhaplotype loci from your own inputs, and pfhrp2/3 evidence that needs no cut-off
 
 Both open scientific issues from the previous three changes, resolved without inventing any

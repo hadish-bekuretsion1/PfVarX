@@ -172,7 +172,7 @@ outputs, logs and frozen configuration under `runs/<RUN_ID>/`.
 - [HTML Operational SOP](docs/sop/PfVarX_SOP_Manual.html) and [GitHub-readable SOP](docs/sop/PfVarX_SOP_Manual.md)
 - [Complete orchestration/command guide](docs/orchestration.md)
 - [Sample analysis](docs/analysis/README.md) and [benchmarking](docs/benchmarking/README.md)
-- [Reporting](docs/reporting/README.md), [deployment](docs/deployment.md), [testing](docs/testing.md)
+- [Reporting](docs/reporting/README.md), [deployment](docs/deployment.md)
 - [Configuration guide](docs/configuration-guide.md) and [thresholds and their sources](docs/thresholds.md);
   every threshold, setting and compute request is in a configuration file, none in the code
   ([where values are kept](docs/thresholds.md#where-values-are-kept))
