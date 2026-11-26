@@ -41,6 +41,7 @@ TOOLS = [
     ("fgbio-minimal", "fgbio", "targeted designs: primer trimming, UMI grouping and consensus reads"),
     ("numpy", "NumPy", "variant caller arithmetic (FO002 and later)"),
     ("scipy", "SciPy", "variant caller statistics and mixture fitting (FO002 and later)"),
+    ("numba", "Numba", "compiles the caller's pair-HMM indel rescoring for speed (FO002 and later)"),
     ("bcftools", "BCFtools", "normalises per-sample VCFs and merges the cohort (FO002 and later)"),
     ("snpeff", "SnpEff", "annotates the cohort VCF with gene effects (FO004)"),
     ("r-base", "R", "runs the R analysis scripts (DA001, DA004, DA007)"),

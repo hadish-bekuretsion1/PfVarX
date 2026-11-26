@@ -2,6 +2,21 @@
 
 ## Unreleased
 
+### Faster indel rescoring in PfVarX-Call (same calls)
+
+- The pair-HMM that rescores indel candidates (L2.5) is now compiled with Numba. It was the
+  slowest part of the caller on AT-rich WGS: each read was a numpy call per row of the
+  alignment matrix. The compiled kernel is about 12 times faster per read.
+- Same model, parameters and decision rule. The numpy version is kept unchanged as
+  `log10_likelihood_reference` and is used when Numba is not installed, or when
+  `PFVARX_PAIRHMM_BACKEND=reference` is set. The caller log names the backend in use.
+- Checked: likelihoods agree with the reference to 1e-12 and read decisions are identical
+  (`tests/scientific/test_pairhmm_backends.py`), and the synthetic WGS verification run gave
+  identical sample VCFs, evidence tables, callable and focal-loss BEDs, caller QC, cohort,
+  annotation and Layer 5 outputs with either backend.
+- New dependency in the `calling` feature (FO002 and later): `numba` (with `llvmlite`). No
+  other package version changed in `pixi.lock`. Run `pixi install` after updating.
+
 ### Step-by-step HTML guides
 
 - `docs/PfVarX_Sample_Analysis_Guide.html` and `docs/PfVarX_Benchmarking_Guide.html`: every step with
