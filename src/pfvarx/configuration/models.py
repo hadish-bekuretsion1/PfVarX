@@ -84,6 +84,11 @@ class AnalysesConfig(Strict):
     spatial_outcome_source: str | None = Field(
         default=None, description="Source DA whose outcome DA007 summarises, e.g. DA002"
     )
+    microhap_panel: Path | None = Field(
+        default=None,
+        description=("Microhaplotype locus panel (TSV) for the cohort microhaplotype artifact used by DA001 "
+                     "and DA004; default config/registry/microhap_panel_pfvarx_v1.tsv, which ships with no loci"),
+    )
 
     @field_validator("requested")
     @classmethod

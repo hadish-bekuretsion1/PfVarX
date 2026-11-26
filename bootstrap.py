@@ -235,7 +235,7 @@ def export_workspace(
             continue
         if profile not in ("development", ON_DEMAND):  # on demand: all code, tools installed later
             if name.startswith("src/pfvarx/downstream/") and (
-                not selected or Path(name).stem not in modules | {"__init__", "common", "run"}
+                not selected or Path(name).stem not in modules | {"__init__", "common", "run", "loci"}
             ):
                 continue
             if name.startswith("src/pfvarx/annotation/") and not selected:

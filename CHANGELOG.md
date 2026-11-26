@@ -2,6 +2,37 @@
 
 ## Unreleased
 
+### Multiplexed microhaplotypes for DA001 and DA004
+
+- New Layer 3 step **multiplexed microhaplotypes** (`cohort/microhaplotypes.tsv.gz`,
+  `microhaplotype_loci.tsv`, `microhaplotypes.json`): for each catalogue locus and sample, the
+  haplotypes DNA fragments carry across the locus's variable positions, which are this cohort's
+  PASS SNVs inside the locus. No variant is discovered there, so a haplotype cannot contain a
+  site the caller did not pass, and indels are excluded because they move the positions after
+  them within a read. Observations are grouped per fragment, so overlapping mates count once and
+  disagreeing mates leave the position unresolved; a fragment that cannot resolve every position
+  is incomplete and counted as such. Works on every design: a locus is used only inside the
+  panel's targets (targeted) or the core mask (whole-genome), and anything else is recorded with
+  its reason.
+- **DA001 (MOIRE) and DA004 (Dcifer) now use multiallelic microhaplotype loci** when the cohort
+  has at least `microhap_min_loci_for_basis` of them, instead of one biallelic `R`/`A` call per
+  SNV, which is what both tools are built for. With fewer loci the larger biallelic set is kept.
+  Either way the manifest records `locus_basis`, the locus count and the reason, so estimates are
+  never compared without knowing what they were computed on. hmmIBD still uses biallelic SNVs,
+  and DA004 says so when the two methods differ; DA003 and DA005 are unchanged.
+- New user setting `analyses.microhap_panel` (CLI templates, GUI help and configuration guide) and
+  a shipped registry panel `config/registry/microhap_panel_pfvarx_v1.tsv` that **holds no loci**:
+  panel coordinates belong to a published panel and a reference release and are not invented here.
+  Until a site supplies and verifies its own panel, the artifact is empty with the reason recorded
+  and the analyses behave exactly as before.
+- New settings `layer3.microhap_*` (parameter file layer3 is now version 1.2.0); the marker
+  thresholds DA004 applies to a microhaplotype locus count were derived for biallelic markers
+  (Taylor 2019) and are flagged as conservative in the caveats rather than re-derived.
+- The report's Variants section shows the panel: loci used, haplotypes per locus, samples called,
+  and the excluded loci with their reasons.
+- New tests `tests/unit/test_microhap.py` (15); the synthetic end-to-end cohort asserts the
+  empty-panel fallback and then builds real haplotypes from its own PASS SNVs with a fixture panel.
+
 ### DA009 pfhrp2/pfhrp3 joint deletion, on every assay design
 
 - New analysis **DA009 pfhrp2/pfhrp3 joint deletion** (FO004, every design): the joint state of

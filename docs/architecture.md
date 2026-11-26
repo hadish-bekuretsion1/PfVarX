@@ -77,6 +77,15 @@ and interval conventions live outside the native caller package.
 See the [configuration editor and input procedure](configuration.md) and the
 [sequencing and downstream eligibility matrix](sequencing.md).
 
+## Microhaplotype loci
+
+Layer 3 writes one multiallelic marker per catalogue locus (`cohort/microhaplotypes.tsv.gz`)
+from the reads of each sample, using this cohort's PASS SNVs inside the locus: no variant is
+discovered there, so a haplotype cannot contain a site the caller did not pass. DA001 and DA004
+prefer those loci, because MOIRE and Dcifer are built for multiallelic markers, and fall back to
+biallelic SNVs when the cohort has too few loci. The choice, the locus count and the reason are
+recorded in each analysis manifest (`locus_basis`), never left implicit.
+
 ## Where values are kept
 
 No threshold, analysis setting or compute request is written in the code. User choices are in

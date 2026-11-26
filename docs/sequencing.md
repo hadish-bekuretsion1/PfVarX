@@ -105,10 +105,10 @@ targeted designs) and from what is callable. Decisions record the territory fact
 
 | ID | Analysis | Panel and callable-evidence rule | Further run-time gates |
 | --- | --- | --- | --- |
-| DA001 | Clone inference (COI, clonality) | — | ≥ 10 informative loci per sample; MOIRE needs ≥ 10 informative samples, otherwise the caller's mixture test |
+| DA001 | Clone inference (COI, clonality) | Multiallelic microhaplotype loci when the cohort has ≥ `microhap_min_loci_for_basis` of them (`analyses.microhap_panel`), else biallelic SNVs; the basis is recorded | ≥ 10 informative loci per sample; MOIRE needs ≥ 10 informative samples, otherwise the caller's mixture test |
 | DA002 | Resistance markers | The territory must contain a whole catalogue codon (`PANEL_LACKS_MARKERS`); each sample needs at least one whole catalogue codon in its callable regions (`NO_CALLABLE_MARKERS`) | Per-marker callability (`UNKNOWN`), WHO K13 flag needs ≥ 3 callable infections |
 | DA003 | Diversity | — | Group sizes; Fws needs ≥ 10 samples |
-| DA004 | Relatedness and IBD | — | 200 informative markers per WGS pair, 20 per targeted pair (low precision below 200) |
+| DA004 | Relatedness and IBD | Dcifer uses the same microhaplotype loci as DA001 when available; hmmIBD always uses biallelic SNVs | 200 informative markers per WGS pair, 20 per targeted pair (low precision below 200). The marker thresholds were derived for biallelic markers (Taylor 2019) and are applied to the locus count, so a low-precision label on a microhaplotype panel is conservative |
 | DA005 | Population structure | A panel needs ≥ 10 separate target regions (`da005_min_independent_loci`, `TOO_FEW_INDEPENDENT_LOCI`) | Population groups; ≥ 3 informative sites |
 | DA006 | Phylogenetics | A panel needs ≥ 10 separate target regions (`da006_min_independent_loci`) | ≥ 4 monoclonal samples, ≥ 10 parsimony-informative sites, missingness limits |
 | DA007 | Spatial and temporal | Inherits DA002 | Coordinates, dates, country |

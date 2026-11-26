@@ -264,6 +264,7 @@ results -> runs/<RUN_ID>/results
 | `cohort/cohort.vcf.gz` | FO003/FO004 variant-only cohort merge |
 | `cohort/evidence_matrix.tsv.gz` | Site-forced per-sample evidence; missing is not imputed reference |
 | `cohort/sites.tsv`, `cohort/missingness.tsv` | Cohort sites and missingness summary |
+| `cohort/microhaplotypes.tsv.gz`, `microhaplotype_loci.tsv`, `microhaplotypes.json` | Multiplexed microhaplotypes: per sample and locus, each haplotype a DNA fragment carries across the locus's variable positions (this cohort's PASS SNVs inside it) with its fragment count and share; per locus, the positions used, samples called and uncallable, distinct haplotypes, or why the locus was excluded; and the panel's provenance, including whether it holds loci at all |
 | `cohort/cohort_qc.json` | Cohort QC (gate G5) per sample: missing and mixed fractions, PASS/WARNING/FAIL; site call rates. A FAIL excludes the sample from DA001–DA008 (`COHORT_QC_FAIL`) |
 | `annotation/cohort.ann.vcf.gz`, `annotation_qc.json` | FO004 SnpEff consequences and annotation checks |
 | `eligibility/` | Per-sample/cohort scientific eligibility decisions |
@@ -319,6 +320,7 @@ That is an edit fragment, not a replacement for the entire generated configurati
 
 | ID | Implemented method / requirements |
 |---|---|
+| DA001, DA004 | Locus basis: multiallelic microhaplotype loci when the cohort has at least `microhap_min_loci_for_basis` of them, otherwise distance-thinned biallelic SNVs. Each manifest records `locus_basis`, the locus count and the reason, so two runs' estimates are never compared without knowing what they were computed on |
 | DA001 | MOIRE clonality with ≥ 10 informative samples; smaller cohorts take the call from the caller's mixture test (`basis` column) with no COI count or Fws; caller technical K otherwise shown only as context |
 | DA002 | Codon-level resistance markers; independently verified matching catalogue required |
 | DA003 | Within-host FWS and population diversity; group sizes/callability apply |

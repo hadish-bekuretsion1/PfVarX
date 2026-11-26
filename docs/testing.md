@@ -37,6 +37,7 @@ Consistency checks that fail when one part changes without another:
 | `tests/unit/test_validation_guidance.py` | A validation failure stops explaining its cause and fix, or a gene list passes as a core mask |
 | `tests/unit/test_no_hardcoded_parameters.py` | Code repeats a maintainer parameter as an inline fallback, a parameter name is used in two layer files, a number in a parameter file is read as text, or `legacy_parameters.yaml` names an unknown parameter |
 | `tests/unit/test_resource_plan.py` | A workflow rule writes its threads or memory as a number instead of reading `config/registry/job_resources.yaml`, or a rule with requests is missing from that file |
+| `tests/unit/test_microhap.py` | Fragment-level haplotype counting (including overlapping and disagreeing mates, and a low-quality base), the haplotype floors, locus resolution and territory rules, the whole `build` path, the locus-basis choice between microhaplotypes and biallelic SNVs, and that the shipped panel holds no invented loci |
 | `tests/unit/test_dashboard_views.py` | A dashboard analysis tab builds its charts in `daKpis` (which returns early, so they never render), an analysis lacks a tab, headline numbers or a view block, or a visual group is built outside `daViews`. No Python test executes the dashboard JavaScript, so this structural check stands in for it |
 
 `pixi run python scripts/check_installs.py` compares each kind of installation with the tools

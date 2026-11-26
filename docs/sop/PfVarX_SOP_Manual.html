@@ -2223,6 +2223,10 @@ values, not universal recommendations or evidence of scientific validity.</p>
 <td>DA003/DA005 population minimum 3; DA003 bootstrap 200; DA002 minimum callable/group 3, reporting floor 0.05 and MIXED below 0.95; DA007 GAM after 10 samples; provisional settings require scientific review</td>
 </tr>
 <tr>
+<td><code>layer3.yaml</code></td>
+<td>microhaplotype floors: fragment depth 10 per sample and locus, haplotype 2 fragments and 5% of them, at most 32 variable positions per locus, 10 loci before DA001/DA004 prefer microhaplotypes to biallelic SNVs; cohort site call rate 0.8</td>
+</tr>
+<tr>
 <td><code>layer6.yaml</code></td>
 <td>detailed variant embedding cap 200000; full totals remain distinguished from embedded details</td>
 </tr>
@@ -3282,7 +3286,7 @@ targeted designs) and from what is callable. Decisions record the territory fact
 <tr>
 <td>DA001</td>
 <td>Clone inference (COI, clonality)</td>
-<td>—</td>
+<td>Multiallelic microhaplotype loci when the cohort has ≥ <code>microhap_min_loci_for_basis</code> of them (<code>analyses.microhap_panel</code>), else biallelic SNVs; the basis is recorded</td>
 <td>≥ 10 informative loci per sample; MOIRE needs ≥ 10 informative samples, otherwise the caller's mixture test</td>
 </tr>
 <tr>
@@ -3300,8 +3304,8 @@ targeted designs) and from what is callable. Decisions record the territory fact
 <tr>
 <td>DA004</td>
 <td>Relatedness and IBD</td>
-<td>—</td>
-<td>200 informative markers per WGS pair, 20 per targeted pair (low precision below 200)</td>
+<td>Dcifer uses the same microhaplotype loci as DA001 when available; hmmIBD always uses biallelic SNVs</td>
+<td>200 informative markers per WGS pair, 20 per targeted pair (low precision below 200). The marker thresholds were derived for biallelic markers (Taylor 2019) and are applied to the locus count, so a low-precision label on a microhaplotype panel is conservative</td>
 </tr>
 <tr>
 <td>DA005</td>

@@ -111,6 +111,23 @@ high quality consensus reads and yield" and need tuning for the library preparat
 Molecules seen fewer than three times are filtered out; a library with small UMI
 families will lose depth at this step.
 
+### Microhaplotypes (Layer 3)
+
+| Decision | Value | Source |
+| --- | --- | --- |
+| Fragments a sample needs at a locus | ≥ 10 (`microhap_min_depth`); below it the locus is UNCALLABLE for that sample, never "no haplotype" | Provisional. No published standard; amplicon panels normally run far above it. |
+| Fragments a haplotype needs | ≥ 2 (`microhap_min_haplotype_reads`) | MalariaGEN Pf7 2023 (an allele in fewer than 2 reads is treated as absent), applied to fragments. |
+| Share of fragments a haplotype needs | ≥ 5% (`microhap_min_haplotype_fraction`) | MalariaGEN Pf7 2023 (an allele below 5% of reads is treated as absent). |
+| Variable positions per locus | ≤ 32 (`microhap_max_variable_positions`); more are truncated and recorded | Framework policy: bounds the haplotype and the work per fragment. |
+| Loci before DA001/DA004 use microhaplotypes | ≥ 10 (`microhap_min_loci_for_basis`) | Provisional; the same floor as `da001_min_informative_loci`. With fewer, the larger biallelic set is kept and the basis is recorded. |
+| What counts as one observation | One DNA fragment (read name), not one read: overlapping mates count once, disagreeing mates leave the position unresolved and the fragment incomplete | Framework policy. |
+| Which positions form a haplotype | This cohort's PASS SNVs inside the locus; indels excluded | Framework policy: no variant is discovered here, and an indel moves the positions after it within a read. |
+
+A microhaplotype panel is supplied by the site (`analyses.microhap_panel`). The shipped panel
+holds no loci, because panel coordinates belong to a published panel and a reference release
+and are not invented here; until one is supplied and marked `MAINTAINER_VERIFIED`, the artifact
+is empty and DA001 and DA004 use biallelic SNVs and say so.
+
 ## Stage 2 — variant calling
 
 | Decision | Accepted | Filtered out | Source |
@@ -279,6 +296,7 @@ These settings of the numerical methods are design decisions (`FRAMEWORK_POLICY`
 | `layer5.da005_min_samples`, `da005_min_sites`, `da005_pca_components` | 3, 3, 4 | PCA minimums and components reported |
 | `layer5.da007_gam_grid_points`, `da007_time_origin` | 20, 2000-01-01 | GAM curve points and time axis origin |
 | `layer5.da009_min_control_amplicons`, `da009_interval_level` | 2, 0.95 | control targets a panel must carry for DA009; its Wilson interval level |
+| `layer3.microhap_max_variable_positions` | 32 | variable positions used per microhaplotype locus |
 | `layer5.da008_interval_level`, `da008_gc_min_windows_per_bin` | 0.95, 20 | depth-ratio interval and GC-matched windows per expected depth |
 
 What stays in code is not a setting: file-format facts (VCF, GFF and BED columns, BAM flags,

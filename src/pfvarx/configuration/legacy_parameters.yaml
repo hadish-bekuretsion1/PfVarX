@@ -35,8 +35,14 @@ parameters:
   k_bootstrap_min_restarts: 2
   # layer0 (declared scope): no indel length bound before it was recorded
   indel_length_bound_bp: null
-  # layer3 (cohort QC)
+  # layer3 (cohort QC and microhaplotypes). A run frozen before the microhaplotype step existed
+  # had no panel, so DA001 and DA004 used biallelic SNVs; these values reproduce exactly that.
   cohort_site_call_rate_min: 0.8
+  microhap_min_depth: 10
+  microhap_min_haplotype_reads: 2
+  microhap_min_haplotype_fraction: 0.05
+  microhap_max_variable_positions: 32
+  microhap_min_loci_for_basis: 10
   # layer5 (downstream analyses)
   da001_moire_pt_chains: 1
   da003_bootstrap_replicates: 200

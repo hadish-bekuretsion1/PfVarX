@@ -553,6 +553,8 @@ def harvest(root: Path, run: Path) -> dict[str, Any]:
         "analysis_selection": plan.get("analysis_selection", "explicit"),
         "analyses_not_applicable": plan.get("analyses_not_applicable", {}),
         "requested_analyses": requested, "internal_analyses": internal, "samples": samples, "qc_matrix": qc_matrix,
+        "microhaplotypes": _optional_json(res / "cohort" / "microhaplotypes.json", warnings),
+        "microhaplotype_loci": _read_tsv_safe(res / "cohort" / "microhaplotype_loci.tsv"),
         "variants": variants, "variant_summary": counts, "variants_total": variants_total, "variants_embedded": len(variants),
         "variants_full_table": "results/variants/samples/<sample>.evidence.tsv", "annotation": ann, "downstream": downstream, "eligibility": elig, "diagnostics": events,
         "resources": resources_, "software": software, "report_warnings": warnings,

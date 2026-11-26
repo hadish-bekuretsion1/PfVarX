@@ -131,6 +131,10 @@ distinct datasets have separate groups and explicitly identified denominators.
 | DA008 | Depth ratio per sample and locus with bootstrap interval (bar chart or table), prevalence of each amplification or deletion, per-sample calls; AMPLIFIED and DELETED are coloured as findings, UNKNOWN as gray |
 | DA009 | Joint-state counts (bar chart), prevalence of pfhrp2, pfhrp3, dual and any deletion with Wilson intervals (forest plot), dual-deletion prevalence by country and month (bar chart), and tables: pooled prevalence, the same stratified by evidence class, the co-occurrence table with its Fisher exact p-value, the trend, and the per-gene evidence. INDETERMINATE samples are shown, never dropped |
 
+**Variants** also shows the multiplexed microhaplotype panel when a run has one: how many
+panel loci were used, the distinct haplotypes per locus and the samples called at each, or, when
+the panel holds no loci, that DA001 and DA004 used biallelic SNVs instead.
+
 **Overview** and **Resources** show when the run started and finished, its total time and
 the time expected before it ran. **Resources** then compares, step by step, the estimate
 frozen with the plan (learned from earlier real-data runs on this computer, see

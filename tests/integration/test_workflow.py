@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import gzip
 import shutil
 import subprocess
 from pathlib import Path
@@ -241,6 +242,52 @@ def test_every_downstream_analysis_executes(tmp_path: Path) -> None:
     assert len(pooled) == 1 and pooled[0]["carriers"] == "0" and pooled[0]["evidence_classes"] == "DEPTH_RATIO"
     assert (res / "downstream/DA009/joint_prevalence_by_evidence.tsv").is_file()
     assert (res / "downstream/DA009/cooccurrence.tsv").is_file()
+    # Microhaplotypes: the shipped panel has no loci, so the artifact is empty with its reason
+    # recorded and DA001 says which locus basis it used.
+    mh = json.loads((res / "cohort/microhaplotypes.json").read_text())
+    assert mh["loci_in_panel"] == 0 and mh["loci_used"] == 0 and mh["reason"] == "NO_LOCI_IN_PANEL"
+    assert (res / "cohort/microhaplotype_loci.tsv").is_file()
+    da001_method = json.loads((res / "downstream/DA001/status_manifest.json").read_text())["method"]
+    assert da001_method["locus_basis"] == "BIALLELIC_SNV", da001_method
+    assert "no microhaplotype locus" in da001_method["basis_reason"], da001_method
+    # With a panel whose loci carry this cohort's PASS SNVs, the same step produces haplotypes.
+    # The run's own alignments and sites are reused, so this needs no second pipeline run.
+    sites = [row.split("\t") for row in (res / "cohort/sites.tsv").read_text().splitlines()[1:]]
+    windows: dict[tuple[str, int], int] = {}
+    for chrom, pos, _ref, _alt, kind, n_pass in ((r[1], int(r[2]), r[3], r[4], r[5], int(r[6])) for r in sites):
+        if kind == "SNV" and n_pass > 0:
+            windows[(chrom, pos // 300)] = windows.get((chrom, pos // 300), 0) + 1
+    chosen = [(chrom, block) for (chrom, block), n in sorted(windows.items()) if n >= 2][:12]
+    if not chosen:  # a locus with one variable position is still a valid (if uninformative) locus
+        chosen = [(chrom, block) for (chrom, block), n in sorted(windows.items()) if n >= 1][:12]
+    assert chosen, "the synthetic cohort should have PASS SNVs to build loci from"
+    panel = ws / "config/registry/microhap_panel_pfvarx_v1.tsv"
+    panel.write_text("#catalog_id=test_microhap\n#version=test\n#status=TEST_FIXTURE\n"
+                     "locus_id\tchrom\tstart\tend\tgene_id\tname\tsource\n"
+                     + "".join(f"mh{i}\t{chrom}\t{block * 300 + 1}\t{block * 300 + 300}\t\twindow\tfixture\n"
+                               for i, (chrom, block) in enumerate(chosen)))
+    plan = json.loads((ws / "runs" / result["run_id"] / "frozen_plan.json").read_text())
+    r2 = subprocess.run(["python", "-m", "pfvarx.cohort.microhap",
+                         "--sites", str(res / "cohort/sites.tsv"),
+                         "--samples", str(res / "cohort/cohort_samples.txt"),
+                         "--bams", *[str(p) for p in sorted((res / "alignments").glob("*.bam"))],
+                         "--callable", *[str(p) for p in sorted((res / "variants/samples").glob("*.callable.bed"))],
+                         "--reference", str(ws / plan["reference"]["parasite_fasta"]),
+                         "--root", str(ws),
+                         "--frozen-config", str(ws / "runs" / result["run_id"] / "frozen_config.json"),
+                         "--out-haplotypes", str(tmp_path / "mh.tsv.gz"),
+                         "--out-loci", str(tmp_path / "mh_loci.tsv"),
+                         "--out-summary", str(tmp_path / "mh.json")], cwd=ws, capture_output=True, text=True)
+    assert r2.returncode == 0, r2.stdout[-2000:] + r2.stderr[-2000:]
+    summary = json.loads((tmp_path / "mh.json").read_text())
+    assert summary["panel_verified"] and summary["loci_used"] >= 1, summary
+    assert summary["haplotypes"] >= 1 and summary["count_unit"] == "reads", summary
+    called = [row.split("\t") for row in gzip.decompress((tmp_path / "mh.tsv.gz").read_bytes()).decode().splitlines()[1:]]
+    assert any(r[5] == "CALLED" and r[2] for r in called), called[:5]
+    # Every haplotype is as long as its locus has variable positions, and holds no unresolved base.
+    positions = {r.split("\t")[0]: int(r.split("\t")[7] or 0)
+                 for r in (tmp_path / "mh_loci.tsv").read_text().splitlines()[1:]}
+    assert all(len(r[2]) == positions[r[0]] and "N" not in r[2] for r in called if r[5] == "CALLED")
     # Cohort QC (G5) ran and gave each cohort sample a verdict.
     cohort_qc = json.loads((res / "cohort/cohort_qc.json").read_text())
     assert set(cohort_qc["samples"]) == set((res / "cohort/cohort_samples.txt").read_text().split())

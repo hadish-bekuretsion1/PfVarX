@@ -3293,6 +3293,7 @@ values, not universal recommendations or evidence of scientific validity.
 | `layer5.yaml` | DA006 minimum monoclonal samples 4 and informative sites 10; sample/site missingness ceilings 0.2; UFBoot/SH-aLRT 1000 each |
 | `layer5.yaml` | DA009 targeted dropout ratio 0.05, present ratio 0.2, control depth 20, control amplicons 2, samples per country-month 3, Wilson level 0.95; WGS uses the DA008 deletion thresholds |
 | `layer5.yaml` | DA003/DA005 population minimum 3; DA003 bootstrap 200; DA002 minimum callable/group 3, reporting floor 0.05 and MIXED below 0.95; DA007 GAM after 10 samples; provisional settings require scientific review |
+| `layer3.yaml` | microhaplotype floors: fragment depth 10 per sample and locus, haplotype 2 fragments and 5% of them, at most 32 variable positions per locus, 10 loci before DA001/DA004 prefer microhaplotypes to biallelic SNVs; cohort site call rate 0.8 |
 | `layer6.yaml` | detailed variant embedding cap 200000; full totals remain distinguished from embedded details |
 | `registry/job_resources.yaml` | threads and memory of every workflow rule (for example the caller 8 threads, 5000 MB), memory headroom 1.2 over measured peaks, temporary disk 3× input, progress refresh 15 s; read by both the rules and the preflight plan |
 | `compute.yaml` | example total cores 4, RAM 6500 MiB, jobs 1, temp disk 20000 MB, per-job runtime estimate/ceiling field 720 minutes; `tmp_dir` null (system temporary directory) |
@@ -4019,10 +4020,10 @@ targeted designs) and from what is callable. Decisions record the territory fact
 
 | ID | Analysis | Panel and callable-evidence rule | Further run-time gates |
 | --- | --- | --- | --- |
-| DA001 | Clone inference (COI, clonality) | — | ≥ 10 informative loci per sample; MOIRE needs ≥ 10 informative samples, otherwise the caller's mixture test |
+| DA001 | Clone inference (COI, clonality) | Multiallelic microhaplotype loci when the cohort has ≥ `microhap_min_loci_for_basis` of them (`analyses.microhap_panel`), else biallelic SNVs; the basis is recorded | ≥ 10 informative loci per sample; MOIRE needs ≥ 10 informative samples, otherwise the caller's mixture test |
 | DA002 | Resistance markers | The territory must contain a whole catalogue codon (`PANEL_LACKS_MARKERS`); each sample needs at least one whole catalogue codon in its callable regions (`NO_CALLABLE_MARKERS`) | Per-marker callability (`UNKNOWN`), WHO K13 flag needs ≥ 3 callable infections |
 | DA003 | Diversity | — | Group sizes; Fws needs ≥ 10 samples |
-| DA004 | Relatedness and IBD | — | 200 informative markers per WGS pair, 20 per targeted pair (low precision below 200) |
+| DA004 | Relatedness and IBD | Dcifer uses the same microhaplotype loci as DA001 when available; hmmIBD always uses biallelic SNVs | 200 informative markers per WGS pair, 20 per targeted pair (low precision below 200). The marker thresholds were derived for biallelic markers (Taylor 2019) and are applied to the locus count, so a low-precision label on a microhaplotype panel is conservative |
 | DA005 | Population structure | A panel needs ≥ 10 separate target regions (`da005_min_independent_loci`, `TOO_FEW_INDEPENDENT_LOCI`) | Population groups; ≥ 3 informative sites |
 | DA006 | Phylogenetics | A panel needs ≥ 10 separate target regions (`da006_min_independent_loci`) | ≥ 4 monoclonal samples, ≥ 10 parsimony-informative sites, missingness limits |
 | DA007 | Spatial and temporal | Inherits DA002 | Coordinates, dates, country |
