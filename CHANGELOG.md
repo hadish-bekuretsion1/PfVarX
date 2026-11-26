@@ -11,6 +11,8 @@
 - Display only: table data, filters and CSV/XLSX/PDF exports are unchanged. An existing
   dashboard picks up the fix when it is rebuilt with `pfvarx report --run-id RUN_ID`; the
   pipeline does not need to run again.
+- The SOP manual's HTML sidebar link to Appendix E now opens it. It still pointed to the
+  appendix's former title.
 
 ### Microhaplotype loci from your own inputs, and pfhrp2/3 evidence that needs no cut-off
 
