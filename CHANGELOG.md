@@ -2,6 +2,16 @@
 
 ## Unreleased
 
+### Dashboard tables no longer draw long values over the next column
+
+- A long value in a dashboard table cell (a file path, a FASTQ pair, JSON facts) used to stay on
+  one line and run over the neighbouring columns, most visibly in the Inputs page's validated
+  input records. Text cells now wrap inside their column. Values longer than 40 characters may
+  break anywhere. Shorter values keep whole words, and numbers stay on one line, right-aligned.
+- Display only: table data, filters and CSV/XLSX/PDF exports are unchanged. An existing
+  dashboard picks up the fix when it is rebuilt with `pfvarx report --run-id RUN_ID`; the
+  pipeline does not need to run again.
+
 ### The published repository holds the analysis software only
 
 - Development material is no longer on `main`: the test suite (`tests/`), the GitHub CI
