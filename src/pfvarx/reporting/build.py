@@ -78,6 +78,9 @@ VIEW_REGISTRY = {
     "DA009.prevalence": {"estimand": "share of judged infections with pfhrp2, pfhrp3, dual or any deletion",
                          "views": ["bar", "table"], "uncertainty": "Wilson interval (simple random sampling)",
                          "limitations": "pooled across evidence classes; the stratified table is published beside it"},
+    "DA009.sensitivity": {"estimand": "each gene state recomputed across a grid of provisional cut-offs",
+                          "views": ["table"], "uncertainty": "shows which calls depend on the cut-off",
+                          "limitations": "no reported call changes; a state that moves within the grid rests on the chosen number"},
     "DA009.cooccurrence": {"estimand": "whether the two deletions co-occur more than independence predicts",
                            "views": ["table"], "uncertainty": "Fisher exact test p-value",
                            "limitations": "describes this cohort; not evidence of selection"},
@@ -472,6 +475,7 @@ def harvest(root: Path, run: Path) -> dict[str, Any]:
             entry["prevalence_by_evidence"] = _read_tsv_safe(d / "joint_prevalence_by_evidence.tsv")
             entry["cooccurrence"] = _read_tsv_safe(d / "cooccurrence.tsv")
             entry["trend"] = _read_tsv_safe(d / "trend.tsv")
+            entry["sensitivity"] = _read_tsv_safe(d / "threshold_sensitivity.tsv")
         elif da == "DA007":
             entry["summary"] = _read_tsv_safe(d / "country_month_summary.tsv")
             entry["grid"] = _optional_json(d / "grid_summary.json", warnings, [])

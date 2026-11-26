@@ -52,6 +52,8 @@ from pfvarx.configuration.loader import frozen_param
 from pfvarx.constants import HrpEvidence, JointDeletion, Reason, Terminal
 from pfvarx.downstream.cnv import (
     GcModel,
+    background_percentile,
+    background_ratios,
     call_locus,
     catalog_path,
     depth_profile,
@@ -271,6 +273,72 @@ def trend(rows: list[dict[str, Any]], min_per_unit: int, level: float) -> list[d
     return out
 
 
+def sensitivity(calls: list[dict[str, Any]], evidence: HrpEvidence, params: dict[str, Any]
+                ) -> tuple[list[dict[str, Any]], int]:
+    """Each gene state recomputed across a grid of cut-offs, and how many calls the grid changes.
+
+    The deletion cut-offs are UNCALIBRATED_PROVISIONAL, so the honest thing to publish beside a
+    call is how much it depends on them. A call that holds across the grid stands on the data; one
+    that moves within it rests on the chosen number and is marked so. No reported call changes.
+    """
+    key = "da009_dropout_ratio_grid" if evidence == HrpEvidence.AMPLICON_DROPOUT else "da009_deletion_ratio_grid"
+    grid = [float(x) for x in frozen_param(params, key)]
+    rows: list[dict[str, Any]] = []
+    unstable = 0
+    for call in calls:
+        states: list[str] = []
+        for threshold in grid:
+            if evidence == HrpEvidence.AMPLICON_DROPOUT:
+                tuned = {**params, "da009_dropout_max_ratio": threshold}
+                depth = _number(call.get("gene_median_depth"))
+                control = _number(call.get("control_median_depth"))
+                state = dropout_call(depth, control, int(call.get("control_amplicons") or 0), tuned)[0] \
+                    if call["state"] != UNKNOWN or call["reason"] == "AMBIGUOUS_COVERAGE" else call["state"]
+            else:
+                tuned = {**params, "da008_deletion_ratio": threshold}
+                state = call_locus("DELETION", _number(call.get("depth_ratio")), _number(call.get("ratio_lo")),
+                                   _number(call.get("flank_ratio")), tuned)[0] \
+                    if call.get("depth_ratio") not in (None, "") else call["state"]
+            states.append(state)
+            rows.append({"sample_id": call["sample_id"], "locus_id": call["locus_id"], "gene": call["gene"],
+                         "evidence_class": call["evidence_class"], "threshold": threshold, "state": state,
+                         "reported_state": call["state"]})
+        if len(set(states)) > 1:
+            unstable += 1
+    for row in rows:
+        row["grid"] = ",".join(str(g) for g in grid)
+    return rows, unstable
+
+
+def background_spread(calls: list[dict[str, Any]]) -> dict[str, Any]:
+    """Per gene and state, the spread of the threshold-free percentile across the cohort's samples.
+
+    A locus whose DELETED samples sit far below its PRESENT samples separates on the data itself.
+    One where the two overlap is resting on the cut-off, whatever the sensitivity grid says about
+    any single call.
+    """
+    out: dict[str, Any] = {}
+    for call in calls:
+        value = _number(call.get("background_percentile"))
+        if value is None:
+            continue
+        bucket = out.setdefault(f"{call['gene']}:{call['state']}", [])
+        bucket.append(value)
+    return {key: {"samples": len(values), "min": round(min(values), 4),
+                  "median": round(statistics.median(values), 4), "max": round(max(values), 4)}
+            for key, values in sorted(out.items())}
+
+
+def _number(text: Any) -> float | None:
+    """A formatted number back as a float, or None when it was not measured."""
+    if text in (None, ""):
+        return None
+    try:
+        return float(text)
+    except (TypeError, ValueError):
+        return None
+
+
 def _month(value: str) -> str:
     """Collection month (YYYY-MM) of an ISO collection date, else empty."""
     text = (value or "").strip()
@@ -310,10 +378,12 @@ def gene_calls(ctx: Context, eligible: list[str], genes: list[dict[str, str]],
                              if evidence == HrpEvidence.AMPLICON_DROPOUT else None)
             model = None
             fasta = None
+            background: list[float] = []
             if evidence == HrpEvidence.DEPTH_RATIO and core >= min_core:
                 fasta = pysam.FastaFile(str(fasta_path))
                 model = GcModel(bam, fasta, core_spans, int(p["da008_window_bp"]), int(p["da008_gc_windows"]),
                                 min_mapq, seed, int(frozen_param(p, "da008_gc_min_windows_per_bin")))
+                background = background_ratios(model)
             try:
                 for i, gene in enumerate(genes):
                     locus, loc = gene["locus_id"], places[gene["locus_id"]]
@@ -339,10 +409,16 @@ def gene_calls(ctx: Context, eligible: list[str], genes: list[dict[str, str]],
                         m = depth_measure(bam, loc, core, p, min_mapq, seed + i, fasta, model)
                         state, reason = call_locus("DELETION", m["depth_ratio"], m["ratio_lo"],
                                                    m["flank_ratio"], p)
+                        # Self-calibrating: where the gene's ratio falls among the sample's own
+                        # single-copy core windows. Needs no threshold, so it stands while the
+                        # deletion cut-offs remain provisional.
+                        percentile = background_percentile(background, m["depth_ratio"])
                         extra = {"gene_median_depth": fmt(m["gene_depth"]), "core_median_depth": fmt(core),
                                  "depth_ratio": fmt(m["depth_ratio"]), "ratio_lo": fmt(m["ratio_lo"]),
                                  "ratio_hi": fmt(m["ratio_hi"]), "flank_ratio": fmt(m["flank_ratio"]),
-                                 "spanning_pairs": m["spanning_pairs"]}
+                                 "spanning_pairs": m["spanning_pairs"],
+                                 "background_percentile": fmt(percentile),
+                                 "background_windows": len(background)}
                     calls.append({**row, "state": state, "reason": reason, **extra})
             finally:
                 if fasta is not None:
@@ -430,13 +506,16 @@ def run(ctx: Context, threads: int = 1) -> None:
     write_tsv(out / "joint_prevalence_by_evidence.tsv", by_evidence, _columns(by_evidence, ["group", "measure"]))
     write_tsv(out / "cooccurrence.tsv", together, _columns(together, ["group"]))
     write_tsv(out / "trend.tsv", over_time, _columns(over_time, ["country", "month", "measure"]))
+    grid_rows, threshold_sensitive = sensitivity(calls, evidence, p)
+    write_tsv(out / "threshold_sensitivity.tsv", grid_rows,
+              _columns(grid_rows, ["sample_id", "locus_id", "threshold", "state"]))
     write_json(out / "catalog_provenance.json", {"path": str(cat_path), "meta": meta,
                                                  "loci": [g["locus_id"] for g in genes]})
     counts = {s.value: sum(1 for r in joint if r["joint_state"] == s.value) for s in JointDeletion}
     caveats = _caveats(ctx, evidence, status, meta)
     outputs = [out / "gene_calls.tsv", out / "joint_calls.tsv", out / "joint_prevalence.tsv",
                out / "joint_prevalence_by_evidence.tsv", out / "cooccurrence.tsv", out / "trend.tsv",
-               out / "catalog_provenance.json"]
+               out / "threshold_sensitivity.tsv", out / "catalog_provenance.json"]
     indeterminate = counts[JointDeletion.INDETERMINATE.value]
     write_manifest(ctx, "DA009",
                    (Terminal.COMPLETED_WITH_EXCLUSIONS if excluded["INELIGIBLE"] or indeterminate
@@ -458,7 +537,9 @@ def run(ctx: Context, threads: int = 1) -> None:
                               {"deletion_ratio": float(p["da008_deletion_ratio"]),
                                "present_ratio": float(p["da008_present_ratio"]),
                                "min_core_depth": float(p["da008_min_core_depth"])})},
-                   results_summary={"gene_calls": len(calls), "samples": len(joint), **counts})
+                   results_summary={"gene_calls": len(calls), "samples": len(joint), **counts,
+                                    "calls_sensitive_to_threshold": threshold_sensitive,
+                                    "background_percentile_by_state": background_spread(calls)})
 
 
 def _contract(ctx: Context) -> dict[str, Any]:
@@ -490,7 +571,9 @@ def _caveats(ctx: Context, evidence: HrpEvidence, status: str, meta: dict[str, s
         "read with the evidence composition in each row.",
         "The co-occurrence test describes this cohort's joint pattern against independence. It is not "
         "evidence of selection, and a convenience sample is not a random sample of infections.",
-        "Thresholds are UNCALIBRATED_PROVISIONAL.",
+        "Thresholds are UNCALIBRATED_PROVISIONAL. threshold_sensitivity.tsv recomputes every gene state "
+        "across a grid of cut-offs: a call that holds across the grid stands on the data, and the count of "
+        "calls that move within it is in the manifest.",
     ]
     if evidence == HrpEvidence.AMPLICON_DROPOUT:
         caveats[1:1] = [
@@ -505,6 +588,12 @@ def _caveats(ctx: Context, evidence: HrpEvidence, status: str, meta: dict[str, s
             "Whole-genome sequencing: copy number is estimated from read depth against core-genome windows "
             "of the same sample with similar GC content; pfhrp2 and pfhrp3 lie in subtelomeric, repetitive "
             "regions where depth is less reliable.",
+            "background_percentile in gene_calls.tsv needs no cut-off: it is where the gene's depth ratio "
+            "falls among the sample's own random core-genome windows, which are almost all single copy. "
+            "Compare it across samples at the same locus, which is what it is for: the background is core "
+            "sequence, while pfhrp2 and pfhrp3 are subtelomeric, where depth and mappability differ, so a "
+            "gene that is present can still sit low in the distribution. It is not an absolute test of "
+            "presence, and the per-gene spread for each state is in the manifest.",
         ]
     if status == "TEST_FIXTURE":
         caveats.insert(0, "TEST FIXTURE CATALOGUE: results are for software testing, not for surveillance.")

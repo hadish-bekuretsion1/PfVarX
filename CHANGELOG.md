@@ -2,6 +2,45 @@
 
 ## Unreleased
 
+### Microhaplotype loci from your own inputs, and pfhrp2/3 evidence that needs no cut-off
+
+Both open scientific issues from the previous three changes, resolved without inventing any
+published value.
+
+- **Microhaplotype loci can now be derived from the run's own inputs** (`analyses.microhap_loci`:
+  `off` by default, `derived`, or `catalogue`). For a targeted design each panel target region
+  holding at least `microhap_derived_min_sites` PASS SNVs becomes one locus, because an amplicon
+  *is* a microhaplotype locus; whole-genome runs tile the core mask into windows of
+  `microhap_derived_window_bp` (150 bp, a length one fragment can resolve). Every coordinate comes
+  from the panel or core mask the run was given, so derived loci need no maintainer verification -
+  they assert nothing about a published panel. The summary records the source and states that
+  derived loci compare only with cohorts defined the same way, so a published panel's own
+  catalogue remains the better input where one exists. The shipped catalogue still holds no loci.
+- **DA009 now publishes evidence that carries no threshold**: `background_percentile` in
+  `gene_calls.tsv` is where the gene's depth ratio falls among the sample's own single-copy
+  core-genome windows - near 0 for a deleted gene, about 0.5 for a single copy, near 1 for a
+  duplication. It is calibrated against the sample itself, so it stands while the deletion
+  cut-offs remain provisional.
+- **And it says how much each call depends on its cut-off**: `threshold_sensitivity.tsv`
+  recomputes every gene state across `da009_dropout_ratio_grid` or `da009_deletion_ratio_grid`,
+  with the reported state beside it, and the manifest counts the calls that move
+  (`calls_sensitive_to_threshold`). A call that holds across the grid stands on the data; one that
+  moves within it rests on the chosen number. **No reported call changes.**
+- Neither addition replaces calibration against samples of known pfhrp2/3 status, and
+  `docs/status.md` says so.
+- The third open item needed no code: a run has one assay design, so pooled and stratified
+  prevalence coincide within a run, and every row already carries its evidence class for the only
+  case where they differ - combining runs.
+- Derivation counts each window's sites with two binary searches over the sorted positions. A
+  whole genome tiles into about 160 000 windows against as many sites, so the scan this replaces
+  would not have finished on real data: 24 Mb with 480 000 sites now derives in 0.22 s, and
+  `tests/unit/test_microhap.py` guards the scale.
+- `analyses.microhap_loci` accepts what YAML makes of a bare `off` (YAML 1.1 reads it as the
+  boolean false) and reads the three values case-insensitively, so a hand-edited configuration
+  cannot fail with a confusing type error; both templates quote the value.
+- New settings `layer3.microhap_derived_*` and `layer5.da009_*_ratio_grid` (parameter files layer3
+  and layer5 are now version 1.3.0); the report shows the locus source and the sensitivity table.
+
 ### Cohort scale on CPUs, and accelerators recorded rather than claimed
 
 - **The Layer 5 cohort evidence matrix now costs a measured 25 bytes per cell instead of 473, an

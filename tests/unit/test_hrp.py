@@ -204,3 +204,88 @@ def test_interval_level_and_month_parsing() -> None:
     assert hrp.z_score(0.99) == pytest.approx(2.5758293035489004)
     assert hrp._month("2026-01-17") == "2026-01"
     assert hrp._month("") == "" and hrp._month("not-a-date") == ""
+
+
+# --- evidence that needs no calibrated cut-off, and how much a call depends on one
+
+def test_background_percentile_places_a_gene_among_the_samples_own_windows() -> None:
+    from pfvarx.downstream.cnv import background_percentile
+
+    # The sample's own single-copy core windows, centred on 1.
+    windows = sorted([0.8, 0.9, 0.95, 1.0, 1.0, 1.05, 1.1, 1.2, 1.3, 1.4])
+    assert background_percentile(windows, 0.0) == 0.0      # a deleted gene sits below every window
+    assert background_percentile(windows, 1.0) == pytest.approx(0.5)   # a single copy sits in the middle
+    assert background_percentile(windows, 2.0) == 1.0      # a duplication sits above them all
+    assert background_percentile(windows, None) is None    # nothing measured, nothing claimed
+    assert background_percentile([], 0.5) is None          # no background, no percentile
+
+
+def test_background_ratios_come_from_the_samples_own_model() -> None:
+    from pfvarx.downstream.cnv import GcModel, background_ratios
+
+    model = GcModel.__new__(GcModel)        # the points a sample's windows produced
+    model.points = [(0.2, 20.0), (0.25, 22.0), (0.3, 18.0), (0.35, 21.0), (0.4, 19.0)]
+    model.min_per_bin = 3
+    ratios = background_ratios(model)
+    assert len(ratios) == 5 and ratios == sorted(ratios)
+    # Single-copy windows against their own expectation: ratios cluster about 1.
+    assert all(0.5 < r < 2.0 for r in ratios)
+
+
+def _call(state: str, **extra: object) -> dict[str, object]:
+    base = {"sample_id": "S1", "locus_id": "pfhrp2_deletion", "gene": "pfhrp2", "state": state,
+            "reason": "", "evidence_class": HrpEvidence.AMPLICON_DROPOUT.value}
+    return {**base, **extra}
+
+
+def test_sensitivity_marks_a_call_that_depends_on_the_cut_off() -> None:
+    params = {**PARAMS, "da009_dropout_ratio_grid": [0.02, 0.05, 0.10, 0.20]}
+    # 8% of the control depth: deleted at a 0.10 or 0.20 cut-off, present-or-unknown below it.
+    borderline = _call(UNKNOWN, reason="AMBIGUOUS_COVERAGE", gene_median_depth="8.0",
+                       control_median_depth="100.0", control_amplicons=3)
+    rows, unstable = hrp.sensitivity([borderline], HrpEvidence.AMPLICON_DROPOUT, params)
+    assert unstable == 1, "a call that moves within the grid must be counted"
+    assert {r["threshold"] for r in rows} == {0.02, 0.05, 0.10, 0.20}
+    assert {r["state"] for r in rows} == {DELETED, UNKNOWN}
+    assert all(r["reported_state"] == UNKNOWN for r in rows)   # nothing reported changed
+    # A gene with no reads at all is deleted at every cut-off in the grid: the call stands alone.
+    clear = _call(DELETED, gene_median_depth="0.0", control_median_depth="100.0", control_amplicons=3)
+    rows, unstable = hrp.sensitivity([clear], HrpEvidence.AMPLICON_DROPOUT, params)
+    assert unstable == 0 and {r["state"] for r in rows} == {DELETED}
+
+
+def test_sensitivity_for_whole_genome_uses_the_depth_ratio_grid() -> None:
+    params = {**PARAMS, "da009_deletion_ratio_grid": [0.05, 0.10, 0.20, 0.30],
+              "da008_deletion_ratio": 0.1, "da008_present_ratio": 0.3, "da008_flank_min_ratio": 0.3,
+              "da008_amplification_ratio": 1.5, "da008_amplification_lower": 1.25}
+    call = {"sample_id": "S1", "locus_id": "pfhrp2_deletion", "gene": "pfhrp2", "state": UNKNOWN,
+            "reason": "AMBIGUOUS_DEPTH", "evidence_class": HrpEvidence.DEPTH_RATIO.value,
+            "depth_ratio": "0.1500", "ratio_lo": "0.1000", "ratio_hi": "0.2000", "flank_ratio": "0.9000"}
+    rows, unstable = hrp.sensitivity([call], HrpEvidence.DEPTH_RATIO, params)
+    assert len(rows) == 4 and unstable == 1
+    by_threshold = {r["threshold"]: r["state"] for r in rows}
+    assert by_threshold[0.05] == UNKNOWN and by_threshold[0.20] == DELETED
+
+
+def test_sensitivity_leaves_an_unmeasured_locus_alone() -> None:
+    params = {**PARAMS, "da009_deletion_ratio_grid": [0.05, 0.2]}
+    missing = {"sample_id": "S1", "locus_id": "pfhrp3_deletion", "gene": "pfhrp3", "state": UNKNOWN,
+               "reason": "GENE_NOT_IN_GFF", "evidence_class": HrpEvidence.DEPTH_RATIO.value}
+    rows, unstable = hrp.sensitivity([missing], HrpEvidence.DEPTH_RATIO, params)
+    assert unstable == 0 and {r["state"] for r in rows} == {UNKNOWN}
+
+
+def test_background_spread_shows_whether_the_states_separate() -> None:
+    calls = [
+        {"gene": "pfhrp2", "state": DELETED, "background_percentile": "0.0010"},
+        {"gene": "pfhrp2", "state": DELETED, "background_percentile": "0.0000"},
+        {"gene": "pfhrp2", "state": PRESENT, "background_percentile": "0.4800"},
+        {"gene": "pfhrp2", "state": PRESENT, "background_percentile": "0.5200"},
+        {"gene": "pfhrp3", "state": UNKNOWN, "background_percentile": ""},   # nothing measured
+    ]
+    spread = hrp.background_spread(calls)
+    assert spread["pfhrp2:DELETED"]["samples"] == 2 and spread["pfhrp2:DELETED"]["max"] == 0.001
+    assert spread["pfhrp2:PRESENT"]["median"] == pytest.approx(0.5)
+    # The deleted samples sit far below the present ones: the locus separates on the data itself.
+    assert spread["pfhrp2:DELETED"]["max"] < spread["pfhrp2:PRESENT"]["min"]
+    assert "pfhrp3:UNKNOWN" not in spread, "a locus with no measurement claims no spread"

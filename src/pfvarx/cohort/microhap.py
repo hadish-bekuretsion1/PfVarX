@@ -35,6 +35,7 @@ invented here, so a site supplies its own verified panel and the artifact is emp
 from __future__ import annotations
 
 import argparse
+import bisect
 import gzip
 import json
 from collections import Counter
@@ -110,6 +111,53 @@ def variable_positions(sites: list[dict[str, str]], locus: tuple[str, int, int],
     if len(found) > cap:
         return found[:cap], "VARIABLE_POSITIONS_CAPPED"
     return found, ""
+
+
+def derive_loci(sites: list[dict[str, str]], territory: dict[str, list[tuple[int, int]]], design: Design,
+                window_bp: int, min_sites: int, max_loci: int) -> tuple[list[dict[str, str]], str, int]:
+    """Microhaplotype loci from the run's own inputs, when no catalogue is supplied.
+
+    A targeted panel already defines them: one amplicon is one locus, so each target region
+    holding at least *min_sites* of this cohort's PASS SNVs becomes a locus. Whole-genome runs
+    have no such definition, so the core mask is tiled into windows of *window_bp* and the
+    windows with enough PASS SNVs are used.
+
+    Nothing is invented: every coordinate comes from the panel the run was given or from the core
+    mask it declares. The loci are specific to this run's panel or window length, so haplotype
+    frequencies are comparable with another cohort only if that cohort used the same definition -
+    which is why a published panel's own catalogue remains the better input when one exists.
+    """
+    by_contig: dict[str, list[int]] = {}
+    for site in sites:
+        if len(site["ref"]) == 1 and len(site["alt"]) == 1 and int(site["n_pass"]) > 0:
+            by_contig.setdefault(site["chrom"], []).append(int(site["pos"]) - 1)
+    for positions in by_contig.values():
+        positions.sort()
+    candidates: list[tuple[str, int, int]] = []
+    if design.targeted:
+        source = "DERIVED_PANEL_TARGETS"
+        for chrom, spans in sorted(territory.items()):
+            for start, end in spans:
+                candidates.append((chrom, start, end))
+    else:
+        source = "DERIVED_CORE_WINDOWS"
+        for chrom, spans in sorted(territory.items()):
+            for start, end in spans:
+                for window_start in range(start, end, window_bp):
+                    candidates.append((chrom, window_start, min(end, window_start + window_bp)))
+    loci: list[dict[str, str]] = []
+    for chrom, start, end in candidates:
+        # The positions are sorted, so each window's count is two binary searches. A whole genome
+        # tiles into of the order of 100 000 windows against as many sites, and a scan per window
+        # would not finish.
+        positions = by_contig.get(chrom, [])
+        inside = bisect.bisect_left(positions, end) - bisect.bisect_left(positions, start)
+        if inside >= min_sites:
+            loci.append({"locus_id": f"derived_{chrom}_{start + 1}_{end}", "chrom": chrom,
+                         "start": str(start + 1), "end": str(end), "gene_id": "",
+                         "name": f"{inside} PASS SNVs", "source": source.lower()})
+    capped = max(0, len(loci) - max_loci)
+    return loci[:max_loci], source, capped
 
 
 def fragment_haplotypes(bam: pysam.AlignmentFile, chrom: str, positions: list[int],
@@ -264,10 +312,14 @@ def main(argv: list[str] | None = None) -> None:
     samples = Path(a.samples).read_text().split()
     bams = {Path(b).name.split(".")[0]: Path(b) for b in a.bams}
     callable_beds = {Path(c).name.split(".")[0]: Path(c) for c in a.callable}
+    mode = str(eff["config"]["analyses"].get("microhap_loci") or "off")
     path = panel_path(root, eff["config"]["analyses"].get("microhap_panel"))
     from pfvarx.downstream.resistance import load_catalog
 
-    meta, panel = load_catalog(path) if path.is_file() else ({}, [])
+    meta: dict[str, str] = {}
+    panel: list[dict[str, str]] = []
+    if mode == "catalogue":
+        meta, panel = load_catalog(path) if path.is_file() else ({}, [])
     with pysam.FastaFile(a.reference) as fasta:
         lengths = dict(zip(fasta.references, fasta.lengths))
     gff = root / eff["config"]["reference"]["gff"] if eff["config"]["reference"].get("gff") else None
@@ -277,8 +329,17 @@ def main(argv: list[str] | None = None) -> None:
     else:
         territory = read_bed(root / eff["config"]["reference"]["core_mask_bed"])
     sites = read_tsv(Path(a.sites))
+    source, capped = ("CATALOGUE" if mode == "catalogue" else "OFF"), 0
+    if mode == "derived":
+        panel, source, capped = derive_loci(sites, territory, design,
+                                            int(frozen_param(params, "microhap_derived_window_bp")),
+                                            int(frozen_param(params, "microhap_derived_min_sites")),
+                                            int(frozen_param(params, "microhap_derived_max_loci")))
+        meta = {"catalog_id": "derived", "version": source.lower(), "status": "DERIVED_FROM_RUN_INPUTS"}
     status = meta.get("status", "NO_PANEL" if not panel else "UNKNOWN")
-    verified = status in ("MAINTAINER_VERIFIED", "TEST_FIXTURE")
+    # Derived loci need no maintainer verification: their coordinates are the run's own panel
+    # targets or core mask, not a claim about a published panel.
+    verified = status in ("MAINTAINER_VERIFIED", "TEST_FIXTURE", "DERIVED_FROM_RUN_INPUTS")
     haplotype_rows: list[dict[str, Any]] = []
     locus_rows: list[dict[str, Any]] = []
     if panel and verified:
@@ -288,10 +349,17 @@ def main(argv: list[str] | None = None) -> None:
     write_tsv(Path(a.out_loci), locus_rows, list(LOCUS_COLUMNS))
     used = [r for r in locus_rows if r["status"] == "USED"]
     reason = ("" if panel and verified else
-              "NO_LOCI_IN_PANEL" if not panel else "PANEL_NOT_VERIFIED")
+              "MICROHAPLOTYPES_OFF" if mode == "off" else
+              ("NO_DERIVED_LOCUS_HAS_ENOUGH_SITES" if mode == "derived" else "NO_LOCI_IN_PANEL")
+              if not panel else "PANEL_NOT_VERIFIED")
     write_json(Path(a.out_summary), {
-        "schema": SCHEMA, "panel": str(path), "panel_meta": meta, "panel_status": status,
-        "panel_verified": verified, "reason": reason,
+        "schema": SCHEMA, "panel": str(path) if mode == "catalogue" else None, "panel_meta": meta,
+        "panel_status": status, "panel_verified": verified, "reason": reason,
+        "locus_source": source, "mode": mode, "loci_over_cap": capped,
+        "comparability": ("Loci come from this run's own panel targets or core mask, so haplotype "
+                          "frequencies are comparable only with cohorts using the same definition."
+                          if source.startswith("DERIVED") else
+                          "Loci come from the supplied catalogue." if source == "CATALOGUE" else ""),
         "count_unit": (CountUnit.CONSENSUS_MOLECULES if design == Design.TARGETED_UMI else CountUnit.READS).value,
         "design": design.value, "loci_in_panel": len(panel), "loci_used": len(used),
         "loci_excluded": {r["locus_id"]: r["reason"] for r in locus_rows if r["status"] != "USED"},

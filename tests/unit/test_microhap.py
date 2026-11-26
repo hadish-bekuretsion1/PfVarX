@@ -9,6 +9,7 @@ import pysam
 import pytest
 
 from pfvarx.cohort import microhap
+from pfvarx.cohort.microhap import derive_loci as hrp_derive
 from pfvarx.constants import Design
 from pfvarx.downstream import loci as loci_module
 
@@ -263,3 +264,94 @@ def test_build_skips_a_sample_where_the_positions_are_not_callable(tmp_path: Pat
                                       params=PARAMS, min_mapq=20, min_bq=13)
     assert [r["reason"] for r in haplotypes] == ["POSITION_NOT_CALLABLE"]
     assert loci[0]["samples_called"] == 0 and loci[0]["samples_uncallable"] == 1
+
+
+# --- loci derived from the run's own inputs (no catalogue, no invented coordinates)
+
+def _sites(positions: dict[str, list[int]]) -> list[dict[str, str]]:
+    return [{"chrom": chrom, "pos": str(p + 1), "ref": "A", "alt": "C", "n_pass": "2"}
+            for chrom, ps in positions.items() for p in ps]
+
+
+def test_derived_loci_are_the_panels_own_targets() -> None:
+    panel_targets = {"ctg": [(1000, 1300), (2000, 2300), (5000, 5300)]}
+    sites = _sites({"ctg": [1010, 1100, 1200,      # three SNVs in the first target
+                           2050,                   # only one in the second: not a microhaplotype
+                           ]})                      # none in the third
+    loci, source, capped = hrp_derive(sites, panel_targets, Design.TARGETED_UMI, 150, 2, 2000)
+    assert source == "DERIVED_PANEL_TARGETS" and capped == 0
+    assert [(x["chrom"], x["start"], x["end"]) for x in loci] == [("ctg", "1001", "1300")]
+    assert loci[0]["name"] == "3 PASS SNVs" and loci[0]["source"] == "derived_panel_targets"
+    # Every coordinate comes from the supplied panel, never from a published panel's numbers.
+    assert loci[0]["locus_id"] == "derived_ctg_1001_1300"
+
+
+def test_derived_loci_for_whole_genome_are_core_windows_short_enough_to_span() -> None:
+    core = {"ctg": [(0, 600)]}
+    sites = _sites({"ctg": [10, 40,          # window 0-150: two SNVs
+                            200,              # window 150-300: one, excluded
+                            310, 330, 360]})  # window 300-450: three
+    loci, source, _ = hrp_derive(sites, core, Design.WGS, 150, 2, 2000)
+    assert source == "DERIVED_CORE_WINDOWS"
+    assert [(x["start"], x["end"]) for x in loci] == [("1", "150"), ("301", "450")]
+    # The window is the locus length, so a fragment can resolve every position in it.
+    assert all(int(x["end"]) - int(x["start"]) + 1 <= 150 for x in loci)
+
+
+def test_derived_loci_are_capped_and_the_excess_is_recorded() -> None:
+    core = {"ctg": [(0, 3000)]}
+    sites = _sites({"ctg": [i for block in range(20) for i in (block * 150 + 1, block * 150 + 2)]})
+    loci, _, capped = hrp_derive(sites, core, Design.WGS, 150, 2, 5)
+    assert len(loci) == 5 and capped == 15
+
+
+def test_derivation_needs_the_minimum_number_of_sites() -> None:
+    core = {"ctg": [(0, 150)]}
+    assert hrp_derive(_sites({"ctg": [10]}), core, Design.WGS, 150, 2, 10)[0] == []
+    assert len(hrp_derive(_sites({"ctg": [10, 20]}), core, Design.WGS, 150, 2, 10)[0]) == 1
+    # An indel or a site no sample passed is not a microhaplotype position.
+    indel = [{"chrom": "ctg", "pos": "11", "ref": "AT", "alt": "A", "n_pass": "2"},
+             {"chrom": "ctg", "pos": "21", "ref": "A", "alt": "C", "n_pass": "0"}]
+    assert hrp_derive(indel, core, Design.WGS, 150, 2, 10)[0] == []
+
+
+def test_the_locus_source_setting_survives_yaml_truthiness() -> None:
+    """YAML 1.1 reads a bare ``off`` as the boolean false; the setting must still mean "off"."""
+    import yaml
+
+    from pfvarx.configuration.models import AnalysesConfig
+
+    assert yaml.safe_load("microhap_loci: off")["microhap_loci"] is False  # the trap itself
+    assert AnalysesConfig(**yaml.safe_load("microhap_loci: off")).microhap_loci == "off"
+    assert AnalysesConfig(**yaml.safe_load('microhap_loci: "off"')).microhap_loci == "off"
+    assert AnalysesConfig(microhap_loci="DERIVED").microhap_loci == "derived"
+    assert AnalysesConfig().microhap_loci == "off", "the default must not change existing runs"
+    with pytest.raises(ValueError, match="microhap_loci"):
+        AnalysesConfig(microhap_loci="sometimes")
+
+
+def test_both_templates_keep_the_value_a_string() -> None:
+    import yaml
+
+    root = Path(__file__).resolve().parents[2]
+    for template in ("analysis", "benchmarking"):
+        loaded = yaml.safe_load((root / "config/templates" / f"{template}.yaml").read_text())
+        assert loaded["analyses"]["microhap_loci"] == "off", f"{template}.yaml must quote the value"
+
+
+def test_derivation_scales_to_a_whole_genome() -> None:
+    """Counting sites per window must not scan every site: a real genome tiles into ~150 000
+    windows against as many sites, and a scan per window would not finish."""
+    import time
+
+    core = {f"ctg{c}": [(0, 3_000_000)] for c in range(8)}            # 24 Mb, as for P. falciparum
+    sites = [{"chrom": f"ctg{c}", "pos": str(p), "ref": "A", "alt": "C", "n_pass": "2"}
+             for c in range(8) for p in range(1, 3_000_000, 50)]       # 480 000 PASS SNVs
+    started = time.monotonic()
+    loci, source, capped = hrp_derive(sites, core, Design.WGS, 150, 2, 2000)
+    elapsed = time.monotonic() - started
+    assert source == "DERIVED_CORE_WINDOWS"
+    assert len(loci) == 2000 and capped > 0
+    # Two binary searches per window: well under a second in practice. A scan per window would
+    # be about 10^10 comparisons, so a generous bound still catches the regression.
+    assert elapsed < 30, f"derivation took {elapsed:.1f}s over 160 000 windows: it is scanning sites"
