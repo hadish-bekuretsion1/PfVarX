@@ -17,7 +17,7 @@ rule snpeff_build:
         genome=GENOME_ID,
         data=str(SNPEFF_DIR),
     resources:
-        mem_mb=mem(4000),
+        mem_mb=mem("snpeff_build"),
         runtime=RUNTIME,
     benchmark:
         str(BENCH / "snpeff_build" / "snpeff_build.tsv")
@@ -42,7 +42,7 @@ rule snpeff_annotate:
         genome=GENOME_ID,
         data=str(SNPEFF_DIR),
     resources:
-        mem_mb=mem(4000),
+        mem_mb=mem("snpeff_annotate"),
         runtime=RUNTIME,
     benchmark:
         str(BENCH / "snpeff_annotate" / "snpeff_annotate.tsv")

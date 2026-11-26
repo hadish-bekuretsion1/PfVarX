@@ -61,7 +61,7 @@ rule cohort_evidence:
         frozen=FROZEN,
         ref=PREF,
     resources:
-        mem_mb=mem(2000),
+        mem_mb=mem("cohort_evidence"),
         runtime=RUNTIME,
     benchmark:
         str(BENCH / "cohort_evidence" / "cohort_evidence.tsv")
@@ -71,6 +71,38 @@ rule cohort_evidence:
         "python -m pfvarx.cohort.evidence --vcf {input.vcf:q} --samples {input.samples:q} --bams {input.bams:q} "
         "--callable {input.callable:q} --reference {params.ref:q} --frozen-config {params.frozen:q} "
         "--out-matrix {output.matrix:q} --out-missing {output.missing:q} --out-sites {output.sites:q} > {log:q} 2>&1"
+
+
+rule cohort_microhaplotypes:
+    """Multiplexed microhaplotypes at catalogue loci: one multiallelic marker per locus for
+    DA001 and DA004. Writes an empty artifact (with the reason) when no verified panel is
+    configured, so the cohort step always has a recorded outcome."""
+    input:
+        sites=str(R / "cohort" / "sites.tsv"),
+        samples=str(R / "cohort" / "cohort_samples.txt"),
+        bams=lambda wc: [str(R / "alignments" / f"{s}.bam") for s in passing("L3")],
+        callable=lambda wc: [str(R / "variants" / "samples" / f"{s}.callable.bed") for s in passing("L3")],
+    output:
+        haplotypes=str(R / "cohort" / "microhaplotypes.tsv.gz"),
+        loci=str(R / "cohort" / "microhaplotype_loci.tsv"),
+        summary=str(R / "cohort" / "microhaplotypes.json"),
+    params:
+        frozen=FROZEN,
+        ref=PREF,
+        root=str(ROOT),
+    resources:
+        mem_mb=mem("cohort_microhaplotypes"),
+        runtime=RUNTIME,
+    benchmark:
+        str(BENCH / "cohort_microhaplotypes" / "cohort_microhaplotypes.tsv")
+    log:
+        str(LOGS / "cohort" / "microhaplotypes.log"),
+    shell:
+        "python -m pfvarx.cohort.microhap --sites {input.sites:q} --samples {input.samples:q} "
+        "--bams {input.bams:q} --callable {input.callable:q} --reference {params.ref:q} "
+        "--root {params.root:q} --frozen-config {params.frozen:q} "
+        "--out-haplotypes {output.haplotypes:q} --out-loci {output.loci:q} "
+        "--out-summary {output.summary:q} > {log:q} 2>&1"
 
 
 rule cohort_qc:

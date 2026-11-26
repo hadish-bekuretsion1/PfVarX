@@ -1,5 +1,5 @@
 # Maintainer-owned downstream method registry (Table F.3). Users cannot edit it.
-version: "2.1.0"  # 2.1.0: lower-case assay designs; panel- and evidence-based needs
+version: "2.3.0"  # 2.3.0: DA009 pfhrp2/pfhrp3 joint deletion (all designs); 2.2.0: DA008 copy-number markers; 2.1.0: lower-case assay designs; panel- and evidence-based needs
 analyses:
   DA001:
     name: Complexity of infection and clonal status
@@ -84,4 +84,32 @@ analyses:
     requires: [source_outcome]
     prerequisites: [SOURCE]
     required_metadata: [latitude, longitude, collection_date, country]
+    validation_status: TESTED
+  DA008:
+    name: Copy-number markers
+    method: read-depth ratio of catalogue genes to the median core-genome depth, with flank depth and junction read pairs
+    tool: pfvarx.downstream.cnv
+    # Read depth over whole genes is only comparable within a whole-genome library; amplicon depth is not.
+    designs: [wgs]
+    scales: [SAMPLE, COHORT, POPULATION]
+    clonality: [MONOCLONAL, POLYCLONAL, INDETERMINATE]
+    requires: [alignments, core_depth]
+    prerequisites: []
+    required_metadata: []
+    validation_status: TESTED
+  DA009:
+    name: pfhrp2/pfhrp3 joint deletion
+    method: joint single and dual deletion with co-occurrence and country-month trend; WGS by depth ratio to GC-matched core windows, targeted panels by amplicon dropout against control amplicons
+    tool: pfvarx.downstream.hrp
+    # Every design: a panel cannot give copy number, but it shows whether the pfhrp2/pfhrp3
+    # amplicons produced reads while the control amplicons did. The two evidence models are
+    # recorded separately on every row and are never treated as the same measurement.
+    designs: [wgs, targeted_no_umi, targeted_umi]
+    scales: [SAMPLE, COHORT, POPULATION]
+    clonality: [MONOCLONAL, POLYCLONAL, INDETERMINATE]
+    requires: [alignments, core_depth]
+    # The catalogue loci whose joint state this analysis reports, in order (pfhrp2 then pfhrp3).
+    needs: {deletion_loci: [pfhrp2_deletion, pfhrp3_deletion]}
+    prerequisites: []
+    required_metadata: []
     validation_status: TESTED

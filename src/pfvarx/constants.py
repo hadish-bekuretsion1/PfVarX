@@ -11,6 +11,9 @@ from enum import StrEnum
 
 STATUS_SCHEMA_VERSION = "pfvarx.status/1"
 
+# Default random seed of a project (config random_seed) and of the benchmark partition.
+DEFAULT_RANDOM_SEED = 20261106
+
 
 class Purpose(StrEnum):
     ANALYSIS = "analysis"
@@ -21,7 +24,7 @@ class FinalOutput(StrEnum):
     FO001 = "FO001"  # caller-ready alignment, index and QC
     FO002 = "FO002"  # filtered per-sample variant files, evidence and QC
     FO003 = "FO003"  # compatible variant-only cohort VCF/BCF and missingness
-    FO004 = "FO004"  # user-selected eligible DA002-DA007 outputs
+    FO004 = "FO004"  # user-selected eligible DA001-DA008 outputs
 
 
 class InputType(StrEnum):
@@ -175,6 +178,23 @@ class CallStatus(StrEnum):
     CONTEXT_UNRELIABLE = "CONTEXT_UNRELIABLE"
 
 
+class HrpEvidence(StrEnum):
+    """How a pfhrp2/pfhrp3 deletion call was made (DA009); the two are different measurements."""
+
+    DEPTH_RATIO = "DEPTH_RATIO"  # wgs: gene depth against GC-matched core-genome windows (as DA008)
+    AMPLICON_DROPOUT = "AMPLICON_DROPOUT"  # targeted: gene amplicons against the panel's control amplicons
+
+
+class JointDeletion(StrEnum):
+    """Joint pfhrp2/pfhrp3 state of one infection (DA009)."""
+
+    DOUBLE_DELETION = "DOUBLE_DELETION"
+    PFHRP2_ONLY = "PFHRP2_ONLY"
+    PFHRP3_ONLY = "PFHRP3_ONLY"
+    NO_DELETION = "NO_DELETION"
+    INDETERMINATE = "INDETERMINATE"  # either gene could not be judged
+
+
 class MarkerState(StrEnum):
     MUTANT = "MUTANT"
     MIXED = "MIXED"
@@ -274,6 +294,8 @@ class Reason(StrEnum):
     NO_ELIGIBLE_SAMPLES = "NO_ELIGIBLE_SAMPLES"
     NO_COHORT = "NO_COHORT"
     PANEL_LACKS_MARKERS = "PANEL_LACKS_MARKERS"
+    PANEL_LACKS_HRP_TARGETS = "PANEL_LACKS_HRP_TARGETS"
+    CONTROL_AMPLICONS_INSUFFICIENT = "CONTROL_AMPLICONS_INSUFFICIENT"
     NO_CALLABLE_MARKERS = "NO_CALLABLE_MARKERS"
     TOO_FEW_INDEPENDENT_LOCI = "TOO_FEW_INDEPENDENT_LOCI"
     PARAMETER_UNSET = "PARAMETER_UNSET"
@@ -291,4 +313,4 @@ class Reason(StrEnum):
     STRICT_RUN_STOP = "STRICT_RUN_STOP"
 
 
-DOWNSTREAM_IDS = ("DA002", "DA003", "DA001", "DA004", "DA005", "DA006", "DA007")
+DOWNSTREAM_IDS = ("DA002", "DA003", "DA001", "DA004", "DA005", "DA006", "DA007", "DA008", "DA009")

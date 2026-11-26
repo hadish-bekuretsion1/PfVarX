@@ -1,0 +1,70 @@
+# Values used by runs frozen before a maintainer parameter existed.
+#
+# A run's frozen_config.json holds the parameters of config/parameters/layer*.yaml as they were
+# when the run was frozen. When a parameter was added later, an older run (resumed or extended
+# with --mode EXTEND) has no entry for it; it then uses the value below, which is the behaviour
+# that run was frozen with, so its results stay reproducible. These values are history: never
+# edit them to change behaviour - change config/parameters/layer*.yaml instead. A parameter
+# added in future gets an entry here only if older runs must still be readable.
+# Read only through pfvarx.configuration.loader.frozen_param.
+schema: pfvarx.legacy_parameters/1
+parameters:
+  # layer2 (caller)
+  candidate_min_alt_reads: 2
+  pairhmm_max_reads: 200
+  pairhmm_flank_bp: 60
+  focal_loss_min_length_bp: 50
+  mixture_site_spacing_bp: 500
+  mixture_indel_exclusion_bp: 0
+  mixture_constrained_calling: false
+  mixture_constrained_min_log10_lr: 10.0
+  error_fit_exclude_fraction: null
+  homopolymer_tract_classes: [[1, 1], [2, 4], [5, 9], [10, 10000]]
+  indel_error_init_divisor: 5
+  indel_error_floor: 1.0e-6
+  error_rate_cap: 0.25
+  error_fit_min_sites: 50
+  error_fit_min_nonzero_for_phi: 50
+  overdispersion_phi_bounds: [10.0, 1.0e+7]
+  wsaf_profile_grid_points: 2001
+  indel_anchor_bp: 5
+  pileup_max_depth: 1000000
+  evidence_chunk_bp: 250000
+  k_bootstrap_max_iterations: 200
+  k_bootstrap_restart_divisor: 10
+  k_bootstrap_min_restarts: 2
+  # layer0 (declared scope): no indel length bound before it was recorded
+  indel_length_bound_bp: null
+  # layer3 (cohort QC and microhaplotypes). A run frozen before the microhaplotype step existed
+  # had no panel, so DA001 and DA004 used biallelic SNVs; these values reproduce exactly that.
+  cohort_site_call_rate_min: 0.8
+  microhap_min_depth: 10
+  microhap_min_haplotype_reads: 2
+  microhap_min_haplotype_fraction: 0.05
+  microhap_max_variable_positions: 32
+  microhap_min_loci_for_basis: 10
+  microhap_derived_window_bp: 150
+  microhap_derived_min_sites: 2
+  microhap_derived_max_loci: 2000
+  # layer5 (downstream analyses)
+  da001_moire_pt_chains: 1
+  da003_bootstrap_replicates: 200
+  da003_interval_level: 0.95
+  da003_min_bootstrap_values: 10
+  da004_dcifer_alpha: 0.05
+  da004_dcifer_null_grid: 1000
+  da004_dcifer_coi_lrank: 2
+  da004_dcifer_afreq_tol: 1.0e-5
+  da005_min_samples: 3
+  da005_min_sites: 3
+  da005_pca_components: 4
+  da007_gam_min_samples: 10
+  da007_gam_max_basis: 4
+  da007_gam_interval_level: 0.95
+  da007_gam_grid_points: 20
+  da007_time_origin: "2000-01-01"
+  da008_interval_level: 0.95
+  da008_gc_min_windows_per_bin: 20
+  da009_dropout_ratio_grid: [0.02, 0.05, 0.10, 0.20]
+  da009_deletion_ratio_grid: [0.05, 0.10, 0.20, 0.30]
+  mixture_min_component_weight: 0.02

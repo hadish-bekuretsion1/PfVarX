@@ -25,9 +25,28 @@ from pfvarx.diagnostics.events import append, event
 from pfvarx.eligibility.engine import internal_prerequisites, load_registry
 from pfvarx.inputs.registry import validate_all
 from pfvarx.io import read_json, write_json
+from pfvarx.planning import resources as job_resources
 from pfvarx.planning.plan import resource_plan
 from pfvarx.references.prepare import verify_prepared
 from pfvarx.runs import registry as runs
+
+
+def catalogue_warnings(root: Path, analyses: list[str], resistance_catalog: Path | None) -> list[dict[str, str]]:
+    """Warn before a run when DA002, DA008 or DA009 will be blocked by an unverified catalogue."""
+    from pfvarx.downstream.cnv import CATALOG as CNV_CATALOG
+    from pfvarx.downstream.resistance import load_catalog
+
+    out = []
+    for da, path in (("DA002", resistance_catalog or Path("config/registry/resistance_catalog_pfvarx_v1.tsv")),
+                     ("DA008", Path(CNV_CATALOG)), ("DA009", Path(CNV_CATALOG))):
+        if da not in analyses or not (root / path).is_file():
+            continue
+        status = load_catalog(root / path)[0].get("status", "UNKNOWN")
+        if status not in ("MAINTAINER_VERIFIED", "TEST_FIXTURE"):
+            out.append({"reason": "CATALOG_NOT_VERIFIED", "analysis": da,
+                        "detail": f"{da} will be blocked: {path} has status {status}. Verify the catalogue first, or "
+                                  "run now and add the analysis later with './pfvarx pipeline --mode EXTEND --run-id RUN_ID'"})
+    return out
 
 
 def build_plan(root: Path) -> dict[str, Any]:
@@ -68,6 +87,9 @@ def build_plan(root: Path) -> dict[str, Any]:
     resources["estimate"] = estimate([j["job"] for j in resources["jobs"]], sample_input_gb(root, {"samples": admitted}),
                                      bundle.compute.max_jobs, cfg.assay_design.value, cfg.input_type.value,
                                      layers=resources["layers"])
+    if 5 in resources["layers"]:
+        resources["warnings"] += catalogue_warnings(root, requested + internal,
+                                                    cfg.analyses.resistance_catalog)
     manifest = root / "prepared" / "manifest.json"
     ref = read_json(manifest) if manifest.is_file() else {}
     return {
@@ -95,10 +117,11 @@ def build_plan(root: Path) -> dict[str, Any]:
 
 def snakemake_cmd(root: Path, run: Path, eff: dict[str, Any], dry: bool) -> list[str]:
     comp = eff["compute"]
+    default_mem = int(job_resources.planning(root)["default_rule_mem_mb"])
     cmd = ["snakemake", "-s", str(root / "workflow" / "Snakefile"), "--directory", str(run),
            "--config", f"run_dir={run}", f"root={root}", "--cores", str(comp["max_cores"]),
            "--jobs", str(comp["max_jobs"]), "--resources", f"mem_mb={comp['max_mem_mb']}",
-           "--default-resources", f"mem_mb={min(1000, comp['per_job']['max_mem_mb'])}",
+           "--default-resources", f"mem_mb={min(default_mem, comp['per_job']['max_mem_mb'])}",
            f"runtime={comp['per_job']['max_runtime_min']}",
            *([f"tmpdir={comp['tmp_dir']}"] if comp.get("tmp_dir") else []),
            # Greedy scheduling: PfVarX jobs are few per sample with fixed limits, so Snakemake's ILP
@@ -171,9 +194,6 @@ def execute(root: Path, mode: str = "NEW", previous: str | None = None) -> dict[
             signal.signal(signal.SIGTERM, previous_handler)
 
 
-PROGRESS_SECONDS = 15
-
-
 def _progress(progress: Any, run: Path) -> None:
     try:  # the progress page is a view of the run; it must never stop it
         progress.write(run)
@@ -181,13 +201,15 @@ def _progress(progress: Any, run: Path) -> None:
         pass
 
 
-def _run_watched(cmd: list[str], out: Any, env: dict[str, str], run: Path, progress: Any) -> subprocess.CompletedProcess[str]:
-    """Run Snakemake and refresh the run's progress page while it works."""
+def _run_watched(cmd: list[str], out: Any, env: dict[str, str], run: Path, progress: Any,
+                 refresh_seconds: float) -> subprocess.CompletedProcess[str]:
+    """Run Snakemake and refresh the run's progress page every *refresh_seconds*
+    (``planning.progress_refresh_seconds`` in config/registry/job_resources.yaml)."""
     proc = subprocess.Popen(cmd, stdout=out, stderr=subprocess.STDOUT, env=env)
     try:
         while True:
             try:
-                code = proc.wait(timeout=PROGRESS_SECONDS)
+                code = proc.wait(timeout=refresh_seconds)
                 break
             except subprocess.TimeoutExpired:
                 _progress(progress, run)
@@ -266,7 +288,8 @@ def _execute(root: Path, mode: str = "NEW", previous: str | None = None) -> dict
     for attempt in (1, 2):
         log = log_dir / f"snakemake.pass{offset + attempt}.log"
         with log.open("x") as h:
-            r = _run_watched(snakemake_cmd(root, run, eff, dry=False), h, env, run, progress)
+            r = _run_watched(snakemake_cmd(root, run, eff, dry=False), h, env, run, progress,
+                             float(job_resources.planning(root)["progress_refresh_seconds"]))
         failed = failed_samples(run, plan)
         passes.append({"pass": offset + attempt, "exit_code": r.returncode, "failed_samples": failed, "log": str(log)})
         if r.returncode != 0 and len(failed) == len(plan["samples"]):

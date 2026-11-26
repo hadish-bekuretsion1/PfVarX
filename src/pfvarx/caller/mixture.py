@@ -155,11 +155,13 @@ def _replicate_lr(args: tuple[np.ndarray, np.ndarray, int, float, float, int, in
 def select_k(y: np.ndarray, n: np.ndarray, eps: float, phi: float, k_max: int, alpha: float,
              replicates: int, seed: int, restarts: int, agreement: float, tol: float,
              max_iter: int, min_weight: float = 0.0, executor: Executor | None = None,
-             batch: int = 1) -> dict[str, Any]:
+             batch: int = 1, *, boot_max_iter: int, boot_restart_divisor: int,
+             boot_min_restarts: int) -> dict[str, Any]:
     """Sequential parametric-bootstrap LRT (Equations 3.24-3.26).
 
     Smallest K whose test of K versus K+1 is not rejected at alpha. Replicate fits use
-    fewer restarts (max(3, restarts//4)); both counts are recorded.
+    fewer restarts, max(boot_min_restarts, restarts // boot_restart_divisor), and at most
+    boot_max_iter EM iterations (layer2.k_bootstrap_*); both counts are recorded.
 
     With an *executor*, replicate fits run *batch* at a time in parallel. Results are
     identical to the serial run: replicates are simulated in the same order from the same
@@ -178,8 +180,8 @@ def select_k(y: np.ndarray, n: np.ndarray, eps: float, phi: float, k_max: int, a
         fits[k + 1] = fit(y, n, k + 1, eps, phi, seed + 100 * k, restarts, agreement, tol, max_iter,
                           executor=executor)
         lr = 2 * (fits[k + 1].log_lik - fits[k].log_lik)
-        boot_restarts = max(2, restarts // 10)
-        boot_iter = min(max_iter, 200)
+        boot_restarts = max(boot_min_restarts, restarts // boot_restart_divisor)
+        boot_iter = min(max_iter, boot_max_iter)
         # Besag-Clifford sequential stopping: once h exceedances are seen, p >= alpha is
         # certain and the remaining replicates cannot change the decision.
         h = math.ceil(alpha * (replicates + 1))

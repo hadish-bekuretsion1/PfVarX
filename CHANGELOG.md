@@ -2,6 +2,191 @@
 
 ## Unreleased
 
+### Microhaplotype loci from your own inputs, and pfhrp2/3 evidence that needs no cut-off
+
+Both open scientific issues from the previous three changes, resolved without inventing any
+published value.
+
+- **Microhaplotype loci can now be derived from the run's own inputs** (`analyses.microhap_loci`:
+  `off` by default, `derived`, or `catalogue`). For a targeted design each panel target region
+  holding at least `microhap_derived_min_sites` PASS SNVs becomes one locus, because an amplicon
+  *is* a microhaplotype locus; whole-genome runs tile the core mask into windows of
+  `microhap_derived_window_bp` (150 bp, a length one fragment can resolve). Every coordinate comes
+  from the panel or core mask the run was given, so derived loci need no maintainer verification -
+  they assert nothing about a published panel. The summary records the source and states that
+  derived loci compare only with cohorts defined the same way, so a published panel's own
+  catalogue remains the better input where one exists. The shipped catalogue still holds no loci.
+- **DA009 now publishes evidence that carries no threshold**: `background_percentile` in
+  `gene_calls.tsv` is where the gene's depth ratio falls among the sample's own single-copy
+  core-genome windows - near 0 for a deleted gene, about 0.5 for a single copy, near 1 for a
+  duplication. It is calibrated against the sample itself, so it stands while the deletion
+  cut-offs remain provisional.
+- **And it says how much each call depends on its cut-off**: `threshold_sensitivity.tsv`
+  recomputes every gene state across `da009_dropout_ratio_grid` or `da009_deletion_ratio_grid`,
+  with the reported state beside it, and the manifest counts the calls that move
+  (`calls_sensitive_to_threshold`). A call that holds across the grid stands on the data; one that
+  moves within it rests on the chosen number. **No reported call changes.**
+- Neither addition replaces calibration against samples of known pfhrp2/3 status, and
+  `docs/status.md` says so.
+- The third open item needed no code: a run has one assay design, so pooled and stratified
+  prevalence coincide within a run, and every row already carries its evidence class for the only
+  case where they differ - combining runs.
+- Derivation counts each window's sites with two binary searches over the sorted positions. A
+  whole genome tiles into about 160 000 windows against as many sites, so the scan this replaces
+  would not have finished on real data: 24 Mb with 480 000 sites now derives in 0.22 s, and
+  `tests/unit/test_microhap.py` guards the scale.
+- `analyses.microhap_loci` accepts what YAML makes of a bare `off` (YAML 1.1 reads it as the
+  boolean false) and reads the three values case-insensitively, so a hand-edited configuration
+  cannot fail with a confusing type error; both templates quote the value.
+- New settings `layer3.microhap_derived_*` and `layer5.da009_*_ratio_grid` (parameter files layer3
+  and layer5 are now version 1.3.0); the report shows the locus source and the sensitivity table.
+
+### Cohort scale on CPUs, and accelerators recorded rather than claimed
+
+- **The Layer 5 cohort evidence matrix now costs a measured 25 bytes per cell instead of 473, an
+  18.8x reduction**, and lookups became faster (3.1 million cell reads a second, constant time).
+  Each cohort site holds columns addressed by the sample's position, built in one pass because
+  the cohort's sample order is known before the file is read. A cohort of 200 samples over 5 000
+  sites needs about 25 MB where it needed 474; 500 over 50 000 needs about 630 MB where it needed
+  11.8 GB. `wsaf` is kept as a float64 exactly as the file holds it, so no comparison against a
+  reporting floor (0.05, 0.95) can move, and `tests/unit/test_cohort_matrix.py` pins every value
+  against the mapping it replaces.
+- **Analyses that do not read cohort evidence no longer load it.** DA002, DA007, DA008 and DA009
+  work from the alignments; each analysis declares `USES_COHORT_MATRIX`, an analysis that does not
+  declare itself is given the matrix (so none can lose its evidence by omission), and
+  `tests/unit/test_matrix_declarations.py` checks every declaration against the code, following
+  imports inside the package.
+- **A cohort too large for the machine is now said before the analyses run**, not discovered as an
+  out-of-memory kill: the eligibility checkpoint records `cohort_scale` in
+  `eligibility/cohort_decisions.json` and warns `RESOURCE_MEMORY_TIGHT` with what to do when the
+  estimate passes half of `per_job.max_mem_mb`. The cost per cell is a planning factor
+  (`planning.cohort_matrix_bytes_per_cell`), measured rather than guessed.
+- **Graphics processors are detected and recorded in provenance** (`nvidia-smi`,
+  `system_profiler`), with `used_for_compute: false`, and the report's Software section states
+  plainly that PfVarX computes on CPUs only. Nothing computes on a GPU: every pinned tool is a CPU
+  program and no result depends on an accelerator. A machine with a GPU runs correctly on its CPUs.
+- Evidence is still read whole into memory rather than streamed, so a cohort of several thousand
+  samples over a dense site set remains beyond one host; that limit is now stated in
+  `docs/status.md` with the measured numbers behind it.
+
+### Multiplexed microhaplotypes for DA001 and DA004
+
+- New Layer 3 step **multiplexed microhaplotypes** (`cohort/microhaplotypes.tsv.gz`,
+  `microhaplotype_loci.tsv`, `microhaplotypes.json`): for each catalogue locus and sample, the
+  haplotypes DNA fragments carry across the locus's variable positions, which are this cohort's
+  PASS SNVs inside the locus. No variant is discovered there, so a haplotype cannot contain a
+  site the caller did not pass, and indels are excluded because they move the positions after
+  them within a read. Observations are grouped per fragment, so overlapping mates count once and
+  disagreeing mates leave the position unresolved; a fragment that cannot resolve every position
+  is incomplete and counted as such. Works on every design: a locus is used only inside the
+  panel's targets (targeted) or the core mask (whole-genome), and anything else is recorded with
+  its reason.
+- **DA001 (MOIRE) and DA004 (Dcifer) now use multiallelic microhaplotype loci** when the cohort
+  has at least `microhap_min_loci_for_basis` of them, instead of one biallelic `R`/`A` call per
+  SNV, which is what both tools are built for. With fewer loci the larger biallelic set is kept.
+  Either way the manifest records `locus_basis`, the locus count and the reason, so estimates are
+  never compared without knowing what they were computed on. hmmIBD still uses biallelic SNVs,
+  and DA004 says so when the two methods differ; DA003 and DA005 are unchanged.
+- New user setting `analyses.microhap_panel` (CLI templates, GUI help and configuration guide) and
+  a shipped registry panel `config/registry/microhap_panel_pfvarx_v1.tsv` that **holds no loci**:
+  panel coordinates belong to a published panel and a reference release and are not invented here.
+  Until a site supplies and verifies its own panel, the artifact is empty with the reason recorded
+  and the analyses behave exactly as before.
+- New settings `layer3.microhap_*` (parameter file layer3 is now version 1.2.0); the marker
+  thresholds DA004 applies to a microhaplotype locus count were derived for biallelic markers
+  (Taylor 2019) and are flagged as conservative in the caveats rather than re-derived.
+- The report's Variants section shows the panel: loci used, haplotypes per locus, samples called,
+  and the excluded loci with their reasons.
+- New tests `tests/unit/test_microhap.py` (15); the synthetic end-to-end cohort asserts the
+  empty-panel fallback and then builds real haplotypes from its own PASS SNVs with a fixture panel.
+
+### DA009 pfhrp2/pfhrp3 joint deletion, on every assay design
+
+- New analysis **DA009 pfhrp2/pfhrp3 joint deletion** (FO004, every design): the joint state of
+  the two genes per infection (`DOUBLE_DELETION`, `PFHRP2_ONLY`, `PFHRP3_ONLY`, `NO_DELETION`,
+  or `INDETERMINATE` when either gene cannot be judged), joint prevalence with Wilson
+  intervals, the co-occurrence of the two deletions against independence (Fisher exact test),
+  and joint prevalence by country and month.
+- Two evidence models, recorded in every row as `evidence_class`:
+  `DEPTH_RATIO` for whole-genome sequencing, which is the DA008 measurement unchanged, so the
+  two analyses call WGS deletions identically; and `AMPLICON_DROPOUT` for targeted panels,
+  where gene amplicon depth is compared with the panel's control amplicons. The second is a
+  presence/absence statement, not a copy number, and a mutated primer site or a failed PCR
+  produces the same dropout as a deletion, so a panel must carry a pfhrp2 or pfhrp3 target
+  (`PANEL_LACKS_HRP_TARGETS`) and at least `da009_min_control_amplicons` control targets
+  (`CONTROL_AMPLICONS_INSUFFICIENT`), and a low control depth leaves every gene UNKNOWN.
+- Prevalence is published twice: pooled over evidence classes (each row naming the classes it
+  pooled) and stratified by evidence class, so a pooled figure's composition is never hidden.
+- New settings `layer5.da009_*` (targeted thresholds UNCALIBRATED_PROVISIONAL); the two
+  catalogue loci DA009 reports are named in `config/registry/downstream_analyses.yaml`
+  (registry 2.3.0), so no gene identifier is written in the code. Parameter file layer5 is
+  version 1.2.0.
+- Selectable in the CLI and the GUI like the other analyses and chosen by automatic selection
+  for every design; a new DA009 report tab; `workflow-check` (and `ready`) warn when an
+  unverified copy-number catalogue will block DA009, as for DA002 and DA008.
+- New test `tests/unit/test_hrp.py`; the synthetic end-to-end cohort now runs nine analyses.
+
+### Fixed
+
+- The **DA008 dashboard tab showed only its manifest panel**: its depth-ratio chart, prevalence
+  table and per-sample call table were built inside `daKpis`, which returns early for each
+  analysis, so the block never ran (found while rendering the new DA009 tab in a browser). Both
+  blocks now sit in `daViews`, and `tests/unit/test_dashboard_views.py` fails if any analysis
+  builds its charts in the headline-numbers function again. No analysis output changes; only
+  the report's DA008 tab gains the charts it was meant to show.
+
+### No values written in the code
+
+- Every threshold, analysis setting and compute request now lives in a configuration file.
+  New maintainer parameters (each with a source class) replace values that were written in
+  the code: `layer0.core_mask_fraction_min` / `_max`, `core_mask_max_intervals`,
+  `alignment_state_reads_checked`; `layer2.homopolymer_tract_classes`,
+  `indel_error_init_divisor`, `indel_error_floor`, `error_rate_cap`, `error_fit_min_sites`,
+  `error_fit_min_nonzero_for_phi`, `overdispersion_phi_bounds`, `wsaf_profile_grid_points`,
+  `indel_anchor_bp`, `pileup_max_depth`, `evidence_chunk_bp`, `k_bootstrap_max_iterations`,
+  `k_bootstrap_restart_divisor`, `k_bootstrap_min_restarts`;
+  `layer3.cohort_site_call_rate_min`; `layer5.da001_moire_pt_chains`,
+  `da003_interval_level`, `da003_min_bootstrap_values`, `da004_dcifer_coi_lrank`,
+  `da004_dcifer_afreq_tol`, `da005_min_samples`, `da005_min_sites`, `da005_pca_components`,
+  `da007_gam_grid_points`, `da007_time_origin`, `da008_interval_level`,
+  `da008_gc_min_windows_per_bin`. Values are unchanged, so results are identical.
+  Parameter files layer0, layer2, layer3 and layer5 are now version 1.1.0.
+- New `config/registry/job_resources.yaml` holds the threads and memory of every workflow
+  rule and the planning factors (measured-memory headroom, temporary-disk factor, default
+  rule memory, progress refresh, slow-step marker). The rules and the preflight plan both read
+  it; before, the requests were written twice (rules and `planning/plan.py`).
+- The R scripts for DA001, DA004 and DA007 take every setting as a required argument and no
+  longer hold defaults; inline fallbacks such as `params.get("da003_bootstrap_replicates", 200)`
+  are gone. A run frozen before a parameter existed uses the value it was frozen with, from
+  `src/pfvarx/configuration/legacy_parameters.yaml` (`loader.frozen_param`).
+- The default random seed is defined once (`constants.DEFAULT_RANDOM_SEED`).
+- New test `tests/unit/test_no_hardcoded_parameters.py`; `tests/unit/test_resource_plan.py`
+  now checks that rules read their requests from `job_resources.yaml`.
+- Docs: thresholds ("Where values are kept"), architecture, orchestration, status, testing,
+  SOP Appendix B (md and html), README.
+
+Changes on `develop` after the `v0.0.0` release. The version number stays 0.0.0 until the
+next release is tagged.
+
+### DA008 copy-number markers
+
+- New analysis **DA008 Copy-number markers** (whole-genome sequencing, FO004): amplification
+  of pfmdr1, plasmepsin II and III and gch1, and deletion of pfhrp2 and pfhrp3. For each
+  locus the gene's read depth is compared with core-genome windows of the same sample with
+  similar GC content (P. falciparum libraries cover AT-rich stretches unevenly), with a
+  bootstrap interval, the flanking depth, and read pairs that support a duplication junction
+  or span a deletion. States: AMPLIFIED / SINGLE_COPY, DELETED / PRESENT, or UNKNOWN with
+  its reason; prevalence per locus with Wilson intervals.
+- New copy-number catalogue `config/registry/cnv_catalog_pfvarx_v1.tsv` (gene IDs checked
+  against the PlasmoDB 55 GFF). Like the resistance catalogue it is
+  DRAFT_REQUIRES_VERIFICATION and blocks DA008 until a maintainer verifies it.
+- Settings `layer5.da008_*` (thresholds UNCALIBRATED_PROVISIONAL); a DA008 report tab;
+  selectable in the CLI and the GUI like the other analyses; selected automatically for
+  WGS under automatic analysis selection.
+- `workflow-check` (and `ready`) now warn before a run when DA002 or DA008 will be blocked
+  by an unverified catalogue (`CATALOG_NOT_VERIFIED`), and say how to add the analysis later
+  with `--mode EXTEND`.
+
 ### macOS and Linux ARM64 installation targets
 
 - Add `linux-aarch64`, `osx-64` and `osx-arm64` to the Pixi manifest and lock every

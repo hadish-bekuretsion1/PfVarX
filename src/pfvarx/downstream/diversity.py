@@ -11,12 +11,16 @@ from __future__ import annotations
 import random
 from typing import Any
 
+from pfvarx.configuration.loader import frozen_param
 from pfvarx.constants import Terminal
 from pfvarx.downstream.coi import fws
 from pfvarx.downstream.common import Context, decisions, write_manifest
 from pfvarx.genomic_evidence import read_bed
 from pfvarx.io import write_tsv
 
+# Layer 5 memory: the cohort evidence matrix is loaded for this analysis only when it reads it
+# (dominant alleles and FWS at every cohort site). tests/unit/test_matrix_declarations.py checks the declaration against the code.
+USES_COHORT_MATRIX = True
 
 def callable_intersection_bases(ctx: Context, samples: list[str]) -> int:
     """Number of bases callable in every sample (sweep over per-sample BEDs)."""
@@ -67,7 +71,10 @@ def group_stats(ctx: Context, samples: list[str], include_indels: bool) -> dict[
             "mean_expected_heterozygosity": (sum(he) / len(he)) if he else None}
 
 
-def bootstrap(ctx: Context, samples: list[str], include_indels: bool, reps: int, seed: int) -> tuple[float | None, float | None]:
+def bootstrap(ctx: Context, samples: list[str], include_indels: bool, reps: int, seed: int,
+              level: float, min_values: int) -> tuple[float | None, float | None]:
+    """Percentile bootstrap interval at *level* (da003_interval_level) over samples; none with
+    fewer than *min_values* replicates with a value (da003_min_bootstrap_values)."""
     rng = random.Random(seed)
     vals = []
     for _ in range(reps):
@@ -77,10 +84,11 @@ def bootstrap(ctx: Context, samples: list[str], include_indels: bool, reps: int,
         v = group_stats(ctx, draw, include_indels)["mean_expected_heterozygosity"]
         if v is not None:
             vals.append(v)
-    if len(vals) < 10:
+    if len(vals) < min_values:
         return None, None
     vals.sort()
-    return vals[int(0.025 * len(vals))], vals[int(0.975 * len(vals)) - 1]
+    tail = (1 - level) / 2
+    return vals[int(tail * len(vals))], vals[int((1 - tail) * len(vals)) - 1]
 
 
 def run(ctx: Context, threads: int = 1) -> None:
@@ -110,8 +118,10 @@ def run(ctx: Context, threads: int = 1) -> None:
                              "status": "GROUP_TOO_SMALL"})
                 continue
             st = group_stats(ctx, members, indels)
-            lo, hi = bootstrap(ctx, members, indels, int(ctx.params.get("da003_bootstrap_replicates", 200)),
-                               int(ctx.eff["config"]["random_seed"]))
+            lo, hi = bootstrap(ctx, members, indels, int(frozen_param(ctx.params, "da003_bootstrap_replicates")),
+                               int(ctx.eff["config"]["random_seed"]),
+                               float(frozen_param(ctx.params, "da003_interval_level")),
+                               int(frozen_param(ctx.params, "da003_min_bootstrap_values")))
             rows.append({"group": g, "variant_set": "SNP+indel" if indels else "SNP", "status": "COMPUTED", **st,
                          "he_boot_lo": lo, "he_boot_hi": hi})
     cols = ["group", "variant_set", "status", "samples", "sites_used", "callable_bases_intersection",

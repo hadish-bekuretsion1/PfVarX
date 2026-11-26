@@ -1,0 +1,7 @@
+#catalog_id=pfvarx_microhap_panel
+#version=0.1.0-empty
+#status=DRAFT_REQUIRES_VERIFICATION
+#note=Microhaplotype loci for the multiplexed microhaplotype artifact (cohort/microhaplotypes.tsv.gz), used by DA001 and DA004. This file ships with NO loci on purpose: panel coordinates are specific to a published panel and a reference release, and PfVarX does not invent them. Supply your panel's loci here, or point analyses.microhap_panel at your own file, then set status=MAINTAINER_VERIFIED once each locus has been checked against the panel's own documentation and the reference release named in config/analysis.yaml.
+#columns=locus_id (unique); chrom + start + end (1-based inclusive genomic range of the locus, e.g. one amplicon) OR gene_id (PlasmoDB gene identifier, placed with the GFF); name (free text); source (where the locus comes from)
+#example=mhap_0001	Pf3D7_01_v3	180000	180250			AMPLseq-like amplicon	panel documentation
+locus_id	chrom	start	end	gene_id	name	source

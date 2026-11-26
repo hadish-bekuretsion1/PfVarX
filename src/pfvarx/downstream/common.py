@@ -6,16 +6,103 @@ import datetime as dt
 import gzip
 import json
 import math
+from array import array
+from collections.abc import Iterator
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 
-from pfvarx.constants import Design
+from pfvarx.constants import CallStatus, Design
 from pfvarx.io import read_tsv, write_json
+
+# The vocabularies the evidence matrix uses, stored as one byte per cell.
+STATE_VOCABULARY = ("ALT_DOMINANT", "MIXED", "REF_DOMINANT", "MISSING_LOW_DEPTH", "UNCALLABLE")
+STATUS_VOCABULARY = ("", *(s.value for s in CallStatus))
+_STATE_CODES = {s: i for i, s in enumerate(STATE_VOCABULARY)}
+_STATUS_CODES = {s: i for i, s in enumerate(STATUS_VOCABULARY)}
 
 MANIFEST_SCHEMA = "pfvarx.analysis_status/1"
 PANEL_CAVEAT = ("Targeted panel: only the panel's target regions are analysed, and sites within one "
                 "amplicon or target region are linked, so the result describes the panel loci, not the genome.")
+
+
+class Cell:
+    """One sample's evidence at one cohort site. Reads like the mapping it replaces
+    (``cell["wsaf"]``), so every consumer and hand-built test fixture keeps working."""
+
+    __slots__ = ("state", "ref", "alt", "depth", "wsaf", "caller_status")
+
+    def __init__(self, state: str, ref: int, alt: int, depth: int, wsaf: float | None,
+                 caller_status: str) -> None:
+        self.state, self.ref, self.alt = state, ref, alt
+        self.depth, self.wsaf, self.caller_status = depth, wsaf, caller_status
+
+    def __getitem__(self, key: str) -> Any:
+        return getattr(self, key)
+
+    def get(self, key: str, default: Any = None) -> Any:
+        return getattr(self, key, default)
+
+    def __repr__(self) -> str:
+        return (f"Cell(state={self.state!r}, ref={self.ref}, alt={self.alt}, depth={self.depth}, "
+                f"wsaf={self.wsaf!r}, caller_status={self.caller_status!r})")
+
+
+class SiteRow:
+    """Every sample's evidence at one site, held as arrays indexed by the cohort's sample order.
+
+    A cohort of a few hundred samples over tens of thousands of sites is tens of millions of
+    cells, and one dict per cell costs about 474 bytes of them (measured). Columns cost about 30
+    and are addressed directly by the sample's position, so lookup stays constant-time. Counts
+    are integers and ``wsaf`` is a float64, exactly the values the file holds: nothing is
+    rounded, so no threshold comparison can move.
+    """
+
+    __slots__ = ("_index", "_state", "_status", "_ref", "_alt", "_depth", "_wsaf")
+    ABSENT = 255  # no record for this sample at this site: .get() gives None, as a dict did
+
+    def __init__(self, index: dict[str, int]) -> None:
+        n = len(index)
+        self._index = index
+        self._state = array("B", [self.ABSENT]) * n
+        self._status = array("B", [0]) * n
+        self._ref = array("i", [0]) * n
+        self._alt = array("i", [0]) * n
+        self._depth = array("i", [0]) * n
+        self._wsaf = array("d", [-1.0]) * n
+
+    def set(self, position: int, state: int, status: int, ref: int, alt: int, depth: int,
+            wsaf: float | None) -> None:
+        self._state[position] = state
+        self._status[position] = status
+        self._ref[position] = ref
+        self._alt[position] = alt
+        self._depth[position] = depth
+        self._wsaf[position] = -1.0 if wsaf is None else wsaf
+
+    def get(self, sample: str, default: Any = None) -> Cell | Any:
+        position = self._index.get(sample)
+        if position is None or self._state[position] == self.ABSENT:
+            return default
+        wsaf = self._wsaf[position]
+        return Cell(STATE_VOCABULARY[self._state[position]], self._ref[position], self._alt[position],
+                    self._depth[position], None if wsaf < 0 else wsaf,
+                    STATUS_VOCABULARY[self._status[position]])
+
+    def __getitem__(self, sample: str) -> Cell:
+        cell = self.get(sample)
+        if cell is None:
+            raise KeyError(sample)
+        return cell
+
+    def __contains__(self, sample: str) -> bool:
+        return self.get(sample) is not None
+
+    def __iter__(self) -> Iterator[str]:
+        return (s for s, position in self._index.items() if self._state[position] != self.ABSENT)
+
+    def __len__(self) -> int:
+        return sum(1 for _ in self)
 
 
 @dataclass
@@ -28,7 +115,7 @@ class Context:
     samples: list[str]
     metadata: dict[str, dict[str, str]]
     sites: list[dict[str, str]] = field(default_factory=list)
-    matrix: dict[str, dict[str, dict[str, Any]]] = field(default_factory=dict)  # site -> sample -> cell
+    matrix: dict[str, Any] = field(default_factory=dict)  # site -> SiteRow (or, in fixtures, sample -> cell)
 
     @property
     def results(self) -> Path:
@@ -61,15 +148,63 @@ def load_context(root: Path, run: Path, with_matrix: bool = True) -> Context:
     ctx = Context(root=root, run=run, eff=eff, plan=plan, params=params, samples=samples, metadata=meta)
     if with_matrix and (run / "results" / "cohort" / "sites.tsv").is_file():
         ctx.sites = read_tsv(run / "results" / "cohort" / "sites.tsv")
-        with gzip.open(run / "results" / "cohort" / "evidence_matrix.tsv.gz", "rt") as h:
-            header = h.readline().rstrip("\n").split("\t")
-            for line in h:
-                row = dict(zip(header, line.rstrip("\n").split("\t")))
-                cell = {"state": row["state"], "ref": int(row["ref_count"]), "alt": int(row["alt_count"]),
-                        "depth": int(row["depth"]), "wsaf": float(row["wsaf"]) if row["wsaf"] else None,
-                        "caller_status": row["caller_status"]}
-                ctx.matrix.setdefault(row["site_id"], {})[row["sample_id"]] = cell
+        load_matrix(ctx, run / "results" / "cohort" / "evidence_matrix.tsv.gz")
     return ctx
+
+
+def load_matrix(ctx: Context, path: Path) -> dict[str, int]:
+    """Read the cohort evidence matrix into *ctx*; returns what was skipped, for diagnostics.
+
+    The cohort's sample order is known before the file is read (``cohort_samples.txt``), so each
+    site's columns are allocated once and addressed by position: one pass, constant-time lookup
+    and no intermediate copy of the matrix.
+    """
+    index = {sample: position for position, sample in enumerate(ctx.samples)}
+    skipped = {"unknown_sample": 0, "unknown_state": 0}
+    with gzip.open(path, "rt") as handle:
+        header = handle.readline().rstrip("\n").split("\t")
+        columns = {name: i for i, name in enumerate(header)}
+        site_at, sample_at = columns["site_id"], columns["sample_id"]
+        state_at, status_at = columns["state"], columns["caller_status"]
+        ref_at, alt_at, depth_at, wsaf_at = (columns["ref_count"], columns["alt_count"],
+                                             columns["depth"], columns["wsaf"])
+        for line in handle:
+            field_values = line.rstrip("\n").split("\t")
+            position = index.get(field_values[sample_at])
+            if position is None:  # not a cohort member: the matrix is written from the cohort
+                skipped["unknown_sample"] += 1
+                continue
+            state = _STATE_CODES.get(field_values[state_at])
+            if state is None:
+                skipped["unknown_state"] += 1
+                continue
+            site = field_values[site_at]
+            row = ctx.matrix.get(site)
+            if row is None:
+                row = ctx.matrix[site] = SiteRow(index)
+            wsaf = field_values[wsaf_at]
+            row.set(position, state, _STATUS_CODES.get(field_values[status_at], 0),
+                    int(field_values[ref_at]), int(field_values[alt_at]), int(field_values[depth_at]),
+                    float(wsaf) if wsaf else None)
+    return skipped
+
+
+def cohort_sites(run: Path) -> int:
+    """Cohort sites, counted from sites.tsv without reading the evidence matrix."""
+    path = run / "results" / "cohort" / "sites.tsv"
+    if not path.is_file():
+        return 0
+    return max(0, sum(1 for _ in path.open()) - 1)
+
+
+def matrix_memory_mb(samples: int, sites: int, bytes_per_cell: int) -> int:
+    """Memory the cohort evidence matrix needs in an analysis that reads it.
+
+    Every cohort site holds a column for every sample (the evidence is site-forced), so the cost
+    grows with the product. ``bytes_per_cell`` is measured, not guessed: see
+    ``planning.cohort_matrix_bytes_per_cell`` in config/registry/job_resources.yaml.
+    """
+    return int(samples * sites * bytes_per_cell / 1e6)
 
 
 def decisions(ctx: Context) -> dict[str, Any]:

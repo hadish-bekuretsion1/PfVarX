@@ -17,10 +17,14 @@ import subprocess
 from pathlib import Path
 from typing import Any
 
+from pfvarx.configuration.loader import frozen_param
 from pfvarx.constants import Reason, Terminal
 from pfvarx.downstream.common import Context, write_manifest
 from pfvarx.io import read_tsv, write_json, write_tsv
 
+# Layer 5 memory: the cohort evidence matrix is loaded for this analysis only when it reads it
+# (summarises DA002's marker calls, not the matrix). tests/unit/test_matrix_declarations.py checks the declaration against the code.
+USES_COHORT_MATRIX = False
 GEO = Path("config") / "geo" / "ne_110m_countries.geojson"  # relative to the workspace root
 
 
@@ -113,18 +117,20 @@ def run(ctx: Context, threads: int = 1) -> None:
     write_json(out / "grid_summary.json", grid)
     model_status = "NOT_FITTED_DESCRIPTIVE_ONLY"
     outputs = [out / "country_month_summary.tsv", out / "grid_summary.json"]
-    if len(valid) >= int(ctx.params.get("da007_gam_min_samples", 10)) and shutil.which("Rscript"):
+    if len(valid) >= int(frozen_param(ctx.params, "da007_gam_min_samples")) and shutil.which("Rscript"):
         fit_output = out / "gam_fit.tsv"
         fit_output.unlink(missing_ok=True)
         flat = out / "gam_input.tsv"
+        origin = dt.date.fromisoformat(str(frozen_param(ctx.params, "da007_time_origin")))
         recs = [{"sample_id": c["sample_id"], "marker_id": c["marker_id"],
                  "y": 1 if c["state"] in ("MUTANT", "MIXED") else 0,
-                 "t": (dt.date.fromisoformat(valid[c["sample_id"]]["month"] + "-01") - dt.date(2000, 1, 1)).days}
+                 "t": (dt.date.fromisoformat(valid[c["sample_id"]]["month"] + "-01") - origin).days}
                 for c in calls if c["sample_id"] in valid and c["state"] != "UNKNOWN"]
         write_tsv(flat, recs, ["sample_id", "marker_id", "y", "t"])
         r = subprocess.run(["Rscript", str(ctx.root / "workflow" / "scripts" / "da007_gam.R"), str(flat),
-                            str(fit_output), str(ctx.params.get("da007_gam_max_basis", 4)),
-                            str(ctx.params.get("da007_gam_interval_level", 0.95))], capture_output=True, text=True)
+                            str(fit_output), str(frozen_param(ctx.params, "da007_gam_max_basis")),
+                            str(frozen_param(ctx.params, "da007_gam_interval_level")),
+                            str(frozen_param(ctx.params, "da007_gam_grid_points"))], capture_output=True, text=True)
         (out / "gam.log").write_text(r.stdout + r.stderr)
         if r.returncode != 0 or not fit_output.is_file():
             model_status = "FIT_FAILED"

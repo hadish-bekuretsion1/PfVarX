@@ -1,57 +1,56 @@
-"""The preflight resource plan must report what the workflow rules actually request.
+"""Thread and memory requests are written once, in ``config/registry/job_resources.yaml``.
 
-``planning/plan.py`` summarises each job class for the readiness and dry-run reports; the
-rules in ``workflow/rules`` make the real requests. They are kept in two places, so this test
-fails when one changes without the other.
+The workflow rules read their requests from that file by rule name (``threads("rule")`` and
+``mem("rule")`` in ``workflow/rules/common.smk``) and the preflight resource plan reads the
+same file, so the plan always reports what the rules request. These tests fail when a rule
+writes a number instead, or when a rule with requests is missing from the file.
 """
 
 import re
 from pathlib import Path
 
-from pfvarx.planning.plan import JOB_CLASSES
+from pfvarx.planning import resources
 
-RULES = Path(__file__).resolve().parents[2] / "workflow" / "rules"
-
-# Job class -> the rules it summarises (the plan reports the largest request among them).
-CLASS_RULES = {
-    "fastp": ["fastp"],
-    "bwa_mem2_align": ["bwa_mem2_lane", "merge_lanes"],
-    "markdup": ["mark_duplicates"],
-    "fgbio_umi": ["umi_fastq_to_bam", "umi_align_zipper", "umi_group", "umi_consensus", "umi_realign",
-                  "umi_preclip_and_trim"],
-    "alignment_entry": ["alignment_entry"],
-    "fgbio_clip": ["trim_primers", "entry_trim_primers"],
-    "metrics": ["mosdepth_core", "mosdepth_targets"],
-    "pfvarx_call": ["pfvarx_call"],
-    "cohort_merge": ["cohort_merge", "cohort_evidence"],
-    "snpeff": ["snpeff_build", "snpeff_annotate"],
-    "downstream": ["da001_clonality", "da_execute"],
-}
+ROOT = Path(__file__).resolve().parents[2]
+RULES = ROOT / "workflow" / "rules"
 
 
-def rule_requests() -> dict[str, tuple[int, int]]:
-    """(threads, mem_mb) of every rule; Snakemake's defaults are 1 thread and no memory."""
-    out: dict[str, tuple[int, int]] = {}
+def rule_bodies() -> dict[str, str]:
+    out: dict[str, str] = {}
     for path in RULES.glob("*.smk"):
         blocks = re.split(r"^\s*(?:rule|checkpoint) (\w+):", path.read_text(), flags=re.M)
-        for name, body in zip(blocks[1::2], blocks[2::2], strict=True):
-            t = re.search(r"threads:\s*(?:threads\()?(\d+)", body)
-            m = re.search(r"mem_mb=mem\((\d+)(?:, host=True)?(?:, job=\"\w+\")?\)", body)
-            out[name] = (int(t.group(1)) if t else 1, int(m.group(1)) if m else 0)
+        out.update(zip(blocks[1::2], blocks[2::2], strict=True))
     return out
 
 
-def test_every_planned_job_class_matches_its_rules() -> None:
-    requests = rule_requests()
-    for job, rules in CLASS_RULES.items():
-        assert all(r in requests for r in rules), f"{job}: rule missing from workflow/rules"
-        threads = max(requests[r][0] for r in rules)
-        mem = max(requests[r][1] for r in rules)
-        assert JOB_CLASSES[job]["threads"] == threads, f"{job}: plan {JOB_CLASSES[job]['threads']} threads, rules {threads}"
-        assert JOB_CLASSES[job]["mem_mb"] == mem, f"{job}: plan {JOB_CLASSES[job]['mem_mb']} MB, rules {mem} MB"
+def test_rules_request_resources_by_name_only() -> None:
+    for name, body in rule_bodies().items():
+        threads = re.search(r"threads:\s*(.+)", body)
+        if threads:
+            assert threads.group(1).strip() == f'threads("{name}")', f"{name}: threads not read from job_resources.yaml"
+        memory = re.search(r"mem_mb=(.+?),?\n", body)
+        if memory:
+            assert re.fullmatch(rf'mem\("{name}"(, host=True)?(, job="\w+")?\)', memory.group(1).strip()), \
+                f"{name}: memory not read from job_resources.yaml"
 
 
-def test_every_resource_requesting_rule_is_planned() -> None:
-    planned = {r for rules in CLASS_RULES.values() for r in rules}
-    heavy = {name for name, (t, m) in rule_requests().items() if t > 1 or m > 0}
-    assert heavy <= planned, f"rules with resource requests missing from the plan: {sorted(heavy - planned)}"
+def test_every_resource_requesting_rule_is_in_the_file() -> None:
+    listed = resources.rule_requests(ROOT)
+    requesting = {name for name, body in rule_bodies().items() if "threads(" in body or "mem(" in body}
+    assert requesting <= set(listed), f"rules missing from job_resources.yaml: {sorted(requesting - set(listed))}"
+    assert set(listed) <= set(rule_bodies()), f"job_resources.yaml lists unknown rules: {sorted(set(listed) - set(rule_bodies()))}"
+
+
+def test_job_class_requests_are_the_largest_rule_requests() -> None:
+    rules = resources.rule_requests(ROOT)
+    for name, jc in resources.job_classes(ROOT).items():
+        if jc["rules"]:
+            assert jc["threads"] == max(rules[r]["threads"] for r in jc["rules"]), name
+            assert jc["mem_mb"] == max(rules[r]["mem_mb"] for r in jc["rules"]), name
+
+
+def test_planning_factors_are_present() -> None:
+    factors = resources.planning(ROOT)
+    for key in ("default_rule_mem_mb", "measured_memory_headroom", "tmp_disk_per_input_factor",
+                "slow_step_factor", "progress_refresh_seconds"):
+        assert factors[key] > 0, key

@@ -104,7 +104,8 @@ post-alignment QC is computed only when the tools actually run.
 ## Run progress and time, memory and storage estimates
 
 **Live progress.** While a run works, PfVarX rewrites `runs/<RUN_ID>/progress.html` (and
-`progress.json`) every 15 seconds from the Snakemake log. The page shows when the run started,
+`progress.json`) every 15 seconds (`planning.progress_refresh_seconds` in
+`config/registry/job_resources.yaml`) from the Snakemake log. The page shows when the run started,
 how long it has run, the steps running now (with sample, start time, time so far and expected
 time), a count of finished, running and failed jobs per step, the expected finish time and
 the time remaining. The page refreshes itself; when the run ends it shows the final status
@@ -128,14 +129,26 @@ history; synthetic test runs are never learned from. Estimates are advice for pl
 and never change results. For runs made before this feature, add them once with
 `./pfvarx resources-learn --run-id RUN_ID`.
 
-**Memory requests.** When a job class used more memory in an earlier real-data run on this
-computer than its fixed request, the plan raises the request to that peak plus 20 %
+**Memory requests.** Each workflow rule's threads and memory are set in
+`config/registry/job_resources.yaml`, which both the rules and the preflight plan read; a job
+class requests the largest of its rules. When a job class used more memory in an earlier
+real-data run on this computer than that request, the plan raises the request to that peak
+plus 20 % (`planning.measured_memory_headroom`)
 (`memory_basis: MEASURED_HISTORY`; at present the variant caller reads it), within
 `per_job.max_mem_mb`. Snakemake then starts no more of those jobs at once than `max_mem_mb`
 holds. If the peak needs more than `per_job.max_mem_mb`, the check warns
 (`RESOURCE_MEMORY_TIGHT`). It also warns (`RESOURCE_MEMORY_IN_USE`) when the memory free at
 check time cannot hold `max_jobs` of the largest job, and suggests a `max_jobs` value: other
 programs (a browser, an editor) count, and when memory runs out the system can stop the run.
+
+**Cohort size before the analyses run.** At the Layer 5 eligibility checkpoint the run records
+`cohort_scale` in `eligibility/cohort_decisions.json`: the samples, cohort sites, cells and the
+memory the evidence matrix needs (25 bytes per cell, measured; the factor is
+`planning.cohort_matrix_bytes_per_cell`). When that passes half of `per_job.max_mem_mb` for the
+analyses that read it, the run warns `RESOURCE_MEMORY_TIGHT` in the decisions and the event log
+and names what to do: raise `per_job.max_mem_mb` and `max_mem_mb` if the machine has the memory,
+request fewer analyses, or analyse a smaller cohort. It is a warning, not a block, because the
+estimate is approximate and an analysis may still finish.
 
 **Stopped runs.** A run records its process; pressing Ctrl+C or a polite kill marks it
 INTERRUPTED. A run killed outright (for example by the out-of-memory killer) or ended by a

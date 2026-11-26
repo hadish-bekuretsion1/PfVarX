@@ -43,6 +43,7 @@ SETTING_KINDS = {
     "assay.library_catalog": ("LIBRARY_CATALOG",),
     "samples_tsv": ("SAMPLE_SHEET",),
     "analyses.resistance_catalog": ("CATALOGUE",),
+    "analyses.microhap_panel": ("CATALOGUE",),
 }
 
 # What each input folder may hold (GUI upload/download, add-input, fetch-input).

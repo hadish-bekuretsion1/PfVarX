@@ -19,6 +19,9 @@ from pfvarx.downstream.common import Context, decisions, wilson, write_manifest
 from pfvarx.genomic_evidence import FLAG_FILTER
 from pfvarx.io import write_json, write_tsv
 
+# Layer 5 memory: the cohort evidence matrix is loaded for this analysis only when it reads it
+# (reads the annotated VCF and each sample's reads, not the matrix). tests/unit/test_matrix_declarations.py checks the declaration against the code.
+USES_COHORT_MATRIX = False
 CODE = {
     "TTT": "Phe", "TTC": "Phe", "TTA": "Leu", "TTG": "Leu", "CTT": "Leu", "CTC": "Leu", "CTA": "Leu", "CTG": "Leu",
     "ATT": "Ile", "ATC": "Ile", "ATA": "Ile", "ATG": "Met", "GTT": "Val", "GTC": "Val", "GTA": "Val", "GTG": "Val",

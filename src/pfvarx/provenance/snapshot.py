@@ -102,10 +102,51 @@ def build(root: Path) -> dict[str, Any]:
     elif gid["dirty"]:
         warnings.append("GIT_WORKTREE_DIRTY")
     return {"schema": SCHEMA, "created_utc": dt.datetime.now(dt.UTC).isoformat(),
+            "accelerators": accelerators(),
             "pfvarx_version": __version__, "python": platform.python_version(),
             "platform": platform.platform(), "git": gid, "files": manifest,
             "prepared": read_json(prepared) if prepared.is_file() else None,
             "tools_installed": tool_versions(), "packages": package_versions(), "warnings": warnings}
+
+
+def accelerators() -> dict[str, Any]:
+    """Graphics processors present on this computer, recorded for provenance only.
+
+    PfVarX computes on CPUs: every pinned tool (fastp, bwa-mem2, samtools, fgbio, mosdepth,
+    SnpEff, IQ-TREE, hmmIBD and the R packages) is a CPU program, and the native caller uses
+    NumPy and SciPy. A run on a machine with a GPU uses its CPUs and gives identical results.
+    This is recorded so a report says which machine produced it, and so a reader never has to
+    wonder whether an accelerator changed a number. ``used_for_compute`` is always false.
+    """
+    found: list[dict[str, str]] = []
+    detection = "none"
+    if shutil.which("nvidia-smi"):
+        detection = "nvidia-smi"
+        try:
+            result = subprocess.run(["nvidia-smi", "--query-gpu=name,memory.total,driver_version",
+                                     "--format=csv,noheader"], capture_output=True, text=True, timeout=10)
+            for line in (result.stdout or "").strip().splitlines():
+                parts = [p.strip() for p in line.split(",")]
+                if parts and parts[0]:
+                    found.append({"vendor": "NVIDIA", "name": parts[0],
+                                  "memory": parts[1] if len(parts) > 1 else "",
+                                  "driver": parts[2] if len(parts) > 2 else ""})
+        except (OSError, subprocess.SubprocessError):
+            detection = "nvidia-smi-failed"
+    elif sys.platform == "darwin" and shutil.which("system_profiler"):
+        detection = "system_profiler"
+        try:
+            result = subprocess.run(["system_profiler", "-json", "SPDisplaysDataType"],
+                                    capture_output=True, text=True, timeout=30)
+            for item in json.loads(result.stdout or "{}").get("SPDisplaysDataType", []):
+                name = item.get("sppci_model") or item.get("_name")
+                if name:
+                    found.append({"vendor": item.get("spdisplays_vendor", "Apple"), "name": str(name),
+                                  "memory": str(item.get("spdisplays_vram", "")), "driver": ""})
+        except (OSError, subprocess.SubprocessError, json.JSONDecodeError):
+            detection = "system_profiler-failed"
+    return {"detected": found, "detection": detection, "count": len(found), "used_for_compute": False,
+            "note": "Recorded for provenance. PfVarX computes on CPUs only; no result depends on a GPU."}
 
 
 def drift(root: Path, snapshot: dict[str, Any]) -> list[dict[str, str]]:

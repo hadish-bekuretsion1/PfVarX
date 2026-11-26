@@ -13,6 +13,7 @@ from typing import Literal
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
 from pfvarx.constants import (
+    DEFAULT_RANDOM_SEED,
     DOWNSTREAM_IDS,
     Design,
     FinalOutput,
@@ -83,6 +84,29 @@ class AnalysesConfig(Strict):
     spatial_outcome_source: str | None = Field(
         default=None, description="Source DA whose outcome DA007 summarises, e.g. DA002"
     )
+    microhap_loci: Literal["off", "derived", "catalogue"] = Field(
+        default="off",
+        description=("Where microhaplotype loci come from: off (none); derived (this run's own panel target "
+                     "regions, or core-genome windows for wgs); catalogue (the file in microhap_panel)"),
+    )
+    microhap_panel: Path | None = Field(
+        default=None,
+        description=("Microhaplotype locus panel (TSV) for the cohort microhaplotype artifact used by DA001 "
+                     "and DA004; default config/registry/microhap_panel_pfvarx_v1.tsv, which ships with no loci"),
+    )
+
+    @field_validator("microhap_loci", mode="before")
+    @classmethod
+    def _microhap_loci(cls, value: object) -> object:
+        """Accept what YAML makes of a bare ``off``.
+
+        YAML 1.1 reads an unquoted ``off`` or ``no`` as the boolean false, so a user who writes
+        ``microhap_loci: off`` by hand means the string. Take it, and read any spelling of the
+        three values case-insensitively.
+        """
+        if value is False:
+            return "off"
+        return value.strip().lower() if isinstance(value, str) else value
 
     @field_validator("requested")
     @classmethod
@@ -145,7 +169,7 @@ class ProjectConfig(Strict):
     )
     analyses: AnalysesConfig = Field(default_factory=AnalysesConfig)
     run_policy: Literal["CONTINUE_INDEPENDENT", "STRICT"] = "CONTINUE_INDEPENDENT"
-    random_seed: int = Field(default=20261106, ge=0)
+    random_seed: int = Field(default=DEFAULT_RANDOM_SEED, ge=0)
     caller: CallerConfig = Field(default_factory=CallerConfig)
     retention: RetentionConfig = Field(default_factory=RetentionConfig)
 

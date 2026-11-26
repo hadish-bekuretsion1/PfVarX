@@ -12,9 +12,9 @@ rule fastp:
         html=str(R / "qc" / "samples" / "{sample}" / "{sample}.{lane}.fastp.html"),
     params:
         args=lambda wc: fastp_args(wc.sample),
-    threads: threads(4)
+    threads: threads("fastp")
     resources:
-        mem_mb=mem(2000),
+        mem_mb=mem("fastp"),
         runtime=RUNTIME,
     log:
         str(LOGS / "fastp" / "{sample}.{lane}.log"),

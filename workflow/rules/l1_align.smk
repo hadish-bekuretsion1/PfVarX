@@ -20,9 +20,9 @@ rule bwa_mem2_lane:
         ref=ALIGN_REF,
         K=P["layer1.bwa_mem2_fixed_batch_K"],
         host=host_filter(HOST_COUNTS),
-    threads: threads(4)
+    threads: threads("bwa_mem2_lane")
     resources:
-        mem_mb=mem(6000, host=True),
+        mem_mb=mem("bwa_mem2_lane", host=True),
         runtime=RUNTIME,
     log:
         str(LOGS / "bwa_mem2" / "{sample}.{lane}.log"),
@@ -38,9 +38,9 @@ rule merge_lanes:
         lambda wc: [str(R / "work" / "lanes" / f"{wc.sample}.{x['lane']}.bam") for x in SAMPLES[wc.sample]["lanes"]],
     output:
         temp(str(R / "work" / "merged" / "{sample}.bam")),
-    threads: threads(2)
+    threads: threads("merge_lanes")
     resources:
-        mem_mb=mem(1000),
+        mem_mb=mem("merge_lanes"),
         runtime=RUNTIME,
     benchmark:
         str(BENCH / "merge_lanes" / "{sample}.tsv")
@@ -62,9 +62,9 @@ if DESIGN == "wgs" and PLAN["input_type"] == "FASTQ":
             pixel=lambda wc: (P["layer1.picard_optical_pixel_distance_patterned"]
                               if SAMPLES[wc.sample]["lanes"][0].get("flowcell_type") == "patterned"
                               else P["layer1.picard_optical_pixel_distance_unpatterned"]),
-        threads: 1
+        threads: threads("mark_duplicates")
         resources:
-            mem_mb=mem(4000),
+            mem_mb=mem("mark_duplicates"),
             runtime=RUNTIME,
         retries: COMPUTE["max_retries"]
         log:
@@ -112,7 +112,7 @@ if DESIGN == "targeted_no_umi" and PLAN["input_type"] == "FASTQ":
             slop=P["layer1.fgbio_trimprimers_slop"],
             ref=REF,
         resources:
-            mem_mb=mem(3000),
+            mem_mb=mem("trim_primers"),
             runtime=RUNTIME,
         log:
             str(LOGS / "trim_primers" / "{sample}.log"),
@@ -139,7 +139,7 @@ if PLAN["input_type"] in ("BAM", "CRAM"):
             state=lambda wc: library(wc.sample).get("processing_state") or "",
             steps=lambda wc: ",".join(entry_steps(wc.sample)),
         resources:
-            mem_mb=mem(4000),
+            mem_mb=mem("alignment_entry"),
             runtime=RUNTIME,
         benchmark:
             str(BENCH / "alignment_entry" / "{sample}.tsv")
@@ -162,7 +162,7 @@ if PLAN["input_type"] in ("BAM", "CRAM"):
             slop=P["layer1.fgbio_trimprimers_slop"],
             ref=REF,
         resources:
-            mem_mb=mem(3000),
+            mem_mb=mem("entry_trim_primers"),
             runtime=RUNTIME,
         log:
             str(LOGS / "trim_primers" / "{sample}.log"),

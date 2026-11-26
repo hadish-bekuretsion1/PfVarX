@@ -83,15 +83,17 @@ def _log_kept_mass(un: np.ndarray, ymax: np.ndarray, mu: float, phi: float) -> n
 
 
 def fit_betabinom(y: np.ndarray, n: np.ndarray, trim_fraction: float,
-                  init_mu: float, init_phi: float, phi_bounds: tuple[float, float] = (10.0, 1e7),
-                  min_nonzero_for_phi: int = 50, exclude: tuple[int, float] | None = None) -> ErrorFit:
+                  init_mu: float, init_phi: float, *, phi_bounds: tuple[float, float],
+                  min_sites: int, min_nonzero_for_phi: int,
+                  exclude: tuple[int, float] | None = None) -> ErrorFit:
     """ML fit of (mu, phi) on known-reference positions after trimming the upper tail.
 
     Trimming is rank-based among positions with y > 0 (zero-count positions are never
     trimmed): the top *trim_fraction* of them by y/n are removed, so that unmasked true
-    low-frequency variants do not inflate the error model. phi is bounded below at 10
-    (intra-sample correlation rho <= 0.09) because near-all-zero data cannot identify
-    stronger overdispersion; the bound is FRAMEWORK_POLICY and recorded.
+    low-frequency variants do not inflate the error model. phi is kept within *phi_bounds*
+    (layer2.overdispersion_phi_bounds; the lower bound because near-all-zero data cannot
+    identify stronger overdispersion); the bounds are recorded with the fit. Fewer than
+    *min_sites* sites (layer2.error_fit_min_sites) keep the starting values.
     """
     y = np.asarray(y, dtype=float)
     n = np.asarray(n, dtype=float)
@@ -105,7 +107,7 @@ def fit_betabinom(y: np.ndarray, n: np.ndarray, trim_fraction: float,
         variant_like = y > _truncation_ymax(n, exclude)
         excluded = int(variant_like.sum())
         y, n = y[~variant_like], n[~variant_like]
-    if len(y) < 50 or y.sum() == 0:
+    if len(y) < min_sites or y.sum() == 0:
         return {"mu": init_mu, "phi": init_phi, "n_sites": int(len(y)), "fitted": False,
                 "trimmed": 0, "reason": "too few sites or no error events"}
     nz = np.where(y > 0)[0]
@@ -158,9 +160,11 @@ def fit_betabinom(y: np.ndarray, n: np.ndarray, trim_fraction: float,
     return result
 
 
-def profile_interval(y: int, n: int, eps: float, phi: float, level: float) -> tuple[float, float, float]:
-    """Profile-likelihood MLE and interval for the DNA fraction pi (Equations 3.18-3.19)."""
-    grid = np.linspace(0.0, 1.0, 2001)
+def profile_interval(y: int, n: int, eps: float, phi: float, level: float,
+                     grid_points: int) -> tuple[float, float, float]:
+    """Profile-likelihood MLE and interval for the DNA fraction pi (Equations 3.18-3.19), on
+    *grid_points* values in [0, 1] (layer2.wsaf_profile_grid_points)."""
+    grid = np.linspace(0.0, 1.0, grid_points)
     mu = grid * (1 - eps) + (1 - grid) * eps
     ll = betabinom_logpmf(np.full_like(grid, y), np.full_like(grid, n), mu, phi)
     best = int(np.argmax(ll))

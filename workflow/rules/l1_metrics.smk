@@ -27,9 +27,9 @@ rule mosdepth_core:
         bed=CORE,
         flag=P["layer1.mosdepth_exclude_flag"],
         mapq=P["layer2.min_mapping_quality"],
-    threads: threads(2)
+    threads: threads("mosdepth_core")
     resources:
-        mem_mb=mem(1000),
+        mem_mb=mem("mosdepth_core"),
         runtime=RUNTIME,
     benchmark:
         str(BENCH / "mosdepth_core" / "{sample}.tsv")
@@ -56,9 +56,9 @@ rule mosdepth_targets:
         # Same mapping-quality floor as the core-genome depth and the caller: target depth
         # counts only reads the caller can use. The on-target read count stays unfiltered.
         mapq=P["layer2.min_mapping_quality"],
-    threads: threads(2)
+    threads: threads("mosdepth_targets")
     resources:
-        mem_mb=mem(1000),
+        mem_mb=mem("mosdepth_targets"),
         runtime=RUNTIME,
     log:
         str(LOGS / "mosdepth" / "{sample}.targets.log"),

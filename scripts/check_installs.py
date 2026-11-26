@@ -52,6 +52,8 @@ SCENARIOS = [
     ("FO004 WGS DA001 (clonality)", (None, "wgs", ["DA001"], False, "FASTQ", "FO004")),
     ("FO004 WGS DA006 (phylogeny)", (None, "wgs", ["DA006"], False, "FASTQ", "FO004")),
     ("FO004 WGS DA007 (spatial)", (None, "wgs", ["DA007"], False, "FASTQ", "FO004")),
+    ("FO004 WGS BAM DA008 (copy number)", (None, "wgs", ["DA008"], False, "BAM", "FO004")),
+    ("FO004 targeted UMI DA009 (pfhrp2/3)", (None, "targeted_umi", ["DA009"], False, "FASTQ", "FO004")),
     ("Benchmark with RTG", ("benchmark", "wgs", [], True, "FASTQ", None)),
 ]
 

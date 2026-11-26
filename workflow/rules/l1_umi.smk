@@ -28,7 +28,7 @@ if DESIGN == "targeted_umi":
                 rs=read_structures,
                 lib=lambda wc: next(x for x in SAMPLES[wc.sample]["lanes"] if x["lane"] == wc.lane)["library_id"],
             resources:
-                mem_mb=mem(2000),
+                mem_mb=mem("umi_fastq_to_bam"),
                 runtime=RUNTIME,
             benchmark:
                 str(BENCH / "umi_fastq_to_bam" / "{sample}.{lane}.tsv")
@@ -48,10 +48,10 @@ if DESIGN == "targeted_umi":
                 ref=REF,
                 K=P["layer1.bwa_mem2_fixed_batch_K"],
                 # ZipperBams shares the job with bwa-mem2: a third of the (retry-scaled) allowance.
-                zipper_mb=lambda wc, resources: max(1000, resources.mem_mb // 3),
-            threads: threads(4)
+                zipper_mb=zipper_heap_mb,
+            threads: threads("umi_align_zipper")
             resources:
-                mem_mb=mem(6000),
+                mem_mb=mem("umi_align_zipper"),
                 runtime=RUNTIME,
             benchmark:
                 str(BENCH / "umi_align_zipper" / "{sample}.{lane}.tsv")
@@ -73,9 +73,9 @@ if DESIGN == "targeted_umi":
             strategy=lambda wc: umi(wc.sample, "group_strategy"),
             edits=lambda wc: umi(wc.sample, "group_edits"),
             mapq=lambda wc: umi(wc.sample, "group_min_map_q"),
-        threads: threads(2)
+        threads: threads("umi_group")
         resources:
-            mem_mb=mem(4000),
+            mem_mb=mem("umi_group"),
             runtime=RUNTIME,
         benchmark:
             str(BENCH / "umi_group" / "{sample}.tsv")
@@ -103,9 +103,9 @@ if DESIGN == "targeted_umi":
             E=lambda wc: umi(wc.sample, "filter_max_read_error_rate"),
             e=lambda wc: umi(wc.sample, "filter_max_base_error_rate"),
             nc=lambda wc: umi(wc.sample, "filter_max_no_call_fraction"),
-        threads: threads(2)
+        threads: threads("umi_consensus")
         resources:
-            mem_mb=mem(4000),
+            mem_mb=mem("umi_consensus"),
             runtime=RUNTIME,
         benchmark:
             str(BENCH / "umi_consensus" / "{sample}.tsv")
@@ -128,10 +128,10 @@ if DESIGN == "targeted_umi":
             ref=REF,
             K=P["layer1.bwa_mem2_fixed_batch_K"],
             # ZipperBams shares the job with bwa-mem2: a third of the (retry-scaled) allowance.
-            zipper_mb=lambda wc, resources: max(1000, resources.mem_mb // 3),
-        threads: threads(4)
+            zipper_mb=zipper_heap_mb,
+        threads: threads("umi_realign")
         resources:
-            mem_mb=mem(6000),
+            mem_mb=mem("umi_realign"),
             runtime=RUNTIME,
         benchmark:
             str(BENCH / "umi_realign" / "{sample}.tsv")
@@ -157,7 +157,7 @@ if DESIGN == "targeted_umi":
                 slop=P["layer1.fgbio_trimprimers_slop"],
                 ref=REF,
             resources:
-                mem_mb=mem(3000),
+                mem_mb=mem("umi_preclip_and_trim"),
                 runtime=RUNTIME,
             benchmark:
                 str(BENCH / "umi_preclip_and_trim" / "{sample}.tsv")

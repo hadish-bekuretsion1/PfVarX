@@ -13,11 +13,15 @@ from typing import Any
 
 import numpy as np
 
+from pfvarx.configuration.loader import frozen_param
 from pfvarx.constants import Reason, Terminal
 from pfvarx.downstream.common import PANEL_CAVEAT, Context, decisions, write_manifest
 from pfvarx.downstream.diversity import dominant
 from pfvarx.io import write_json, write_tsv
 
+# Layer 5 memory: the cohort evidence matrix is loaded for this analysis only when it reads it
+# (dominant alleles (through diversity) at every cohort site). tests/unit/test_matrix_declarations.py checks the declaration against the code.
+USES_COHORT_MATRIX = True
 
 def run(ctx: Context, threads: int = 1) -> None:
     import allel
@@ -36,7 +40,8 @@ def run(ctx: Context, threads: int = 1) -> None:
             continue
         rows.append(g)
     p = ctx.params
-    if len(rows) < 3 or len(eligible) < 3:
+    min_sites = int(frozen_param(p, "da005_min_sites"))
+    if len(rows) < min_sites or len(eligible) < int(frozen_param(p, "da005_min_samples")):
         write_manifest(ctx, "DA005", Terminal.SKIPPED_INELIGIBLE.value,
                        reason_codes=[Reason.INSUFFICIENT_INFORMATIVE_SITES.value], requested=ctx.samples,
                        eligible=eligible, excluded=excluded, analysed=[], outputs=[], caveats=[],
@@ -45,8 +50,8 @@ def run(ctx: Context, threads: int = 1) -> None:
     gn = np.array(rows, dtype="i1")
     loc = allel.locate_unlinked(gn, size=int(p["da005_ld_window"]), step=int(p["da005_ld_step"]),
                                 threshold=float(p["da005_ld_threshold"]))
-    gpr = gn[loc] if loc.sum() >= 3 else gn
-    ncomp = min(4, len(eligible) - 1, gpr.shape[0])
+    gpr = gn[loc] if loc.sum() >= min_sites else gn
+    ncomp = min(int(frozen_param(p, "da005_pca_components")), len(eligible) - 1, gpr.shape[0])
     coords, model = allel.pca(gpr, n_components=ncomp, scaler="patterson", ploidy=1)
     pcs = [{"sample_id": s, "group": ctx.metadata.get(s, {}).get(col, ""),
             **{f"PC{i + 1}": float(coords[j, i]) for i in range(ncomp)}} for j, s in enumerate(eligible)]

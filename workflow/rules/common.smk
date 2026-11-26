@@ -14,10 +14,16 @@ ELIG = R / "eligibility"
 
 
 PLANNED_MEM = {j["job"]: j["mem_mb"] for j in PLAN.get("resources", {}).get("jobs", [])}
+# Per-rule thread and memory requests: config/registry/job_resources.yaml, the file the
+# preflight resource plan also reads (pfvarx.planning.resources).
+from pfvarx.planning import resources as _job_resources
+
+RULE_REQUESTS = _job_resources.rule_requests(ROOT)
+ZIPPER_HEAP = _job_resources.load(ROOT)["zipper_heap"]
 
 
-def mem(base, host=False, job=None):
-    """Attempt-scaled memory within the per-job ceiling (retries only on memory-scalable rules).
+def mem(rule, host=False, job=None):
+    """Attempt-scaled memory of *rule* within the per-job ceiling (retries only on memory-scalable rules).
 
     ``host=True`` marks a bwa-mem2 job: with Human DNA removal (wgs only) it loads the
     combined parasite+host index, so the request grows by ``layer1.bwa_mem2_host_extra_mem_mb``.
@@ -25,6 +31,7 @@ def mem(base, host=False, job=None):
     this computer measured in earlier runs, so Snakemake never starts more of them at once
     than ``max_mem_mb`` holds.
     """
+    base = RULE_REQUESTS[rule]["mem_mb"]
     cap = COMPUTE["per_job"]["max_mem_mb"]
     factor = COMPUTE["retry_memory_factor"]
     if host and HOST:
@@ -48,8 +55,14 @@ def host_filter(counts):
     return stage
 
 
-def threads(n):
-    return min(n, COMPUTE["per_job"]["max_threads"])
+def threads(rule):
+    """Threads requested for *rule*, capped at compute.yaml per_job.max_threads."""
+    return min(RULE_REQUESTS[rule]["threads"], COMPUTE["per_job"]["max_threads"])
+
+
+def zipper_heap_mb(wc, resources):
+    """Java heap of fgbio ZipperBams, which shares its job with bwa-mem2 (zipper_heap in job_resources.yaml)."""
+    return max(ZIPPER_HEAP["heap_min_mb"], resources.mem_mb // ZIPPER_HEAP["heap_divisor"])
 
 
 def gate(sample):
@@ -247,6 +260,9 @@ def cohort_status_inputs(wc):
 def common_inputs(wc=None):
     base = {"matrix": str(R / "cohort" / "evidence_matrix.tsv.gz"), "sites": str(R / "cohort" / "sites.tsv"),
             "missing": str(R / "cohort" / "missingness.tsv"), "samples": str(R / "cohort" / "cohort_samples.txt")}
+    if 3 in LAYERS:
+        # DA001 and DA004 read the microhaplotype artifact when it holds loci.
+        base["microhaplotypes"] = str(R / "cohort" / "microhaplotypes.tsv.gz")
     if 4 in LAYERS:
         base["ann"] = str(R / "annotation" / "cohort.ann.vcf.gz")
     return base

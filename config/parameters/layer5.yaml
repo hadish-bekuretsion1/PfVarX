@@ -1,4 +1,4 @@
-version: "1.0.0"
+version: "1.3.0"
 parameters:
   da001_credibility: {value: 0.95, source: UNCALIBRATED_PROVISIONAL, note: "candidate {0.90,0.95}"}
   da001_min_informative_loci: {value: 10, source: UNCALIBRATED_PROVISIONAL}
@@ -25,6 +25,16 @@ parameters:
   da002_min_callable_per_group: {value: 3, source: UNCALIBRATED_PROVISIONAL}
   da002_reporting_floor: {value: 0.05, source: LITERATURE_SUPPORTED, note: "MalariaGEN Pf7 2023: an allele below 5% of reads is treated as absent"}
   da002_mixed_threshold: {value: 0.95, source: LITERATURE_SUPPORTED, note: "MalariaGEN Pf7 2023: the other allele below 5% of reads is treated as absent, so >=0.95 is MUTANT rather than MIXED"}
+  da008_amplification_ratio: {value: 1.5, source: UNCALIBRATED_PROVISIONAL, note: "gene depth / core depth at or above this is AMPLIFIED (with the interval check); halfway between one and two copies"}
+  da008_amplification_lower: {value: 1.25, source: UNCALIBRATED_PROVISIONAL, note: "lower bootstrap bound of the ratio must reach this for AMPLIFIED"}
+  da008_deletion_ratio: {value: 0.1, source: UNCALIBRATED_PROVISIONAL, note: "gene depth / core depth at or below this, with covered flanks, is DELETED"}
+  da008_present_ratio: {value: 0.3, source: UNCALIBRATED_PROVISIONAL, note: "gene depth / core depth at or above this counts the gene as present; between the deletion and present ratios is UNKNOWN (ambiguous)"}
+  da008_flank_min_ratio: {value: 0.3, source: UNCALIBRATED_PROVISIONAL, note: "flank depth / core depth needed before a low gene depth is called DELETED rather than UNKNOWN"}
+  da008_min_core_depth: {value: 20, source: UNCALIBRATED_PROVISIONAL, note: "median core-genome depth below this leaves every locus UNKNOWN"}
+  da008_flank_bp: {value: 2000, source: FRAMEWORK_POLICY, note: "length of each flank and of the window searched for junction read pairs"}
+  da008_window_bp: {value: 200, source: FRAMEWORK_POLICY, note: "window size for median depths and the bootstrap interval"}
+  da008_gc_windows: {value: 3000, source: FRAMEWORK_POLICY, note: "random core-genome windows per sample that give the expected depth for each GC content"}
+  da008_bootstrap: {value: 1000, source: FRAMEWORK_POLICY, note: "bootstrap replicates for the depth-ratio interval"}
   da007_min_samples_per_unit: {value: 3, source: UNCALIBRATED_PROVISIONAL}
   da007_gam_min_samples: {value: 10, source: UNCALIBRATED_PROVISIONAL, note: "samples with valid place and date needed before a GAM is fitted"}
   da007_gam_max_basis: {value: 4, source: FRAMEWORK_POLICY, note: "largest basis dimension k for the time smooth"}
@@ -38,3 +48,23 @@ parameters:
   da004_clonal_ibd: {value: 0.9, source: LITERATURE_SUPPORTED, note: "IBD >= 0.9 as the reporting convention for near-identical (clonal) pairs; display label only"}
   da006_ufboot_support: {value: 95, source: LITERATURE_SUPPORTED, note: "IQ-TREE guidance: rely on a branch only at UFBoot >= 95 (Hoang 2018)"}
   da006_alrt_support: {value: 80, source: LITERATURE_SUPPORTED, note: "IQ-TREE guidance: SH-aLRT >= 80 (Guindon 2010)"}
+  da001_moire_pt_chains: {value: 1, source: SOFTWARE_DEFAULT, note: "moire run_mcmc pt_chains: number of parallel-tempering chains"}
+  da003_interval_level: {value: 0.95, source: FRAMEWORK_POLICY, note: "percentile bootstrap interval for expected heterozygosity"}
+  da003_min_bootstrap_values: {value: 10, source: FRAMEWORK_POLICY, note: "bootstrap replicates with a value needed before an interval is reported"}
+  da004_dcifer_coi_lrank: {value: 2, source: SOFTWARE_DEFAULT, note: "Dcifer getCOI lrank: allele-count rank for the naive COI of samples without a DA001 count"}
+  da004_dcifer_afreq_tol: {value: 1.0e-5, source: SOFTWARE_DEFAULT, note: "Dcifer calcAfreq convergence tolerance"}
+  da005_min_samples: {value: 3, source: FRAMEWORK_POLICY, note: "eligible samples needed for PCA"}
+  da005_min_sites: {value: 3, source: FRAMEWORK_POLICY, note: "polymorphic SNVs without missing calls needed for PCA; also the unlinked SNVs needed before LD pruning is used"}
+  da005_pca_components: {value: 4, source: FRAMEWORK_POLICY, note: "principal components reported (fewer when samples or sites limit it)"}
+  da007_gam_grid_points: {value: 20, source: FRAMEWORK_POLICY, note: "time points at which the GAM prevalence curve is reported"}
+  da007_time_origin: {value: "2000-01-01", source: FRAMEWORK_POLICY, note: "date from which GAM time is counted in days; only shifts the time axis"}
+  da008_interval_level: {value: 0.95, source: FRAMEWORK_POLICY, note: "percentile bootstrap interval for the depth ratio"}
+  da008_gc_min_windows_per_bin: {value: 20, source: FRAMEWORK_POLICY, note: "core-genome windows closest in GC content whose median depth is the expected depth"}
+  da009_dropout_max_ratio: {value: 0.05, source: UNCALIBRATED_PROVISIONAL, note: "targeted designs: gene amplicon depth / control amplicon depth at or below this is DELETED (amplicon dropout). No published standard; WHO protocols use a qualitative dropout against controls"}
+  da009_present_min_ratio: {value: 0.2, source: UNCALIBRATED_PROVISIONAL, note: "gene amplicon depth / control amplicon depth at or above this counts the gene as PRESENT; in between is UNKNOWN (ambiguous)"}
+  da009_min_control_depth: {value: 20, source: UNCALIBRATED_PROVISIONAL, note: "median depth of the panel's control amplicons needed before a missing gene amplicon may be called DELETED; below it the assay did not work for that sample and every gene is UNKNOWN"}
+  da009_min_control_amplicons: {value: 2, source: FRAMEWORK_POLICY, note: "control target regions outside pfhrp2/pfhrp3 the panel must carry: without controls a missing amplicon cannot be told from a failed PCR"}
+  da009_min_samples_per_unit: {value: 3, source: UNCALIBRATED_PROVISIONAL, note: "judged samples needed before a country-month joint prevalence is reported; below it counts are given and the prevalence withheld"}
+  da009_interval_level: {value: 0.95, source: FRAMEWORK_POLICY, note: "Wilson interval level for joint prevalence and the level recorded with the co-occurrence test"}
+  da009_dropout_ratio_grid: {value: [0.02, 0.05, 0.10, 0.20], source: FRAMEWORK_POLICY, note: "targeted designs: dropout ratios at which each call is recomputed for the sensitivity table, so a reader sees which calls depend on the provisional cut-off. Does not change any reported call"}
+  da009_deletion_ratio_grid: {value: [0.05, 0.10, 0.20, 0.30], source: FRAMEWORK_POLICY, note: "whole-genome sequencing: the same, for the depth-ratio deletion cut-off"}

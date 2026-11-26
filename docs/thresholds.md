@@ -3,7 +3,8 @@
 Every numeric decision PfVarX makes is listed here with its three outcomes — accepted,
 accepted with warning, rejected or filtered out — and where the value comes from.
 The values live in `config/registry/qc_policy_pfvarx_qc_v1.yaml` (policy version 1.3.0) and
-`config/parameters/layer*.yaml`. Each entry there carries a source class:
+`config/parameters/layer*.yaml`; no threshold or setting is written in the program code (see
+[Where values are kept](#where-values-are-kept)). Each entry there carries a source class:
 
 | Source class | Meaning |
 | --- | --- |
@@ -36,6 +37,8 @@ protocol](benchmarking/README.md) is still the route to calibrated values.
 | Annotation and DA002 | GFF matching the FASTA; a marker catalogue with status `MAINTAINER_VERIFIED`. |
 | DA003, DA005 by population | Population column in the sample sheet. |
 | DA007 | `latitude`, `longitude`, `collection_date`, `country`. |
+| DA008 | GFF matching the FASTA; a copy-number catalogue with status `MAINTAINER_VERIFIED`; whole-genome sequencing. |
+| DA009 | GFF matching the FASTA; the same verified copy-number catalogue. On a targeted panel: a pfhrp2 or pfhrp3 target and at least two control targets. |
 
 The core genome should follow the accessible-genome definition of Miles et al. 2016,
 which excludes subtelomeric and internal hypervariable regions.
@@ -72,7 +75,8 @@ stage is not permitted).
 | G5.cohort_mixed_fraction | Fraction of cohort sites with MIXED evidence | reported | — | — | Descriptive: mixed infection or artefact (for example paralog mismapping). |
 
 The same file reports how many cohort sites are called (ALT, MIXED or REF) in at least
-80 % of the samples; that site completeness is reported, not gated.
+80 % of the samples (`layer3.cohort_site_call_rate_min`); that site completeness is reported,
+not gated.
 
 Basis for the literature-supported rows:
 
@@ -106,6 +110,31 @@ The fgbio authors state that their filter values "aim for a balance between gene
 high quality consensus reads and yield" and need tuning for the library preparation.
 Molecules seen fewer than three times are filtered out; a library with small UMI
 families will lose depth at this step.
+
+### Microhaplotypes (Layer 3)
+
+| Decision | Value | Source |
+| --- | --- | --- |
+| Fragments a sample needs at a locus | ≥ 10 (`microhap_min_depth`); below it the locus is UNCALLABLE for that sample, never "no haplotype" | Provisional. No published standard; amplicon panels normally run far above it. |
+| Fragments a haplotype needs | ≥ 2 (`microhap_min_haplotype_reads`) | MalariaGEN Pf7 2023 (an allele in fewer than 2 reads is treated as absent), applied to fragments. |
+| Share of fragments a haplotype needs | ≥ 5% (`microhap_min_haplotype_fraction`) | MalariaGEN Pf7 2023 (an allele below 5% of reads is treated as absent). |
+| Variable positions per locus | ≤ 32 (`microhap_max_variable_positions`); more are truncated and recorded | Framework policy: bounds the haplotype and the work per fragment. |
+| Loci before DA001/DA004 use microhaplotypes | ≥ 10 (`microhap_min_loci_for_basis`) | Provisional; the same floor as `da001_min_informative_loci`. With fewer, the larger biallelic set is kept and the basis is recorded. |
+| What counts as one observation | One DNA fragment (read name), not one read: overlapping mates count once, disagreeing mates leave the position unresolved and the fragment incomplete | Framework policy. |
+| Which positions form a haplotype | This cohort's PASS SNVs inside the locus; indels excluded | Framework policy: no variant is discovered here, and an indel moves the positions after it within a read. |
+
+`analyses.microhap_loci` chooses where loci come from:
+
+| Value | Loci | When to use it |
+| --- | --- | --- |
+| `off` (default) | none | DA001 and DA004 keep biallelic SNVs, as before. |
+| `derived` | each of this run's panel target regions holding at least `microhap_derived_min_sites` PASS SNVs, or, for whole-genome runs, core-mask windows of `microhap_derived_window_bp` | No panel file needed: an amplicon *is* a microhaplotype locus, and every coordinate comes from the panel or core mask the run was given. The loci are specific to that definition, so frequencies compare only with cohorts defined the same way. |
+| `catalogue` | the file in `analyses.microhap_panel` | Best when your panel publishes its own loci. The shipped registry panel holds no loci, because panel coordinates belong to a published panel and a reference release and are not invented here; a catalogue must be marked `MAINTAINER_VERIFIED`. |
+
+Derived loci need no maintainer verification, because they assert nothing about a published
+panel: their coordinates are the run's own inputs. A locus longer than one fragment simply
+produces more incomplete fragments, which the artifact counts, so an over-long window degrades
+visibly rather than silently.
 
 ## Stage 2 — variant calling
 
@@ -165,7 +194,7 @@ A missing record is never counted as a reference call.
 | DA001 COI | MOIRE burn-in / samples per chain | 10 000 / 1 000 | MOIRE defaults (Murphy and Greenhouse 2024). |
 | DA001 COI | Fws comparison line | Fws ≥ 0.95 read as clonal | Manske 2012; Auburn 2012; MalariaGEN Pf7 and Pf8. Descriptive only. |
 | DA001 / DA003 | Samples needed for MOIRE and Fws | ≥ 10 samples with enough informative loci (`population_frequency_min_samples`). Fewer: MOIRE is not run; the monoclonal/polyclonal call comes from the caller's per-sample mixture test (`basis` = `CALLER_MIXTURE_LRT`); COI count and Fws are left blank | Provisional. MOIRE estimates allele frequencies and COI jointly: on a 9-sample synthetic cohort, P(COI > 1) of truly single-clone samples ranged from 0.00 to 1.00 across five random seeds (mixtures stayed at 1.00). Fws uses frequencies in which each sample is 1/n of its own reference (one sample: Fws 0 by construction). |
-| DA004 relatedness | COI given to Dcifer | DA001's MOIRE count; monoclonal samples 1; otherwise Dcifer's naive estimate (`getCOI`, `lrank = 2`) | Gerlovina 2022. |
+| DA004 relatedness | COI given to Dcifer | DA001's MOIRE count; monoclonal samples 1; otherwise Dcifer's naive estimate (`getCOI`, `lrank = 2`, `da004_dcifer_coi_lrank`) | Gerlovina 2022. |
 | DA002 resistance | Marker callable | ≥ 5 reads spanning the codon; fewer: `UNKNOWN` | MalariaGEN Pf7. |
 | DA002 resistance | `MUTANT` | mutant fraction ≥ 95% | MalariaGEN Pf7. |
 | DA002 resistance | `MIXED` | 5% to 95% | MalariaGEN Pf7. |
@@ -190,6 +219,20 @@ A missing record is never counted as a reference call.
 | DA007 spatial | Minimum samples per unit | 3 | Provisional. |
 | DA007 spatial | Samples with place and date before a GAM is fitted | 10 | Provisional. |
 | DA007 spatial | GAM basis dimension / interval level | k ≤ 4 / 95% | Framework policy. |
+| DA008 copy number | Amplified: depth ratio / lower bootstrap bound | ≥ 1.5 / ≥ 1.25 | Provisional (halfway between one and two copies). |
+| DA008 copy number | Deleted: depth ratio, with flank ratio | ≤ 0.1, flanks ≥ 0.3 | Provisional. |
+| DA008 copy number | Present (deletion loci) / single-copy floor | ratio ≥ 0.3; between 0.1 and 0.3 is UNKNOWN | Provisional. |
+| DA008 copy number | Median core-genome depth | ≥ 20 | Provisional; below it every locus is UNKNOWN. |
+| DA008 copy number | Windows / flanks / GC model / bootstrap | 200 bp / 2 000 bp / 3 000 core windows / 1 000 replicates | Framework policy. |
+| DA009 pfhrp2/3 (WGS) | Deletion and presence | The DA008 deletion thresholds, unchanged (`DEPTH_RATIO` evidence) | The two analyses call WGS deletions identically by design. |
+| DA009 pfhrp2/3 (targeted) | Deleted: gene amplicon depth / control amplicon depth | ≤ 0.05 (`da009_dropout_max_ratio`) | Provisional. No published cut-off: WHO-aligned protocols read dropout against controls qualitatively. A mutated primer site or a failed PCR gives the same dropout. |
+| DA009 pfhrp2/3 (targeted) | Present / ambiguous | ratio ≥ 0.2 (`da009_present_min_ratio`); between 0.05 and 0.2 is UNKNOWN | Provisional. |
+| DA009 pfhrp2/3 (targeted) | Control-amplicon depth and count | median control depth ≥ 20 (`da009_min_control_depth`), ≥ 2 control targets (`da009_min_control_amplicons`) | Provisional / framework policy: without working controls a missing amplicon is UNKNOWN, never a deletion. |
+| DA009 pfhrp2/3 | Joint state | Either gene UNKNOWN gives INDETERMINATE | Framework policy: a gene is never assumed present. |
+| DA009 pfhrp2/3 | Samples per country-month before a trend is reported | 3 (`da009_min_samples_per_unit`) | Provisional; below it counts are reported and the prevalence withheld. |
+| DA009 pfhrp2/3 (WGS) | Evidence needing no cut-off | `background_percentile` in `gene_calls.tsv`: where the gene's depth ratio falls among the sample's own random core-genome windows, which are almost all single copy. The manifest gives the spread per gene and state | Self-calibrating against the sample itself, so it carries no threshold and stands while the cut-offs remain provisional. **Compare it across samples at the same locus, not as an absolute test:** the background is core sequence while pfhrp2 and pfhrp3 are subtelomeric, where depth and mappability differ, so a gene that is present can sit low in the distribution. A locus whose deleted samples sit far below its present ones separates on the data; one where they overlap rests on the cut-off. |
+| DA009 pfhrp2/3 | How much a call depends on its cut-off | `threshold_sensitivity.tsv` recomputes every gene state across `da009_dropout_ratio_grid` (targeted) or `da009_deletion_ratio_grid` (WGS); the manifest counts the calls that move | Framework policy. A call that holds across the grid stands on the data; one that moves within it rests on the chosen number. No reported call changes. |
+| DA009 pfhrp2/3 | Prevalence interval / co-occurrence test | Wilson at 95% (`da009_interval_level`); Fisher exact test of pfhrp2 by pfhrp3 | Framework policy. Describes the cohort's joint pattern, not selection. |
 
 Notes on interpretation:
 
@@ -221,6 +264,56 @@ marker prevalence; it never declares resistance.
 
 The shipped catalogue remains `DRAFT_REQUIRES_VERIFICATION`. Check it against the current
 WHO list before use; the list changes.
+
+## Where values are kept
+
+Every threshold, analysis setting and compute request is read from a configuration file; the
+program code holds none of them, and `tests/unit/test_no_hardcoded_parameters.py` fails if a
+parameter is repeated in the code as a fallback.
+
+| File | Holds | Who edits it |
+| --- | --- | --- |
+| `config/analysis.yaml`, `config/quality.yaml`, `config/compute.yaml` | the project's choices: inputs, design, outputs, analyses, QC policy, computer limits | the user (CLI or GUI) |
+| `config/registry/qc_policy_*.yaml` | QC gate thresholds | maintainer |
+| `config/parameters/layer0.yaml` … `layer6.yaml` | every numeric setting of input checks, read processing, the caller, cohort, annotation, analyses and report, with its source class | maintainer |
+| `config/registry/job_resources.yaml` | threads and memory of each workflow rule, and the planning factors (memory headroom, temporary-disk factor, progress refresh) | maintainer |
+| `config/registry/*.tsv`, `downstream_analyses.yaml` | marker catalogues and analysis contracts | maintainer |
+
+A run freezes the parameters it used (`frozen_config.json`). A run frozen before a parameter
+was added takes the value it was frozen with from `src/pfvarx/configuration/legacy_parameters.yaml`;
+that file records history and is not a place to change behaviour.
+
+These settings of the numerical methods are design decisions (`FRAMEWORK_POLICY`, or
+`SOFTWARE_DEFAULT` for a tool's own default) and are listed here for completeness:
+
+| Parameter | Value | What it does |
+| --- | --- | --- |
+| `layer0.core_mask_fraction_min` / `_max`, `core_mask_max_intervals` | 0.70 / 0.97, 1000 | a core mask outside these limits is flagged `CORE_MASK_SUSPECT` |
+| `layer0.alignment_state_reads_checked` | 2000 | reads read from an imported BAM/CRAM to check its processing state |
+| `layer2.homopolymer_tract_classes` | 1, 2–4, 5–9, ≥ 10 bp | homopolymer classes with their own indel error model |
+| `layer2.indel_error_init_divisor`, `indel_error_floor` | 5, 10⁻⁶ | starting value (error_mean_default / 5) and floor of the indel error rate |
+| `layer2.error_rate_cap` | 0.25 | largest error rate used for WSAF intervals and constrained scoring |
+| `layer2.error_fit_min_sites`, `error_fit_min_nonzero_for_phi` | 50, 50 | sites needed to fit the error model and its overdispersion |
+| `layer2.overdispersion_phi_bounds` | 10 – 10⁷ | range of the fitted overdispersion |
+| `layer2.wsaf_profile_grid_points` | 2001 | grid of the WSAF profile likelihood (step 0.0005) |
+| `layer2.indel_anchor_bp` | 5 | reference bases a read must cover on each side of an indel to be re-scored |
+| `layer2.pileup_max_depth` | 1 000 000 | pileup depth cap, far above any real depth |
+| `layer2.evidence_chunk_bp` | 250 000 | work unit for parallel evidence collection; results do not depend on it |
+| `layer2.k_bootstrap_max_iterations`, `k_bootstrap_restart_divisor`, `k_bootstrap_min_restarts` | 200, 10, 2 | EM limits of the bootstrap replicate fits in the clone-number test |
+| `layer5.da001_moire_pt_chains` | 1 | MOIRE parallel-tempering chains |
+| `layer5.da003_interval_level`, `da003_min_bootstrap_values` | 0.95, 10 | heterozygosity bootstrap interval |
+| `layer5.da004_dcifer_afreq_tol` | 10⁻⁵ | Dcifer allele-frequency tolerance |
+| `layer5.da005_min_samples`, `da005_min_sites`, `da005_pca_components` | 3, 3, 4 | PCA minimums and components reported |
+| `layer5.da007_gam_grid_points`, `da007_time_origin` | 20, 2000-01-01 | GAM curve points and time axis origin |
+| `layer5.da009_min_control_amplicons`, `da009_interval_level` | 2, 0.95 | control targets a panel must carry for DA009; its Wilson interval level |
+| `layer3.microhap_max_variable_positions` | 32 | variable positions used per microhaplotype locus |
+| `planning.cohort_matrix_bytes_per_cell` | 32 | measured cost of one cohort evidence cell (25 bytes observed; the margin keeps the warning conservative) |
+| `layer5.da008_interval_level`, `da008_gc_min_windows_per_bin` | 0.95, 20 | depth-ratio interval and GC-matched windows per expected depth |
+
+What stays in code is not a setting: file-format facts (VCF, GFF and BED columns, BAM flags,
+the Phred+33 offset), mathematical constants (three alternative bases, the normal quantile
+computed from a level), unit conversions, numerical-safety bounds of the optimisers, and the
+status and reason vocabularies in `src/pfvarx/constants.py`.
 
 ## What still has no published basis
 

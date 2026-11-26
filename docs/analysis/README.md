@@ -264,7 +264,8 @@ results -> runs/<RUN_ID>/results
 | `cohort/cohort.vcf.gz` | FO003/FO004 variant-only cohort merge |
 | `cohort/evidence_matrix.tsv.gz` | Site-forced per-sample evidence; missing is not imputed reference |
 | `cohort/sites.tsv`, `cohort/missingness.tsv` | Cohort sites and missingness summary |
-| `cohort/cohort_qc.json` | Cohort QC (gate G5) per sample: missing and mixed fractions, PASS/WARNING/FAIL; site call rates. A FAIL excludes the sample from DA001–DA007 (`COHORT_QC_FAIL`) |
+| `cohort/microhaplotypes.tsv.gz`, `microhaplotype_loci.tsv`, `microhaplotypes.json` | Multiplexed microhaplotypes (`analyses.microhap_loci`: `derived` uses this run's own panel targets or core-genome windows, `catalogue` a supplied panel; the summary records which and whether the loci compare across cohorts): per sample and locus, each haplotype a DNA fragment carries across the locus's variable positions (this cohort's PASS SNVs inside it) with its fragment count and share; per locus, the positions used, samples called and uncallable, distinct haplotypes, or why the locus was excluded; and the panel's provenance, including whether it holds loci at all |
+| `cohort/cohort_qc.json` | Cohort QC (gate G5) per sample: missing and mixed fractions, PASS/WARNING/FAIL; site call rates. A FAIL excludes the sample from DA001–DA008 (`COHORT_QC_FAIL`) |
 | `annotation/cohort.ann.vcf.gz`, `annotation_qc.json` | FO004 SnpEff consequences and annotation checks |
 | `eligibility/` | Per-sample/cohort scientific eligibility decisions |
 | `downstream/DAxxx/status_manifest.json` | Requested method's terminal state, denominators, exclusions and caveats |
@@ -275,6 +276,11 @@ results -> runs/<RUN_ID>/results
 | `downstream/DA005/pca.tsv`, `fst.tsv` | PCA coordinates and Hudson FST |
 | `downstream/DA006/tree.treefile` | Maximum-likelihood tree (with `tree.contree`, `tree.iqtree`) |
 | `downstream/DA007/country_month_summary.tsv` | Prevalence by place and month; GAM fit when supported |
+| `downstream/DA008/cnv_calls.tsv`, `prevalence.tsv` | Per sample and locus: GC-corrected depth ratio with bootstrap interval, flank ratio, junction read pairs and the state (AMPLIFIED / SINGLE_COPY, DELETED / PRESENT, or UNKNOWN with its reason); prevalence of each event with Wilson intervals |
+| `downstream/DA009/joint_calls.tsv`, `gene_calls.tsv` | Per sample: the pfhrp2 and pfhrp3 states and the joint state (DOUBLE_DELETION / PFHRP2_ONLY / PFHRP3_ONLY / NO_DELETION / INDETERMINATE), with the evidence model used (`DEPTH_RATIO` for WGS, `AMPLICON_DROPOUT` for targeted panels) and the measurement behind each gene state |
+| `downstream/DA009/joint_prevalence.tsv`, `joint_prevalence_by_evidence.tsv` | Share of judged infections with pfhrp2, pfhrp3, dual or any deletion, with Wilson intervals: pooled over evidence classes (each row names the classes pooled) and the same table stratified by evidence class |
+| `downstream/DA009/threshold_sensitivity.tsv` | Every gene state recomputed across a grid of deletion cut-offs, with the state actually reported beside it, so a reader sees which calls depend on a provisional threshold and which hold regardless. The manifest counts the calls that move (`calls_sensitive_to_threshold`). No reported call is changed by this table |
+| `downstream/DA009/cooccurrence.tsv`, `trend.tsv` | The 2x2 pfhrp2-by-pfhrp3 table with the dual-deletion count expected under independence and a Fisher exact p-value; joint prevalence by country and month |
 | `report/pfvarx_dashboard.html` | Offline report; open after the run finalizes |
 | `report/dashboard_data.json` | Report data backing the HTML |
 | `report/clonality_report.txt`, `.tsv` | Per sample: monoclonal, or polyclonal with the number of clones and each clone's share of the parasite DNA, for example "Sample Y is polyclonal with 3 clones: Clone 1: 50.0%, Clone 2: 30.0%, Clone 3: 20.0%" |
@@ -315,6 +321,7 @@ That is an edit fragment, not a replacement for the entire generated configurati
 
 | ID | Implemented method / requirements |
 |---|---|
+| DA001, DA004 | Locus basis: multiallelic microhaplotype loci when the cohort has at least `microhap_min_loci_for_basis` of them, otherwise distance-thinned biallelic SNVs. Each manifest records `locus_basis`, the locus count and the reason, so two runs' estimates are never compared without knowing what they were computed on |
 | DA001 | MOIRE clonality with ≥ 10 informative samples; smaller cohorts take the call from the caller's mixture test (`basis` column) with no COI count or Fws; caller technical K otherwise shown only as context |
 | DA002 | Codon-level resistance markers; independently verified matching catalogue required |
 | DA003 | Within-host FWS and population diversity; group sizes/callability apply |
@@ -322,12 +329,18 @@ That is an edit fragment, not a replacement for the entire generated configurati
 | DA005 | Haploid PCA and Hudson FST; WGS, declared populations and eligible samples |
 | DA006 | IQ-TREE phylogenetics; WGS, at least four eligible monoclonal samples and sufficient sites |
 | DA007 | Spatial/temporal summaries; declared source outcome and country/date/coordinate metadata |
+| DA008 | Copy-number markers (whole-genome sequencing only): amplification of pfmdr1, plasmepsin II and III and gch1, deletion of pfhrp2 and pfhrp3. Gene depth is compared with core-genome windows of the same sample with similar GC content; flanking depth and junction read pairs are reported. Needs a GFF, a verified copy-number catalogue (`config/registry/cnv_catalog_pfvarx_v1.tsv`) and a median core depth of at least 20; thresholds are provisional |
+
+| DA009 | pfhrp2/pfhrp3 joint deletion (every design): single and dual deletion, their co-occurrence against independence, and joint prevalence by country and month. WGS uses the DA008 depth measurement (`DEPTH_RATIO`); targeted panels use amplicon presence against the panel's control amplicons (`AMPLICON_DROPOUT`), which is not a copy number. Needs a GFF and the same verified copy-number catalogue; a targeted panel must carry a pfhrp2 or pfhrp3 target and at least two control targets |
 
 DA001 is inserted as an internal prerequisite where needed. DA006 rechecks actual
 alignment informativeness and can legitimately skip after preliminary eligibility.
 For DA007, set `spatial_outcome_source` to the appropriate implemented source (for
 example DA002); a verified catalogue is then required for real resistance outcomes.
-The shipped draft catalogue intentionally blocks real DA002 execution.
+The shipped draft catalogue intentionally blocks real DA002 execution, and the shipped
+draft copy-number catalogue blocks DA008 and DA009 the same way. `workflow-check` (and `ready`)
+warn before a run when a requested analysis will be blocked this way (`CATALOG_NOT_VERIFIED`);
+such an analysis can be added afterwards with `./pfvarx pipeline --mode EXTEND --run-id RUN_ID`.
 
 Terminal states include COMPLETED, COMPLETED_WITH_EXCLUSIONS, SKIPPED_INELIGIBLE,
 BLOCKED_MISSING_PREREQUISITE and FAILED_EXECUTION. A skipped tree is not a placeholder

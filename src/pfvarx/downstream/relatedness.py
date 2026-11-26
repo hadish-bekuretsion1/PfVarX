@@ -19,12 +19,16 @@ import shutil
 import subprocess
 from itertools import combinations
 
+from pfvarx.configuration.loader import frozen_param
 from pfvarx.constants import Reason, Terminal
-from pfvarx.downstream.coi import informative_sites
 from pfvarx.downstream.common import Context, decisions, write_manifest
 from pfvarx.downstream.diversity import dominant
+from pfvarx.downstream.loci import allele_set
 from pfvarx.io import read_tsv, write_tsv
 
+# Layer 5 memory: the cohort evidence matrix is loaded for this analysis only when it reads it
+# (dominant alleles (through diversity) and allele presence). tests/unit/test_matrix_declarations.py checks the declaration against the code.
+USES_COHORT_MATRIX = True
 
 def run(ctx: Context, threads: int = 1) -> None:
     out = ctx.out("DA004")
@@ -75,20 +79,15 @@ def run(ctx: Context, threads: int = 1) -> None:
                               "informative_markers": n,
                               "status": marker_status(n)})
     # Dcifer for pairs with at least one polyclonal sample
+    dcifer_basis: dict[str, object] | None = None
     poly_pairs = [(a, b) for a, b in combinations(eligible, 2)
                   if "POLYCLONAL" in (clon.get(a, {}).get("clonality"), clon.get(b, {}).get("clonality"))]
     if poly_pairs and shutil.which("Rscript"):
-        sites = informative_sites(ctx)
-        rows = []
-        for s in sites:
-            for sid in eligible:
-                c = ctx.matrix[s["site_id"]].get(sid)
-                if not c or c["wsaf"] is None:
-                    continue
-                if c["wsaf"] <= 1 - floor:
-                    rows.append({"sample_id": sid, "locus": s["site_id"], "allele": "R"})
-                if c["wsaf"] >= floor:
-                    rows.append({"sample_id": sid, "locus": s["site_id"], "allele": "A"})
+        # Dcifer is built for multiallelic loci: microhaplotypes when the cohort has them.
+        alleles = allele_set(ctx, eligible, floor)
+        dcifer_basis = alleles.provenance
+        dcifer_loci = alleles.loci
+        rows = alleles.rows
         lf = out / "dcifer_input.tsv"
         write_tsv(lf, rows, ["sample_id", "locus", "allele"])
         # MOIRE's COI count where DA001 reported one; monoclonal samples are 1; otherwise "NA",
@@ -98,8 +97,10 @@ def run(ctx: Context, threads: int = 1) -> None:
         write_tsv(out / "dcifer_coi.tsv", coi_rows, ["sample_id", "coi"])
         r = subprocess.run(["Rscript", str(ctx.root / "workflow" / "scripts" / "da004_dcifer.R"), str(lf),
                             str(out / "dcifer_coi.tsv"), str(out / "dcifer_pairs.tsv"),
-                            str(ctx.params.get("da004_dcifer_alpha", 0.05)),
-                            str(ctx.params.get("da004_dcifer_null_grid", 1000))], capture_output=True, text=True)
+                            str(frozen_param(ctx.params, "da004_dcifer_alpha")),
+                            str(frozen_param(ctx.params, "da004_dcifer_null_grid")),
+                            str(frozen_param(ctx.params, "da004_dcifer_coi_lrank")),
+                            str(frozen_param(ctx.params, "da004_dcifer_afreq_tol"))], capture_output=True, text=True)
         (out / "dcifer.log").write_text(r.stdout + r.stderr)
         if r.returncode != 0:
             raise SystemExit(f"Dcifer failed with exit code {r.returncode}")
@@ -108,7 +109,7 @@ def run(ctx: Context, threads: int = 1) -> None:
             if frozenset((row["sample_1"], row["sample_2"])) in wanted:
                 pairs_out.append({"sample_1": row["sample_1"], "sample_2": row["sample_2"], "method": "Dcifer",
                                   "estimate": row["estimate"], "ci_lower": row["ci_lower"], "ci_upper": row["ci_upper"],
-                                  "informative_markers": len(sites), "status": marker_status(len(sites))})
+                                  "informative_markers": dcifer_loci, "status": marker_status(dcifer_loci)})
     for pair in pairs_out:
         pair["relatedness_label"] = label(str(pair["estimate"]), str(pair["status"]))
     cols = ["sample_1", "sample_2", "method", "estimate", "ci_lower", "ci_upper", "informative_markers", "status",
@@ -124,6 +125,13 @@ def run(ctx: Context, threads: int = 1) -> None:
     estimated = counts["ESTIMATED"] + counts["ESTIMATED_LOW_PRECISION"]
     caveats = ["hmmIBD estimates for monoclonal pairs have no interval in this release.",
                "Dcifer assumes approximately unlinked loci; distance thinning is a proxy."]
+    if dcifer_basis and dcifer_basis.get("locus_basis") == "MICROHAPLOTYPE":
+        caveats.append("Dcifer used multiallelic microhaplotype loci; hmmIBD still uses biallelic SNVs, so the "
+                       "two methods' estimates rest on different marker sets.")
+        caveats.append("The minimum-marker thresholds (200 for WGS, 20 for targeted panels) were derived for "
+                       "biallelic markers (Taylor 2019) and are applied here to the microhaplotype locus count. "
+                       "They have not been re-derived for microhaplotypes, which carry more information per "
+                       "locus, so a LOW_PRECISION label on a microhaplotype panel is conservative.")
     if counts["ESTIMATED_LOW_PRECISION"]:
         caveats.append(f"{counts['ESTIMATED_LOW_PRECISION']} pair(s) have fewer than {precise} informative markers: "
                        "estimates are reported without relatedness labels because their error can exceed 0.1.")
@@ -140,5 +148,6 @@ def run(ctx: Context, threads: int = 1) -> None:
                    caveats=caveats,
                    method={"monoclonal": "hmmIBD", "polyclonal": "Dcifer", "min_markers": min_markers,
                            "precise_markers": precise, "marker_rule": "TARGETED" if targeted else "WGS",
-                           "closely_related_ibd": related, "near_identical_ibd": clonal},
+                           "closely_related_ibd": related, "near_identical_ibd": clonal,
+                           **(dcifer_basis or {})},
                    results_summary={"pairs": len(pairs_out), **{f"pairs_{k.lower()}": v for k, v in counts.items()}})
