@@ -4,8 +4,8 @@ PfVarX 1.0.0 is a configuration-driven pipeline for paired-end *Plasmodium falci
 SNP/small-indel analysis, with a custom caller, QC, cohort integration, annotation,
 eligibility-gated downstream methods and one offline scientific dashboard.
 
-This source release contains software, locked environment definitions, templates,
-policies and tests. It contains no study reads, reference genome, truth dataset, run
+This source release contains software, locked environment definitions, templates
+and policies. It contains no study reads, reference genome, truth dataset, run
 or historical report. Methods remain **scientifically unvalidated and uncalibrated**.
 See [scientific status](docs/status.md) before interpreting results.
 
@@ -15,8 +15,7 @@ New to PfVarX? [Getting started](docs/getting-started.md) walks through every st
 from installing Pixi to opening the report, with a troubleshooting table.
 
 Native installation targets are Linux x86-64, Linux ARM64, and macOS 13+ on Intel or
-Apple silicon. You need Git, Python 3.11+ for bootstrap, Pixi on PATH, and access to the
-private GitHub repository. On Windows, use WSL2 with a supported Linux distribution.
+Apple silicon. You need Git, Python 3.11+ for bootstrap, and Pixi on PATH. On Windows, use WSL2 with a supported Linux distribution.
 macOS and Linux ARM64 are newly enabled, experimental targets pending successful native
 qualification runs; a solved lock is not runtime or scientific validation. See
 [platform support](docs/platforms.md). This example creates a workspace whose tools are installed on demand.
@@ -67,7 +66,7 @@ Either way each final output gets only the tools it uses:
 | FO003 cohort | `--final-output FO003` | same tools as FO002, plus the cohort step |
 | FO004 annotation and analyses | `--final-output FO004 --analyses DA003` (or `--auto-analyses`) | adds SnpEff and only the requested analyses' tools: R with MOIRE (DA001), Dcifer and hmmIBD (DA004), scikit-allel (DA005), IQ-TREE (DA006), mgcv (DA007); DA002 and DA008 need no extra tool |
 | Benchmarking | `--profile benchmark` | as FO002, plus RTG Tools with `--rtg` |
-| Full development environment | `--profile development` | everything, plus the test tools |
+| Full development environment | `--profile development` | every tool for every final output and analysis |
 
 \* Snakemake, samtools, Picard (`picard-slim`, without R) and mosdepth, with the Python,
 pysam and htslib of the control environment: every final output uses them. To see what each installation gets, run

@@ -2,6 +2,13 @@
 
 ## Unreleased
 
+### Documentation: public repository, no tests in the release
+
+The repository is public: the README, getting started (md and html), `docs/README.html` and
+the sample analysis guide no longer ask for GitHub sign-in or a token before cloning. The
+README no longer says the release contains tests, and describes `--profile development` as
+every tool for every final output and analysis.
+
 ### Layer 3 scales to large cohorts (same results)
 
 Measured limits of the cohort steps, each now removed:
