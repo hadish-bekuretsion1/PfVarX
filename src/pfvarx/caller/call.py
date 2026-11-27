@@ -19,12 +19,14 @@ bias correction of WSAF, and the optional classifier.
 from __future__ import annotations
 
 import argparse
+import bisect
 import json
 import math
 import os
 import sys
 import time
 from collections import defaultdict
+from collections.abc import Iterable
 from concurrent.futures import ProcessPoolExecutor
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -36,6 +38,7 @@ import pysam
 from pfvarx import __version__
 from pfvarx.caller import mixture, pairhmm
 from pfvarx.caller.stats import (
+    ErrorFit,
     betabinom_sf_log10,
     fisher_strand_neglog10,
     fit_betabinom,
@@ -237,6 +240,91 @@ class Evidence:
 
 def extract(bam: pysam.AlignmentFile, fasta: pysam.FastaFile, chrom: str,
             intervals: list[tuple[int, int]], p: Params) -> tuple[Evidence, str]:
+    """Read evidence over *intervals* of *chrom* (L2.2).
+
+    Reads each pileup column through pysam's column accessors (``get_query_sequences`` and
+    ``get_query_qualities``), which return every read's base, strand (letter case), indel and
+    base quality without building a Python object per read and column. The counts are the
+    same as ``extract_reference``, the per-read loop kept as the reference implementation:
+    deletions and reference skips are not counted, a read without base qualities counts as
+    quality 0 (pysam reports 255), and a read without a sequence (pysam reports N with
+    quality 0) is excluded by the base-quality floor. With a floor of 0 that last case could
+    not be told apart, so the reference loop is used.
+    """
+    if p.min_bq <= 0:
+        return extract_reference(bam, fasta, chrom, intervals, p)
+    seq = fasta.fetch(chrom).upper()
+    ev = Evidence(len(seq))
+    min_bq = p.min_bq
+    min_alt = p.candidate_min_alt_reads
+    max_indel = p.max_indel_length_bp
+    for start, end in intervals:
+        ev.in_core[start:end] = True
+        for col in bam.pileup(chrom, start, end, truncate=True, stepper="nofilter",
+                              flag_filter=FLAG_FILTER, min_mapping_quality=p.min_mapq,
+                              min_base_quality=0, ignore_overlaps=True, ignore_orphans=False,
+                              max_depth=p.pileup_max_depth, compute_baq=False):
+            pos = col.reference_pos
+            ref = seq[pos]
+            n = 0
+            nonref = 0
+            rf = rr = 0
+            local: dict[tuple[str, str], list[float]] = {}
+            indel_n = 0
+            bases = col.get_query_sequences(mark_matches=False, mark_ends=False, add_indels=True)
+            quals = col.get_query_qualities()
+            for text, bq in zip(bases, quals, strict=True):
+                first = text[0]
+                if first == "*" or first == ">" or first == "<":  # deletion or reference skip
+                    continue
+                if bq == 255:  # no base qualities stored
+                    bq = 0
+                if bq < min_bq:
+                    continue
+                n += 1
+                rev = first.islower()  # pysam writes reverse-strand bases in lower case
+                base = first.upper()
+                if base == ref:
+                    rr += int(rev)
+                    rf += int(not rev)
+                elif base in BASES:
+                    nonref += 1
+                    key = ("SNV", base)
+                    t = local.setdefault(key, [0, 0, 0, 0.0])
+                    t[0] += 1
+                    t[1 if not rev else 2] += 1
+                    t[3] += bq
+                if len(text) > 1:  # "<base>+<length><inserted bases>" or "<base>-<length><N...>"
+                    digits = 2
+                    while text[digits].isdigit():
+                        digits += 1
+                    length = int(text[2:digits])
+                    if text[1] == "+":
+                        key = ("INS", text[digits:digits + length].upper())
+                    else:
+                        key = ("DEL", seq[pos + 1: pos + 1 + length])
+                    indel_n += 1
+                    t = local.setdefault(key, [0, 0, 0, 0.0])
+                    t[0] += 1
+                    t[1 if not rev else 2] += 1
+                    t[3] += bq
+            ev.n[pos] = n
+            ev.nonref[pos] = nonref
+            ev.indel[pos] = indel_n
+            keep = {k: v for k, v in local.items() if v[0] >= min_alt
+                    and (k[0] == "SNV" or max_indel is None or len(k[1]) <= max_indel)}
+            if keep:
+                tallies = ev.alleles[pos] if pos in ev.alleles else {}
+                tallies.update(keep)
+                ev.alleles[pos] = tallies
+                ev.refstrand[pos] = [rf, rr]
+    return ev, seq
+
+
+def extract_reference(bam: pysam.AlignmentFile, fasta: pysam.FastaFile, chrom: str,
+                      intervals: list[tuple[int, int]], p: Params) -> tuple[Evidence, str]:
+    """Read evidence with one pysam read object per read and column: the reference
+    implementation of ``extract`` (and the one used when the base-quality floor is 0)."""
     seq = fasta.fetch(chrom).upper()
     ev = Evidence(len(seq))
     for start, end in intervals:
@@ -305,7 +393,13 @@ def extract(bam: pysam.AlignmentFile, fasta: pysam.FastaFile, chrom: str,
 
 
 def fit_error_model(evs: dict[str, Evidence], seqs: dict[str, str], p: Params,
-                    exclude: set[tuple[str, int]] | None = None) -> dict[str, Any]:
+                    exclude: set[tuple[str, int]] | None = None,
+                    pool: ProcessPoolExecutor | None = None) -> dict[str, Any]:
+    """Per-sample error model (L2.4): one substitution fit and one indel fit per tract class.
+
+    The fits are independent; with a worker *pool* they run in parallel, each the same
+    ``fit_betabinom`` call on the same data, so the fitted values are identical.
+    """
     ys, ns = [], []
     iy: dict[int, list[np.ndarray]] = defaultdict(list)
     inn: dict[int, list[np.ndarray]] = defaultdict(list)
@@ -325,15 +419,16 @@ def fit_error_model(evs: dict[str, Evidence], seqs: dict[str, str], p: Params,
             inn[c].append(ev.n[sel])
     y, n = np.concatenate(ys) if ys else np.array([]), np.concatenate(ns) if ns else np.array([])
     truncation = None if p.error_fit_exclude_fraction is None else (p.min_fragments, p.error_fit_exclude_fraction)
-    snv = fit_betabinom(y, n, p.trim, p.eps0, p.phi0, exclude=truncation, phi_bounds=p.phi_bounds,
-                        min_sites=p.error_fit_min_sites, min_nonzero_for_phi=p.error_fit_min_nonzero_for_phi)
-    indel = {}
+    jobs: list[tuple[np.ndarray, np.ndarray, float, tuple[int, float] | None, Params]] = [
+        (y, n, p.eps0, truncation, p)]
     for c in range(len(p.tract_classes)):
         yy = np.concatenate(iy[c]) if iy[c] else np.array([])
         nn = np.concatenate(inn[c]) if inn[c] else np.array([])
-        f = fit_betabinom(yy, nn, p.trim, p.eps0 / p.indel_error_init_divisor, p.phi0, exclude=truncation,
-                          phi_bounds=p.phi_bounds, min_sites=p.error_fit_min_sites,
-                          min_nonzero_for_phi=p.error_fit_min_nonzero_for_phi)
+        jobs.append((yy, nn, p.eps0 / p.indel_error_init_divisor, truncation, p))
+    fits = list(pool.map(_fit_task, jobs)) if pool is not None else [_fit_task(job) for job in jobs]
+    snv = fits[0]
+    indel = {}
+    for c, f in enumerate(fits[1:]):
         f["mu"] = max(f["mu"], p.indel_error_floor)
         indel[str(c)] = f
     return {"snv_any": snv, "indel_by_tract_class": indel,
@@ -342,10 +437,21 @@ def fit_error_model(evs: dict[str, Evidence], seqs: dict[str, str], p: Params,
             "calibration": "PER_SAMPLE_KNOWN_REFERENCE_FIT"}
 
 
+def _fit_task(job: tuple[np.ndarray, np.ndarray, float, tuple[int, float] | None, Params]) -> ErrorFit:
+    """One error-model fit (a module-level function, so worker processes can run it)."""
+    y, n, init_mu, truncation, p = job
+    return fit_betabinom(y, n, p.trim, init_mu, p.phi0, exclude=truncation, phi_bounds=p.phi_bounds,
+                         min_sites=p.error_fit_min_sites, min_nonzero_for_phi=p.error_fit_min_nonzero_for_phi)
+
+
 def screen(evs: dict[str, Evidence], seqs: dict[str, str], model: dict[str, Any], p: Params) -> list[Candidate]:
     out: list[Candidate] = []
     mu_snv = model["snv_any"]["mu"] / ALT_BASES
     phi = model["snv_any"]["phi"]
+    # The screen statistic depends only on (alt count, depth, error mode): the same few
+    # hundred combinations recur across tens of thousands of positions, so each is computed
+    # once. The cached value is the same number, not an approximation.
+    tail: dict[tuple[int, int, float, float], float] = {}
     for chrom, ev in evs.items():
         seq = seqs[chrom]
         for pos, alleles in ev.alleles.items():
@@ -370,7 +476,10 @@ def screen(evs: dict[str, Evidence], seqs: dict[str, str], model: dict[str, Any]
                     c.status = CallStatus.INSUFFICIENT_DEPTH.value
                     out.append(c)
                     continue
-                c.screen = betabinom_sf_log10(int(y), n, mu, ph)
+                key = (int(y), n, mu, ph)
+                if key not in tail:
+                    tail[key] = betabinom_sf_log10(int(y), n, mu, ph)
+                c.screen = tail[key]
                 if c.screen >= p.lam:
                     out.append(c)
     out.sort(key=lambda c: (c.chrom, c.pos, c.kind, c.alt))
@@ -415,56 +524,89 @@ def rescore_indels(bam: pysam.AlignmentFile, seqs: dict[str, str], cands: list[C
             c.y, c.n, c.alt_f, c.alt_r = alt, alt + refc, af, ar
 
 
-def linkage_blocks(bam: pysam.AlignmentFile, cands: list[Candidate], p: Params) -> None:
-    """Connected components of alternative alleles co-observed on >= 2 fragments per window."""
+def linkage_blocks(bam: pysam.AlignmentFile, cands: list[Candidate], p: Params,
+                   pool: ProcessPoolExecutor | None = None) -> None:
+    """Connected components of alternative alleles co-observed on >= 2 fragments per window.
+
+    Windows are independent (each reads only its own reads), so with a worker *pool* the
+    windows holding two or more alleles are linked in worker processes; the identifiers
+    are the same as in a serial pass.
+    """
     by_window: dict[tuple[str, int], list[Candidate]] = defaultdict(list)
     for c in cands:
         if c.kind == "SNV" and c.status in (CallStatus.PASS, CallStatus.LOW_CONFIDENCE):
             by_window[(c.chrom, c.pos // p.window)].append(c)
+    jobs: list[tuple[str, int, list[tuple[int, str]]]] = []
+    targets: list[dict[int, Candidate]] = []
     for (chrom, w), group in by_window.items():
-        start, end = w * p.window, (w + 1) * p.window
+        start = w * p.window
         for c in group:
-            c.lhwin = f"{chrom}_{start + 1}-{end}"
+            c.lhwin = f"{chrom}_{start + 1}-{start + p.window}"
         if len(group) < 2:
             for c in group:
                 c.lhid = f"{chrom}_{w}_{c.pos + 1}"
             continue
-        positions = {c.pos: c for c in group}
-        pair_counts: dict[tuple[int, int], int] = defaultdict(int)
-        seen: dict[str, set[int]] = defaultdict(set)
-        for read in bam.fetch(chrom, start, end):
-            if read.flag & FLAG_FILTER or read.mapping_quality < p.min_mapq:
-                continue
-            if read.query_sequence is None or read.query_name is None:
-                continue
-            for qpos, rpos in read.get_aligned_pairs(matches_only=True):
-                if qpos is None or rpos is None:
-                    continue
-                cc = positions.get(rpos)
-                if cc is not None and read.query_sequence[qpos].upper() == cc.alt:
-                    seen[read.query_name].add(rpos)
-        for alts in seen.values():
-            alts_s = sorted(alts)
-            for i in range(len(alts_s)):
-                for j in range(i + 1, len(alts_s)):
-                    pair_counts[(alts_s[i], alts_s[j])] += 1
-        parent = {pos: pos for pos in positions}
-
-        def find(x: int) -> int:
-            while parent[x] != x:
-                parent[x] = parent[parent[x]]
-                x = parent[x]
-            return x
-
-        for (a, b), k in pair_counts.items():
-            if k >= 2:
-                parent[find(a)] = find(b)
+        positions = {c.pos: c for c in group}  # one allele per position, as the read check uses
+        jobs.append((chrom, w, [(pos, c.alt) for pos, c in positions.items()]))
+        targets.append(positions)
+    results: Iterable[dict[int, str]] = (
+        pool.map(_linkage_task, jobs) if pool is not None
+        else (window_linkage(bam, chrom, w, alleles, p) for chrom, w, alleles in jobs))
+    for positions, ids in zip(targets, results, strict=True):
         for pos, c in positions.items():
-            c.lhid = f"{chrom}_{w}_{find(pos) + 1}"
+            c.lhid = ids[pos]
+
+
+def window_linkage(bam: pysam.AlignmentFile, chrom: str, w: int, alleles: list[tuple[int, str]],
+                   p: Params) -> dict[int, str]:
+    """Linkage-block identifier of each (position, alternative base) in window *w* of *chrom*."""
+    start, end = w * p.window, (w + 1) * p.window
+    alt_at = dict(alleles)
+    pair_counts: dict[tuple[int, int], int] = defaultdict(int)
+    seen: dict[str, set[int]] = defaultdict(set)
+    sites = sorted(alt_at)
+    for read in bam.fetch(chrom, start, end):
+        if read.flag & FLAG_FILTER or read.mapping_quality < p.min_mapq:
+            continue
+        query = read.query_sequence
+        if query is None or read.query_name is None or read.reference_end is None:
+            continue
+        # Only the window's allele positions inside this read are looked up (a few, against
+        # every aligned base of the read); the aligned (query, reference) pairs are the same.
+        here = sites[bisect.bisect_left(sites, read.reference_start):bisect.bisect_left(sites, read.reference_end)]
+        if not here:
+            continue
+        aligned = {rpos: qpos for qpos, rpos in read.get_aligned_pairs(matches_only=True)}
+        for rpos in here:
+            qpos = aligned.get(rpos)
+            if qpos is not None and query[qpos].upper() == alt_at[rpos]:
+                seen[read.query_name].add(rpos)
+    for alts in seen.values():
+        alts_s = sorted(alts)
+        for i in range(len(alts_s)):
+            for j in range(i + 1, len(alts_s)):
+                pair_counts[(alts_s[i], alts_s[j])] += 1
+    parent = {pos: pos for pos in alt_at}
+
+    def find(x: int) -> int:
+        while parent[x] != x:
+            parent[x] = parent[parent[x]]
+            x = parent[x]
+        return x
+
+    for (a, b), k in pair_counts.items():
+        if k >= 2:
+            parent[find(a)] = find(b)
+    return {pos: f"{chrom}_{w}_{find(pos) + 1}" for pos in alt_at}
 
 
 def decide(cands: list[Candidate], model: dict[str, Any], p: Params, unreliable: dict[str, list[tuple[int, int]]],
            focal: dict[str, list[tuple[int, int]]]) -> None:
+    # The interval, tail and strand statistics are functions of a few integers and the error
+    # mode; candidates with the same values share one computation (the same numbers).
+    intervals: dict[tuple[int, int, float, float], tuple[float, float, float]] = {}
+    tails: dict[tuple[int, int, float, float], float] = {}
+    strands: dict[tuple[int, int, int, int], float] = {}
     for c in cands:
         if c.kind == "SNV":
             eps, phi = model["snv_any"]["mu"] / ALT_BASES, model["snv_any"]["phi"]
@@ -472,8 +614,10 @@ def decide(cands: list[Candidate], model: dict[str, Any], p: Params, unreliable:
             m = model["indel_by_tract_class"][str(tract_class(c.tract, p.tract_classes))]
             eps, phi = m["mu"], m["phi"]
         if c.n > 0:
-            c.wsaf, c.wsaf_lo, c.wsaf_hi = profile_interval(c.y, c.n, min(eps, p.error_rate_cap), phi, p.level,
-                                                            p.wsaf_grid_points)
+            key = (c.y, c.n, min(eps, p.error_rate_cap), phi)
+            if key not in intervals:
+                intervals[key] = profile_interval(c.y, c.n, key[2], phi, p.level, p.wsaf_grid_points)
+            c.wsaf, c.wsaf_lo, c.wsaf_hi = intervals[key]
         if c.status == CallStatus.INSUFFICIENT_DEPTH:
             if in_intervals(focal.get(c.chrom, []), c.pos):
                 c.status = CallStatus.FOCAL_CALLABILITY_LOSS.value
@@ -481,8 +625,17 @@ def decide(cands: list[Candidate], model: dict[str, Any], p: Params, unreliable:
         if in_intervals(unreliable.get(c.chrom, []), c.pos):
             c.status = CallStatus.CONTEXT_UNRELIABLE.value
             continue
-        c.screen = betabinom_sf_log10(c.y, c.n, eps, phi) if c.n else 0.0
-        sb = fisher_strand_neglog10(c.ref_f, c.ref_r, c.alt_f, c.alt_r)
+        if c.n:
+            tail = (c.y, c.n, eps, phi)
+            if tail not in tails:
+                tails[tail] = betabinom_sf_log10(c.y, c.n, eps, phi)
+            c.screen = tails[tail]
+        else:
+            c.screen = 0.0
+        strand = (c.ref_f, c.ref_r, c.alt_f, c.alt_r)
+        if strand not in strands:
+            strands[strand] = fisher_strand_neglog10(*strand)
+        sb = strands[strand]
         if sb > p.strand_max:
             c.status = CallStatus.FILTERED.value
             c.filter_reasons.append("STRAND_BIAS")
@@ -701,24 +854,35 @@ def _pieces(intervals: list[tuple[int, int]], chunk: int) -> list[tuple[int, int
     return out
 
 
-def _rescore_task(job: tuple[str, str, list[Candidate]]) -> list[Candidate]:
-    chrom, seq, cands = job
-    rescore_indels(_WORKER["bam"], {chrom: seq}, cands, _WORKER["p"])
-    return cands
+def _sequence(chrom: str) -> str:
+    """Upper-case contig sequence, read once per worker process."""
+    seqs = _WORKER.setdefault("seqs", {})
+    if chrom not in seqs:
+        seqs[chrom] = _WORKER["fasta"].fetch(chrom).upper()
+    return seqs[chrom]
+
+
+def _rescore_task(c: Candidate) -> Candidate:
+    rescore_indels(_WORKER["bam"], {c.chrom: _sequence(c.chrom)}, [c], _WORKER["p"])
+    return c
+
+
+def _linkage_task(job: tuple[str, int, list[tuple[int, str]]]) -> dict[int, str]:
+    chrom, w, alleles = job
+    return window_linkage(_WORKER["bam"], chrom, w, alleles, _WORKER["p"])
 
 
 def rescore_parallel(pool: ProcessPoolExecutor, seqs: dict[str, str], cands: list[Candidate]) -> list[Candidate]:
-    """Indel rescoring by contig in worker processes. Candidates are matched back by their
-    index in *cands*, never by allele content: two deletions sharing an anchor base (TTA>T
-    and TTATA>T) have the same ALT and would otherwise collide."""
-    groups: dict[str, list[int]] = defaultdict(list)
-    for i, c in enumerate(cands):
-        groups[c.chrom].append(i)
+    """Indel rescoring in worker processes, one candidate per task so that the work is spread
+    evenly however the candidates fall across contigs (each candidate's rescoring reads only
+    its own reads). Only candidates that ``rescore_indels`` changes are sent; they are
+    matched back by their index in *cands*, never by allele content: two deletions sharing
+    an anchor base (TTA>T and TTATA>T) have the same ALT and would otherwise collide."""
+    todo = [i for i, c in enumerate(cands)
+            if not (c.kind == "SNV" or c.status == CallStatus.INSUFFICIENT_DEPTH)]
     out = list(cands)
-    jobs = [(contig, seqs[contig], [cands[i] for i in idx]) for contig, idx in groups.items()]
-    for (contig, _, _), rescored in zip(jobs, pool.map(_rescore_task, jobs), strict=True):
-        for i, c in zip(groups[contig], rescored, strict=True):
-            out[i] = c
+    for i, c in zip(todo, pool.map(_rescore_task, [cands[i] for i in todo]), strict=True):
+        out[i] = c
     return out
 
 
@@ -765,11 +929,11 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         for chrom in chroms:
             evs[chrom], seqs[chrom] = extract(bam, fasta, chrom, core[chrom], p)
     _progress(f"read evidence collected for {len(evs)} contig(s)")
-    model = fit_error_model(evs, seqs, p)
+    model = fit_error_model(evs, seqs, p, pool=pool)
     cands = screen(evs, seqs, model, p)
     # one re-estimation after removing screened candidate positions (field samples)
     excl = {(c.chrom, c.pos) for c in cands}
-    model = fit_error_model(evs, seqs, p, exclude=excl)
+    model = fit_error_model(evs, seqs, p, exclude=excl, pool=pool)
     model["iterations"] = 2
     cands = screen(evs, seqs, model, p)
     _progress(f"error model fitted twice; {len(cands)} candidates screened")
@@ -782,7 +946,7 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
     median = float(np.median(depth_all)) if depth_all.size else 0.0
     focal = focal_losses(evs, p.min_depth, median, p.focal_min_length_bp)
     decide(cands, model, p, unreliable, focal)
-    linkage_blocks(bam, cands, p)
+    linkage_blocks(bam, cands, p, pool)
     callable_iv = callable_intervals(evs, p.min_depth)
     core_bases = int(sum(ev.in_core.sum() for ev in evs.values()))
     callable_bases = sum(e - s for iv in callable_iv.values() for s, e in iv)
