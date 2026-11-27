@@ -79,7 +79,7 @@ Pixi/tool diagnostics go to stderr. `PFVARX_JSON_OUT` can save command JSON atom
 ### Commands that match the configuration GUI
 
 Each GUI tab runs the same code as one of these commands, so you can switch between the
-GUI and the terminal at any stage.
+GUI and the terminal at any stage. `tests/unit/test_cli_gui_parity.py` keeps them matched.
 
 | GUI tab or button | Command | What it does |
 | --- | --- | --- |

@@ -65,7 +65,7 @@ from pfvarx.eligibility.territory import read_intervals
 from pfvarx.io import write_json, write_tsv
 
 # Layer 5 memory: the cohort evidence matrix is loaded for this analysis only when it reads it
-# (measures read depth or amplicon coverage from the alignments, not the matrix).
+# (measures read depth or amplicon coverage from the alignments, not the matrix). tests/unit/test_matrix_declarations.py checks the declaration against the code.
 USES_COHORT_MATRIX = False
 MEASURES = ("pfhrp2_deleted", "pfhrp3_deleted", "double_deletion", "any_deletion")
 DELETED, PRESENT, UNKNOWN = "DELETED", "PRESENT", "UNKNOWN"

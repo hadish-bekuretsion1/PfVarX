@@ -13,15 +13,15 @@
   .audit-matrix h1{margin-top:0}
   main{overflow:visible!important;width:auto;max-width:none}
 }
-</style></head><body><a class="skip" href="#manual">Skip to manual</a><header><h1>PfVarX operational SOPs</h1><p>34 supported procedures · Routine analysis · Built-in benchmarking</p><div class="tools"><button onclick="window.print()">Print / Save as PDF</button></div></header><div class="banner">PfVarX 1.0.0 · Supported implementation only · Replace explicit input/sample/run placeholders · Software verification does not establish scientific validation.</div><div class="layout"><nav aria-label="Procedure navigation"><a href="#pfvarx-0-4-2-operational-sop-manual">PfVarX 1.0.0 — Operational SOP manual</a><a href="#section-4-unified-downstream-eligibility-and-output-matrix">Section 4 — Unified downstream eligibility and output matrix</a><a href="#part-ii-routine-sample-analysis">PART II — Routine sample analysis</a><a href="#r01-create-and-install-a-routine-analysis-workspace">R01 — Create and install a routine-analysis workspace</a><a href="#r02-register-one-sample-or-a-cohort">R02 — Register one sample or a cohort</a><a href="#r03-register-and-prepare-the-exact-reference-resources">R03 — Register and prepare the exact reference resources</a><a href="#r04-preflight-resources-validation-and-the-workflow">R04 — Preflight resources, validation and the workflow</a><a href="#r05-execute-paired-end-wgs-fastq-analysis">R05 — Execute paired-end WGS FASTQ analysis</a><a href="#r06-execute-targeted-non-umi-fastq-analysis">R06 — Execute targeted non-UMI FASTQ analysis</a><a href="#r07-execute-targeted-umi-fastq-analysis">R07 — Execute targeted UMI FASTQ analysis</a><a href="#r08-enter-an-existing-wgs-bam">R08 — Enter an existing WGS BAM</a><a href="#r09-qualify-existing-targeted-alignments">R09 — Qualify existing targeted alignments</a><a href="#r10-qualify-existing-cram-input">R10 — Qualify existing CRAM input</a><a href="#r11-select-automatic-or-explicit-downstream-analyses">R11 — Select automatic or explicit downstream analyses</a><a href="#r12-validate-every-final-output-mode-and-review-qc">R12 — Validate every final-output mode and review QC</a><a href="#r13-diagnose-resume-or-extend-safely">R13 — Diagnose, resume or extend safely</a><a href="#r14-operate-and-export-the-reporting-dashboard">R14 — Operate and export the reporting dashboard</a><a href="#r15-archive-a-study-and-maintain-the-software-boundary">R15 — Archive a study and maintain the software boundary</a><a href="#r16-discover-and-register-inputs-without-copying-originals">R16 — Discover and register inputs without copying originals</a><a href="#r17-verify-prepared-artifacts-before-execution">R17 — Verify prepared artifacts before execution</a><a href="#r18-orchestrate-the-complete-chain-and-apply-retention-safely">R18 — Orchestrate the complete chain and apply retention safely</a><a href="#part-iii-built-in-benchmarking-and-performance-evaluation">PART III — Built-in benchmarking and performance evaluation</a><a href="#b01-create-a-separate-benchmark-workspace-and-select-inputs">B01 — Create a separate benchmark workspace and select inputs</a><a href="#b02-run-the-supported-synthetic-software-smoke-test">B02 — Run the supported synthetic software smoke test</a><a href="#b03-prepare-independent-truth-and-confidence-regions">B03 — Prepare independent truth and confidence regions</a><a href="#b04-freeze-the-protocol-and-lock-the-development-held-out-partition">B04 — Freeze the protocol and lock the development/held-out partition</a><a href="#b05-execute-the-benchmark-pipeline-and-score-development-once">B05 — Execute the benchmark pipeline and score development once</a><a href="#b06-review-snp-detection-accuracy">B06 — Review SNP detection accuracy</a><a href="#b07-review-indel-accuracy-and-complex-region-limitations">B07 — Review indel accuracy and complex-region limitations</a><a href="#b08-review-low-frequency-detection-and-wsaf-calibration">B08 — Review low-frequency detection and WSAF calibration</a><a href="#b09-evaluate-technical-mixture-k-agreement">B09 — Evaluate technical mixture K agreement</a><a href="#b10-review-implemented-diversity-and-clonality-outputs-in-benchmarks">B10 — Review implemented diversity and clonality outputs in benchmarks</a><a href="#b11-audit-exact-matching-confidence-and-callable-denominators">B11 — Audit exact matching, confidence and callable denominators</a><a href="#b12-review-built-in-summary-metrics-and-uncertainty">B12 — Review built-in summary metrics and uncertainty</a><a href="#b13-measure-resources-and-generate-the-supported-profile">B13 — Measure resources and generate the supported profile</a><a href="#b14-measure-sample-count-scaling-using-ordinary-supported-runs">B14 — Measure sample-count scaling using ordinary supported runs</a><a href="#b15-verify-repeatability-and-frozen-identity">B15 — Verify repeatability and frozen identity</a><a href="#b16-perform-one-held-out-evaluation-and-archive-the-experiment">B16 — Perform one held-out evaluation and archive the experiment</a><a href="#appendix-a-runtime-output-map-and-acceptance-checklist">Appendix A — Runtime output map and acceptance checklist</a><a href="#appendix-b-current-parameters-inspect-before-use">Appendix B — Current parameters: inspect before use</a><a href="#appendix-c-concise-troubleshooting-decision-table">Appendix C — Concise troubleshooting decision table</a><a href="#appendix-d-documentation-basis-and-verification-of-this-manual">Appendix D — Documentation basis and verification of this manual</a><a href="#appendix-e-select-qualify-and-replace-the-layer-2-caller">Appendix E — Select, qualify and replace the Layer 2 caller</a><a href="#appendix-f-configure-inputs-validate-and-prepare">Appendix F — Configure inputs, validate and prepare</a><a href="#appendix-g-assay-design-library-records-and-conditional-analysis">Appendix G — Assay design, library records and conditional analysis</a><a href="#appendix-h-reproduce-the-dry-run-checks">Appendix H — Reproduce the dry-run checks</a></nav><main id="manual"><h1 id="pfvarx-0-4-2-operational-sop-manual">PfVarX 1.0.0 — Operational SOP manual</h1>
+</style></head><body><a class="skip" href="#manual">Skip to manual</a><header><h1>PfVarX operational SOPs</h1><p>50 supported procedures · Development · Routine analysis · Built-in benchmarking</p><div class="tools"><button onclick="window.print()">Print / Save as PDF</button></div></header><div class="banner">PfVarX 1.0.0 · Supported implementation only · Replace explicit input/sample/run placeholders · Software verification does not establish scientific validation.</div><div class="layout"><nav aria-label="Procedure navigation"><a href="#pfvarx-0-4-2-operational-sop-manual">PfVarX 1.0.0 — Operational SOP manual</a><a href="#section-4-unified-downstream-eligibility-and-output-matrix">Section 4 — Unified downstream eligibility and output matrix</a><a href="#part-i-development-and-implementation">PART I — Development and implementation</a><a href="#d01-initialize-an-isolated-development-checkout">D01 — Initialize an isolated development checkout</a><a href="#d02-install-the-locked-pixi-environment">D02 — Install the locked Pixi environment</a><a href="#d03-maintain-configuration-schemas-and-parameters">D03 — Maintain configuration schemas and parameters</a><a href="#d04-maintain-validators-and-select-entry-routes">D04 — Maintain validators and select entry routes</a><a href="#d05-develop-fastq-preprocessing-and-qc">D05 — Develop FASTQ preprocessing and QC</a><a href="#d06-develop-reference-and-annotation-preparation">D06 — Develop reference and annotation preparation</a><a href="#d07-maintain-alignment-and-bam-cram-processing">D07 — Maintain alignment and BAM/CRAM processing</a><a href="#d08-develop-the-custom-snp-and-indel-caller">D08 — Develop the custom SNP and indel caller</a><a href="#d09-maintain-filtering-status-classes-and-callability">D09 — Maintain filtering, status classes and callability</a><a href="#d10-develop-diversity-local-haplotypes-and-clonality">D10 — Develop diversity, local haplotypes and clonality</a><a href="#d11-maintain-resistance-marker-analysis">D11 — Maintain resistance marker analysis</a><a href="#d12-maintain-population-structure-relatedness-trees-and-spatial-analysis">D12 — Maintain population structure, relatedness, trees and spatial analysis</a><a href="#d13-integrate-and-execute-snakemake-changes">D13 — Integrate and execute Snakemake changes</a><a href="#d14-maintain-diagnostics-and-reproducibility">D14 — Maintain diagnostics and reproducibility</a><a href="#d15-maintain-the-offline-reporting-dashboard">D15 — Maintain the offline reporting dashboard</a><a href="#d16-test-package-and-prepare-a-release">D16 — Test, package and prepare a release</a><a href="#part-ii-routine-sample-analysis">PART II — Routine sample analysis</a><a href="#r01-create-and-install-a-routine-analysis-workspace">R01 — Create and install a routine-analysis workspace</a><a href="#r02-register-one-sample-or-a-cohort">R02 — Register one sample or a cohort</a><a href="#r03-register-and-prepare-the-exact-reference-resources">R03 — Register and prepare the exact reference resources</a><a href="#r04-preflight-resources-validation-and-the-workflow">R04 — Preflight resources, validation and the workflow</a><a href="#r05-execute-paired-end-wgs-fastq-analysis">R05 — Execute paired-end WGS FASTQ analysis</a><a href="#r06-execute-targeted-non-umi-fastq-analysis">R06 — Execute targeted non-UMI FASTQ analysis</a><a href="#r07-execute-targeted-umi-fastq-analysis">R07 — Execute targeted UMI FASTQ analysis</a><a href="#r08-enter-an-existing-wgs-bam">R08 — Enter an existing WGS BAM</a><a href="#r09-qualify-existing-targeted-alignments">R09 — Qualify existing targeted alignments</a><a href="#r10-qualify-existing-cram-input">R10 — Qualify existing CRAM input</a><a href="#r11-select-automatic-or-explicit-downstream-analyses">R11 — Select automatic or explicit downstream analyses</a><a href="#r12-validate-every-final-output-mode-and-review-qc">R12 — Validate every final-output mode and review QC</a><a href="#r13-diagnose-resume-or-extend-safely">R13 — Diagnose, resume or extend safely</a><a href="#r14-operate-and-export-the-reporting-dashboard">R14 — Operate and export the reporting dashboard</a><a href="#r15-archive-a-study-and-maintain-the-software-boundary">R15 — Archive a study and maintain the software boundary</a><a href="#r16-discover-and-register-inputs-without-copying-originals">R16 — Discover and register inputs without copying originals</a><a href="#r17-verify-prepared-artifacts-before-execution">R17 — Verify prepared artifacts before execution</a><a href="#r18-orchestrate-the-complete-chain-and-apply-retention-safely">R18 — Orchestrate the complete chain and apply retention safely</a><a href="#part-iii-built-in-benchmarking-and-performance-evaluation">PART III — Built-in benchmarking and performance evaluation</a><a href="#b01-create-a-separate-benchmark-workspace-and-select-inputs">B01 — Create a separate benchmark workspace and select inputs</a><a href="#b02-run-the-supported-synthetic-software-smoke-test">B02 — Run the supported synthetic software smoke test</a><a href="#b03-prepare-independent-truth-and-confidence-regions">B03 — Prepare independent truth and confidence regions</a><a href="#b04-freeze-the-protocol-and-lock-the-development-held-out-partition">B04 — Freeze the protocol and lock the development/held-out partition</a><a href="#b05-execute-the-benchmark-pipeline-and-score-development-once">B05 — Execute the benchmark pipeline and score development once</a><a href="#b06-review-snp-detection-accuracy">B06 — Review SNP detection accuracy</a><a href="#b07-review-indel-accuracy-and-complex-region-limitations">B07 — Review indel accuracy and complex-region limitations</a><a href="#b08-review-low-frequency-detection-and-wsaf-calibration">B08 — Review low-frequency detection and WSAF calibration</a><a href="#b09-evaluate-technical-mixture-k-agreement">B09 — Evaluate technical mixture K agreement</a><a href="#b10-review-implemented-diversity-and-clonality-outputs-in-benchmarks">B10 — Review implemented diversity and clonality outputs in benchmarks</a><a href="#b11-audit-exact-matching-confidence-and-callable-denominators">B11 — Audit exact matching, confidence and callable denominators</a><a href="#b12-review-built-in-summary-metrics-and-uncertainty">B12 — Review built-in summary metrics and uncertainty</a><a href="#b13-measure-resources-and-generate-the-supported-profile">B13 — Measure resources and generate the supported profile</a><a href="#b14-measure-sample-count-scaling-using-ordinary-supported-runs">B14 — Measure sample-count scaling using ordinary supported runs</a><a href="#b15-verify-repeatability-and-frozen-identity">B15 — Verify repeatability and frozen identity</a><a href="#b16-perform-one-held-out-evaluation-and-archive-the-experiment">B16 — Perform one held-out evaluation and archive the experiment</a><a href="#appendix-a-runtime-output-map-and-acceptance-checklist">Appendix A — Runtime output map and acceptance checklist</a><a href="#appendix-b-current-parameters-inspect-before-use">Appendix B — Current parameters: inspect before use</a><a href="#appendix-c-concise-troubleshooting-decision-table">Appendix C — Concise troubleshooting decision table</a><a href="#appendix-d-documentation-basis-and-verification-of-this-manual">Appendix D — Documentation basis and verification of this manual</a><a href="#appendix-e-select-qualify-and-replace-the-layer-2-caller">Appendix E — Select, qualify and replace the Layer 2 caller</a><a href="#appendix-f-configure-inputs-validate-and-prepare">Appendix F — Configure inputs, validate and prepare</a><a href="#appendix-g-assay-design-library-records-and-conditional-analysis">Appendix G — Assay design, library records and conditional analysis</a><a href="#appendix-h-reproduce-the-dry-run-checks">Appendix H — Reproduce the dry-run checks</a></nav><main id="manual"><h1 id="pfvarx-0-4-2-operational-sop-manual">PfVarX 1.0.0 — Operational SOP manual</h1>
 <p><strong>Document:</strong> PFVARX-SOP-001 · <strong>Revision:</strong> 3.2 · <strong>Prepared:</strong> 12 November 2026.
-<strong>Audience:</strong> Linux bioinformatics researchers and benchmark analysts.
+<strong>Audience:</strong> Linux bioinformatics researchers, developers and benchmark analysts.
 <strong>Authority:</strong> finalized local 1.0.0 implementation, workflow rules, parameter/policy
 registries and the included operating manuals. This is an operational companion, not
 a change to the software, calibrated settings or scientific claims. A laboratory must
 approve its study-specific validation protocol before routine surveillance decisions.</p>
-<p>Read this manual in order within the relevant part. Routine users start with Part II
-after the common setup. Part III uses a separate workspace.
+<p>Read this manual in order within the relevant part. Part I is for maintainers; routine
+users start with Part II after the common setup. Part III uses a separate workspace.
 Every SOP has the same seven sections so an operator can record a formal completion.</p>
 <h2 id="how-to-use-commands-safely-and-consistently">How to use commands safely and consistently</h2>
 <p>Run commands in Bash. Stop when a command fails; inspect its error before continuing.
@@ -98,6 +98,10 @@ Use <code>set -o pipefail</code> before pipelines so an upstream failure is not 
 <td>Resource, provenance and offline report operations</td>
 <td>Existing measured artifacts and immutable run definitions</td>
 </tr>
+<tr>
+<td>Development/test/package/release operations</td>
+<td>Existing implementation and actual tests; isolated generated work</td>
+</tr>
 </tbody>
 </table>
 <p>Only the implemented Pixi deployment and supported input routes are documented as
@@ -126,6 +130,22 @@ stderr. <code>pipeline</code> returns nonzero for incomplete/failure outcomes; Q
 scientific ineligibility must be reviewed independently of process completion.</p>
 <h2 id="procedure-index">Procedure index</h2>
 <ul>
+<li><a href="#d01-initialize-an-isolated-development-checkout"><strong>D01</strong></a> — Initialize an isolated development checkout</li>
+<li><a href="#d02-install-the-locked-pixi-environment"><strong>D02</strong></a> — Install the locked Pixi environment</li>
+<li><a href="#d03-maintain-configuration-schemas-and-parameters"><strong>D03</strong></a> — Maintain configuration schemas and parameters</li>
+<li><a href="#d04-maintain-validators-and-select-entry-routes"><strong>D04</strong></a> — Maintain validators and select entry routes</li>
+<li><a href="#d05-develop-fastq-preprocessing-and-qc"><strong>D05</strong></a> — Develop FASTQ preprocessing and QC</li>
+<li><a href="#d06-develop-reference-and-annotation-preparation"><strong>D06</strong></a> — Develop reference and annotation preparation</li>
+<li><a href="#d07-maintain-alignment-and-bam-cram-processing"><strong>D07</strong></a> — Maintain alignment and BAM/CRAM processing</li>
+<li><a href="#d08-develop-the-custom-snp-and-indel-caller"><strong>D08</strong></a> — Develop the custom SNP and indel caller</li>
+<li><a href="#d09-maintain-filtering-status-classes-and-callability"><strong>D09</strong></a> — Maintain filtering, status classes and callability</li>
+<li><a href="#d10-develop-diversity-local-haplotypes-and-clonality"><strong>D10</strong></a> — Develop diversity, local haplotypes and clonality</li>
+<li><a href="#d11-maintain-resistance-marker-analysis"><strong>D11</strong></a> — Maintain resistance marker analysis</li>
+<li><a href="#d12-maintain-population-structure-relatedness-trees-and-spatial-analysis"><strong>D12</strong></a> — Maintain population structure, relatedness, trees and spatial analysis</li>
+<li><a href="#d13-integrate-and-execute-snakemake-changes"><strong>D13</strong></a> — Integrate and execute Snakemake changes</li>
+<li><a href="#d14-maintain-diagnostics-and-reproducibility"><strong>D14</strong></a> — Maintain diagnostics and reproducibility</li>
+<li><a href="#d15-maintain-the-offline-reporting-dashboard"><strong>D15</strong></a> — Maintain the offline reporting dashboard</li>
+<li><a href="#d16-test-package-and-prepare-a-release"><strong>D16</strong></a> — Test, package and prepare a release</li>
 <li><a href="#r01-create-and-install-a-routine-analysis-workspace"><strong>R01</strong></a> — Create and install a routine-analysis workspace</li>
 <li><a href="#r02-register-one-sample-or-a-cohort"><strong>R02</strong></a> — Register one sample or a cohort</li>
 <li><a href="#r03-register-and-prepare-the-exact-reference-resources"><strong>R03</strong></a> — Register and prepare the exact reference resources</li>
@@ -361,7 +381,497 @@ scientific ineligibility must be reviewed independently of process completion.</
 </tbody>
 </table></div>
 <p>TBS with UMI follows the targeted UMI column when its FASTQs, target BED, primer TSV and UMI layout match that route. TBS without UMI follows targeted non-UMI under the corresponding contract. The implementation has no barcode-table entry, independent sWGS or TBS preset, or validated haplotype-level clone-proportion output. Consult the actual gate and terminal manifest for each run. E and CE describe eligibility, while execution and empirical evaluation have separate status.</p>
-</section><h1 id="part-ii-routine-sample-analysis">PART II — Routine sample analysis</h1>
+</section><h1 id="part-i-development-and-implementation">PART I — Development and implementation</h1>
+<p>These procedures maintain the existing implementation. They do not instruct a researcher
+to replace the working caller with placeholders or a different variant caller. D01
+creates the entire real directory/module tree by copying source; subsequent SOPs identify
+which existing files to edit, how to test a change, and when to reject it.</p>
+<h2 id="d01-initialize-an-isolated-development-checkout">D01 — Initialize an isolated development checkout</h2>
+<h3>1. Procedure identification</h3>
+<p><strong>Module:</strong> repository and packaging. <strong>Workflow:</strong> development.</p>
+<p><strong>Purpose and scope:</strong> Create the actual source/module/workflow tree without bringing study outputs into development.</p>
+<h3>2. Prerequisites and requirements</h3>
+<p>Common setup completed; finalized source available; Git and Python 3 available. <code>$DEV</code> must not exist. Linux x86-64 is the baseline host; macOS 13+ (Intel/Apple silicon) and Linux ARM64 are newly enabled experimental targets pending native CI qualification. See the deployment guide.</p>
+<h3>3. Detailed operational procedure</h3>
+<p><strong>Step 1. Create the development directory tree</strong></p>
+<pre><code class="language-bash">test ! -e &quot;$DEV&quot;
+cp -a &quot;$PFVARX_SOURCE&quot; &quot;$DEV&quot;
+cd &quot;$DEV&quot;
+python3 scripts/package.py --check
+find src/pfvarx workflow config tests -type f | sort
+</code></pre>
+<p><strong>Step 2. Initialize local development history if this is a source extraction</strong></p>
+<pre><code class="language-bash">git init -b main
+git config user.name &quot;YOUR_REVIEWED_COMMIT_NAME&quot;
+git config user.email &quot;YOUR_VERIFIED_COMMIT_EMAIL&quot;
+git add .
+git diff --cached --stat
+git commit -m &quot;Import verified PfVarX source&quot;
+git switch -c codex/development
+</code></pre>
+<h3>4. Expected outputs</h3>
+<p><code>$DEV/{src/pfvarx,workflow/rules,workflow/scripts,config/templates,config/parameters,config/registry,config/geo,tests,docs,scripts}</code> and local Git metadata. No <code>inputs</code>, <code>runs</code> or <code>results</code> initially.</p>
+<h3>5. Verification and quality control</h3>
+<p>Before Git initialization, the source check must report PASS and zero runtime files. Inspect staged files; raw reads, reference genomes, caches and reports must be absent.</p>
+<h3>6. Error handling and troubleshooting</h3>
+<p>Existing <code>$DEV</code>: stop and choose a new directory; do not copy inside it. Missing source components: re-extract the reviewed source archive. Do not copy a full analysis checkout as a substitute.</p>
+<h3>7. Completion criteria</h3>
+<p>Record source archive SHA-256 or reviewed commit, branch and clean initial tree. Continue to D02 only when the imported tree is complete.</p>
+<h2 id="d02-install-the-locked-pixi-environment">D02 — Install the locked Pixi environment</h2>
+<h3>1. Procedure identification</h3>
+<p><strong>Module:</strong> Pixi and declared Bioconda/Conda dependencies. <strong>Workflow:</strong> development.</p>
+<p><strong>Purpose and scope:</strong> Install the release-supported dependency environment without altering the lockfile.</p>
+<h3>2. Prerequisites and requirements</h3>
+<p>D01 complete; a native installation target listed in the deployment guide; Pixi available; network or cached packages; disk sufficient for both installation and separate test data. The full default environment is required for all implemented methods.</p>
+<h3>3. Detailed operational procedure</h3>
+<p><strong>Step 1. Inspect hardware and install</strong></p>
+<pre><code class="language-bash">cd &quot;$DEV&quot;
+pixi --version
+uname -m
+nproc
+free -h
+df -h &quot;$DEV&quot; /tmp
+pixi install --locked
+pixi run pfvarx version
+pixi run pfvarx --help
+</code></pre>
+<p><strong>Step 2. Check executables and installed R libraries</strong></p>
+<pre><code class="language-bash">pixi run samtools --version
+pixi run bcftools --version
+pixi run snakemake --version
+pixi run Rscript -e 'for (p in c(&quot;moire&quot;,&quot;dcifer&quot;,&quot;mgcv&quot;,&quot;jsonlite&quot;)) { stopifnot(requireNamespace(p, quietly=TRUE)); cat(p, as.character(packageVersion(p)), &quot;\n&quot;) }'
+</code></pre>
+<h3>4. Expected outputs</h3>
+<p>Location-specific <code>.pixi/envs/default/</code> and installed tools specified by pixi.toml/pixi.lock. Save version outputs in the execution record; no environment is included in source distribution.</p>
+<h3>5. Verification and quality control</h3>
+<p>Locked installation and CLI checks must succeed. Confirm actual RAM and disk availability, not just planner estimates. Version declarations must remain consistent.</p>
+<h3>6. Error handling and troubleshooting</h3>
+<p>Outdated lock: maintainers review the dependency change and matching lock; routine users do not regenerate it to bypass an error. Disk quota: relocate a new workspace or remove only disposable test work. Never move a live installed prefix.</p>
+<h3>7. Completion criteria</h3>
+<p>Full default Pixi environment installed, essential executables/packages present, and source/lock identity recorded.</p>
+<h2 id="d03-maintain-configuration-schemas-and-parameters">D03 — Maintain configuration schemas and parameters</h2>
+<h3>1. Procedure identification</h3>
+<p><strong>Module:</strong> configuration/models.py, loader.py, config/. <strong>Workflow:</strong> development.</p>
+<p><strong>Purpose and scope:</strong> Develop validated user configuration while preserving protected scientific policy.</p>
+<h3>2. Prerequisites and requirements</h3>
+<p>D02 complete; current schema, tests/unit/test_configuration.py and template files. Change user schema only with matching validation and migration/documentation changes.</p>
+<h3>3. Detailed operational procedure</h3>
+<p><strong>Step 1. Inspect authoritative definitions</strong></p>
+<pre><code class="language-bash">cd &quot;$DEV&quot;
+sed -n '1,240p' src/pfvarx/configuration/models.py
+cat config/templates/analysis.yaml config/templates/compute.yaml
+cat config/parameters/layer2.yaml
+</code></pre>
+<p><strong>Step 2. Edit schema, templates and GUI help together</strong></p>
+<p>The CLI (YAML templates) and the configuration GUI configure the same settings, so a setting change touches both in the same commit (see “CLI and GUI parity” in <code>docs/architecture.md</code>). Setting help lives only in <code>gui/field-guide.json</code>; regenerate the configuration guide from it.</p>
+<pre><code class="language-bash">nano src/pfvarx/configuration/models.py config/templates/analysis.yaml config/templates/benchmarking.yaml
+nano src/pfvarx/configuration/gui/field-guide.json
+python scripts/configuration_guide.py
+nano tests/unit/test_configuration.py
+pixi run pytest -q tests/unit/test_configuration.py tests/unit/test_cli_gui_parity.py
+pixi run lint
+pixi run typecheck
+</code></pre>
+<p><strong>Step 3. Inspect the effective parameter provenance on a test workspace</strong></p>
+<p>Use the isolated fixture workspace from D16; inspect its <code>runs/&lt;RUN_ID&gt;/frozen_config.json</code>. Confirm each numerical parameter retains a value and source class. Do not relabel <code>UNCALIBRATED_PROVISIONAL</code> as calibrated without independent experimental evidence.</p>
+<h3>4. Expected outputs</h3>
+<p>Updated schema/template/test source, and test records outside pristine source. No study configuration or empirical result is a release default.</p>
+<h3>5. Verification and quality control</h3>
+<p>Unknown keys and invalid assay combinations must be rejected by existing/new regression tests. Retain both analysis and benchmarking template validation.</p>
+<h3>6. Error handling and troubleshooting</h3>
+<p>Validation accepting an invalid combination: add a failing regression before correcting the owning model. Template/schema disagreement: reject the change. Do not permit user configuration to disable fixed gates.</p>
+<h3>7. Completion criteria</h3>
+<p>Configuration tests, lint and type checks pass; documentation and parameter source classes reflect the actual change.</p>
+<h2 id="d04-maintain-validators-and-select-entry-routes">D04 — Maintain validators and select entry routes</h2>
+<h3>1. Procedure identification</h3>
+<p><strong>Module:</strong> inputs/registry.py, validate.py, alignment_entry.py. <strong>Workflow:</strong> development.</p>
+<p><strong>Purpose and scope:</strong> Add or correct validation using malformed/valid fixtures, without pretending VCF entry is implemented.</p>
+<h3>2. Prerequisites and requirements</h3>
+<p>D02–D03; FASTQ pair, BAM/CRAM and reference validation code; tests/unit/test_inputs.py. Test input is generated in pytest temporary directories.</p>
+<h3>3. Detailed operational procedure</h3>
+<p><strong>Step 1. Inspect existing validation and routing</strong></p>
+<pre><code class="language-bash">cd &quot;$DEV&quot;
+sed -n '1,150p' src/pfvarx/inputs/registry.py
+sed -n '250,360p' src/pfvarx/inputs/validate.py
+cat src/pfvarx/inputs/alignment_entry.py
+</code></pre>
+<p><strong>Step 2. Create a focused regression in the existing validator test module</strong></p>
+<pre><code class="language-bash">nano tests/unit/test_inputs.py
+pixi run pytest -q tests/unit/test_inputs.py
+nano src/pfvarx/inputs/validate.py
+pixi run pytest -q tests/unit/test_inputs.py tests/unit/test_read_evidence.py
+</code></pre>
+<h3>4. Expected outputs</h3>
+<p>Validated source change and a regression covering real input acceptance/rejection. FASTQ pair names/counts, reference contigs, sort/index/read-group checks remain enforced.</p>
+<h3>5. Verification and quality control</h3>
+<p>Expect malformed records, wrong REF, missing indexes and wrong SM to fail. VCF entry is explicitly rejected at configuration validation; this manual covers only implemented input routes.</p>
+<h3>6. Error handling and troubleshooting</h3>
+<p>Never add synthetic @PG labels to claim preprocessing occurred. Do not make unsupported VCF downstream routing pass by dropping its required evidence.</p>
+<h3>7. Completion criteria</h3>
+<p>All affected validator tests pass and the supported route matrix is updated if a real new entry implementation is added.</p>
+<h2 id="d05-develop-fastq-preprocessing-and-qc">D05 — Develop FASTQ preprocessing and QC</h2>
+<h3>1. Procedure identification</h3>
+<p><strong>Module:</strong> workflow/rules/l1_fastq_qc.smk, the fastp options in <code>fastp_args</code> (workflow/rules/common.smk) and layer1.yaml. <strong>Workflow:</strong> development.</p>
+<p><strong>Purpose and scope:</strong> Maintain fastp behavior without erasing AT-rich sequence or inline UMIs.</p>
+<h3>2. Prerequisites and requirements</h3>
+<p>D02; original paired reads represented by synthetic branch fixtures; existing fastp rule and layer1 parameter registry.</p>
+<h3>3. Detailed operational procedure</h3>
+<p><strong>Step 1. Inspect branch-specific options</strong></p>
+<pre><code class="language-bash">cd &quot;$DEV&quot;
+cat workflow/rules/l1_fastq_qc.smk workflow/rules/common.smk
+cat config/parameters/layer1.yaml
+</code></pre>
+<p><strong>Step 2. Edit only the owning rule/parameter and exercise assay branches</strong></p>
+<pre><code class="language-bash">nano workflow/rules/l1_fastq_qc.smk
+pixi run verify wgs targeted umi --output &quot;$LAB/verification-D05&quot;
+</code></pre>
+<p><strong>Step 3. Review generated fastp reports</strong></p>
+<p>In each new scenario workspace inspect <code>results/qc/samples/&lt;S&gt;/&lt;S&gt;.&lt;LANE&gt;.fastp.json</code> and <code>.html</code>. UMI extraction must precede any trimming that would remove inline molecular tags. Preserve the AT-rich low-complexity policy; poly-G handling follows the declared chemistry.</p>
+<h3>4. Expected outputs</h3>
+<p>Updated rule and per-lane fastp JSON/HTML in disposable verification workspaces. Trimmed FASTQ lives under run <code>results/work/trimmed/</code> and may be deleted by Snakemake <code>temp()</code> semantics.</p>
+<h3>5. Verification and quality control</h3>
+<p>Compare paired retained-read counts, length distributions and adapter/quality summaries against the predeclared fixture expectations; do not require a particular retained percentage for every assay.</p>
+<h3>6. Error handling and troubleshooting</h3>
+<p>UMI structure failure after trimming: inspect extraction order. Unexpected AT-rich depletion: review any newly enabled complexity filter. Revert unqualified changes rather than relaxing QC.</p>
+<h3>7. Completion criteria</h3>
+<p>All three branches run correctly and preprocessing differences are documented with output comparisons.</p>
+<h2 id="d06-develop-reference-and-annotation-preparation">D06 — Develop reference and annotation preparation</h2>
+<h3>1. Procedure identification</h3>
+<p><strong>Module:</strong> references/prepare.py, annotation/snpeff_db.py. <strong>Workflow:</strong> development.</p>
+<p><strong>Purpose and scope:</strong> Maintain content-aware derived indexes and reference-matched annotation.</p>
+<h3>2. Prerequisites and requirements</h3>
+<p>D02; FASTA/GFF/BED fixture resources; tests and separate verification output directory.</p>
+<h3>3. Detailed operational procedure</h3>
+<p><strong>Step 1. Inspect preparation and annotation code</strong></p>
+<pre><code class="language-bash">cd &quot;$DEV&quot;
+sed -n '1,240p' src/pfvarx/references/prepare.py
+sed -n '1,220p' src/pfvarx/annotation/snpeff_db.py
+</code></pre>
+<p><strong>Step 2. Implement a regression for a verified preparation defect</strong></p>
+<pre><code class="language-bash">nano tests/unit/test_inputs.py
+pixi run pytest -q tests/unit/test_inputs.py
+nano src/pfvarx/references/prepare.py
+pixi run verify wgs --output &quot;$LAB/verification-D06&quot;
+</code></pre>
+<p><strong>Step 3. Check the preparation contract</strong></p>
+<p>The runner checks that <code>prepare --dry-run</code> reports no actions after unchanged preparation. Verify outputs under <code>prepared/</code>; original FASTA/GFF/BED hashes must remain unchanged. Inspect annotation QC and cohort ANN fields for FO004.</p>
+<h3>4. Expected outputs</h3>
+<p>Derived parasite/combined FASTA, indexes and preparation manifest in the test workspace; SnpEff-derived annotation only after matching-reference checks.</p>
+<h3>5. Verification and quality control</h3>
+<p>Contig IDs/lengths and GFF coordinates must agree; wrong resources must fail. Changed resource checksums must invalidate stale derivatives.</p>
+<h3>6. Error handling and troubleshooting</h3>
+<p>Never repair a reference mismatch by renaming contigs or substituting another release without documented mapping/validation. Do not index in the original protected data folder.</p>
+<h3>7. Completion criteria</h3>
+<p>Idempotency, stale detection and annotation-reference checks pass; record source resource identities.</p>
+<h2 id="d07-maintain-alignment-and-bam-cram-processing">D07 — Maintain alignment and BAM/CRAM processing</h2>
+<h3>1. Procedure identification</h3>
+<p><strong>Module:</strong> l1_align.smk, l1_umi.smk, alignment_entry.py. <strong>Workflow:</strong> development.</p>
+<p><strong>Purpose and scope:</strong> Preserve read groups, WGS duplicate marking, targeted primer clipping and UMI consensus branches.</p>
+<h3>2. Prerequisites and requirements</h3>
+<p>D02/D05/D06; lane/library metadata, matching targets/primers where required; existing alignment validation contracts.</p>
+<h3>3. Detailed operational procedure</h3>
+<p><strong>Step 1. Inspect existing rules and entry contract</strong></p>
+<pre><code class="language-bash">cd &quot;$DEV&quot;
+cat workflow/rules/l1_align.smk
+cat workflow/rules/l1_umi.smk
+cat src/pfvarx/inputs/alignment_entry.py
+</code></pre>
+<p><strong>Step 2. Edit the relevant branch and verify it end to end</strong></p>
+<pre><code class="language-bash">nano workflow/rules/l1_align.smk
+pixi run verify fo001 targeted umi --output &quot;$LAB/verification-D07&quot;
+</code></pre>
+<p><strong>Step 3. Inspect an actual generated alignment</strong></p>
+<pre><code class="language-bash">cd &quot;$LAB/verification-D07/fo001&quot;
+SAMPLE=PF001
+pixi run samtools quickcheck -v &quot;results/alignments/$SAMPLE.bam&quot;
+pixi run samtools view -H &quot;results/alignments/$SAMPLE.bam&quot;
+pixi run samtools flagstat &quot;results/alignments/$SAMPLE.bam&quot;
+</code></pre>
+<h3>4. Expected outputs</h3>
+<p>Coordinate-sorted BAM/BAI with correct sample/library/read-group provenance and branch QC. Existing CRAM is converted to a processed BAM; CRAM is not the standard final output.</p>
+<h3>5. Verification and quality control</h3>
+<p>Require correct @SQ, @RG SM and real @PG processing records. WGS duplicate flags are not equivalent to removing all duplicate reads. Preserve target primer semantics.</p>
+<h3>6. Error handling and troubleshooting</h3>
+<p>Missing or mixed read-group SM: correct upstream metadata/processing in a new derived file, not by faking a label. CRAM reference failures require its exact encoding reference.</p>
+<h3>7. Completion criteria</h3>
+<p>Fixture branches and BAM integrity checks pass; qualify real CRAM/targeted-alignment entry separately before routine use.</p>
+<h2 id="d08-develop-the-custom-snp-and-indel-caller">D08 — Develop the custom SNP and indel caller</h2>
+<h3>1. Procedure identification</h3>
+<p><strong>Module:</strong> caller/call.py, stats.py, pairhmm.py. <strong>Workflow:</strong> development.</p>
+<p><strong>Purpose and scope:</strong> Maintain the custom implementation using independent mathematical and read-evidence tests.</p>
+<h3>2. Prerequisites and requirements</h3>
+<p>D02/D06/D07; numerical tests, candidate/evidence schema and frozen-configuration contract. No external caller substitution is permitted.</p>
+<h3>3. Detailed operational procedure</h3>
+<p><strong>Step 1. Run the current scientific checks before editing</strong></p>
+<pre><code class="language-bash">cd &quot;$DEV&quot;
+pixi run pytest -q tests/scientific/test_caller_math.py tests/unit/test_read_evidence.py
+pixi run python -m pfvarx.caller.call --help
+</code></pre>
+<p><strong>Step 2. Implement a regression then a minimal fix</strong></p>
+<pre><code class="language-bash">nano tests/scientific/test_caller_math.py tests/unit/test_read_evidence.py
+pixi run pytest -q tests/scientific/test_caller_math.py tests/unit/test_read_evidence.py
+nano src/pfvarx/caller/call.py src/pfvarx/caller/pairhmm.py
+pixi run pytest -q tests/scientific tests/unit/test_read_evidence.py
+pixi run verify wgs fo003 --output &quot;$LAB/verification-D08&quot;
+</code></pre>
+<p><strong>Step 3. Review numerical and output contracts</strong></p>
+<p>Use SciPy beta-binomial calculations as independent reference as in existing tests. Check pair-HMM preference on genuine REF/ALT read fixtures, strand/read orientation, overlapping-pair handling, indel homopolymers and finite/missing WSAF intervals. Production entry remains <code>pixi run pipeline</code>, not ad hoc caller invocation that bypasses gates.</p>
+<h3>4. Expected outputs</h3>
+<p>Custom caller source/tests; sample VCF, evidence TSV, callability/focal-loss BED and caller QC JSON from isolated fixtures.</p>
+<h3>5. Verification and quality control</h3>
+<p>Every altered mathematical branch must have an independent expected result. QUAL/SCR are screening-derived scores, not an automatically calibrated posterior probability. Preserve GT/AD/DP/PST/WSAF/interval/LHID semantics.</p>
+<h3>6. Error handling and troubleshooting</h3>
+<p>Numerical failure: isolate likelihood, boundary or normalization issue before changing tolerances. Do not change thresholds to hide inaccurate test results.</p>
+<h3>7. Completion criteria</h3>
+<p>Mathematical/read evidence tests and end-to-end products pass; unresolved scientific-model changes require a separate reviewed protocol.</p>
+<h2 id="d09-maintain-filtering-status-classes-and-callability">D09 — Maintain filtering, status classes and callability</h2>
+<h3>1. Procedure identification</h3>
+<p><strong>Module:</strong> quality/, caller/, l2_caller.smk. <strong>Workflow:</strong> development.</p>
+<p><strong>Purpose and scope:</strong> Preserve scientific missingness and status-specific filtering.</p>
+<h3>2. Prerequisites and requirements</h3>
+<p>D08; QC policy and protected parameter definitions; candidate and coverage fixtures.</p>
+<h3>3. Detailed operational procedure</h3>
+<p><strong>Step 1. Inspect status and policy ownership</strong></p>
+<pre><code class="language-bash">cd &quot;$DEV&quot;
+cat src/pfvarx/constants.py
+cat config/registry/qc_policy_pfvarx_qc_v1.yaml
+cat workflow/rules/l2_caller.smk
+</code></pre>
+<p><strong>Step 2. Edit only the confirmed owner and run gate regressions</strong></p>
+<pre><code class="language-bash">nano tests/unit/test_quality_eligibility.py
+pixi run pytest -q tests/unit/test_quality_eligibility.py
+pixi run verify benchmark --output &quot;$LAB/verification-D09&quot;
+</code></pre>
+<p><strong>Step 3. Review filter counts on the fixture</strong></p>
+<pre><code class="language-bash">cd &quot;$LAB/verification-D09/benchmark&quot;
+SAMPLE=PF001
+pixi run bcftools query -f '%FILTER\n' &quot;results/variants/samples/$SAMPLE.vcf.gz&quot; | sort | uniq -c
+cat &quot;results/qc/samples/$SAMPLE/qc_decision.json&quot;
+</code></pre>
+<h3>4. Expected outputs</h3>
+<p>Preserved PASS/LOW_CONFIDENCE and other declared statuses, callable intervals and centralized QC evidence. Non-PASS records remain available for review.</p>
+<h3>5. Verification and quality control</h3>
+<p>Uncallable positions must not be recoded as reference. NOT_EVALUATED and NOT_APPLICABLE are distinct from failures. Examine low-depth exclusions without forcing inclusion.</p>
+<h3>6. Error handling and troubleshooting</h3>
+<p>Inconsistent FILTER versus FORMAT/PST: trace the owning normalization/status code and regression. Do not manufacture all-PASS VCFs.</p>
+<h3>7. Completion criteria</h3>
+<p>Gate/filter tests pass and all status changes, if intentionally introduced, have a reviewed compatibility rationale.</p>
+<h2 id="d10-develop-diversity-local-haplotypes-and-clonality">D10 — Develop diversity, local haplotypes and clonality</h2>
+<h3>1. Procedure identification</h3>
+<p><strong>Module:</strong> downstream/diversity.py, coi.py, caller/mixture.py. <strong>Workflow:</strong> development.</p>
+<p><strong>Purpose and scope:</strong> Maintain distinct within-host diversity, local read-backed linkage, technical mixture K and MOIRE COI outputs.</p>
+<h3>2. Prerequisites and requirements</h3>
+<p>D08–D09; allele evidence, callable denominators, MOIRE installed; shared marker sufficiency. Full clone-resolved haplotypes are not implemented.</p>
+<h3>3. Detailed operational procedure</h3>
+<p><strong>Step 1. Inspect Python and R owners</strong></p>
+<pre><code class="language-bash">cd &quot;$DEV&quot;
+cat workflow/scripts/da001_moire.R
+sed -n '1,180p' src/pfvarx/downstream/coi.py
+pixi run pytest -q tests/scientific/test_caller_math.py
+</code></pre>
+<p><strong>Step 2. Edit an identified component and exercise the benchmark cohort</strong></p>
+<pre><code class="language-bash">nano src/pfvarx/downstream/coi.py src/pfvarx/downstream/diversity.py
+pixi run verify benchmark --output &quot;$LAB/verification-D10&quot;
+</code></pre>
+<p><strong>Step 3. Inspect actual COI/diversity evidence</strong></p>
+<pre><code class="language-bash">cd &quot;$LAB/verification-D10/benchmark&quot;
+head results/downstream/DA001/clonality.tsv
+cat results/downstream/DA001/status_manifest.json
+head results/downstream/DA003/within_host_fws.tsv
+head results/downstream/DA003/population_diversity.tsv
+</code></pre>
+<h3>4. Expected outputs</h3>
+<p>Clonality TSV, MOIRE summaries, FWS and population diversity. VCF LHID/LHWIN identifies local read-backed linkage scope, not reconstructed complete clones.</p>
+<h3>5. Verification and quality control</h3>
+<p>Review informative loci, posterior bounds/probabilities, convergence evidence actually supplied and sample exclusions. No diagnostic absent from MOIRE output is assumed successful.</p>
+<h3>6. Error handling and troubleshooting</h3>
+<p>Few loci/unstable estimates: retain INDETERMINATE or skip and report uncertainty. Technical K agreement alone does not validate COI.</p>
+<h3>7. Completion criteria</h3>
+<p>Distinct estimands and uncertainty are preserved; proceed only when the implementation and docs do not overstate identifiability.</p>
+<h2 id="d11-maintain-resistance-marker-analysis">D11 — Maintain resistance marker analysis</h2>
+<h3>1. Procedure identification</h3>
+<p><strong>Module:</strong> downstream/resistance.py and catalogue registry. <strong>Workflow:</strong> development.</p>
+<p><strong>Purpose and scope:</strong> Maintain codon-based marker calls with callable denominators and independently verified catalogue provenance.</p>
+<h3>2. Prerequisites and requirements</h3>
+<p>D06/D09; reference-matched FASTA/GFF, verified marker catalogue or explicitly TEST_FIXTURE for software tests only.</p>
+<h3>3. Detailed operational procedure</h3>
+<p><strong>Step 1. Inspect the guard and genotype logic</strong></p>
+<pre><code class="language-bash">cd &quot;$DEV&quot;
+head -12 config/registry/resistance_catalog_pfvarx_v1.tsv
+sed -n '1,220p' src/pfvarx/downstream/resistance.py
+pixi run pytest -q tests/unit/test_benchmark_and_resistance.py
+</code></pre>
+<p><strong>Step 2. Run the existing labelled marker fixture test</strong></p>
+<pre><code class="language-bash">pixi run verify benchmark --output &quot;$LAB/verification-D11&quot;
+cd &quot;$LAB/verification-D11/benchmark&quot;
+head results/downstream/DA002/marker_calls.tsv
+head results/downstream/DA002/prevalence.tsv
+cat results/downstream/DA002/catalog_provenance.json
+</code></pre>
+<p><strong>Step 3. Review any real catalogue update</strong></p>
+<p>Verify each gene/codon/reference residue/alternative and evidence source against the chosen assembly and an authoritative marker publication. Store independent review evidence and catalogue checksum. Only after that review may a maintainer supply a genuinely verified catalogue; changing a status string alone is not verification.</p>
+<h3>4. Expected outputs</h3>
+<p>Marker calls, prevalence, Wilson uncertainty and catalogue provenance when eligible. Draft catalogue execution is blocked as designed.</p>
+<h3>5. Verification and quality control</h3>
+<p>UNKNOWN never contributes a wild-type observation; verify numerator and callable denominator. Marker presence is a molecular finding, not a guaranteed patient treatment outcome.</p>
+<h3>6. Error handling and troubleshooting</h3>
+<p>Draft/mismatched catalogue: stop DA002, obtain proper independent verification. Never relabel the draft or a TEST_FIXTURE catalogue for real surveillance.</p>
+<h3>7. Completion criteria</h3>
+<p>Guard, reference/codon checks and denominator tests pass; real catalogue promotion includes evidence and review sign-off.</p>
+<h2 id="d12-maintain-population-structure-relatedness-trees-and-spatial-analysis">D12 — Maintain population structure, relatedness, trees and spatial analysis</h2>
+<h3>1. Procedure identification</h3>
+<p><strong>Module:</strong> downstream/{relatedness,structure,phylogeny,spatial}.py. <strong>Workflow:</strong> development.</p>
+<p><strong>Purpose and scope:</strong> Integrate actual haploid PCA/FST, eligibility-specific relatedness, monoclonal phylogeny and supported spatial outcomes.</p>
+<h3>2. Prerequisites and requirements</h3>
+<p>D10–D11; population metadata for DA005, monoclonal evidence for DA006, actual country/date/coordinates and source outcome for DA007.</p>
+<h3>3. Detailed operational procedure</h3>
+<p><strong>Step 1. Inspect method ownership and prerequisites</strong></p>
+<pre><code class="language-bash">cd &quot;$DEV&quot;
+cat config/registry/downstream_analyses.yaml
+cat config/parameters/layer5.yaml
+cat workflow/scripts/da004_dcifer.R workflow/scripts/da007_gam.R
+</code></pre>
+<p><strong>Step 2. Exercise all implemented methods on the informative fixture</strong></p>
+<pre><code class="language-bash">pixi run verify benchmark --output &quot;$LAB/verification-D12&quot;
+cd &quot;$LAB/verification-D12/benchmark&quot;
+find results/downstream -name status_manifest.json -print
+cat results/downstream/DA006/runtime_gates.json
+head results/downstream/DA005/pca.tsv
+head results/downstream/DA005/fst.tsv
+</code></pre>
+<h3>4. Expected outputs</h3>
+<p>Pairwise relatedness TSV, PCA/FST summaries, tree only when gates permit, and country-month/grid summaries; conditional GAM output where supported.</p>
+<h3>5. Verification and quality control</h3>
+<p>Check method-specific eligibility, haploid representation and sample counts. DA006 requires sufficient monoclonal samples/informative sites; pairwise methods cannot be mixed into one common estimand. Review spatial sampling bias.</p>
+<h3>6. Error handling and troubleshooting</h3>
+<p>Unsupported targeted PCA/tree request: reject it. Missing metadata: correct verified metadata before a NEW run. No informative tree: report skip, never a placeholder tree.</p>
+<h3>7. Completion criteria</h3>
+<p>All requested methods have truthful terminal manifests and reproducible outputs or justified skip/block states.</p>
+<h2 id="d13-integrate-and-execute-snakemake-changes">D13 — Integrate and execute Snakemake changes</h2>
+<h3>1. Procedure identification</h3>
+<p><strong>Module:</strong> workflow/Snakefile, workflow/rules/ (rules; helper functions in common.smk), execution/runner.py. <strong>Workflow:</strong> development.</p>
+<p><strong>Purpose and scope:</strong> Modify scheduling without bypassing Layer 0 plans, QC checkpoints or failure isolation.</p>
+<h3>2. Prerequisites and requirements</h3>
+<p>D02/D03 and affected component SOPs; Linux local executor; review per-job/global memory, disk and thread envelopes.</p>
+<h3>3. Detailed operational procedure</h3>
+<p><strong>Step 1. Inspect DAG and rule naming</strong></p>
+<pre><code class="language-bash">cd &quot;$DEV&quot;
+cat workflow/Snakefile
+pixi run pytest -q tests/integration
+</code></pre>
+<p><strong>Step 2. Edit the owning rule and verify the real checkpoint path</strong></p>
+<pre><code class="language-bash">nano workflow/rules/l2_caller.smk
+pixi run verify fo001 fo003 --output &quot;$LAB/verification-D13&quot;
+</code></pre>
+<p><strong>Step 3. Verify dry-run isolation and resource declarations</strong></p>
+<p>In a new fixture workspace run <code>pixi run ready</code> and <code>pixi run dry-run</code>. It must not create <code>runs/</code> or <code>results</code>. Runtime checkpoints can change later scheduling; a dry run is not evidence that all later scientific methods execute.</p>
+<h3>4. Expected outputs</h3>
+<p>Updated existing rule or runner with declared inputs/outputs/logs/benchmarks and a tested dependency chain. Runtime completion marker is owned by the real workflow.</p>
+<h3>5. Verification and quality control</h3>
+<p>Inputs and outputs must use existing run-relative contracts. Global/per-job budgets must fit. Keep local execution; SLURM is unsupported in this release.</p>
+<h3>6. Error handling and troubleshooting</h3>
+<p>Missing input/cyclic graph: fix dependencies, not by touching fake outputs. Scientific exclusion is not a transient tool error and must not trigger indiscriminate retries.</p>
+<h3>7. Completion criteria</h3>
+<p>Integration dry runs and affected end-to-end cases pass, with checkpoint exclusion/failure behavior preserved.</p>
+<h2 id="d14-maintain-diagnostics-and-reproducibility">D14 — Maintain diagnostics and reproducibility</h2>
+<h3>1. Procedure identification</h3>
+<p><strong>Module:</strong> diagnostics/, provenance/, runs/, io.py. <strong>Workflow:</strong> development.</p>
+<p><strong>Purpose and scope:</strong> Preserve frozen runs, content hashes and useful redacted diagnostics.</p>
+<h3>2. Prerequisites and requirements</h3>
+<p>D13; run integrity contracts, error-handling tests and no secret-bearing environment capture.</p>
+<h3>3. Detailed operational procedure</h3>
+<p><strong>Step 1. Inspect persistence and diagnostic owners</strong></p>
+<pre><code class="language-bash">cd &quot;$DEV&quot;
+cat src/pfvarx/provenance/snapshot.py
+cat src/pfvarx/diagnostics/events.py
+pixi run pytest -q tests/unit/test_reporting.py
+</code></pre>
+<p><strong>Step 2. Exercise frozen integrity on an isolated completed run</strong></p>
+<pre><code class="language-bash">cd &quot;$LAB/verification-D13/fo003&quot;
+pixi run status
+# Set RUN_ID to the exact completed identifier printed above.
+export RUN_ID=YOUR_COMPLETED_RUN_ID
+pixi run run-verify --run-id &quot;$RUN_ID&quot;
+cat &quot;runs/$RUN_ID/status.json&quot;
+</code></pre>
+<h3>4. Expected outputs</h3>
+<p><code>snapshot.json</code>, frozen configuration/plan/code, status and events/tool logs; separate renderer provenance for refreshed reports.</p>
+<h3>5. Verification and quality control</h3>
+<p>Frozen-file integrity must PASS. Workspace drift is a separate signal. External reads/truth/masks are not all frozen or reuse-key-covered; maintain independent checksums.</p>
+<h3>6. Error handling and troubleshooting</h3>
+<p>Frozen mismatch: stop reuse, recover correct source or start NEW with documented inputs. Do not edit the snapshot to erase drift. Do not log <code>env</code> output or credentials.</p>
+<h3>7. Completion criteria</h3>
+<p>Failure causes are distinguished from QC/eligibility; reproducibility records are sufficient to identify the exact experiment.</p>
+<h2 id="d15-maintain-the-offline-reporting-dashboard">D15 — Maintain the offline reporting dashboard</h2>
+<h3>1. Procedure identification</h3>
+<p><strong>Module:</strong> reporting/ assets and build.py. <strong>Workflow:</strong> development.</p>
+<p><strong>Purpose and scope:</strong> Modify the real modular offline dashboard without changing scientific estimators or paths.</p>
+<h3>2. Prerequisites and requirements</h3>
+<p>D02/D14; existing report schema/template/CSS/core/tables/charts/views/exports and browser QA runner. Browser dependencies require a separate environment.</p>
+<h3>3. Detailed operational procedure</h3>
+<p><strong>Step 1. Inspect and edit the existing frontend</strong></p>
+<pre><code class="language-bash">cd &quot;$DEV&quot;
+ls src/pfvarx/reporting
+nano src/pfvarx/reporting/views.js src/pfvarx/reporting/dashboard.css
+pixi run pytest -q tests/unit/test_reporting.py
+</code></pre>
+<p><strong>Step 2. Prepare browser QA and generate a synthetic report externally</strong></p>
+<pre><code class="language-bash">pixi run python -m venv &quot;$LAB/browser-env&quot;
+&quot;$LAB/browser-env/bin/pip&quot; install -r tests/dashboard/requirements.txt
+&quot;$LAB/browser-env/bin/python&quot; -m playwright install chromium
+pixi run verify benchmark --output &quot;$LAB/verification-D15&quot;
+&quot;$LAB/browser-env/bin/python&quot; tests/dashboard/check_dashboard.py &quot;$LAB/verification-D15/benchmark/results/report&quot; &quot;$LAB/browser-check-D15&quot;
+</code></pre>
+<p><strong>Step 3. Inspect screen and exported artifacts</strong></p>
+<p>Open the generated HTML locally; test all eight sections and every available visualization, exact hover values, missing states, filters, pagination and export feedback. Inspect actual CSV/XLSX contents, PNG labels/white background and printed selected views. No external network request is permitted.</p>
+<h3>4. Expected outputs</h3>
+<p>One self-contained HTML, dashboard JSON and centralized QC JSON at the existing paths in the test run; browser checks and temporary export artifacts outside source.</p>
+<h3>5. Verification and quality control</h3>
+<p>Synthetic banner remains explicit. Missing/null never becomes zero. Geographic positions/uncertainty/distances require real source data. CSV/XLSX must honor searches and active filters.</p>
+<h3>6. Error handling and troubleshooting</h3>
+<p>JavaScript/schema/export failure: inspect browser console and source field mapping. Do not substitute demonstration data for absent scientific results.</p>
+<h3>7. Completion criteria</h3>
+<p>Backend and browser QA pass; documentation reflects current table/PDF scope; reporting paths and scientific code remain unchanged.</p>
+<h2 id="d16-test-package-and-prepare-a-release">D16 — Test, package and prepare a release</h2>
+<h3>1. Procedure identification</h3>
+<p><strong>Module:</strong> tests/, scripts/verify.py, package.py and CI. <strong>Workflow:</strong> development.</p>
+<p><strong>Purpose and scope:</strong> Produce a reviewed software-only release from tested source.</p>
+<h3>2. Prerequisites and requirements</h3>
+<p>D01–D15 as applicable; temporary external space; private-data exclusion rules; reviewed Git identity and authorized remote for any publication.</p>
+<h3>3. Detailed operational procedure</h3>
+<p><strong>Step 1. Run source and workflow checks</strong></p>
+<pre><code class="language-bash">cd &quot;$DEV&quot;
+pixi run lint
+pixi run typecheck
+pixi run pytest -q tests/unit tests/scientific tests/integration
+pixi run verify --output &quot;$LAB/verification-D16&quot;
+</code></pre>
+<p><strong>Step 2. Build and inspect the software-only archive</strong></p>
+<pre><code class="language-bash">pixi run package --output &quot;$LAB/release&quot;
+cd &quot;$LAB/release&quot;
+sha256sum -c pfvarx-*-source.zip.sha256
+python3 -m zipfile -e pfvarx-*-source.zip extracted
+python3 extracted/pfvarx/scripts/package.py --check
+</code></pre>
+<p><strong>Step 3. Prepare publication after review</strong></p>
+<pre><code class="language-bash">cd &quot;$DEV&quot;
+git status --short
+git diff
+git diff --check
+# Review and commit only the approved source change.
+git add src workflow config tests docs scripts .github bootstrap.py pfvarx README.md CHANGELOG.md pixi.toml pixi.lock pyproject.toml .gitignore LICENSE
+git diff --cached --stat
+</code></pre>
+<p>Publication/commit/tag actions require the repository owner’s release decision. The release version is set only in <code>src/pfvarx/__init__.py</code>; <code>tests/unit/test_version.py</code> checks every current-release reference against it; regenerate/review the lock only when appropriate. Do not retag a published release to conceal changes. Run hosted CI before a new tag.</p>
+<h3>4. Expected outputs</h3>
+<p>Source ZIP and SHA-256 sidecar containing no generated datasets/reports/environments, with maintained manuals and tests. Full test outputs remain outside source.</p>
+<h3>5. Verification and quality control</h3>
+<p>All executed checks must have actual exit-status evidence. Optional browser pytest skipping is not a browser pass; run D15 separately. Clean extraction must report zero runtime files.</p>
+<h3>6. Error handling and troubleshooting</h3>
+<p>Test failure: identify product/test/environment cause and preserve the failure record. Do not delete a failing test or disable a method to obtain green CI.</p>
+<h3>7. Completion criteria</h3>
+<p>Reviewed source and archive match, tests are recorded, limitations are disclosed and publication is separately authorized. Remove disposable generated test work after evidence capture.</p>
+<h1 id="part-ii-routine-sample-analysis">PART II — Routine sample analysis</h1>
 <p>Follow R01–R04, then select <strong>one assay/entry branch</strong> (R05–R10). Branches are alternatives,
 not a sequence that reprocesses one study under conflicting assay labels. Use a new
 workspace for each assay. Configure downstream selections in R11 <strong>before</strong> the NEW run
@@ -980,7 +1490,7 @@ sha256sum -c &quot;$RECORDS/analysis/run-$RUN_ID.tar.gz.sha256&quot;
 <h3>5. Verification and quality control</h3>
 <p>Test the archive inventory with <code>tar -tzf</code>; verify backup restoration according to the site policy. Confirm raw inputs still exist at approved locations or are independently archived.</p>
 <h3>6. Error handling and troubleshooting</h3>
-<p>Checksum/backup failure: stop disposal and repair backup. Never clean the only copy of a real sample or frozen run. Never distribute the software as a tar of a live study workspace.</p>
+<p>Checksum/backup failure: stop disposal and repair backup. Never clean the only copy of a real sample or frozen run. Software packaging must use scripts/package.py, not tar of a live study workspace.</p>
 <h3>7. Completion criteria</h3>
 <p>Archive/restore and access controls accepted; only independently backed-up disposable intermediates may be removed under site policy.</p>
 <h2 id="r16-discover-and-register-inputs-without-copying-originals">R16 — Discover and register inputs without copying originals</h2>
@@ -1849,7 +2359,7 @@ integration test suite on the development branch before it was released.
 This document itself does not claim a real study or new benchmark was executed.</p>
 <p>Authoritative companion sources in the release are <code>docs/analysis/README.md</code>,
 <code>docs/benchmarking/README.md</code>, <code>docs/reporting/README.md</code>, <code>docs/deployment.md</code>,
-and <code>docs/status.md</code>. For tool command semantics consult the primary
+<code>docs/testing.md</code> and <code>docs/status.md</code>. For tool command semantics consult the primary
 <a href="https://pixi.prefix.dev/latest/workspace/lock_file/">Pixi lock documentation</a> and
 <a href="https://samtools.github.io/bcftools/bcftools">BCFtools manual</a>. The software's included
 lock controls installed versions; a current web manual is not permission to silently

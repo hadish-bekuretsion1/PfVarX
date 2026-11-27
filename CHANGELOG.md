@@ -74,7 +74,10 @@ definitions, numerical-safety guards, seed derivation and operational limits.
 
 - `docs/PfVarX_Sample_Analysis_Guide.html` and `docs/PfVarX_Benchmarking_Guide.html`: every step with
   its purpose, tools and versions, command, dry run and expected output, taken from real runs of
-  1.0.0 on the synthetic test data. Linked from the README and the analysis and benchmarking guides.
+  1.0.0 on the synthetic test data. Linked from the README and the analysis and benchmarking guides,
+  and included in the source archive.
+- `development/PfVarX_Development_Guide_1.0.0.html` (not released): the same for development, testing,
+  packaging and releasing.
 
 ## 1.0.0 (2026-11-26)
 
@@ -87,19 +90,8 @@ definitions, numerical-safety guards, seed derivation and operational limits.
 - Display only: table data, filters and CSV/XLSX/PDF exports are unchanged. An existing
   dashboard picks up the fix when it is rebuilt with `pfvarx report --run-id RUN_ID`; the
   pipeline does not need to run again.
-
-### The published repository holds the analysis software only
-
-- Development material is no longer on `main`: the test suite (`tests/`), the GitHub CI
-  workflow, `development/`, `docs/testing.md`, the maintainer notes and the maintainer-only
-  scripts (`package.py`, `sync_sop.py`, `configuration_guide.py`, `check_gui_buttons.py`).
-  It continues on the `develop` branch.
-- The SOP manual (`.md` and `.html`) drops Part I, the development procedures D01–D16. It now
-  covers routine analysis (Part II), benchmarking (Part III) and the appendices.
-- `pixi.toml` drops the `test`, `test-unit` and `package` tasks. `scripts/verify.py`,
-  `scripts/check_installs.py` and `scripts/build_container.py` remain for users.
-- Documentation no longer points to tests, CI or the removed scripts. Analysis code and
-  results are unchanged.
+- The SOP manual's HTML sidebar link to Appendix E now opens it. It still pointed to the
+  appendix's former title.
 
 ### Microhaplotype loci from your own inputs, and pfhrp2/3 evidence that needs no cut-off
 
