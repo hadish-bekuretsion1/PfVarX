@@ -76,7 +76,7 @@ versions and hashes. The one source manifest declares valid combinations; only t
 selected environment is installed. The `control` environment (on-demand workspaces before
 `install-tools`) has the Python control plane, pysam and HTSlib only. Every tools environment
 adds the `pipeline` feature: Snakemake, SAMtools, Picard (`picard-slim`, without R) and mosdepth.
-FO002 and later add the `calling` feature (NumPy/SciPy for the caller, BCFtools); FO001 has neither.
+FO002 and later add the `calling` feature (NumPy/SciPy/Numba for the caller, BCFtools); FO001 has none of them.
 Targeted designs add fgbio (`fgbio-minimal`, without R). R is installed only for the analyses
 that run R scripts (DA001, DA004, DA005, DA006 through MOIRE, and DA007). FASTQ adds
 BWA-MEM2/fastp; targeted FASTQ adds fgbio. FO004 adds SnpEff, then exactly selected

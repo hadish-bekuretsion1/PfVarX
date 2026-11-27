@@ -41,7 +41,7 @@ th,td{border:1px solid var(--line);padding:7px 10px;text-align:left;vertical-ali
 <body>
 <header>
 <div class="toolbar"><button type="button" onclick="toggleTheme()">Light / dark</button></div>
-<h1>PfVarX 1.0.0 — Benchmarking</h1>
+<h1>PfVarX 0.0.0 — Benchmarking</h1>
 <p>Every step to measure how well the PfVarX caller and workflow agree with independently known truth: separate workspace, truth files, locked partition, run, scoring, metrics, cross-checks, resources and archiving.</p>
 </header>
 <div class="layout">
@@ -82,7 +82,7 @@ th,td{border:1px solid var(--line);padding:7px 10px;text-align:left;vertical-ali
 </nav>
 <main>
 
-<div class="note"><b>About the example outputs.</b> The "Expected output" blocks come from a real run of PfVarX 1.0.0 on 26 November 2026: a synthetic WGS benchmark of 14 samples (10 monoclonal, 3 mixtures, 1 deliberately low-depth), project <code>VERIFY_BENCHMARK</code>, run <code>20261126T160637Z-VERIFY_BENCHMARK-0bf55604</code>. Synthetic scores test the software; they are <b>not</b> field or clinical accuracy. Your numbers will differ.</div>
+<div class="note"><b>About the example outputs.</b> The "Expected output" blocks come from a real run of PfVarX 0.0.0 on 27 November 2026: a synthetic WGS benchmark of 14 samples (10 monoclonal, 3 mixtures, 1 deliberately low-depth), project <code>VERIFY_BENCHMARK</code>, run <code>20261127T085902Z-VERIFY_BENCHMARK-2630d154</code>. Synthetic scores test the software; they are <b>not</b> field or clinical accuracy. Your numbers will differ.</div>
 
 <h2 id="idea">0. What benchmarking is (and is not)</h2>
 <table>
@@ -114,7 +114,7 @@ th,td{border:1px solid var(--line);padding:7px 10px;text-align:left;vertical-ali
 <h2 id="req">2. Requirements and tools</h2>
 <p>Everything in the sample analysis guide (Linux x86-64, Git, Python 3.11+, Pixi, internet for installation, ≈8 GB RAM, 4 cores), plus:</p>
 <table>
-<tr><th>Tool (1.0.0 lock)</th><th>Used for</th><th>Installed by</th></tr>
+<tr><th>Tool (0.0.0 lock)</th><th>Used for</th><th>Installed by</th></tr>
 <tr><td>bcftools 1.24</td><td><code>bcftools norm</code>: left-align and decompose calls and truth before matching</td><td>FO002+ (every benchmark)</td></tr>
 <tr><td>PfVarX evaluator (Python 3.12, NumPy, SciPy)</td><td>Matching, sensitivity/precision, wild cluster bootstrap, WSAF calibration, K agreement</td><td>always</td></tr>
 <tr><td>RTG Tools 3.13 (optional)</td><td>Manual haplotype-aware cross-check with <code>rtg vcfeval</code></td><td><code>--rtg</code> at bootstrap, or the development profile</td></tr>
@@ -147,7 +147,7 @@ python3 PfVarX-source/bootstrap.py --profile benchmark --design targeted_umi --w
 python3 PfVarX-source/bootstrap.py --profile benchmark --analyses DA002 DA001 --workspace ~/pfvarx/bench-fo004
 python3 PfVarX-source/bootstrap.py --profile benchmark --input-type BAM --workspace ~/pfvarx/bench-bam
 cd ~/pfvarx/bench-2026-01 && ./pfvarx version</code></pre>
-<pre class="out"><code>1.0.0</code></pre>
+<pre class="out"><code>0.0.0</code></pre>
 <p>Use <code>./pfvarx</code> and <code>./pfvarx tool TOOL …</code> from this workspace so the recorded locked environment is used. Capabilities cannot be expanded by editing installation metadata: bootstrap a new workspace instead.</p>
 </div>
 
@@ -231,7 +231,7 @@ prepare --dry-run
 ready
 dry-run
 pipeline
-run-verify --run-id 20261126T160637Z-VERIFY_BENCHMARK-0bf55604
+run-verify --run-id 20261127T085902Z-VERIFY_BENCHMARK-2630d154
 benchmark-evaluate --out benchmarks/development
 benchmark-evaluate --holdout --out benchmarks/heldout
 benchmark-evaluate --holdout --out benchmarks/heldout      # must be refused</code></pre>
@@ -304,11 +304,11 @@ sha256sum inputs/truth/* inputs/reference/* > ~/pfvarx-lab/records/BENCH_2026_01
 <pre><code>./pfvarx benchmark-partition --holdout-fraction 0.25 --seed 20261106</code></pre>
 <pre class="out"><code>{
   "schema": "pfvarx.partition/1",
-  "locked_utc": "2026-11-26T16:06:10.430783+00:00",
+  "locked_utc": "2026-11-27T08:58:45.615310+00:00",
   "seed": 20261106,
   "benchmarking": ["PF004","PF005","PF006","PF007","PF008","PF009","PF010","PF012","PF013","PF014"],
   "held_out": ["PF001","PF002","PF003","PF011"],
-  "sha256": "d761666214b211e4b037583607e0851836963eed8a1fb4527958f3d32678e070"
+  "sha256": "9513e13202ab3db96379d7f927e1f452707dcd77aab228cd6a281c1358298bab"
 }</code></pre>
 <p>The fraction must be strictly between 0 and 1. The split is random by sample ID, not stratified or lineage-aware: prevent leakage by design (technical replicates or related isolates are not independent). Keep held-out results inaccessible during development; the software does not enforce access control.</p>
 </div>
@@ -328,16 +328,16 @@ sha256sum inputs/truth/* inputs/reference/* > ~/pfvarx-lab/records/BENCH_2026_01
 <h2 id="run">14. Run the calls (truth is not used)</h2>
 <div class="step">
 <pre><code>./pfvarx pipeline
-./pfvarx run-verify --run-id 20261126T160637Z-VERIFY_BENCHMARK-0bf55604</code></pre>
+./pfvarx run-verify --run-id 20261127T085902Z-VERIFY_BENCHMARK-2630d154</code></pre>
 <pre class="out"><code>{
-  "run_id": "20261126T160637Z-VERIFY_BENCHMARK-0bf55604",
+  "run_id": "20261127T085902Z-VERIFY_BENCHMARK-2630d154",
   "status": "COMPLETED",
   "passes": [{"pass": 1, "exit_code": 0, "failed_samples": {}, "log": "…/logs/snakemake.pass1.log"}],
   "downstream_failures": [],
-  "report": {"dashboard": "runs/20261126T160637Z-VERIFY_BENCHMARK-0bf55604/results/report/pfvarx_dashboard.html", "bytes": 1462367, …}
+  "report": {"dashboard": "runs/20261127T085902Z-VERIFY_BENCHMARK-2630d154/results/report/pfvarx_dashboard.html", "bytes": 1483894, …}
 }
 {
-  "run_id": "20261126T160637Z-VERIFY_BENCHMARK-0bf55604",
+  "run_id": "20261127T085902Z-VERIFY_BENCHMARK-2630d154",
   "frozen_integrity": "PASS",
   "tampered": [],
   "workspace_drift": [],
@@ -356,12 +356,12 @@ sha256sum inputs/truth/* inputs/reference/* > ~/pfvarx-lab/records/BENCH_2026_01
 <h2 id="dev">16. Score the development set</h2>
 <div class="step">
 <div class="meta"><b>Tools</b><span>bcftools norm (left-align, decompose), PfVarX evaluator</span><b>Writes</b><span><code>benchmarks/development/</code></span></div>
-<pre><code>./pfvarx benchmark-evaluate --run-id 20261126T160637Z-VERIFY_BENCHMARK-0bf55604 --out benchmarks/development</code></pre>
+<pre><code>./pfvarx benchmark-evaluate --run-id 20261127T085902Z-VERIFY_BENCHMARK-2630d154 --out benchmarks/development</code></pre>
 <pre class="out"><code>{
   "schema": "pfvarx.benchmark_report/1",
-  "run_id": "20261126T160637Z-VERIFY_BENCHMARK-0bf55604",
+  "run_id": "20261127T085902Z-VERIFY_BENCHMARK-2630d154",
   "partition": "benchmarking",
-  "partition_sha256": "d761666214b211e4b037583607e0851836963eed8a1fb4527958f3d32678e070",
+  "partition_sha256": "9513e13202ab3db96379d7f927e1f452707dcd77aab228cd6a281c1358298bab",
   "accuracy": {
     "SNV": {
       "sensitivity": {"estimate": 1.0, "lo": 1.0, "hi": 1.0, "clusters": 7, "weights": "Webb six-point", "vectors": "9999 random draws"},
@@ -403,11 +403,11 @@ PF005      SNV           SCORED  81  1   0   1.0          0.9878048780487805  20
 
 <h2 id="holdout">18. Score the held-out set — once</h2>
 <div class="step">
-<pre><code>./pfvarx benchmark-evaluate --run-id 20261126T160637Z-VERIFY_BENCHMARK-0bf55604 --holdout --out benchmarks/heldout</code></pre>
+<pre><code>./pfvarx benchmark-evaluate --run-id 20261127T085902Z-VERIFY_BENCHMARK-2630d154 --holdout --out benchmarks/heldout</code></pre>
 <pre class="out"><code>{
   "schema": "pfvarx.benchmark_report/1",
   "partition": "held_out",
-  "partition_sha256": "d761666214b211e4b037583607e0851836963eed8a1fb4527958f3d32678e070",
+  "partition_sha256": "9513e13202ab3db96379d7f927e1f452707dcd77aab228cd6a281c1358298bab",
   "accuracy": {
     "SNV":   {"sensitivity": {"estimate": 1.0, "lo": 1.0, "hi": 1.0, "clusters": 3, "weights": "Webb six-point", "vectors": "enumerated"},
               "precision":   {"estimate": 1.0, "lo": 1.0, "hi": 1.0, "clusters": 3, …}, "f1": 1.0, "samples": 3},
@@ -428,7 +428,7 @@ PF005      SNV           SCORED  81  1   0   1.0          0.9878048780487805  20
   "error": "held-out evaluation already performed once; record a new experiment instead"
 }</code></pre>
 <p><code>benchmarks/heldout/holdout_attempts.jsonl</code> records the attempt:</p>
-<pre class="out"><code>{"run_id": "20261126T160637Z-VERIFY_BENCHMARK-0bf55604", "partition_sha256": "d761666214b211e4b037583607e0851836963eed8a1fb4527958f3d32678e070"}</code></pre>
+<pre class="out"><code>{"run_id": "20261127T085902Z-VERIFY_BENCHMARK-2630d154", "partition_sha256": "9513e13202ab3db96379d7f927e1f452707dcd77aab228cd6a281c1358298bab"}</code></pre>
 <div class="warn">The guard is per output folder, not a global lock. Changing <code>--out</code> is not permission to look again. If the protocol truly changes, start and record a new experiment, and never reuse exposed held-out samples as unseen.</div>
 </div>
 
@@ -454,22 +454,22 @@ PF012	ctg1	2132	0.5	0.639	0.47650000000000003	0.782	PASS	True</code></pre>
 
 <h2 id="metrics">20. Metrics and how they are computed</h2>
 <table>
-<tr><th>Item</th><th>Definition in PfVarX 1.0.0</th></tr>
+<tr><th>Item</th><th>Definition in PfVarX 0.0.0</th></tr>
 <tr><td>Matching</td><td>Exact <code>(chrom, pos, ref, alt)</code> after <code>bcftools norm</code> left-alignment and multiallelic decomposition</td></tr>
 <tr><td>Calls scored</td><td>Only PASS calls, with variant anchor inside the confidence BED</td></tr>
 <tr><td>Sensitivity</td><td>TP / (TP + FN)</td></tr>
 <tr><td>Precision</td><td>TP / (TP + FP)</td></tr>
 <tr><td>F1</td><td>Harmonic mean of sensitivity and precision</td></tr>
 <tr><td>FP per callable Mb</td><td>FP divided by the caller's callable span (not intersected with the confidence BED)</td></tr>
-<tr><td>Intervals</td><td>Wild cluster bootstrap of the linearised ratio estimator over pure samples: Rademacher weights with ≥10 clusters, Webb six-point below; enumerated when small enough</td></tr>
+<tr><td>Intervals</td><td>Wild cluster bootstrap of the linearised ratio estimator over pure samples, at <code>layer6.benchmark_interval_level</code> (0.95): Rademacher weights from <code>benchmark_rademacher_min_clusters</code> (10) clusters, Webb six-point below; every weight vector enumerated up to <code>benchmark_bootstrap_max_vectors</code> (9 999), otherwise that many drawn with <code>benchmark_bootstrap_seed</code></td></tr>
 <tr><td>Truth outside callable</td><td>Truth variants outside the callability BED still count as FN: report this</td></tr>
 </table>
 <p>Report the denominator choices when you compare with an external tool. Very small truth sets cannot establish general performance. Investigate any reference-mismatch warning from normalisation.</p>
 
 <h2 id="mixture">21. Mixtures, WSAF and K</h2>
 <ul>
-<li><b>WSAF calibration</b>: regression of observed on expected within-sample allele frequency at mixture sites (slope, intercept, RMSE) and the share of sites whose interval covers the expected value, against nominal 0.95.</li>
-<li><b>Detection by expected fraction</b>: PASS detection rate in bins (0.1–0.2, 0.2–0.35, 0.5–0.999).</li>
+<li><b>WSAF calibration</b>: regression of observed on expected within-sample allele frequency at mixture sites (slope, intercept, RMSE) and the share of sites whose interval covers the expected value, against the level the caller computed its intervals at (<code>layer2.wsaf_interval_level</code>, 0.95).</li>
+<li><b>Detection by expected fraction</b>: PASS detection rate in the bins of <code>layer6.benchmark_wsaf_bins</code> (0–0.1, 0.1–0.2, 0.2–0.35, 0.35–0.5, 0.5–0.999; a bin with no expected site is left out of the report, so this run shows 0.1–0.2, 0.2–0.35 and 0.5–0.999). Alleles expected at <code>benchmark_clonal_min_expected_wsaf</code> (0.999) or above are clonal and not scored; the calibration line needs <code>benchmark_calibration_min_sites</code> (3) detected sites.</li>
 <li><b>K agreement</b>: declared true K versus the caller's technical K.</li>
 </ul>
 <div class="warn">Technical mixture K and biological COI (DA001 MOIRE) are different quantities. A summary alone does not establish mixture identifiability or clinical COI: read <code>mixture_sites.tsv</code> and the exclusions.</div>
@@ -505,18 +505,18 @@ caller:
 
 <h2 id="resources">24. Measure resources</h2>
 <div class="step">
-<pre><code>./pfvarx benchmark-resources --run-id 20261126T160637Z-VERIFY_BENCHMARK-0bf55604</code></pre>
+<pre><code>./pfvarx benchmark-resources --run-id 20261127T085902Z-VERIFY_BENCHMARK-2630d154</code></pre>
 <pre class="out"><code>{
   "profile": "config/profiles/resources.yaml",
   "schema": "pfvarx.resource_profile/1",
-  "measured_on": {"run_id": "20261126T160637Z-VERIFY_BENCHMARK-0bf55604", "input_gb": 0.0291, "samples": 14,
-                  "cpu_count": 24, "platform": "Linux-7.0.0-44-generic-x86_64-with-glibc2.43", "executor": "local"},
+  "measured_on": {"run_id": "20261127T085902Z-VERIFY_BENCHMARK-2630d154", "input_gb": 0.0291, "samples": 14,
+                  "cpu_count": 2, "platform": "Linux-6.18.44-fc-v880-x86_64-with-glibc2.39", "executor": "local"},
   "jobs": {
-    "bwa_mem2_align": {"peak_rss_mb": 24.5,    "wall_min": 0.024, "n": 14, …},
-    "downstream":     {"peak_rss_mb": 186.02,  "wall_min": 0.20,  "n": 7,  …},
-    "fastp":          {"peak_rss_mb": 1111.84, "wall_min": 0.015, "n": 14, …},
-    "markdup":        {"peak_rss_mb": 1480.18, "wall_min": 0.28,  "n": 14, …},
-    "pfvarx_call":    {"peak_rss_mb": 481.67,  "wall_min": 0.33,  "n": 13, …}
+    "bwa_mem2_align": {"peak_rss_mb": 21.48,    "wall_min": 0.027, "n": 14, …},
+    "downstream":     {"peak_rss_mb": 182.71,  "wall_min": 0.43,  "n": 7,  …},
+    "fastp":          {"peak_rss_mb": 1078.83, "wall_min": 0.018, "n": 14, …},
+    "markdup":        {"peak_rss_mb": 1361.85, "wall_min": 0.049,  "n": 14, …},
+    "pfvarx_call":    {"peak_rss_mb": 539.34,  "wall_min": 1.64,  "n": 13, …}
   }
 }</code></pre>
 <p>Writes <code>config/profiles/resources.yaml</code> from the run's Snakemake benchmark records (maximum per job type). It covers instrumented rules only and records the dataset and hardware basis. A synthetic run says nothing about full-genome runtime. Check compatibility before using the profile on another assay, machine or cohort.</p>
@@ -563,7 +563,7 @@ nano config/config.yaml                                   # project_id, final_ou
 # … freeze the protocol …
 ./pfvarx benchmark-evaluate --run-id RUN_ID --holdout --out benchmarks/heldout   # once
 ./pfvarx benchmark-resources --run-id RUN_ID</code></pre>
-<p style="color:var(--muted);font-size:14px;margin-top:40px">PfVarX 1.0.0 · Benchmarking guide · generated 26 November 2026 from the release source and a live synthetic benchmark run.</p>
+<p style="color:var(--muted);font-size:14px;margin-top:40px">PfVarX 0.0.0 · Benchmarking guide · generated 27 November 2026 from the release source and a live synthetic benchmark run.</p>
 </main>
 </div>
 <script>

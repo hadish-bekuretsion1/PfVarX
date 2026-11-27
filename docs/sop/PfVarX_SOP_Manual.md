@@ -1,8 +1,8 @@
-# PfVarX 1.0.0 — Operational SOP manual
+# PfVarX 0.0.0 — Operational SOP manual
 
 **Document:** PFVARX-SOP-001 · **Revision:** 3.2 · **Prepared:** 12 November 2026.
 **Audience:** Linux bioinformatics researchers, developers and benchmark analysts.
-**Authority:** finalized local 1.0.0 implementation, workflow rules, parameter/policy
+**Authority:** finalized local 0.0.0 implementation, workflow rules, parameter/policy
 registries and the included operating manuals. This is an operational companion, not
 a change to the software, calibrated settings or scientific claims. A laboratory must
 approve its study-specific validation protocol before routine surveillance decisions.
@@ -3336,9 +3336,9 @@ experiment. Do not relabel provisional values as calibrated merely because tests
 
 # Appendix D — Documentation basis and verification of this manual
 
-Commands and output contracts were checked against the finalized 1.0.0 local CLI,
+Commands and output contracts were checked against the finalized 0.0.0 local CLI,
 configuration models/templates, Snakemake rules, caller/benchmark/downstream source and
-analysis/benchmarking/reporting/deployment manuals. Release 1.0.0 (tag `v1.0.0`) passed lint, type checking and the full unit, scientific and
+analysis/benchmarking/reporting/deployment manuals. Version 0.0.0 (tag `v0.0.0`) passed lint, type checking and the full unit, scientific and
 integration test suite on the development branch before it was released.
 This document itself does not claim a real study or new benchmark was executed.
 
@@ -3457,6 +3457,12 @@ the native caller as the default. External tool dependencies are managed separat
 
 Native calling uses context-stratified error fitting, probabilistic screening, local
 pair-HMM indel rescoring, read-backed linkage and adaptive technical mixture estimation.
+Its decision values (screening and PASS thresholds, the pair-HMM support ratio, the linkage
+fragment minimum, the genotype cut-off and the EM settings) are read from
+`config/parameters/layer2.yaml`. The pair-HMM runs as a Numba-compiled kernel when Numba is
+installed and as the numpy reference otherwise, with the same read decisions; worker
+processes share read evidence, error-model fits, indel rescoring, linkage windows and
+bootstrap replicates, and the output does not depend on their number.
 Full local haplotype assembly and validated assay-specific calibration remain open.
 Technical mixture count describes DNA evidence. Parasite genomes remain haploid.
 
