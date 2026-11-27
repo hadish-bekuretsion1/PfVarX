@@ -13,7 +13,7 @@ the same files, so you can switch between them at any point.
 | Network | Internet access to install Pixi and the tools (once per tools environment) |
 | Memory | About 8 GB for parasite-only analyses; about 16 GB free with Human DNA removal |
 | Disk | 1–3 GB per tools environment (FO001 about 1 GB; analyses with R more), plus your reads, references and results |
-| GitHub | Access to the private repository `hadish-bekuretsion1/PfVarX` |
+| GitHub | None: the repository `hadish-bekuretsion1/PfVarX` is public |
 
 ## 2. Install Pixi (once per computer)
 
@@ -34,9 +34,6 @@ new terminal.
 mkdir -p ~/pfvarx && cd ~/pfvarx
 git clone https://github.com/hadish-bekuretsion1/PfVarX.git PfVarX-source
 ```
-
-For the private repository, log in first with the GitHub CLI (`gh auth login`, then
-`gh auth setup-git`), or use a personal access token when Git asks for a password.
 
 ## 4. Create a study workspace
 
