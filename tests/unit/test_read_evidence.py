@@ -81,7 +81,7 @@ def test_parallel_rescoring_keeps_deletions_sharing_an_anchor_apart() -> None:
 
     class Pool:  # stands in for the process pool: "rescores" each candidate by tagging its ref
         def map(self, fn, jobs):
-            return [[dataclasses.replace(c, lhid="rescored:" + c.ref) for c in cands] for _, _, cands in jobs]
+            return [dataclasses.replace(c, lhid="rescored:" + c.ref) for c in jobs]
 
     out = call.rescore_parallel(Pool(), {"chr9": "", "chr1": ""}, [a, other, b])  # type: ignore[arg-type]
     assert [c.ref for c in out] == ["TTA", "A", "TTATA"]
