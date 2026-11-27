@@ -126,7 +126,6 @@ th,td{border:1px solid var(--line);padding:7px 10px;text-align:left;vertical-ali
 <tr><td>CPU</td><td>4 cores is the default compute envelope</td><td><code>nproc</code></td></tr>
 <tr><td>Disk</td><td>1–3 GB per tools environment, plus reads, references and results (alignments are roughly the size of the FASTQ)</td><td><code>df -h ~</code></td></tr>
 <tr><td>Browser</td><td>Any modern browser for the configuration GUI and the dashboard</td><td>–</td></tr>
-<tr><td>Repository access</td><td>Access to <code>hadish-bekuretsion1/PfVarX</code> (private): <code>gh auth login</code> or a personal access token</td><td><code>gh auth status</code></td></tr>
 </table>
 <p>Unix utilities used in this guide: <code>bash</code>, <code>git</code>, <code>curl</code>, <code>sha256sum</code>, <code>gzip</code>/<code>zcat</code>, <code>head</code>, <code>less</code>, <code>xdg-open</code>, a text editor (<code>nano</code> shown).</p>
 
@@ -142,9 +141,8 @@ pixi --version</code></pre>
 
 <h2 id="source">3. Get PfVarX</h2>
 <div class="step">
-<div class="meta"><b>Why</b><span>The source checkout is the read-only master copy; workspaces are exported from it.</span><b>Needs</b><span>git, GitHub access</span><b>Creates</b><span><code>~/pfvarx/PfVarX-source/</code></span></div>
-<pre><code>gh auth login && gh auth setup-git          # private repository: log in once
-mkdir -p ~/pfvarx && cd ~/pfvarx
+<div class="meta"><b>Why</b><span>The source checkout is the read-only master copy; workspaces are exported from it.</span><b>Needs</b><span>git, internet</span><b>Creates</b><span><code>~/pfvarx/PfVarX-source/</code></span></div>
+<pre><code>mkdir -p ~/pfvarx && cd ~/pfvarx
 git clone https://github.com/hadish-bekuretsion1/PfVarX.git PfVarX-source
 cd PfVarX-source && git checkout v1.0.0 && cd ..</code></pre>
 <p>Or download <code>pfvarx-1.0.0-source.zip</code> and its <code>.sha256</code> from the GitHub release and check it:</p>
