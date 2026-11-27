@@ -14,6 +14,7 @@ import datetime as dt
 import json
 import shutil
 import subprocess
+from decimal import Decimal
 from pathlib import Path
 from typing import Any
 
@@ -51,6 +52,16 @@ def in_country(lon: float, lat: float, country: str, geo: dict[str, Any]) -> boo
     return None  # country not in layer: cannot validate
 
 
+def snap(degrees: float, cell_size: float) -> float:
+    """Centre of the grid cell (layer5.da007_grid_cell_degrees) holding a latitude or longitude."""
+    return round(degrees / cell_size) * cell_size
+
+
+def cell_places(cell_size: float) -> int:
+    """Decimal places that write a cell coordinate exactly (one for 0.5-degree cells)."""
+    return max(1, -int(Decimal(str(cell_size)).normalize().as_tuple().exponent))
+
+
 def run(ctx: Context, threads: int = 1) -> None:
     out = ctx.out("DA007")
     source = ctx.eff["config"]["analyses"]["spatial_outcome_source"]
@@ -72,6 +83,8 @@ def run(ctx: Context, threads: int = 1) -> None:
     analysed = sorted({c["sample_id"] for c in calls})
     valid: dict[str, dict[str, Any]] = {}
     excluded: dict[str, list[str]] = {}
+    cell_size = float(frozen_param(ctx.params, "da007_grid_cell_degrees"))
+    places = cell_places(cell_size)
     for sid in analysed:
         m = ctx.metadata.get(sid, {})
         try:
@@ -88,7 +101,7 @@ def run(ctx: Context, threads: int = 1) -> None:
             excluded.setdefault(Reason.METADATA_DATE_INVALID.value, []).append(sid)
             continue
         valid[sid] = {"country": m.get("country"), "month": date.strftime("%Y-%m"),
-                      "cell": f"{round(lat * 2) / 2:.1f},{round(lon * 2) / 2:.1f}",
+                      "cell": f"{snap(lat, cell_size):.{places}f},{snap(lon, cell_size):.{places}f}",
                       "geo_validated": ok is True}
     min_n = int(ctx.params["da007_min_samples_per_unit"])
     agg: dict[tuple[str, str, str], list[str]] = {}

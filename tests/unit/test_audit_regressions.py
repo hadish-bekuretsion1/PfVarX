@@ -7,9 +7,12 @@ import pysam
 import pytest
 
 from pfvarx.caller_adapter import EVIDENCE_COLUMNS, validate_outputs
+from pfvarx.configuration.loader import load_parameters
 from pfvarx.downstream import run
 from pfvarx.downstream.common import Context
 from pfvarx.io import read_tsv
+
+ROOT = Path(__file__).resolve().parents[2]
 
 
 def test_independent_method_failure_records_terminal_and_releases_coi_checkpoint(
@@ -79,6 +82,7 @@ def test_f1_is_zero_when_truth_has_variants_but_no_calls(
     variants = run_dir / "results/variants/samples"
     variants.mkdir(parents=True)
     (run_dir / "frozen_plan.json").write_text(json.dumps({"reference": {"parasite_fasta": "ref.fa"}}))
+    (run_dir / "frozen_config.json").write_text(json.dumps({"parameters": load_parameters(ROOT)}))
     header = '##fileformat=VCFv4.3\n##contig=<ID=chr1,length=4>\n#CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO\n'
     (truth / "S1.truth.vcf").write_text(header + 'chr1\t1\t.\tA\tC\t.\tPASS\t.\n')
     (variants / "S1.vcf.gz").write_bytes(gzip.compress(header.encode()))
@@ -194,6 +198,7 @@ def test_spatial_boundaries_are_read_from_the_workspace():
 
 
 def test_who_k13_flag_needs_enough_callable_infections() -> None:
+    from pfvarx.downstream.common import z_score
     from pfvarx.downstream.resistance import prevalence
 
     marker = {"marker_id": "k13_C580Y", "gene_name": "kelch13", "gene_id": "PF3D7_1343700",
@@ -203,7 +208,7 @@ def test_who_k13_flag_needs_enough_callable_infections() -> None:
         return [{"marker_id": "k13_C580Y", "population": group, "state": s, "alt_fraction": ""} for s in states]
 
     rows = prevalence(calls(["MUTANT"], "A") + calls(["MUTANT", "WILD_TYPE", "WILD_TYPE", "UNKNOWN"], "B"),
-                      [marker], "population", 0.05, 3)
+                      [marker], "population", z_score(0.95), 0.05, 3)
     flag = {r["group"]: (r["callable"], r["prevalence_infections"], r["who_k13_alert"]) for r in rows}
     assert flag["A"] == (1, "1.0000", "INSUFFICIENT_CALLABLE")  # one sample never raises the WHO flag
     assert flag["B"] == (3, "0.3333", "ABOVE_5_PERCENT")
@@ -250,3 +255,44 @@ def test_small_cohort_uses_the_caller_mixture_instead_of_moire(
     manifest = json.loads((out / "status_manifest.json").read_text())
     assert manifest["method"]["moire_run"] is False and manifest["samples"]["analysed"] == ["A", "B"]
     assert not (out / "moire_coi.tsv").exists()
+
+
+def test_benchmark_wsaf_coverage_is_judged_at_the_callers_interval_level(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """The coverage of the caller's WSAF intervals is compared with the level they were computed
+    at (layer2.wsaf_interval_level), not a fixed 95%; the clonal cut-off, bins and minimum
+    sites come from layer6."""
+    from pfvarx.benchmarking import evaluate as benchmark
+
+    params = load_parameters(ROOT)
+    params["layer2.wsaf_interval_level"] = {**params["layer2.wsaf_interval_level"], "value": 0.9}
+    truth = tmp_path / "inputs/truth"
+    truth.mkdir(parents=True)
+    sites = [("chr1", p, "A", "C") for p in (10, 20, 30, 40)]
+    (truth / "truth.json").write_text(json.dumps({
+        "clones": {"minor": [{"chrom": c, "pos": p, "ref": r, "alt": a} for c, p, r, a in sites],
+                   "mid": [{"chrom": c, "pos": p, "ref": r, "alt": a} for c, p, r, a in sites[2:]], "major": []},
+        "samples": {"M1": {"clonality": "POLYCLONAL", "true_k": 3,
+                           "components": [{"clone": "minor", "proportion": 0.2}, {"clone": "mid", "proportion": 0.2},
+                                          {"clone": "major", "proportion": 0.6}]}}}))
+    (truth / "confident_regions.bed").write_text("chr1\t0\t100\n")
+    run_dir = tmp_path / "run"
+    variants = run_dir / "results/variants/samples"
+    variants.mkdir(parents=True)
+    (run_dir / "frozen_plan.json").write_text(json.dumps({"reference": {"parasite_fasta": "ref.fa"}}))
+    (run_dir / "frozen_config.json").write_text(json.dumps({"parameters": params}))
+    rows = ["\t".join(EVIDENCE_COLUMNS)]
+    for i, (c, p, r, a) in enumerate(sites):  # expected 0.2 for the first two sites, 0.4 for the others
+        values = {name: "0" for name in EVIDENCE_COLUMNS}
+        values.update(chrom=c, pos=str(p), ref=r, alt=a, kind="SNV", status="PASS",
+                      wsaf=("0.21", "0.19", "0.41", "0.39")[i], wsaf_lo=("0.1", "0.1", "0.3", "0.3")[i],
+                      wsaf_hi=("0.3", "0.3", "0.5", "0.5")[i])
+        rows.append("\t".join(values[name] for name in EVIDENCE_COLUMNS))
+    (variants / "M1.evidence.tsv").write_text("\n".join(rows) + "\n")
+    monkeypatch.setattr(benchmark, "load_partition", lambda root: {"benchmarking": ["M1"], "sha256": "test"})
+    report = benchmark.evaluate(tmp_path, run_dir, tmp_path / "metrics")
+    assert report["wsaf_calibration"]["nominal"] == 0.9
+    assert report["wsaf_calibration"]["sites"] == 4 and report["wsaf_calibration"]["interval_coverage"] == 1.0
+    bins = report["detection_by_expected_fraction"]
+    assert (bins["0.2-0.35"]["detected_pass"], bins["0.35-0.5"]["detected_pass"]) == (2, 2)

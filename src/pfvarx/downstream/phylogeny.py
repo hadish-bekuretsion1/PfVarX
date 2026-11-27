@@ -12,6 +12,7 @@ from __future__ import annotations
 import shutil
 import subprocess
 
+from pfvarx.configuration.loader import frozen_param
 from pfvarx.constants import Reason, Terminal
 from pfvarx.downstream.common import PANEL_CAVEAT, Context, decisions, write_manifest
 from pfvarx.io import write_json
@@ -23,6 +24,7 @@ USES_COHORT_MATRIX = True
 def build_alignment(ctx: Context, samples: list[str]) -> tuple[dict[str, list[str]], list[str]]:
     seqs: dict[str, list[str]] = {s: [] for s in samples}
     used = []
+    dominant_min = float(frozen_param(ctx.params, "genotype_alt_min_wsaf"))  # the caller's GT rule
     for s in ctx.sites:
         if s["type"] != "SNV":
             continue
@@ -32,7 +34,7 @@ def build_alignment(ctx: Context, samples: list[str]) -> tuple[dict[str, list[st
             if not c or c["wsaf"] is None:
                 col.append("-")
             else:
-                col.append(s["alt"] if c["wsaf"] >= 0.5 else s["ref"])
+                col.append(s["alt"] if c["wsaf"] >= dominant_min else s["ref"])
         for x, b in zip(samples, col):
             seqs[x].append(b)
         used.append(s["site_id"])

@@ -27,6 +27,7 @@ from typing import Any
 import numpy as np
 
 from pfvarx.benchmarking.partitions import load as load_partition
+from pfvarx.configuration.loader import frozen_param
 from pfvarx.genomic_evidence import in_intervals, read_bed
 from pfvarx.io import read_json, write_json, write_tsv
 
@@ -54,15 +55,19 @@ def _norm(vcf: Path, ref: Path, out: Path) -> Path:
     return out
 
 
-def wild_cluster_interval(num: np.ndarray, den: np.ndarray, level: float = 0.95, seed: int = 1,
-                          max_vectors: int = 9999) -> dict[str, Any]:
-    """Interval for R = sum(num)/sum(den) by wild cluster bootstrap of the linearised estimator."""
+def wild_cluster_interval(num: np.ndarray, den: np.ndarray, level: float, seed: int, max_vectors: int,
+                          rademacher_min_clusters: int) -> dict[str, Any]:
+    """Interval for R = sum(num)/sum(den) by wild cluster bootstrap of the linearised estimator.
+
+    Settings are layer6.benchmark_interval_level, benchmark_bootstrap_seed,
+    benchmark_bootstrap_max_vectors and benchmark_rademacher_min_clusters."""
     G = len(num)
     if G == 0 or den.sum() == 0:
         return {"estimate": None, "lo": None, "hi": None, "clusters": G}
     R = num.sum() / den.sum()
     u = (num - R * den) / den.sum()  # influence of each cluster
-    weights = np.array([-1.0, 1.0]) if G >= 10 else WEBB
+    rademacher = G >= rademacher_min_clusters
+    weights = np.array([-1.0, 1.0]) if rademacher else WEBB
     total = len(weights) ** G
     if total <= max_vectors:
         W = np.array(list(itertools.product(weights, repeat=G)))
@@ -78,7 +83,7 @@ def wild_cluster_interval(num: np.ndarray, den: np.ndarray, level: float = 0.95,
     var_bin = R * (1 - R) / den.sum()
     return {"estimate": float(R), "lo": float(max(0.0, np.quantile(stats_, a))),
             "hi": float(min(1.0, np.quantile(stats_, 1 - a))), "clusters": G,
-            "weights": "Rademacher" if G >= 10 else "Webb six-point", "vectors": method,
+            "weights": "Rademacher" if rademacher else "Webb six-point", "vectors": method,
             "design_effect": (var_cl / var_bin) if var_bin > 0 else None}
 
 
@@ -94,6 +99,15 @@ def evaluate(root: Path, run: Path, out: Path, holdout: bool = False) -> dict[st
         log.write_text(json.dumps({"run_id": run.name, "partition_sha256": part["sha256"]}) + "\n")
     res = run / "results"
     ref = root / read_json(run / "frozen_plan.json")["reference"]["parasite_fasta"]
+    # Settings come from the evaluated run's frozen parameters (layer6.benchmark_*); the interval
+    # coverage is judged against the level the caller's WSAF intervals were computed at.
+    params = {k.split(".", 1)[1]: v["value"] for k, v in read_json(run / "frozen_config.json")["parameters"].items()}
+    level = float(frozen_param(params, "benchmark_interval_level"))
+    seed = int(frozen_param(params, "benchmark_bootstrap_seed"))
+    max_vectors = int(frozen_param(params, "benchmark_bootstrap_max_vectors"))
+    rademacher_min = int(frozen_param(params, "benchmark_rademacher_min_clusters"))
+    clonal = float(frozen_param(params, "benchmark_clonal_min_expected_wsaf"))
+    wsaf_level = float(frozen_param(params, "wsaf_interval_level"))
     confident = read_bed(root / "inputs" / "truth" / "confident_regions.bed")
     out.mkdir(parents=True, exist_ok=True)
     rows = []
@@ -127,8 +141,10 @@ def evaluate(root: Path, run: Path, out: Path, holdout: bool = False) -> dict[st
         true_positives = np.array([r["tp"] for r in sc], float)
         false_negatives = np.array([r["fn"] for r in sc], float)
         false_positives = np.array([r["fp"] for r in sc], float)
-        sens = wild_cluster_interval(true_positives, true_positives + false_negatives)
-        prec = wild_cluster_interval(true_positives, true_positives + false_positives)
+        sens = wild_cluster_interval(true_positives, true_positives + false_negatives, level, seed, max_vectors,
+                                     rademacher_min)
+        prec = wild_cluster_interval(true_positives, true_positives + false_positives, level, seed, max_vectors,
+                                     rademacher_min)
         denominator = float((2 * true_positives + false_positives + false_negatives).sum())
         f1 = float(2 * true_positives.sum() / denominator) if denominator else None
         summary[vt] = {"sensitivity": sens, "precision": prec, "f1": f1, "samples": len(sc)}
@@ -156,12 +172,16 @@ def evaluate(root: Path, run: Path, out: Path, holdout: bool = False) -> dict[st
         ev = res / "variants" / "samples" / f"{sid}.evidence.tsv"
         obs = {}
         if ev.is_file():
-            for line in ev.read_text().splitlines()[1:]:
+            lines = ev.read_text().splitlines()
+            col = {name: i for i, name in enumerate(lines[0].split("\t"))} if lines else {}
+            for line in lines[1:]:
                 fields = line.split("\t")
-                if fields[4] == "SNV":
-                    obs[(fields[0], int(fields[1]), fields[2], fields[3])] = (float(fields[15]), float(fields[16]), float(fields[17]), fields[14])
+                if fields[col["kind"]] == "SNV":
+                    obs[(fields[col["chrom"]], int(fields[col["pos"]]), fields[col["ref"]], fields[col["alt"]])] = (
+                        float(fields[col["wsaf"]]), float(fields[col["wsaf_lo"]]), float(fields[col["wsaf_hi"]]),
+                        fields[col["status"]])
         for key, e in expect.items():
-            if e >= 0.999:
+            if e >= clonal:
                 continue
             o = obs.get(key)
             mix_rows.append({"sample_id": sid, "chrom": key[0], "pos": key[1], "expected": round(e, 4),
@@ -170,15 +190,15 @@ def evaluate(root: Path, run: Path, out: Path, holdout: bool = False) -> dict[st
                              "covered": None if o is None else (o[1] <= e <= o[2])})
     det = [r for r in mix_rows if r["observed"] is not None]
     calib = {}
-    if len(det) >= 3:
+    if len(det) >= int(frozen_param(params, "benchmark_calibration_min_sites")):
         x = np.array([r["expected"] for r in det])
         y = np.array([r["observed"] for r in det])
         slope, intercept = np.polyfit(x, y, 1)
         calib = {"sites": len(det), "slope": float(slope), "intercept": float(intercept),
                  "rmse": float(np.sqrt(np.mean((y - x) ** 2))),
-                 "interval_coverage": float(np.mean([bool(r["covered"]) for r in det])), "nominal": 0.95}
+                 "interval_coverage": float(np.mean([bool(r["covered"]) for r in det])), "nominal": wsaf_level}
     bins = {}
-    for lo, hi in ((0.0, 0.1), (0.1, 0.2), (0.2, 0.35), (0.35, 0.5), (0.5, 0.999)):
+    for lo, hi in ((float(a), float(b)) for a, b in frozen_param(params, "benchmark_wsaf_bins")):
         sel = [r for r in mix_rows if lo <= r["expected"] < hi]
         if sel:
             bins[f"{lo}-{hi}"] = {"sites": len(sel), "detected_pass": sum(1 for r in sel if r["status"] == "PASS"),

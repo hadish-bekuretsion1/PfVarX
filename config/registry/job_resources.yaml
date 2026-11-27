@@ -7,7 +7,7 @@
 # memory grows on retry by retry_memory_factor up to per_job.max_mem_mb, and memory measured
 # in earlier runs on the same computer can raise a class's request (MEASURED_HISTORY).
 # None of these values changes a scientific result.
-version: "1.0.0"
+version: "1.1.0"
 
 job_classes:
   fastp:
@@ -102,4 +102,6 @@ planning:
   slow_step_factor: 1.5              # progress page marks a step slow when it runs this many times longer than expected
   progress_refresh_seconds: 15
   cohort_matrix_bytes_per_cell: 32    # measured cost of one cohort evidence cell in Layer 5 (samples x sites);
-                                      # used to warn before a run whose cohort will not fit in per_job.max_mem_mb       # how often the run progress page is rewritten while Snakemake runs
+                                      # used to warn before a run whose cohort will not fit in per_job.max_mem_mb
+  cohort_matrix_memory_warning_share: 0.5   # warn when the cohort evidence matrix needs more than this share of
+                                            # per_job.max_mem_mb (the analyses need working memory besides)       # how often the run progress page is rewritten while Snakemake runs

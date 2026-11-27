@@ -4,17 +4,23 @@ import numpy as np
 import pytest
 
 from pfvarx.benchmarking.evaluate import wild_cluster_interval
+from pfvarx.configuration.loader import load_parameters
 from pfvarx.downstream.resistance import CODE, resolve_codon
+
+LAYER6 = {k.split(".", 1)[1]: v["value"] for k, v in load_parameters(Path(__file__).resolve().parents[2]).items()
+          if k.startswith("layer6.")}
+SETTINGS = (LAYER6["benchmark_interval_level"], LAYER6["benchmark_bootstrap_seed"],
+            LAYER6["benchmark_bootstrap_max_vectors"], LAYER6["benchmark_rademacher_min_clusters"])
 
 
 def test_wild_cluster_enumerates_webb_for_few_clusters() -> None:
-    r = wild_cluster_interval(np.array([90.0, 80, 95, 85]), np.array([100.0, 100, 100, 100]))
+    r = wild_cluster_interval(np.array([90.0, 80, 95, 85]), np.array([100.0, 100, 100, 100]), *SETTINGS)
     assert r["weights"] == "Webb six-point" and r["vectors"] == "enumerated"
     assert r["lo"] < r["estimate"] < r["hi"] and r["estimate"] == pytest.approx(0.875)
 
 
 def test_wild_cluster_rademacher_for_many_clusters() -> None:
-    r = wild_cluster_interval(np.full(12, 50.0), np.full(12, 100.0))
+    r = wild_cluster_interval(np.full(12, 50.0), np.full(12, 100.0), *SETTINGS)
     assert r["weights"] == "Rademacher"
 
 
