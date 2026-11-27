@@ -71,8 +71,9 @@ job_classes:
     per_gb_mb: 0
     rules:
       cohort_merge: {threads: 1, mem_mb: 0}
-      cohort_evidence: {threads: 1, mem_mb: 2000}
-      cohort_microhaplotypes: {threads: 1, mem_mb: 2000}
+      # Samples run in worker processes; results do not depend on the thread count.
+      cohort_evidence: {threads: 8, mem_mb: 2000}
+      cohort_microhaplotypes: {threads: 8, mem_mb: 2000}
   snpeff:
     layer: 4
     per_gb_mb: 0
@@ -103,5 +104,8 @@ planning:
   progress_refresh_seconds: 15
   cohort_matrix_bytes_per_cell: 32    # measured cost of one cohort evidence cell in Layer 5 (samples x sites);
                                       # used to warn before a run whose cohort will not fit in per_job.max_mem_mb
+  cohort_merge_file_headroom: 64       # open files the cohort merge needs besides one per sample VCF; the
+                                      # merge raises the open-file limit to samples + this, and merges
+                                      # in batches when the system's hard limit is lower
   cohort_matrix_memory_warning_share: 0.5   # warn when the cohort evidence matrix needs more than this share of
                                             # per_job.max_mem_mb (the analyses need working memory besides)       # how often the run progress page is rewritten while Snakemake runs

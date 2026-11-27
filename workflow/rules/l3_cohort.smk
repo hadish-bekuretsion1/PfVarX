@@ -11,7 +11,8 @@ rule cohort_merge:
     params:
         # Sample IDs in merge order (IDs never contain dots, so the file stem is the ID).
         ids=lambda wc, input: " ".join(Path(v).name.split(".")[0] for v in input.vcfs),
-        n=lambda wc, input: len(input.vcfs),
+        listing=str(R / "work" / "cohort_merge.vcfs.txt"),
+        headroom=COHORT_MERGE_HEADROOM,
     benchmark:
         str(BENCH / "cohort_merge" / "cohort_merge.tsv")
     log:
@@ -19,12 +20,13 @@ rule cohort_merge:
     # final_targets requests the cohort only when a sample is permitted into Layer 3. One
     # sample is copied (bcftools merge needs two files); several are merged variant-only, with
     # missing genotypes left missing (no -0: absence of a call is not a reference call).
+    # printf is a shell builtin, so neither list is limited by the command-line length; the
+    # merge raises the open-file limit itself and merges in batches beyond it (cohort/merge.py).
     shell:
         "(printf '%s\\n' {params.ids} > {output.samples:q} "
-        "&& if [ {params.n} -eq 1 ]; "
-        "then cp {input.vcfs:q} {output.vcf:q}; "
-        "else bcftools merge -m none -i - -Oz -o {output.vcf:q} {input.vcfs:q}; fi "
-        "&& bcftools index -t -f {output.vcf:q}) > {log:q} 2>&1"
+        "&& mkdir -p $(dirname {params.listing:q}) && printf '%s\\n' {input.vcfs:q} > {params.listing:q} "
+        "&& python -m pfvarx.cohort.merge --list {params.listing:q} --out {output.vcf:q} "
+        "--headroom {params.headroom}) > {log:q} 2>&1"
 
 
 rule cohort_status:
@@ -60,6 +62,12 @@ rule cohort_evidence:
     params:
         frozen=FROZEN,
         ref=PREF,
+        bam_list=str(R / "work" / "cohort_evidence.bams.txt"),
+        callable_list=str(R / "work" / "cohort_evidence.callable.txt"),
+    # Samples are independent: they run in worker processes and are written in cohort order,
+    # so the matrix does not depend on the thread count. The file lists are written with the
+    # printf builtin and read from files, so cohort size is not limited by the command line.
+    threads: threads("cohort_evidence")
     resources:
         mem_mb=mem("cohort_evidence"),
         runtime=RUNTIME,
@@ -68,9 +76,12 @@ rule cohort_evidence:
     log:
         str(LOGS / "cohort" / "evidence.log"),
     shell:
-        "python -m pfvarx.cohort.evidence --vcf {input.vcf:q} --samples {input.samples:q} --bams {input.bams:q} "
-        "--callable {input.callable:q} --reference {params.ref:q} --frozen-config {params.frozen:q} "
-        "--out-matrix {output.matrix:q} --out-missing {output.missing:q} --out-sites {output.sites:q} > {log:q} 2>&1"
+        "(mkdir -p $(dirname {params.bam_list:q}) && printf '%s\\n' {input.bams:q} > {params.bam_list:q} "
+        "&& printf '%s\\n' {input.callable:q} > {params.callable_list:q} "
+        "&& python -m pfvarx.cohort.evidence --vcf {input.vcf:q} --samples {input.samples:q} "
+        "--bam-list {params.bam_list:q} --callable-list {params.callable_list:q} --threads {threads} "
+        "--reference {params.ref:q} --frozen-config {params.frozen:q} "
+        "--out-matrix {output.matrix:q} --out-missing {output.missing:q} --out-sites {output.sites:q}) > {log:q} 2>&1"
 
 
 rule cohort_microhaplotypes:
@@ -90,6 +101,9 @@ rule cohort_microhaplotypes:
         frozen=FROZEN,
         ref=PREF,
         root=str(ROOT),
+        bam_list=str(R / "work" / "cohort_microhaplotypes.bams.txt"),
+        callable_list=str(R / "work" / "cohort_microhaplotypes.callable.txt"),
+    threads: threads("cohort_microhaplotypes")
     resources:
         mem_mb=mem("cohort_microhaplotypes"),
         runtime=RUNTIME,
@@ -98,11 +112,13 @@ rule cohort_microhaplotypes:
     log:
         str(LOGS / "cohort" / "microhaplotypes.log"),
     shell:
-        "python -m pfvarx.cohort.microhap --sites {input.sites:q} --samples {input.samples:q} "
-        "--bams {input.bams:q} --callable {input.callable:q} --reference {params.ref:q} "
-        "--root {params.root:q} --frozen-config {params.frozen:q} "
+        "(mkdir -p $(dirname {params.bam_list:q}) && printf '%s\\n' {input.bams:q} > {params.bam_list:q} "
+        "&& printf '%s\\n' {input.callable:q} > {params.callable_list:q} "
+        "&& python -m pfvarx.cohort.microhap --sites {input.sites:q} --samples {input.samples:q} "
+        "--bam-list {params.bam_list:q} --callable-list {params.callable_list:q} --threads {threads} "
+        "--reference {params.ref:q} --root {params.root:q} --frozen-config {params.frozen:q} "
         "--out-haplotypes {output.haplotypes:q} --out-loci {output.loci:q} "
-        "--out-summary {output.summary:q} > {log:q} 2>&1"
+        "--out-summary {output.summary:q}) > {log:q} 2>&1"
 
 
 rule cohort_qc:

@@ -39,6 +39,7 @@ import bisect
 import gzip
 import json
 from collections import Counter
+from concurrent.futures import ProcessPoolExecutor
 from pathlib import Path
 from typing import Any
 
@@ -212,12 +213,19 @@ def call_sample(counts: Counter[str], params: dict[str, Any]) -> tuple[str, str,
 
 def build(sites: list[dict[str, str]], panel: list[dict[str, str]], samples: list[str], bams: dict[str, Path],
           callable_beds: dict[str, Path], lengths: dict[str, int], territory: dict[str, list[tuple[int, int]]],
-          design: Design, gff: Path | None, params: dict[str, Any], min_mapq: int, min_bq: int
-          ) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
-    """Haplotype rows and locus rows for the whole cohort."""
+          design: Design, gff: Path | None, params: dict[str, Any], min_mapq: int, min_bq: int,
+          threads: int = 1) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
+    """Haplotype rows and locus rows for the whole cohort.
+
+    The loci are placed first; then each sample is read once for every locus (its alignment
+    opened and its callable regions read one time), in worker processes when *threads* > 1.
+    Samples are independent, and the rows are assembled locus by locus in cohort sample order,
+    so the result does not depend on the number of threads.
+    """
     cap = int(frozen_param(params, "microhap_max_variable_positions"))
-    haplotype_rows: list[dict[str, Any]] = []
     locus_rows: list[dict[str, Any]] = []
+    used: list[tuple[str, str, list[int]]] = []  # (locus ID, contig, positions) of the loci read
+    records: dict[str, dict[str, Any]] = {}
     for row in panel:
         locus_id = row["locus_id"]
         place, reason = resolve_locus(row, gff, lengths)
@@ -225,58 +233,85 @@ def build(sites: list[dict[str, str]], panel: list[dict[str, str]], samples: lis
                                   "source": row.get("source", ""), "chrom": "", "start": "", "end": "",
                                   "status": "EXCLUDED", "reason": reason, "variable_positions": 0,
                                   "positions": "", "samples_called": 0, "samples_uncallable": 0, "haplotypes": 0}
+        locus_rows.append(record)
         if place is None:
-            locus_rows.append(record)
             continue
         chrom, start, end = place
         record.update(chrom=chrom, start=start + 1, end=end)
         inside, why = territory_status(place, territory, design)
         if not inside:
             record["reason"] = why
-            locus_rows.append(record)
             continue
         positions, capped = variable_positions(sites, place, cap)
         record.update(variable_positions=len(positions),
                       positions=",".join(str(p + 1) for p in positions))
         if not positions:
             record["reason"] = "NO_VARIABLE_SITES_IN_COHORT"
-            locus_rows.append(record)
             continue
         record["status"] = "USED"
         record["reason"] = capped
+        used.append((locus_id, chrom, positions))
+        records[locus_id] = record
+    jobs = [(sample, str(bams[sample]), str(callable_beds[sample]) if sample in callable_beds else None)
+            for sample in samples]
+    per_sample: list[list[tuple[list[dict[str, Any]], bool]]] = []
+    if used and threads > 1 and len(jobs) > 1:
+        with ProcessPoolExecutor(threads, initializer=_init_worker,
+                                 initargs=(used, params, min_mapq, min_bq)) as pool:
+            per_sample = list(pool.map(sample_loci, jobs))
+    elif used:  # no locus to read: no alignment is opened
+        _init_worker(used, params, min_mapq, min_bq)
+        per_sample = [sample_loci(job) for job in jobs]
+    haplotype_rows: list[dict[str, Any]] = []
+    for index, (locus_id, _chrom, _positions) in enumerate(used):
+        record = records[locus_id]
         haplotypes: set[str] = set()
-        for sample in samples:
-            with pysam.AlignmentFile(str(bams[sample])) as bam:
-                if chrom not in bam.references:
-                    haplotype_rows.append({"locus_id": locus_id, "sample_id": sample, "haplotype": "",
-                                           "fragments": 0, "fraction": "", "state": "UNCALLABLE",
-                                           "reason": "CONTIG_NOT_IN_ALIGNMENT"})
-                    record["samples_uncallable"] += 1
-                    continue
-                intervals = read_bed(callable_beds[sample]) if sample in callable_beds else {}
-                if intervals and not all(in_intervals(intervals.get(chrom, []), p) for p in positions):
-                    haplotype_rows.append({"locus_id": locus_id, "sample_id": sample, "haplotype": "",
-                                           "fragments": 0, "fraction": "", "state": "UNCALLABLE",
-                                           "reason": "POSITION_NOT_CALLABLE"})
-                    record["samples_uncallable"] += 1
-                    continue
-                counts, incomplete = fragment_haplotypes(bam, chrom, positions, min_mapq, min_bq)
+        for outcome in per_sample:
+            rows, called = outcome[index]
+            haplotype_rows.extend(rows)
+            if called:
+                record["samples_called"] += 1
+                haplotypes.update(r["haplotype"] for r in rows)
+            else:
+                record["samples_uncallable"] += 1
+        record["haplotypes"] = len(haplotypes)
+    return haplotype_rows, locus_rows
+
+
+_WORKER: dict[str, Any] = {}
+
+
+def _init_worker(used: list[tuple[str, str, list[int]]], params: dict[str, Any], min_mapq: int, min_bq: int) -> None:
+    _WORKER.update(used=used, params=params, min_mapq=min_mapq, min_bq=min_bq)
+
+
+def sample_loci(job: tuple[str, str, str | None]) -> list[tuple[list[dict[str, Any]], bool]]:
+    """One sample's haplotype rows at every used locus, and whether the locus was called."""
+    sample, bam_path, callable_path = job
+    params, min_mapq, min_bq = _WORKER["params"], _WORKER["min_mapq"], _WORKER["min_bq"]
+    intervals = read_bed(Path(callable_path)) if callable_path else {}
+    out: list[tuple[list[dict[str, Any]], bool]] = []
+    with pysam.AlignmentFile(bam_path) as bam:
+        for locus_id, chrom, positions in _WORKER["used"]:
+            if chrom not in bam.references:
+                out.append(([{"locus_id": locus_id, "sample_id": sample, "haplotype": "", "fragments": 0,
+                              "fraction": "", "state": "UNCALLABLE", "reason": "CONTIG_NOT_IN_ALIGNMENT"}], False))
+                continue
+            if intervals and not all(in_intervals(intervals.get(chrom, []), p) for p in positions):
+                out.append(([{"locus_id": locus_id, "sample_id": sample, "haplotype": "", "fragments": 0,
+                              "fraction": "", "state": "UNCALLABLE", "reason": "POSITION_NOT_CALLABLE"}], False))
+                continue
+            counts, incomplete = fragment_haplotypes(bam, chrom, positions, min_mapq, min_bq)
             state, reason, kept = call_sample(counts, params)
             if state != "CALLED":
-                haplotype_rows.append({"locus_id": locus_id, "sample_id": sample, "haplotype": "",
-                                       "fragments": sum(counts.values()), "fraction": "", "state": state,
-                                       "reason": reason, "incomplete_fragments": incomplete})
-                record["samples_uncallable"] += 1
+                out.append(([{"locus_id": locus_id, "sample_id": sample, "haplotype": "",
+                              "fragments": sum(counts.values()), "fraction": "", "state": state,
+                              "reason": reason, "incomplete_fragments": incomplete}], False))
                 continue
-            record["samples_called"] += 1
-            for haplotype, n, fraction in kept:
-                haplotypes.add(haplotype)
-                haplotype_rows.append({"locus_id": locus_id, "sample_id": sample, "haplotype": haplotype,
-                                       "fragments": n, "fraction": round(fraction, 4), "state": "CALLED",
-                                       "reason": "", "incomplete_fragments": incomplete})
-        record["haplotypes"] = len(haplotypes)
-        locus_rows.append(record)
-    return haplotype_rows, locus_rows
+            out.append(([{"locus_id": locus_id, "sample_id": sample, "haplotype": haplotype, "fragments": n,
+                          "fraction": round(fraction, 4), "state": "CALLED", "reason": "",
+                          "incomplete_fragments": incomplete} for haplotype, n, fraction in kept], True))
+    return out
 
 
 def write_haplotypes(path: Path, rows: list[dict[str, Any]]) -> None:
@@ -291,8 +326,11 @@ def main(argv: list[str] | None = None) -> None:
     ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     ap.add_argument("--sites", required=True)
     ap.add_argument("--samples", required=True)
-    ap.add_argument("--bams", nargs="+", required=True)
+    ap.add_argument("--bams", nargs="+")
+    ap.add_argument("--bam-list", help="file with one alignment per line (instead of --bams)")
     ap.add_argument("--callable", nargs="*", default=[])
+    ap.add_argument("--callable-list", help="file with one callable BED per line (instead of --callable)")
+    ap.add_argument("--threads", type=int, default=1, help="worker processes; the output does not depend on it")
     ap.add_argument("--reference", required=True)
     ap.add_argument("--root", required=True)
     ap.add_argument("--frozen-config", required=True)
@@ -310,8 +348,10 @@ def main(argv: list[str] | None = None) -> None:
     min_mapq, min_bq = int(layer2["min_mapping_quality"]), int(layer2["min_base_quality"])
     design = Design.parse(plan.get("design") or eff["config"].get("assay_design"))
     samples = Path(a.samples).read_text().split()
-    bams = {Path(b).name.split(".")[0]: Path(b) for b in a.bams}
-    callable_beds = {Path(c).name.split(".")[0]: Path(c) for c in a.callable}
+    bam_paths = (Path(a.bam_list).read_text().split("\n") if a.bam_list else a.bams) or []
+    callable_paths = (Path(a.callable_list).read_text().split("\n") if a.callable_list else a.callable) or []
+    bams = {Path(b).name.split(".")[0]: Path(b) for b in bam_paths if b.strip()}
+    callable_beds = {Path(c).name.split(".")[0]: Path(c) for c in callable_paths if c.strip()}
     mode = str(eff["config"]["analyses"].get("microhap_loci") or "off")
     path = panel_path(root, eff["config"]["analyses"].get("microhap_panel"))
     from pfvarx.downstream.resistance import load_catalog
@@ -344,7 +384,7 @@ def main(argv: list[str] | None = None) -> None:
     locus_rows: list[dict[str, Any]] = []
     if panel and verified:
         haplotype_rows, locus_rows = build(sites, panel, samples, bams, callable_beds, lengths, territory,
-                                          design, gff, params, min_mapq, min_bq)
+                                          design, gff, params, min_mapq, min_bq, max(1, a.threads))
     write_haplotypes(Path(a.out_haplotypes), haplotype_rows)
     write_tsv(Path(a.out_loci), locus_rows, list(LOCUS_COLUMNS))
     used = [r for r in locus_rows if r["status"] == "USED"]

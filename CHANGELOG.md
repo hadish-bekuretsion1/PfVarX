@@ -2,6 +2,38 @@
 
 ## Unreleased
 
+### Layer 3 scales to large cohorts (same results)
+
+Measured limits of the cohort steps, each now removed:
+
+- **The cohort merge stopped at about 1 000 samples** ("Too many open files" under the common
+  Linux limit of 1 024; about 250 under the macOS default of 256): `bcftools merge` keeps every
+  sample's VCF open. The new `pfvarx.cohort.merge` raises the open-file limit to what the cohort
+  needs, up to the system's hard limit (`planning.cohort_merge_file_headroom` spare), and runs
+  the same merge, so every cohort that fitted gives the same records in the same order. Above
+  the hard limit it merges in batches: the same records, genotypes and sample order (tested with
+  several ALTs and indels sharing positions, and batch sizes 2 to 59), with records that share a
+  position possibly listed in another order. Too small a limit stops with a message that names
+  `ulimit -n`.
+- **Cohort evidence held 87 bytes per sample and site** for caller statuses before reading any
+  alignment (500 samples x 50 000 sites about 2.2 GB, against a 2 GB request). They are now one
+  byte per cell (1.4 measured including the site list).
+- **Cohort evidence and microhaplotypes ran one sample after another in one process.** Samples
+  now run in worker processes (8 threads requested in `job_resources.yaml`, capped by
+  `per_job.max_threads`) and are written in cohort order: 89 s with one worker and 46 s with two
+  on 40 samples x 3 000 sites, output identical. Microhaplotypes open each alignment and read
+  each callable BED once instead of once per locus.
+- **File lists were passed on the command line**, which stops a program at about 10 000 samples
+  on Linux (5 000 on macOS). They now reach the merge, cohort evidence and microhaplotypes
+  through files.
+
+Checked: the old and new cohort evidence give identical matrix, missingness and site files
+with 1 and 3 workers; the old and new microhaplotypes (derived loci) give identical haplotypes,
+loci and summary on 9- and 13-sample WGS cohorts with 1 and 2 workers; and the synthetic WGS,
+targeted, UMI and benchmark verification runs are identical to the previous code.
+`tests/unit/test_cohort_scaling.py` covers the merge under low open-file limits, the compact
+statuses and the worker processes.
+
 ### The remaining decisions in the code move to the parameter files; benchmark coverage fix
 
 A scan of every number in the Python, Snakemake and R code found decisions still written in
