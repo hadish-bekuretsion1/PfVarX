@@ -2,6 +2,35 @@
 
 ## Unreleased
 
+### The remaining decisions in the code move to the parameter files; benchmark coverage fix
+
+A scan of every number in the Python, Snakemake and R code found decisions still written in
+the code. They now live in the parameter files with their source class, the same values, a
+legacy value for runs frozen before they existed, and a row in `docs/thresholds.md`:
+
+- Caller (`layer2`, version 1.2.0): `pairhmm_support_min_log10_ratio` (1.0),
+  `linkage_min_fragments` (2), `em_min_agreeing_starts` (2), `em_mstep_logit_bound` (30),
+  `em_mstep_max_iterations` (50), `genotype_alt_min_wsaf` (0.5; also the dominant allele of
+  DA003 and DA006) and `vcf_qual_cap` (9999).
+- Analyses (`layer5`, version 1.4.0): `da002_interval_level` and
+  `da008_prevalence_interval_level` (0.95; the Wilson interval no longer has a built-in 95%
+  default), `da008_window_min_fill` (0.5), `da005_jackknife_blocks` (10) and
+  `da007_grid_cell_degrees` (0.5).
+- Benchmark evaluation (`layer6`, version 1.1.0): interval level, bootstrap vectors and seed,
+  the Rademacher cluster threshold, the clonal cut-off, the WSAF bins and the minimum
+  calibration sites.
+- `job_resources.yaml` (version 1.1.0): `cohort_matrix_memory_warning_share` (0.5). A
+  workspace without the cohort matrix factors now skips the memory estimate and records
+  `NOT_EVALUATED`, instead of using a value written in the code.
+
+Fixed: the benchmark report judged the coverage of the caller's WSAF intervals against 95%
+whatever `layer2.wsaf_interval_level` was. It now uses that level
+(`test_benchmark_wsaf_coverage_is_judged_at_the_callers_interval_level` fails on the old code).
+The benchmark also reads the evidence table by column name instead of position.
+
+What stays in code is listed in `docs/thresholds.md`: file-format facts, mathematical constants,
+definitions, numerical-safety guards, seed derivation and operational limits.
+
 ### PfVarX-Call: faster evidence collection, screening, decisions and linkage (same calls)
 
 - Read evidence (L2.2) is read through pysam's pileup-column accessors instead of one read

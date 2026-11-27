@@ -140,6 +140,13 @@ class Params:
     boot_max_iter: int
     boot_restart_divisor: int
     boot_min_restarts: int
+    pairhmm_min_log10_ratio: float
+    linkage_min_fragments: int
+    em_min_agreeing: int
+    em_mstep_bound: float
+    em_mstep_iter: int
+    genotype_min_wsaf: float
+    qual_cap: float
 
     @classmethod
     def from_frozen(cls, eff: dict[str, Any]) -> Params:
@@ -193,7 +200,14 @@ class Params:
                    evidence_chunk_bp=int(get("evidence_chunk_bp")),
                    boot_max_iter=int(get("k_bootstrap_max_iterations")),
                    boot_restart_divisor=int(get("k_bootstrap_restart_divisor")),
-                   boot_min_restarts=int(get("k_bootstrap_min_restarts")))
+                   boot_min_restarts=int(get("k_bootstrap_min_restarts")),
+                   pairhmm_min_log10_ratio=float(get("pairhmm_support_min_log10_ratio")),
+                   linkage_min_fragments=int(get("linkage_min_fragments")),
+                   em_min_agreeing=int(get("em_min_agreeing_starts")),
+                   em_mstep_bound=float(get("em_mstep_logit_bound")),
+                   em_mstep_iter=int(get("em_mstep_max_iterations")),
+                   genotype_min_wsaf=float(get("genotype_alt_min_wsaf")),
+                   qual_cap=float(get("vcf_qual_cap")))
 
 def homopolymer_after(seq: str, i: int) -> int:
     """Length of the homopolymer run starting at i+1 (the context an indel at anchor i extends)."""
@@ -512,7 +526,7 @@ def rescore_indels(bam: pysam.AlignmentFile, seqs: dict[str, str], cands: list[C
             if used > max_reads:
                 break
             s = pairhmm.support(read.query_sequence, list(read.query_qualities), ref_hap, alt_hap,
-                                p.gap_open, p.gap_extend)
+                                p.gap_open, p.gap_extend, p.pairhmm_min_log10_ratio)
             if s > 0:
                 alt += 1
                 af += int(not read.is_reverse)
@@ -526,7 +540,7 @@ def rescore_indels(bam: pysam.AlignmentFile, seqs: dict[str, str], cands: list[C
 
 def linkage_blocks(bam: pysam.AlignmentFile, cands: list[Candidate], p: Params,
                    pool: ProcessPoolExecutor | None = None) -> None:
-    """Connected components of alternative alleles co-observed on >= 2 fragments per window.
+    """Connected components of alternative alleles co-observed on >= ``linkage_min_fragments`` fragments per window.
 
     Windows are independent (each reads only its own reads), so with a worker *pool* the
     windows holding two or more alleles are linked in worker processes; the identifiers
@@ -595,7 +609,7 @@ def window_linkage(bam: pysam.AlignmentFile, chrom: str, w: int, alleles: list[t
         return x
 
     for (a, b), k in pair_counts.items():
-        if k >= 2:
+        if k >= p.linkage_min_fragments:
             parent[find(a)] = find(b)
     return {pos: f"{chrom}_{w}_{find(pos) + 1}" for pos in alt_at}
 
@@ -766,7 +780,7 @@ def apply_constrained_calling(cands: list[Candidate], model: dict[str, Any], wei
 
 def write_vcf(path: Path, sample: str, cands: list[Candidate], fasta: pysam.FastaFile,
               contig_md5: dict[str, str], model: dict[str, Any], calibration: str,
-              constrained: bool = False) -> None:
+              constrained: bool, genotype_min_wsaf: float, qual_cap: float) -> None:
     lines = [
         "##fileformat=VCFv4.3",
         f"##source=PfVarX-Call {__version__}",
@@ -805,8 +819,8 @@ def write_vcf(path: Path, sample: str, cands: list[Candidate], fasta: pysam.Fast
     ]
     for c in sorted(cands, key=lambda c: (fasta.references.index(c.chrom), c.pos, c.alt)):
         filt = "PASS" if c.status == CallStatus.PASS else ";".join([c.status] + c.filter_reasons)
-        gt = "1" if c.wsaf >= 0.5 else "0"
-        qual = "." if not math.isfinite(c.screen) else f"{min(c.screen, 9999):.2f}"
+        gt = "1" if c.wsaf >= genotype_min_wsaf else "0"
+        qual = "." if not math.isfinite(c.screen) else f"{min(c.screen, qual_cap):.2f}"
         info = f"TYPE={c.kind};SCR={qual if qual != '.' else 0};HP={c.tract}"
         if c.kind != "SNV":
             info += f";PHMM={c.pairhmm_reads}"
@@ -972,7 +986,8 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
                                p.k_max, p.alpha, p.replicates, p.seed, p.restarts, p.agreement,
                                p.em_tol, p.em_iter, p.min_weight, executor=pool, batch=threads,
                                boot_max_iter=p.boot_max_iter, boot_restart_divisor=p.boot_restart_divisor,
-                               boot_min_restarts=p.boot_min_restarts)
+                               boot_min_restarts=p.boot_min_restarts,
+                               em=mixture.EmSettings(p.em_mstep_bound, p.em_mstep_iter, p.em_min_agreeing))
         mix["status"] = "ESTIMATED"
         mix["informative_sites"] = len(thinned)
         mix["snvs_excluded_near_indels"] = near_indel
@@ -994,7 +1009,8 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
                                           "reason": "no mixture estimate for this sample"}
     calibration = "UNCALIBRATED"
     out_vcf = Path(args.out_vcf)
-    write_vcf(out_vcf, args.sample, cands, fasta, md5, model, calibration, p.constrained_calling)
+    write_vcf(out_vcf, args.sample, cands, fasta, md5, model, calibration, p.constrained_calling,
+              p.genotype_min_wsaf, p.qual_cap)
     write_bed(Path(args.out_callable), callable_iv)
     write_bed(Path(args.out_focal), focal)
     cols = ["chrom", "pos", "ref", "alt", "kind", "y", "n", "alt_f", "alt_r", "ref_f", "ref_r",
