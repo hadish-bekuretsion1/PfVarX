@@ -18,7 +18,7 @@ Native installation targets are Linux x86-64, Linux ARM64, and macOS 13+ on Inte
 Apple silicon. You need Git, Python 3.11+ for bootstrap, Pixi on PATH, and access to the
 private GitHub repository. On Windows, use WSL2 with a supported Linux distribution.
 macOS and Linux ARM64 are newly enabled, experimental targets pending successful native
-CI runs; a solved lock is not runtime or scientific validation. See
+qualification runs; a solved lock is not runtime or scientific validation. See
 [platform support](docs/platforms.md). This example creates a workspace whose tools are installed on demand.
 Run each step in order and resolve any errors before continuing.
 
@@ -174,7 +174,7 @@ outputs, logs and frozen configuration under `runs/<RUN_ID>/`.
 - [Sample analysis](docs/analysis/README.md) and [benchmarking](docs/benchmarking/README.md); step-by-step HTML guides
   with commands and expected output: [sample analysis](docs/PfVarX_Sample_Analysis_Guide.html) and
   [benchmarking](docs/PfVarX_Benchmarking_Guide.html)
-- [Reporting](docs/reporting/README.md), [deployment](docs/deployment.md), [testing](docs/testing.md)
+- [Reporting](docs/reporting/README.md), [deployment](docs/deployment.md)
 - [Configuration guide](docs/configuration-guide.md) and [thresholds and their sources](docs/thresholds.md);
   every threshold, setting and compute request is in a configuration file, none in the code
   ([where values are kept](docs/thresholds.md#where-values-are-kept))

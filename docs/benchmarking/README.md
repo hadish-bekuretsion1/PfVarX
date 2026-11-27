@@ -14,7 +14,7 @@ Nothing in this distribution is a truth dataset, an analysis result, or a calibr
 
 | Activity | Inputs | What it establishes |
 |---|---|---|
-| Unit/scientific tests | Generated small numerical/test examples | Tested software behavior and mathematical checks |
+| Unit/scientific tests (run during development; not shipped) | Generated small numerical/test examples | Tested software behavior and mathematical checks |
 | Synthetic end-to-end verification | `pfvarx fixture` | Tool integration, QC/eligibility, outputs and evaluation plumbing |
 | Real-truth benchmarking | Independently established truth and confidence regions | Agreement with that truth in the tested assay/context |
 | Calibration | Predeclared development experiments | Empirical settings with provenance; not automatically performed by the evaluator |

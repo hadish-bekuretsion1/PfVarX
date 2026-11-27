@@ -18,7 +18,7 @@ from pfvarx.downstream.common import PANEL_CAVEAT, Context, decisions, write_man
 from pfvarx.io import write_json
 
 # Layer 5 memory: the cohort evidence matrix is loaded for this analysis only when it reads it
-# (dominant alleles at every informative site). tests/unit/test_matrix_declarations.py checks the declaration against the code.
+# (dominant alleles at every informative site).
 USES_COHORT_MATRIX = True
 
 def build_alignment(ctx: Context, samples: list[str]) -> tuple[dict[str, list[str]], list[str]]:

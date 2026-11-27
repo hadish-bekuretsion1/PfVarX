@@ -25,7 +25,7 @@ from pfvarx.downstream.loci import allele_set
 from pfvarx.io import read_tsv, write_tsv
 
 # Layer 5 memory: the cohort evidence matrix is loaded for this analysis only when it reads it
-# (allele presence at every cohort site). tests/unit/test_matrix_declarations.py checks the declaration against the code.
+# (allele presence at every cohort site).
 USES_COHORT_MATRIX = True
 
 def informative_sites(ctx: Context) -> list[dict[str, str]]:
