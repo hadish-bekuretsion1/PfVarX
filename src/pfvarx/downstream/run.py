@@ -199,19 +199,26 @@ def cohort_scale(ctx: Context, das: list[str]) -> dict[str, Any]:
     from pfvarx.planning import resources
 
     samples, sites = len(ctx.samples), cohort_sites(ctx.run)
-    try:
-        per_cell = int(resources.planning(ctx.root)["cohort_matrix_bytes_per_cell"])
-    except (OSError, KeyError):  # a workspace frozen before the factor existed
-        per_cell = 32
-    needed = matrix_memory_mb(samples, sites, per_cell)
     limit = int(ctx.eff["compute"]["per_job"]["max_mem_mb"])
     reading = sorted(da for da in das if needs_matrix(da))
+    try:
+        factors = resources.planning(ctx.root)
+        per_cell = int(factors["cohort_matrix_bytes_per_cell"])
+        share = float(factors["cohort_matrix_memory_warning_share"])
+    except (OSError, KeyError):
+        # A workspace whose job_resources.yaml predates these factors: the estimate is not made
+        # rather than made with a value written here. It is a warning only; no result depends on it.
+        return {"samples": samples, "cohort_sites": sites, "cells": samples * sites, "bytes_per_cell": None,
+                "evidence_matrix_mb": None, "per_job_max_mem_mb": limit, "analyses_reading_the_matrix": reading,
+                "warning": None, "check": "NOT_EVALUATED",
+                "check_reason": "config/registry/job_resources.yaml has no cohort matrix planning factors"}
+    needed = matrix_memory_mb(samples, sites, per_cell)
     scale: dict[str, Any] = {"samples": samples, "cohort_sites": sites, "cells": samples * sites,
                              "bytes_per_cell": per_cell, "evidence_matrix_mb": needed,
                              "per_job_max_mem_mb": limit, "analyses_reading_the_matrix": reading,
                              "warning": None}
-    # Half the job's memory: an analysis needs working memory beyond the matrix it reads.
-    if reading and needed > limit / 2:
+    # Only a share of the job's memory: an analysis needs working memory beyond the matrix it reads.
+    if reading and needed > limit * share:
         scale["warning"] = {
             "reason": "RESOURCE_MEMORY_TIGHT",
             "detail": (f"{samples} samples x {sites} cohort sites is about {needed} MB of evidence, and "
@@ -222,8 +229,8 @@ def cohort_scale(ctx: Context, das: list[str]) -> dict[str, Any]:
         append(ctx.run / "logs" / "events.jsonl", event(
             run_id=ctx.run.name, layer="L5", stage="eligibility", status="WARNING",
             severity=Severity.WARNING, code="RESOURCE_MEMORY_TIGHT", failure_class=None,
-            observed=f"{needed} MB", expected=f"<= {limit // 2} MB",
-            criterion="cohort evidence matrix within half of per_job.max_mem_mb",
+            observed=f"{needed} MB", expected=f"<= {int(limit * share)} MB",
+            criterion=f"cohort evidence matrix within {share:.0%} of per_job.max_mem_mb",
             interpretation_impact="none: this is a resource estimate, not a scientific decision",
             project_id=ctx.eff["config"]["project_id"]))
     return scale

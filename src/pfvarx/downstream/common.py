@@ -10,6 +10,7 @@ from array import array
 from collections.abc import Iterator
 from dataclasses import dataclass, field
 from pathlib import Path
+from statistics import NormalDist
 from typing import Any
 
 from pfvarx.constants import CallStatus, Design
@@ -211,7 +212,12 @@ def decisions(ctx: Context) -> dict[str, Any]:
     return json.loads((ctx.results / "eligibility" / "cohort_decisions.json").read_text())
 
 
-def wilson(k: int, n: int, z: float = 1.959963984540054) -> tuple[float | None, float | None]:
+def z_score(level: float) -> float:
+    """Two-sided normal quantile of a confidence level (0.95 -> 1.96)."""
+    return float(NormalDist().inv_cdf(1 - (1 - level) / 2))
+
+
+def wilson(k: int, n: int, z: float) -> tuple[float | None, float | None]:
     """Wilson score interval (simple random sampling only)."""
     if n == 0:
         return None, None

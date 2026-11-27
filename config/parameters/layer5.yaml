@@ -1,4 +1,4 @@
-version: "1.3.0"
+version: "1.4.0"
 parameters:
   da001_credibility: {value: 0.95, source: UNCALIBRATED_PROVISIONAL, note: "candidate {0.90,0.95}"}
   da001_min_informative_loci: {value: 10, source: UNCALIBRATED_PROVISIONAL}
@@ -68,3 +68,8 @@ parameters:
   da009_interval_level: {value: 0.95, source: FRAMEWORK_POLICY, note: "Wilson interval level for joint prevalence and the level recorded with the co-occurrence test"}
   da009_dropout_ratio_grid: {value: [0.02, 0.05, 0.10, 0.20], source: FRAMEWORK_POLICY, note: "targeted designs: dropout ratios at which each call is recomputed for the sensitivity table, so a reader sees which calls depend on the provisional cut-off. Does not change any reported call"}
   da009_deletion_ratio_grid: {value: [0.05, 0.10, 0.20, 0.30], source: FRAMEWORK_POLICY, note: "whole-genome sequencing: the same, for the depth-ratio deletion cut-off"}
+  da002_interval_level: {value: 0.95, source: FRAMEWORK_POLICY, note: "Wilson interval level for each sample's marker read fraction and for marker prevalence"}
+  da008_prevalence_interval_level: {value: 0.95, source: FRAMEWORK_POLICY, note: "Wilson interval level for the prevalence of copy-number events"}
+  da008_window_min_fill: {value: 0.5, source: FRAMEWORK_POLICY, note: "a last, partial depth window is used when it holds at least this share of a full window"}
+  da005_jackknife_blocks: {value: 10, source: FRAMEWORK_POLICY, note: "blocks of sites for the jackknife standard error of Hudson FST"}
+  da007_grid_cell_degrees: {value: 0.5, source: FRAMEWORK_POLICY, note: "size of the latitude/longitude grid cells that samples are grouped into"}

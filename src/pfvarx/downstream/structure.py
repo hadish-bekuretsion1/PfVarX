@@ -72,7 +72,7 @@ def run(ctx: Context, threads: int = 1) -> None:
                 continue
             ac1 = np.stack([len(a) - gn[:, a].sum(1), gn[:, a].sum(1)], axis=1)
             ac2 = np.stack([len(b) - gn[:, b].sum(1), gn[:, b].sum(1)], axis=1)
-            blen = max(1, gn.shape[0] // 10)
+            blen = max(1, gn.shape[0] // int(frozen_param(p, "da005_jackknife_blocks")))
             fst, se, _, _ = allel.average_hudson_fst(ac1, ac2, blen=blen)
             fst_rows.append({"group_1": names[i], "group_2": names[k], "status": "COMPUTED", "hudson_fst": float(fst),
                              "jackknife_se": float(se), "block_length_sites": blen, "sites": int(gn.shape[0])})

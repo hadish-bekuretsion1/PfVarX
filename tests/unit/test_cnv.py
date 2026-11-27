@@ -9,13 +9,14 @@ import pysam
 import pytest
 
 from pfvarx.downstream import cnv
+from pfvarx.downstream.common import z_score
 
 LENGTH = 20000
 AMP = (5000, 7000)    # 0-based gene with twice the coverage (a tandem duplication)
 DEL = (12000, 13000)  # gene with no reads (a deletion)
 PARAMS = {"da008_amplification_ratio": 1.5, "da008_amplification_lower": 1.25, "da008_deletion_ratio": 0.1,
           "da008_present_ratio": 0.3, "da008_flank_min_ratio": 0.3, "da008_min_core_depth": 20,
-          "da008_flank_bp": 2000, "da008_window_bp": 200, "da008_bootstrap": 200}
+          "da008_flank_bp": 2000, "da008_window_bp": 200, "da008_bootstrap": 200, "da008_window_min_fill": 0.5}
 
 
 def _pair(header: pysam.AlignmentHeader, name: str, left: int, right: int, left_rev: bool, right_rev: bool,
@@ -74,7 +75,8 @@ def bam(tmp_path_factory: pytest.TempPathFactory) -> Path:
 
 def test_depth_ratios_and_calls(bam: Path) -> None:
     with pysam.AlignmentFile(str(bam)) as b:
-        core = cnv.statistics.median(cnv.window_medians(cnv.depth_profile(b, "ctg", 1000, 4000, 20), 200))
+        core = cnv.statistics.median(cnv.window_medians(cnv.depth_profile(b, "ctg", 1000, 4000, 20), 200,
+                                                       min_fill=PARAMS["da008_window_min_fill"]))
         assert 15 <= core <= 25
         amp = cnv.measure(b, ("ctg", *AMP), core, PARAMS, 20, seed=1)
         gone = cnv.measure(b, ("ctg", *DEL), core, PARAMS, 20, seed=2)
@@ -110,7 +112,7 @@ def test_gene_location_from_gene_feature_or_cds(tmp_path: Path) -> None:
 def test_prevalence_counts_only_judged_infections() -> None:
     calls = [{"sample_id": s, "locus_id": "hrp2", "state": st, "population": "A"}
              for s, st in (("a", "DELETED"), ("b", "PRESENT"), ("c", "UNKNOWN"))]
-    rows = cnv.prevalence(calls, [{"locus_id": "hrp2", "gene_name": "pfhrp2", "event": "DELETION"}])
+    rows = cnv.prevalence(calls, [{"locus_id": "hrp2", "gene_name": "pfhrp2", "event": "DELETION"}], z_score(0.95))
     overall = next(r for r in rows if r["group"] == "ALL")
     assert (overall["judged"], overall["unknown"], overall["with_event"], overall["prevalence"]) == (2, 1, 1, "0.5000")
 

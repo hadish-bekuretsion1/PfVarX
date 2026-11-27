@@ -1,4 +1,4 @@
-version: "1.1.0"
+version: "1.2.0"
 parameters:
   min_mapping_quality: {value: 20, source: UNCALIBRATED_PROVISIONAL, note: "grid {1,10,20,30}; Experiment C"}
   min_base_quality: {value: 13, source: UNCALIBRATED_PROVISIONAL, note: "grid {10,13,20}; Experiment C"}
@@ -46,3 +46,10 @@ parameters:
   k_bootstrap_max_iterations: {value: 200, source: FRAMEWORK_POLICY, note: "EM iteration cap for the bootstrap replicate fits of the K test (never above em_max_iterations)"}
   k_bootstrap_restart_divisor: {value: 10, source: FRAMEWORK_POLICY, note: "bootstrap replicate fits use em_restarts / this EM starts, and at least k_bootstrap_min_restarts"}
   k_bootstrap_min_restarts: {value: 2, source: FRAMEWORK_POLICY}
+  pairhmm_support_min_log10_ratio: {value: 1.0, source: FRAMEWORK_POLICY, note: "a read supports the indel (or the reference) when its log10 likelihood ratio for that haplotype is at least this; reads in between are uninformative"}
+  linkage_min_fragments: {value: 2, source: FRAMEWORK_POLICY, note: "fragments that must carry two alternative alleles together before they are joined into one linkage block"}
+  em_min_agreeing_starts: {value: 2, source: FRAMEWORK_POLICY, note: "EM starts that must reach the best log-likelihood (within em_restart_agreement) for a mixture fit to count as stable"}
+  em_mstep_logit_bound: {value: 30.0, source: FRAMEWORK_POLICY, note: "bound on each component's log-weight ratio in the M-step optimiser (a weight ratio of e^30 is far beyond any identifiable component)"}
+  em_mstep_max_iterations: {value: 50, source: FRAMEWORK_POLICY, note: "L-BFGS-B iterations per M-step; EM itself runs to em_tolerance or em_max_iterations"}
+  genotype_alt_min_wsaf: {value: 0.5, source: FRAMEWORK_POLICY, note: "the haploid GT is the dominant allele: ALT when WSAF is at least this. Also the dominant allele used by diversity (DA003) and phylogeny (DA006)"}
+  vcf_qual_cap: {value: 9999, source: FRAMEWORK_POLICY, note: "largest QUAL written to the VCF (the screen statistic, -log10); larger values are written as this"}
