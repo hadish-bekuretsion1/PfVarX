@@ -33,7 +33,7 @@ import pysam
 
 from pfvarx.configuration.loader import frozen_param
 from pfvarx.constants import Reason, Terminal
-from pfvarx.downstream.common import Context, decisions, wilson, write_manifest
+from pfvarx.downstream.common import Context, decisions, wilson, write_manifest, z_score
 from pfvarx.downstream.resistance import load_catalog
 from pfvarx.genomic_evidence import FLAG_FILTER
 from pfvarx.io import write_json, write_tsv
@@ -150,13 +150,14 @@ def background_percentile(ratios: list[float], value: float | None) -> float | N
 
 
 def window_ratios(bam: pysam.AlignmentFile, fasta: pysam.FastaFile, chrom: str, start: int, end: int,
-                  window: int, min_mapq: int, model: GcModel) -> list[float]:
-    """Observed / GC-expected depth of each full window of a region."""
+                  window: int, min_mapq: int, model: GcModel, *, min_fill: float) -> list[float]:
+    """Observed / GC-expected depth of each full window of a region (a last partial window holding
+    at least *min_fill* of a window, layer5.da008_window_min_fill, is kept)."""
     out = []
     depth = depth_profile(bam, chrom, start, end, min_mapq)
     for i in range(0, len(depth), window):
         w = depth[i:i + window]
-        if len(w) < max(1, window // 2):
+        if len(w) < max(1, int(window * min_fill)):
             continue
         exp = model.expected(gc_fraction(fasta.fetch(chrom, start + i, start + i + len(w))))
         if exp and exp > 0:
@@ -164,12 +165,13 @@ def window_ratios(bam: pysam.AlignmentFile, fasta: pysam.FastaFile, chrom: str, 
     return out
 
 
-def window_medians(depth: list[int], window: int) -> list[float]:
-    """Median depth of each full window (a last partial window of at least half a window is kept)."""
+def window_medians(depth: list[int], window: int, *, min_fill: float) -> list[float]:
+    """Median depth of each full window (a last partial window holding at least *min_fill* of a
+    window, layer5.da008_window_min_fill, is kept)."""
     out = []
     for i in range(0, len(depth), window):
         w = depth[i:i + window]
-        if len(w) >= max(1, window // 2):
+        if len(w) >= max(1, int(window * min_fill)):
             out.append(float(statistics.median(w)))
     return out
 
@@ -233,17 +235,21 @@ def measure(bam: pysam.AlignmentFile, loc: tuple[str, int, int], core: float, p:
     """Depth ratios of a gene and its flanks: GC-corrected with a model, else relative to ``core``."""
     chrom, start, end = loc
     flank, window = int(p["da008_flank_bp"]), int(p["da008_window_bp"])
+    fill = float(frozen_param(p, "da008_window_min_fill"))
     length = bam.get_reference_length(chrom)
-    gene_depth = window_medians(depth_profile(bam, chrom, start, end, min_mapq), window)
+    gene_depth = window_medians(depth_profile(bam, chrom, start, end, min_mapq), window, min_fill=fill)
     if model is not None and fasta is not None:
-        gene = window_ratios(bam, fasta, chrom, start, end, window, min_mapq, model)
-        flanks = (window_ratios(bam, fasta, chrom, max(0, start - flank), start, window, min_mapq, model)
-                  + window_ratios(bam, fasta, chrom, end, min(length, end + flank), window, min_mapq, model))
+        gene = window_ratios(bam, fasta, chrom, start, end, window, min_mapq, model, min_fill=fill)
+        flanks = (window_ratios(bam, fasta, chrom, max(0, start - flank), start, window, min_mapq, model, min_fill=fill)
+                  + window_ratios(bam, fasta, chrom, end, min(length, end + flank), window, min_mapq, model,
+                                  min_fill=fill))
         scale = 1.0
     else:
         gene = gene_depth
-        flanks = (window_medians(depth_profile(bam, chrom, max(0, start - flank), start, min_mapq), window)
-                  + window_medians(depth_profile(bam, chrom, end, min(length, end + flank), min_mapq), window))
+        flanks = (window_medians(depth_profile(bam, chrom, max(0, start - flank), start, min_mapq), window,
+                                 min_fill=fill)
+                  + window_medians(depth_profile(bam, chrom, end, min(length, end + flank), min_mapq), window,
+                                   min_fill=fill))
         scale = core
     ratio = statistics.median(gene) / scale if gene and scale > 0 else None
     lo, hi = ratio_interval(gene, scale, int(p["da008_bootstrap"]), seed,
@@ -318,7 +324,7 @@ def run(ctx: Context, threads: int = 1) -> None:
                 calls.append(row)
     cols = list(calls[0]) if calls else ["sample_id", "locus_id", "state"]
     write_tsv(out / "cnv_calls.tsv", calls, cols)
-    prev = prevalence(calls, loci)
+    prev = prevalence(calls, loci, z_score(float(frozen_param(p, "da008_prevalence_interval_level"))))
     write_tsv(out / "prevalence.tsv", prev, list(prev[0]) if prev else ["locus_id"])
     write_json(out / "catalog_provenance.json", {"path": str(cat_path), "meta": meta, "loci": len(loci)})
     caveats = ["Copy number is estimated from read depth relative to core-genome windows of the same sample with "
@@ -349,7 +355,7 @@ def run(ctx: Context, threads: int = 1) -> None:
                                     "deleted": sum(1 for c in calls if c["state"] == "DELETED")})
 
 
-def prevalence(calls: list[dict[str, Any]], loci: list[dict[str, str]]) -> list[dict[str, Any]]:
+def prevalence(calls: list[dict[str, Any]], loci: list[dict[str, str]], z: float) -> list[dict[str, Any]]:
     """Share of judged infections carrying each locus's event, per population and overall."""
     rows = []
     groups = sorted({c["population"] for c in calls if c["population"]}) + ["ALL"]
@@ -359,7 +365,7 @@ def prevalence(calls: list[dict[str, Any]], loci: list[dict[str, str]]) -> list[
             judged = [c for c in sel if c["state"] != "UNKNOWN"]
             k = sum(1 for c in judged if c["state"] in ("AMPLIFIED", "DELETED"))
             n = len(judged)
-            lo, hi = wilson(k, n)
+            lo, hi = wilson(k, n, z)
             rows.append({"locus_id": lc["locus_id"], "gene": lc["gene_name"], "event": lc["event"], "group": g,
                          "samples": len(sel), "judged": n, "unknown": len(sel) - n, "with_event": k,
                          "prevalence": "" if not n else f"{k / n:.4f}",

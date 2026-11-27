@@ -46,7 +46,7 @@ def dominant(ctx: Context, site: str, sid: str) -> int | None:
     c = ctx.matrix[site].get(sid)
     if not c or c["wsaf"] is None:
         return None
-    return 1 if c["wsaf"] >= 0.5 else 0
+    return 1 if c["wsaf"] >= float(frozen_param(ctx.params, "genotype_alt_min_wsaf")) else 0
 
 
 def group_stats(ctx: Context, samples: list[str], include_indels: bool) -> dict[str, Any]:

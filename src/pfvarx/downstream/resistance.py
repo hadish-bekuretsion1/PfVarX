@@ -14,8 +14,9 @@ from typing import Any
 
 import pysam
 
+from pfvarx.configuration.loader import frozen_param
 from pfvarx.constants import MarkerState, Reason, Terminal
-from pfvarx.downstream.common import Context, decisions, wilson, write_manifest
+from pfvarx.downstream.common import Context, decisions, wilson, write_manifest, z_score
 from pfvarx.genomic_evidence import FLAG_FILTER
 from pfvarx.io import write_json, write_tsv
 
@@ -137,6 +138,7 @@ def run(ctx: Context, threads: int = 1) -> None:
                        method={"catalog": str(cat_path), "catalog_meta": meta})
         return
     p = ctx.params
+    z = z_score(float(frozen_param(p, "da002_interval_level")))
     min_depth = int(ctx.eff["parameters"]["layer2.min_usable_depth"]["value"])
     min_mapq = int(ctx.eff["parameters"]["layer2.min_mapping_quality"]["value"])
     min_bq = int(ctx.eff["parameters"]["layer2.min_base_quality"]["value"])
@@ -164,7 +166,7 @@ def run(ctx: Context, threads: int = 1) -> None:
                         state = MarkerState.BELOW_REPORTING_FLOOR
                     else:
                         state = MarkerState.WILD_TYPE
-                lo, hi = wilson(alt, n) if n else (None, None)
+                lo, hi = wilson(alt, n, z) if n else (None, None)
                 calls.append({"sample_id": sid, "marker_id": m["marker_id"], "gene": m["gene_name"],
                               "codon": m["codon"], "ref_aa": m["ref_aa"], "alt_aa": m["alt_aa"], "state": state.value,
                               "codon_reads": n, "alt_reads": alt, "ref_reads": refn, "other_reads": n - alt - refn,
@@ -176,7 +178,7 @@ def run(ctx: Context, threads: int = 1) -> None:
                               "evidence_class": m.get("evidence_class", "")})
     cols = list(calls[0]) if calls else ["sample_id", "marker_id", "state"]
     write_tsv(out / "marker_calls.tsv", calls, cols)
-    prev = prevalence(calls, markers, "population", float(p["da002_k13_prevalence_alert"]),
+    prev = prevalence(calls, markers, "population", z, float(p["da002_k13_prevalence_alert"]),
                       int(p["da002_min_callable_per_group"]))
     write_tsv(out / "prevalence.tsv", prev, list(prev[0]) if prev else ["marker_id"])
     caveats = ["Molecular markers are not evidence of an individual patient's treatment outcome.",
@@ -207,7 +209,7 @@ def is_validated_k13(marker: dict[str, str]) -> bool:
     return ("k13" in gene or "kelch13" in gene or "pf3d7_1343700" in gene) and "valid" in marker.get("evidence_class", "").lower()
 
 
-def prevalence(calls: list[dict[str, Any]], markers: list[dict[str, str]], group_key: str,
+def prevalence(calls: list[dict[str, Any]], markers: list[dict[str, str]], group_key: str, z: float,
                k13_alert: float | None = None, min_callable: int = 1) -> list[dict[str, Any]]:
     """Marker prevalence per group. ``k13_alert`` flags validated PfKelch13 markers above the WHO level.
 
@@ -223,7 +225,7 @@ def prevalence(calls: list[dict[str, Any]], markers: list[dict[str, str]], group
             callable_ = [c for c in sel if c["state"] != "UNKNOWN"]
             k = sum(1 for c in callable_ if c["state"] in ("MUTANT", "MIXED"))
             n = len(callable_)
-            lo, hi = wilson(k, n)
+            lo, hi = wilson(k, n, z)
             fr = [float(c["alt_fraction"]) for c in callable_ if c["alt_fraction"]]
             rows.append({"marker_id": m["marker_id"], "group": g, "samples": len(sel), "callable": n,
                          "unknown": len(sel) - n, "mutant_or_mixed": k,

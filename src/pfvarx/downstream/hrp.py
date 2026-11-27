@@ -43,7 +43,6 @@ from __future__ import annotations
 
 import math
 import statistics
-from statistics import NormalDist
 from typing import Any
 
 import pysam
@@ -60,7 +59,7 @@ from pfvarx.downstream.cnv import (
     gene_location,
 )
 from pfvarx.downstream.cnv import measure as depth_measure
-from pfvarx.downstream.common import PANEL_CAVEAT, Context, decisions, wilson, write_manifest
+from pfvarx.downstream.common import PANEL_CAVEAT, Context, decisions, wilson, write_manifest, z_score
 from pfvarx.downstream.resistance import load_catalog
 from pfvarx.eligibility.territory import read_intervals
 from pfvarx.io import write_json, write_tsv
@@ -70,11 +69,6 @@ from pfvarx.io import write_json, write_tsv
 USES_COHORT_MATRIX = False
 MEASURES = ("pfhrp2_deleted", "pfhrp3_deleted", "double_deletion", "any_deletion")
 DELETED, PRESENT, UNKNOWN = "DELETED", "PRESENT", "UNKNOWN"
-
-
-def z_score(level: float) -> float:
-    """Two-sided normal quantile of a confidence level (0.95 -> 1.96)."""
-    return float(NormalDist().inv_cdf(1 - (1 - level) / 2))
 
 
 def contract_loci(contract: dict[str, Any]) -> list[str]:

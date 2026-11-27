@@ -21,6 +21,17 @@ from scipy import optimize, special
 from pfvarx.caller.stats import betabinom_logpmf
 
 
+@dataclass(frozen=True)
+class EmSettings:
+    """EM settings from layer2: M-step log-weight bound (em_mstep_logit_bound), M-step
+    optimiser iterations (em_mstep_max_iterations) and the starts that must agree for a
+    stable fit (em_min_agreeing_starts)."""
+
+    mstep_bound: float
+    mstep_max_iter: int
+    min_agreeing: int
+
+
 @dataclass
 class MixtureFit:
     k: int
@@ -46,7 +57,7 @@ def _site_loglik(y: np.ndarray, n: np.ndarray, w: np.ndarray, eps: float, phi: f
 
 
 def _em(y: np.ndarray, n: np.ndarray, k: int, eps: float, phi: float, rng: np.random.Generator,
-        tol: float, max_iter: int) -> tuple[np.ndarray, np.ndarray, float, bool, int]:
+        tol: float, max_iter: int, em: EmSettings) -> tuple[np.ndarray, np.ndarray, float, bool, int]:
     configs = _configs(k)
     c = len(configs)
     w = rng.dirichlet(np.ones(k))
@@ -81,7 +92,8 @@ def _em(y: np.ndarray, n: np.ndarray, k: int, eps: float, phi: float, rng: np.ra
         theta0 = np.log(np.clip(w[1:], 1e-9, None)) - math.log(max(w[0], 1e-9))
         if k > 1:
             res = optimize.minimize(q, theta0, jac=True, method="L-BFGS-B",
-                                    bounds=[(-30.0, 30.0)] * (k - 1), options={"maxiter": 50})
+                                    bounds=[(-em.mstep_bound, em.mstep_bound)] * (k - 1),
+                                    options={"maxiter": em.mstep_max_iter})
             w = special.softmax(np.concatenate([[0.0], res.x]))
         else:
             w = np.array([1.0])
@@ -101,25 +113,26 @@ def _em(y: np.ndarray, n: np.ndarray, k: int, eps: float, phi: float, rng: np.ra
     return w, new_prior, ll, converged, it
 
 
-def _em_seeded(args: tuple[np.ndarray, np.ndarray, int, float, float, int, float, int]
+def _em_seeded(args: tuple[np.ndarray, np.ndarray, int, float, float, int, float, int, EmSettings]
                ) -> tuple[np.ndarray, np.ndarray, float, bool, int]:
-    y, n, k, eps, phi, s, tol, max_iter = args
-    return _em(y, n, k, eps, phi, np.random.default_rng(s), tol, max_iter)
+    y, n, k, eps, phi, s, tol, max_iter, em = args
+    return _em(y, n, k, eps, phi, np.random.default_rng(s), tol, max_iter, em)
 
 
 def fit(y: np.ndarray, n: np.ndarray, k: int, eps: float, phi: float, seed: int, restarts: int,
         agreement: float, tol: float, max_iter: int, _doubled: bool = False,
-        executor: Executor | None = None) -> MixtureFit:
+        executor: Executor | None = None, *, em: EmSettings) -> MixtureFit:
     """Best of *restarts* EM runs; accepted as stable when >= 2 starts agree within *agreement*.
 
-    If unstable, the number of starts is doubled once; remaining instability is reported.
+    If unstable (fewer than ``em.min_agreeing`` starts agree), the number of starts is doubled
+    once; remaining instability is reported.
     With an *executor*, the restarts (each with its own seed) run in parallel; the best fit
     is chosen in the same order, so the result is identical.
     """
     best = None
     lls = []
     seeds = [seed + i for i in range(restarts)]
-    jobs = [(y, n, k, eps, phi, s, tol, max_iter) for s in seeds]
+    jobs = [(y, n, k, eps, phi, s, tol, max_iter, em) for s in seeds]
     runs = list(executor.map(_em_seeded, jobs)) if executor is not None and restarts > 1 \
         else [_em_seeded(job) for job in jobs]
     for w, prior, ll, conv, it in runs:
@@ -128,9 +141,9 @@ def fit(y: np.ndarray, n: np.ndarray, k: int, eps: float, phi: float, seed: int,
             best = (w, prior, ll, conv, it)
     assert best is not None
     agree = sum(1 for v in lls if best[2] - v <= agreement)
-    stable = agree >= 2 or k == 1 or restarts == 1
+    stable = agree >= em.min_agreeing or k == 1 or restarts == 1
     if not stable and not _doubled:
-        return fit(y, n, k, eps, phi, seed + 10_000, restarts * 2, agreement, tol, max_iter, True, executor)
+        return fit(y, n, k, eps, phi, seed + 10_000, restarts * 2, agreement, tol, max_iter, True, executor, em=em)
     return MixtureFit(k, [float(v) for v in best[0]], [float(v) for v in best[1]], float(best[2]),
                       bool(best[3]), int(best[4]), agree, stable, seeds)
 
@@ -144,11 +157,12 @@ def simulate(n: np.ndarray, f: MixtureFit, eps: float, phi: float, rng: np.rando
     return rng.binomial(n.astype(int), p)
 
 
-def _replicate_lr(args: tuple[np.ndarray, np.ndarray, int, float, float, int, int, float, float, int]) -> float:
+def _replicate_lr(args: tuple[np.ndarray, np.ndarray, int, float, float, int, int, float, float, int, EmSettings]
+                  ) -> float:
     """Bootstrap likelihood-ratio statistic of one simulated replicate (K versus K+1)."""
-    yb, n, k, eps, phi, s, boot_restarts, agreement, tol, boot_iter = args
-    l0 = fit(yb, n, k, eps, phi, s, boot_restarts, agreement, tol, boot_iter).log_lik
-    l1 = fit(yb, n, k + 1, eps, phi, s + 7, boot_restarts, agreement, tol, boot_iter).log_lik
+    yb, n, k, eps, phi, s, boot_restarts, agreement, tol, boot_iter, em = args
+    l0 = fit(yb, n, k, eps, phi, s, boot_restarts, agreement, tol, boot_iter, em=em).log_lik
+    l1 = fit(yb, n, k + 1, eps, phi, s + 7, boot_restarts, agreement, tol, boot_iter, em=em).log_lik
     return 2 * (l1 - l0)
 
 
@@ -156,7 +170,7 @@ def select_k(y: np.ndarray, n: np.ndarray, eps: float, phi: float, k_max: int, a
              replicates: int, seed: int, restarts: int, agreement: float, tol: float,
              max_iter: int, min_weight: float = 0.0, executor: Executor | None = None,
              batch: int = 1, *, boot_max_iter: int, boot_restart_divisor: int,
-             boot_min_restarts: int) -> dict[str, Any]:
+             boot_min_restarts: int, em: EmSettings) -> dict[str, Any]:
     """Sequential parametric-bootstrap LRT (Equations 3.24-3.26).
 
     Smallest K whose test of K versus K+1 is not rejected at alpha. Replicate fits use
@@ -169,7 +183,7 @@ def select_k(y: np.ndarray, n: np.ndarray, eps: float, phi: float, k_max: int, a
     batch the stream is rewound to exactly where the serial run would have stopped.
     """
     rng = np.random.default_rng(seed)
-    fits = {1: fit(y, n, 1, eps, phi, seed, 1, agreement, tol, max_iter)}
+    fits = {1: fit(y, n, 1, eps, phi, seed, 1, agreement, tol, max_iter, em=em)}
     tests: list[dict[str, int | float | str | bool | None]] = []
     chosen = None
     for k in range(1, k_max + 1):
@@ -178,7 +192,7 @@ def select_k(y: np.ndarray, n: np.ndarray, eps: float, phi: float, k_max: int, a
             tests.append({"k": k, "p_value": None, "note": "K_MAX reached; larger K not tested"})
             break
         fits[k + 1] = fit(y, n, k + 1, eps, phi, seed + 100 * k, restarts, agreement, tol, max_iter,
-                          executor=executor)
+                          executor=executor, em=em)
         lr = 2 * (fits[k + 1].log_lik - fits[k].log_lik)
         boot_restarts = max(boot_min_restarts, restarts // boot_restart_divisor)
         boot_iter = min(max_iter, boot_max_iter)
@@ -196,7 +210,7 @@ def select_k(y: np.ndarray, n: np.ndarray, eps: float, phi: float, k_max: int, a
                 yb = simulate(n, fits[k], eps, phi, rng)
                 states.append(rng.bit_generator.state)  # stream position after replicate j
                 jobs.append((yb, n, k, eps, phi, seed + 1_000_000 + 1000 * k + j, boot_restarts, agreement,
-                             tol, boot_iter))
+                             tol, boot_iter, em))
             stats = list(executor.map(_replicate_lr, jobs)) if executor is not None and len(jobs) > 1 \
                 else [_replicate_lr(job) for job in jobs]
             for offset, value in enumerate(stats):

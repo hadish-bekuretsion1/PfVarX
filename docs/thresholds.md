@@ -308,11 +308,29 @@ These settings of the numerical methods are design decisions (`FRAMEWORK_POLICY`
 | `layer3.microhap_max_variable_positions` | 32 | variable positions used per microhaplotype locus |
 | `planning.cohort_matrix_bytes_per_cell` | 32 | measured cost of one cohort evidence cell (25 bytes observed; the margin keeps the warning conservative) |
 | `layer5.da008_interval_level`, `da008_gc_min_windows_per_bin` | 0.95, 20 | depth-ratio interval and GC-matched windows per expected depth |
+| `layer2.pairhmm_support_min_log10_ratio` | 1.0 | log10 likelihood ratio a read needs to count for the indel or the reference in pair-HMM rescoring; reads in between are uninformative |
+| `layer2.linkage_min_fragments` | 2 | fragments that must carry two alternative alleles together to join them in a linkage block |
+| `layer2.em_min_agreeing_starts` | 2 | EM starts that must reach the best log-likelihood for a stable mixture fit |
+| `layer2.em_mstep_logit_bound`, `em_mstep_max_iterations` | 30, 50 | bound on each log-weight ratio and iterations of the M-step optimiser |
+| `layer2.genotype_alt_min_wsaf` | 0.5 | the haploid GT is the dominant allele (ALT at WSAF ≥ 0.5); DA003 and DA006 use the same rule |
+| `layer2.vcf_qual_cap` | 9999 | largest QUAL written to the VCF |
+| `layer5.da002_interval_level` | 0.95 | Wilson interval for each sample's marker read fraction and for marker prevalence |
+| `layer5.da008_prevalence_interval_level`, `da008_window_min_fill` | 0.95, 0.5 | Wilson interval for copy-number event prevalence; share of a window a last, partial depth window must hold |
+| `layer5.da005_jackknife_blocks` | 10 | blocks of sites for the Hudson FST jackknife standard error |
+| `layer5.da007_grid_cell_degrees` | 0.5 | latitude/longitude grid cell size for spatial grouping |
+| `planning.cohort_matrix_memory_warning_share` | 0.5 | warn when the cohort evidence matrix needs more than this share of `per_job.max_mem_mb` |
+| `layer6.benchmark_interval_level`, `benchmark_bootstrap_max_vectors`, `benchmark_bootstrap_seed` | 0.95, 9999, 1 | wild cluster bootstrap interval for benchmark sensitivity and precision |
+| `layer6.benchmark_rademacher_min_clusters` | 10 | samples from which Rademacher weights replace the Webb six-point weights |
+| `layer6.benchmark_clonal_min_expected_wsaf`, `benchmark_wsaf_bins`, `benchmark_calibration_min_sites` | 0.999; 0–0.1, 0.1–0.2, 0.2–0.35, 0.35–0.5, 0.5–0.999; 3 | benchmark WSAF calibration: alleles treated as clonal, detection-rate bins, sites needed for the calibration line. Interval coverage is judged against `layer2.wsaf_interval_level` |
 
 What stays in code is not a setting: file-format facts (VCF, GFF and BED columns, BAM flags,
 the Phred+33 offset), mathematical constants (three alternative bases, the normal quantile
-computed from a level), unit conversions, numerical-safety bounds of the optimisers, and the
-status and reason vocabularies in `src/pfvarx/constants.py`.
+computed from a level), definitions (a parsimony-informative site has two alleles each in at
+least two samples; a pairwise analysis needs two samples), unit conversions,
+numerical-safety guards (clipping away 0 and 1, the smallest positive number), the derivation
+of per-task random seeds from the run seed, operational limits (network timeouts, upload size,
+how many lines are read to recognise a file format, log excerpt lengths), and the status and
+reason vocabularies in `src/pfvarx/constants.py`.
 
 ## What still has no published basis
 

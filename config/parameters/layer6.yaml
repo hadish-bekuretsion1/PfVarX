@@ -1,3 +1,10 @@
-version: "1.0.0"
+version: "1.1.0"
 parameters:
   max_embedded_records: {value: 200000, source: FRAMEWORK_POLICY, note: "above this, views are paginated summaries; omitted records counted"}
+  benchmark_interval_level: {value: 0.95, source: FRAMEWORK_POLICY, note: "level of the wild cluster bootstrap intervals for sensitivity and precision (benchmarking)"}
+  benchmark_bootstrap_max_vectors: {value: 9999, source: FRAMEWORK_POLICY, note: "wild cluster bootstrap: all weight vectors are enumerated up to this many, otherwise this many are drawn"}
+  benchmark_bootstrap_seed: {value: 1, source: FRAMEWORK_POLICY, note: "seed of the drawn weight vectors, so a benchmark report is reproducible"}
+  benchmark_rademacher_min_clusters: {value: 10, source: FRAMEWORK_POLICY, note: "from this many samples (clusters) Rademacher weights are used; below it the Webb six-point weights, which behave better with few clusters"}
+  benchmark_clonal_min_expected_wsaf: {value: 0.999, source: FRAMEWORK_POLICY, note: "a truth allele expected at this within-sample fraction or above is clonal and is not scored for WSAF calibration"}
+  benchmark_wsaf_bins: {value: [[0.0, 0.1], [0.1, 0.2], [0.2, 0.35], [0.35, 0.5], [0.5, 0.999]], source: FRAMEWORK_POLICY, note: "expected-WSAF bins of the minor-allele detection rate; lower bound included, upper excluded"}
+  benchmark_calibration_min_sites: {value: 3, source: FRAMEWORK_POLICY, note: "detected mixture sites needed before the observed-versus-expected WSAF line is fitted"}
