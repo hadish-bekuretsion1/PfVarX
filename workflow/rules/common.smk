@@ -20,6 +20,8 @@ from pfvarx.planning import resources as _job_resources
 
 RULE_REQUESTS = _job_resources.rule_requests(ROOT)
 ZIPPER_HEAP = _job_resources.load(ROOT)["zipper_heap"]
+# Open files the cohort merge needs besides one per sample (planning.cohort_merge_file_headroom).
+COHORT_MERGE_HEADROOM = int(_job_resources.planning(ROOT)["cohort_merge_file_headroom"])
 
 
 def mem(rule, host=False, job=None):
