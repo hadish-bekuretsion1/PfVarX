@@ -171,6 +171,8 @@ sbatch --nodes=1 --ntasks=1 --cpus-per-task=4 --mem=8G --time=12:00:00 \
 Match the batch request and compute YAML to the study. Set `tmp_dir` in
 `config/compute.yaml` to node-local scratch (an absolute path such as `/local/scratch/alice`,
 created before the job; YAML does not expand `$USER`) so Snakemake, Picard and fgbio temporary files do not fill a small `/tmp`.
-This uses one node per workflow run. Per-rule distributed scheduling and managed cloud batch
+Large cohorts need no system changes: the cohort merge raises the open-file limit itself (and
+merges in batches above the system's hard limit), and the cohort steps use every thread the
+job is given. This uses one node per workflow run. Per-rule distributed scheduling and managed cloud batch
 services require separate executor integration and qualification.
 
