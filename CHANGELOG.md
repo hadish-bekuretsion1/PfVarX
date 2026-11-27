@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+### Documentation: public repository
+
+The repository is public: the README, getting started (md and html), `docs/README.html` and
+the sample analysis guide no longer ask for GitHub sign-in or a token before cloning.
+
 ### Layer 3 scales to large cohorts (same results)
 
 Measured limits of the cohort steps, each now removed:

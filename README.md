@@ -15,8 +15,7 @@ New to PfVarX? [Getting started](docs/getting-started.md) walks through every st
 from installing Pixi to opening the report, with a troubleshooting table.
 
 Native installation targets are Linux x86-64, Linux ARM64, and macOS 13+ on Intel or
-Apple silicon. You need Git, Python 3.11+ for bootstrap, Pixi on PATH, and access to the
-private GitHub repository. On Windows, use WSL2 with a supported Linux distribution.
+Apple silicon. You need Git, Python 3.11+ for bootstrap, and Pixi on PATH. On Windows, use WSL2 with a supported Linux distribution.
 macOS and Linux ARM64 are newly enabled, experimental targets pending successful native
 CI runs; a solved lock is not runtime or scientific validation. See
 [platform support](docs/platforms.md). This example creates a workspace whose tools are installed on demand.
