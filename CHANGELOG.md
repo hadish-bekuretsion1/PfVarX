@@ -2,6 +2,30 @@
 
 ## Unreleased
 
+### PfVarX-Call: faster evidence collection, screening, decisions and linkage (same calls)
+
+- Read evidence (L2.2) is read through pysam's pileup-column accessors instead of one read
+  object per read and position; about 5 times faster on a synthetic AT-rich WGS sample. The
+  per-read loop is kept as `extract_reference` and is used when `layer2.min_base_quality` is 0.
+- The screen, interval, tail and strand statistics are computed once per distinct set of
+  inputs: tens of thousands of candidates share a few hundred combinations. The cached value
+  is the same number.
+- With worker processes, the five error-model fits run in parallel, indel rescoring is
+  spread one candidate per task (it was one contig per task, so the largest chromosome set
+  the pace), and linkage windows run in the workers. Linkage looks up only a window's
+  allele positions in each read instead of every aligned base.
+- Measured on a synthetic AT-rich sample (1 Mb, about 8,900 candidates, 2 workers): the
+  stages before the mixture model went from 35.5 s to 8.5 s and the whole caller from
+  60 s to 34 s. The mixture bootstrap, which is unchanged, is now most of the remaining time
+  and already uses every worker.
+- Checked: the sample VCF, evidence table, callable and focal-loss BEDs and caller QC are
+  identical on that sample, and every result of the synthetic WGS and targeted verification
+  runs is identical to the previous code (run IDs, paths, timestamps, measured resources and
+  the code-dependent reuse key differ). `tests/unit/test_caller_speed_equivalence.py`
+  compares the new paths with the reference paths on reads with deletions, insertions of up
+  to 12 bases, reference skips, soft clips, overlapping mates, missing qualities or
+  sequences and two clones; it fails on deliberate errors in strand, quality or indel parsing.
+
 ### Faster indel rescoring in PfVarX-Call (same calls)
 
 - The pair-HMM that rescores indel candidates (L2.5) is now compiled with Numba. It was the
