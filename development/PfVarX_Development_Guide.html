@@ -1,0 +1,1087 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>PfVarX Development Guide</title>
+<style>
+/* Layout: fixed contents column on the left, guide text on the right; one column on narrow screens. */
+:root {
+  --bg: #f3f6f9; --surface: #ffffff; --surface-2: #eef3f8; --text: #172a3a; --muted: #566b7d;
+  --line: #d6e0ea; --accent: #1d4f7a; --accent-soft: #e6eff7; --code-bg: #0f2233; --code-fg: #e7eef5;
+  --ok: #24724a; --ok-soft: #e5f3eb; --warn: #8a5100; --warn-soft: #fff4e0; --bad: #a3302d; --bad-soft: #fbeaea;
+  --radius: 10px; --mono: ui-monospace, "SFMono-Regular", "JetBrains Mono", Menlo, Consolas, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root { --bg: #0e1822; --surface: #142230; --surface-2: #1a2b3b; --text: #e3ebf2; --muted: #9db0c0;
+    --line: #26394b; --accent: #7fb6e3; --accent-soft: #1c3346; --code-bg: #08121b; --code-fg: #dfe8f0;
+    --ok: #6fcf98; --ok-soft: #143326; --warn: #f0b35a; --warn-soft: #3a2a10; --bad: #f08a86; --bad-soft: #3b1918; }
+}
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body { margin: 0; background: var(--bg); color: var(--text); font: 16px/1.65 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
+.layout { display: grid; grid-template-columns: 285px minmax(0, 1fr); min-height: 100vh; }
+nav.toc { position: sticky; top: 0; height: 100vh; overflow-y: auto; padding: 1.4rem 1rem; background: var(--surface); border-right: 1px solid var(--line); font-size: .88rem; }
+nav.toc .brand { font-weight: 800; color: var(--accent); font-size: 1.05rem; }
+nav.toc .sub { color: var(--muted); font-size: .8rem; margin-bottom: .8rem; }
+nav.toc input { width: 100%; padding: .4rem .55rem; border: 1px solid var(--line); border-radius: 6px; background: var(--surface-2); color: var(--text); margin-bottom: .6rem; font: inherit; }
+nav.toc .part { margin: .9rem 0 .2rem; font-size: .72rem; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); font-weight: 700; }
+nav.toc a { display: block; padding: .24rem .55rem; border-radius: 6px; color: var(--text); text-decoration: none; }
+nav.toc a:hover, nav.toc a.active { background: var(--accent-soft); color: var(--accent); }
+nav.toc a.l2 { padding-left: 1.4rem; color: var(--muted); font-size: .84rem; }
+main { padding: 2rem clamp(1rem, 4vw, 3.5rem) 4rem; max-width: 1080px; }
+header.hero { background: linear-gradient(135deg, #1d4f7a, #2b6d9e); color: #fff; border-radius: var(--radius); padding: 1.8rem 2rem; margin-bottom: 1.5rem; }
+header.hero h1 { margin: 0 0 .4rem; font-size: 1.9rem; letter-spacing: -.01em; }
+header.hero p { margin: 0; max-width: 68ch; color: #e6f0f8; }
+header.hero .meta { margin-top: .9rem; font-size: .85rem; color: #cfe0ee; }
+.partbanner { margin: 3rem 0 .5rem; padding: .5rem .9rem; border-radius: 8px; background: var(--accent); color: #fff; font-weight: 700; letter-spacing: .02em; }
+h2 { margin: 2.2rem 0 .8rem; font-size: 1.4rem; color: var(--accent); border-bottom: 2px solid var(--line); padding-bottom: .35rem; scroll-margin-top: 1rem; }
+h3 { margin: 1.6rem 0 .5rem; font-size: 1.1rem; scroll-margin-top: 1rem; }
+p, li { max-width: 78ch; }
+code { font-family: var(--mono); font-size: .86em; background: var(--surface-2); padding: .06rem .3rem; border-radius: 4px; overflow-wrap: anywhere; }
+.cmd { position: relative; margin: .8rem 0 1.1rem; }
+.cmd pre { margin: 0; background: var(--code-bg); color: var(--code-fg); padding: 1rem 1.1rem; border-radius: var(--radius); overflow-x: auto; font: .84rem/1.55 var(--mono); }
+.cmd pre .c { color: #8fb3cf; }
+.cmd button { position: absolute; top: .45rem; right: .45rem; background: #23435f; color: #e7eef5; border: 0; border-radius: 6px; padding: .2rem .6rem; font-size: .75rem; cursor: pointer; }
+.cmd button:hover { background: #2f5a7f; }
+.tablewrap { overflow-x: auto; margin: .8rem 0 1.2rem; border: 1px solid var(--line); border-radius: var(--radius); }
+table { width: 100%; border-collapse: collapse; font-size: .88rem; background: var(--surface); }
+th, td { text-align: left; vertical-align: top; padding: .45rem .65rem; border-bottom: 1px solid var(--line); }
+th { background: var(--surface-2); font-weight: 650; position: sticky; top: 0; }
+td.num { font-variant-numeric: tabular-nums; white-space: nowrap; }
+.filter { margin: .4rem 0; }
+.filter input { width: min(420px, 100%); padding: .4rem .6rem; border: 1px solid var(--line); border-radius: 6px; background: var(--surface); color: var(--text); font: inherit; }
+.callout { border-radius: var(--radius); padding: .85rem 1.1rem; margin: 1rem 0; border-left: 5px solid; }
+.callout.tip { background: var(--ok-soft); border-color: var(--ok); }
+.callout.warn { background: var(--warn-soft); border-color: var(--warn); }
+.callout.stop { background: var(--bad-soft); border-color: var(--bad); }
+.callout strong:first-child { display: block; margin-bottom: .2rem; }
+.cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: 1rem; margin: 1rem 0; }
+.card { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 1rem 1.1rem; }
+.card h4 { margin: 0 0 .3rem; color: var(--accent); }
+.card p { margin: 0; font-size: .92rem; color: var(--muted); }
+ol.steps { counter-reset: s; list-style: none; padding-left: 0; }
+ol.steps > li { counter-increment: s; position: relative; padding-left: 2.6rem; margin: .9rem 0; }
+ol.steps > li::before { content: counter(s); position: absolute; left: 0; top: .05rem; width: 1.8rem; height: 1.8rem; border-radius: 50%; background: var(--accent); color: #fff; display: grid; place-items: center; font-weight: 700; font-size: .85rem; }
+.pill { display: inline-block; padding: .05rem .5rem; border-radius: 999px; font-size: .76rem; font-weight: 650; background: var(--accent-soft); color: var(--accent); white-space: nowrap; }
+footer { margin-top: 3rem; color: var(--muted); font-size: .85rem; border-top: 1px solid var(--line); padding-top: 1rem; }
+@media (max-width: 900px) { .layout { grid-template-columns: 1fr; } nav.toc { position: static; height: auto; border-right: 0; border-bottom: 1px solid var(--line); } }
+@media print { nav.toc, .cmd button, .filter { display: none; } .layout { grid-template-columns: 1fr; } }
+</style>
+</head>
+<body>
+<div class="layout">
+<nav class="toc" aria-label="Contents">
+  <div class="brand">PfVarX</div>
+  <div class="sub">Development guide · Ubuntu / WSL2 · GitHub</div>
+  <input id="tocfilter" type="search" placeholder="Filter contents" aria-label="Filter contents">
+  <div class="part">Start</div>
+  <a href="#principles">1. How development works</a>
+  <a href="#setup">2. Set up the computer</a>
+  <div class="part">Inventory</div>
+  <a href="#inv-tools">3. Tools and packages</a>
+  <a href="#inv-steps">4. Pipeline steps and rules</a>
+  <a href="#inv-algos">5. PfVarX algorithms and code</a>
+  <a href="#inv-params">6. All parameters</a>
+  <a href="#inv-gates">7. All QC gates</a>
+  <a href="#inv-analyses">8. Downstream analyses</a>
+  <div class="part">Change and test</div>
+  <a href="#experiment">9. Experiment safely</a>
+  <a href="#grid">10. Choose the best parameter value</a>
+  <a href="#qc">11. Test QC thresholds</a>
+  <a href="#measure">12. Measure speed and accuracy</a>
+  <a href="#replace">13. Replace or upgrade a tool</a>
+  <a href="#recipes">14. Other changes</a>
+  <a href="#testing">15. Testing ladder</a>
+  <a href="#docs">16. Documentation rules</a>
+  <div class="part">Git and GitHub</div>
+  <a href="#git-setup">17. Git and GitHub setup</a>
+  <a href="#git-daily">18. Everyday workflow</a>
+  <a href="#git-release">19. Pull requests, CI and releases</a>
+  <a href="#git-history">20. History and comparison</a>
+  <a href="#git-fix">21. Fixing mistakes</a>
+  <a href="#git-conflicts">22. Conflicts</a>
+  <a href="#git-more">23. Worktrees, stash and tags</a>
+  <div class="part">Reference</div>
+  <a href="#rules">24. Rules and things to avoid</a>
+  <a href="#cheats">25. Command cheat sheet</a>
+  <a href="#trouble">26. Troubleshooting</a>
+</nav>
+<main>
+<header class="hero">
+  <h1>PfVarX Development Guide</h1>
+  <p>Everything needed to maintain, change, test and update PfVarX on your own computer: every tool, package and algorithm with its path and purpose; how to test parameters and choose the best; how to replace a tool that is slow or inaccurate; and every Git and GitHub command for this project.</p>
+  <div class="meta"><strong>Development only.</strong> This guide lives in <code style="background:#ffffff22;color:#fff">development/</code> of the repository and is left out of the release archive that users receive (<code style="background:#ffffff22;color:#fff">scripts/package.py</code>).</div>
+  <div class="meta">Repository <code style="background:#ffffff22;color:#fff">hadish-bekuretsion1/PfVarX</code> · development copy <code style="background:#ffffff22;color:#fff">~/PfVarX</code> · test workspaces <code style="background:#ffffff22;color:#fff">~/pfvarx-lab/</code> · inventory generated from <code style="background:#ffffff22;color:#fff">main</code> 3b36fc2 on 2026-11-22 · workflow sections updated 2026-11-24</div>
+</header>
+
+<div class="partbanner">Part A · Start</div>
+
+<h2 id="principles">1. How development works</h2>
+<p>There are two kinds of folders. Keep them apart and most mistakes cannot happen.</p>
+<div class="cards">
+  <div class="card"><h4>Development copy</h4><p><code>~/PfVarX</code> is the Git clone of the repository. Permanent changes are made here, on a branch, then tested and merged through GitHub.</p></div>
+  <div class="card"><h4>Test workspace</h4><p>A folder such as <code>~/pfvarx-lab/exp-baseline</code> holds one study's configuration, inputs and runs. Experiments happen here; nothing in it goes to GitHub.</p></div>
+  <div class="card"><h4>Branches</h4><p><code>main</code> holds released code, <code>develop</code> collects finished changes, and each change gets its own branch, for example <code>step/04-markdup-tool</code>.</p></div>
+</div>
+<p>Every change follows the same path:</p>
+<ol class="steps">
+  <li><strong>Measure</strong> what you want to improve: speed, memory or accuracy of the current setting or tool (section 12).</li>
+  <li><strong>Try</strong> the alternative in a test workspace and compare it with an unchanged run on the same data (sections 9–13).</li>
+  <li><strong>Decide</strong> from the numbers. Record what you tried, the data and the result.</li>
+  <li><strong>Make it permanent</strong> on a branch in <code>~/PfVarX</code>: code, tests and documentation together (sections 13–16).</li>
+  <li><strong>Release</strong> it: pull request into <code>develop</code>, full local CI (<code>development/local_ci.sh</code>) with its result on the pull request, merge, then the same for <code>develop</code> into <code>main</code> (section 19).</li>
+</ol>
+
+<h2 id="setup">2. Set up the computer (Ubuntu or WSL2)</h2>
+<h3>On Windows only: WSL2</h3>
+<div class="cmd"><pre><span class="c"># Windows PowerShell as Administrator, then restart Windows</span>
+wsl --install -d Ubuntu-24.04
+<span class="c"># Optional: C:\Users\&lt;you&gt;\.wslconfig gives WSL more memory</span>
+<span class="c">#   [wsl2]</span>
+<span class="c">#   memory=12GB</span>
+<span class="c">#   processors=4</span>
+<span class="c"># then: wsl --shutdown, and open Ubuntu again</span></pre></div>
+<div class="callout warn"><strong>WSL2: keep everything in the Linux home folder.</strong> Work in <code>~/PfVarX</code>, never under <code>/mnt/c/</code>: the pipeline is much slower there and file permissions break. Install VS Code on Windows with the WSL extension and open projects from the Ubuntu terminal with <code>code .</code>.</div>
+<h3>Ubuntu and WSL2: tools</h3>
+<div class="cmd"><pre>sudo apt update
+sudo apt install -y git curl rsync python3 build-essential gh
+curl -fsSL https://pixi.sh/install.sh | bash      <span class="c"># Pixi</span>
+exec bash
+git --version && python3 --version && pixi --version && gh --version</pre></div>
+<p>If <code>apt install gh</code> fails, follow the install steps on cli.github.com. Install VS Code from code.visualstudio.com (Ubuntu) or on Windows (WSL2), with the extensions Python, Snakemake Language, YAML and GitLens.</p>
+<h3>The development copy</h3>
+<div class="cmd"><pre>gh auth login                                     <span class="c"># GitHub.com, HTTPS, log in with a browser</span>
+gh auth setup-git
+git config --global user.name  "hadish-bekuretsion1"
+git config --global user.email "&lt;email of your GitHub account&gt;"
+git config --global pull.rebase true
+git config --global core.autocrlf input           <span class="c"># Windows/WSL2: keep Linux line endings</span>
+git config --global init.defaultBranch main
+
+cd ~
+git clone https://github.com/hadish-bekuretsion1/PfVarX.git
+cd PfVarX
+git checkout develop
+pixi install --locked                             <span class="c"># full development environment</span>
+pixi run lint && pixi run typecheck && pixi run test-unit
+code .</pre></div>
+<p>In VS Code choose the interpreter <code>~/PfVarX/.pixi/envs/default/bin/python</code> (<kbd>Ctrl+Shift+P</kbd> → Python: Select Interpreter).</p>
+
+<div class="partbanner">Part B · Inventory</div>
+
+<h2 id="inv-tools">3. Tools and packages</h2>
+<p>All tools are conda packages listed in <code>pixi.toml</code> and locked to the exact versions below in <code>pixi.lock</code>. They are grouped into <em>features</em>; each installation gets only the features its final output needs. <code>./pfvarx tool &lt;name&gt;</code> runs any of them inside a workspace.</p>
+<div class="tablewrap"><table>
+<tr><th>Feature</th><th>Installed for</th></tr>
+<tr><td><code>(base)</code></td><td>every environment, including the small control environment</td></tr>
+<tr><td><code>pipeline</code></td><td>every pipeline run</td></tr>
+<tr><td><code>reads</code></td><td>FASTQ input (and targeted UMI consensus realignment)</td></tr>
+<tr><td><code>targeted</code></td><td>targeted designs</td></tr>
+<tr><td><code>calling</code></td><td>FO002 and later</td></tr>
+<tr><td><code>annotation</code></td><td>FO004</td></tr>
+<tr><td><code>coi</code>, <code>related</code>, <code>structure</code>, <code>phylogeny</code>, <code>spatial</code></td><td>the FO004 analyses that use them</td></tr>
+<tr><td><code>bench</code></td><td>benchmarking with <code>--rtg</code></td></tr>
+<tr><td><code>dev</code></td><td>the development environment only</td></tr>
+</table></div>
+<div class="filter"><input type="search" data-filter="tools-table" placeholder="Filter tools, e.g. bwa, R, caller"></div>
+<div class="tablewrap"><table id="tools-table">
+<tr><th>Package</th><th>Version</th><th>Feature</th><th>Command / import</th><th>Used in (path)</th><th>Purpose</th></tr>
+<tr><td><strong>python</strong></td><td class='num'>3.12.16</td><td>(base)</td><td><code>python3</code></td><td><code>src/pfvarx/</code><br><code>workflow/scripts/*.py</code><br><code>bootstrap.py</code></td><td>Runs PfVarX itself: CLI, configuration, validation, caller, reporting</td></tr>
+<tr><td><strong>pydantic</strong></td><td class='num'>2.14.3</td><td>(base)</td><td><code>import pydantic</code></td><td><code>src/pfvarx/configuration/library.py</code><br><code>src/pfvarx/configuration/loader.py</code><br><code>src/pfvarx/configuration/models.py</code></td><td>Checks configuration files against their models</td></tr>
+<tr><td><strong>typer</strong></td><td class='num'>0.27.3</td><td>(base)</td><td><code>import typer</code></td><td><code>src/pfvarx/cli.py</code></td><td>The ./pfvarx command-line interface</td></tr>
+<tr><td><strong>pyyaml</strong></td><td class='num'>6.0.3</td><td>(base)</td><td><code>import yaml</code></td><td><code>src/pfvarx/benchmarking/resources.py</code><br><code>src/pfvarx/configuration/library.py</code><br><code>src/pfvarx/configuration/loader.py</code><br><code>src/pfvarx/configuration/migrate.py</code><br><code>src/pfvarx/configuration/web.py</code><br><code>src/pfvarx/eligibility/engine.py</code><br><code>src/pfvarx/execution/preflight.py</code><br><code>src/pfvarx/fixtures/synthetic.py</code><br><code>src/pfvarx/initialization/workspace.py</code><br><code>src/pfvarx/quality/policy.py</code></td><td>Reads and writes the YAML configuration and parameter files</td></tr>
+<tr><td><strong>pysam</strong></td><td class='num'>0.23.3</td><td>(base)</td><td><code>import pysam</code></td><td><code>src/pfvarx/annotation/snpeff_db.py</code><br><code>src/pfvarx/caller/call.py</code><br><code>src/pfvarx/caller_adapter.py</code><br><code>src/pfvarx/cohort/evidence.py</code><br><code>src/pfvarx/downstream/resistance.py</code><br><code>src/pfvarx/inputs/alignment_entry.py</code><br><code>src/pfvarx/inputs/validate.py</code><br><code>src/pfvarx/references/host.py</code><br><code>src/pfvarx/references/prepare.py</code></td><td>Reads BAM/CRAM/VCF from Python (caller evidence, validation)</td></tr>
+<tr><td><strong>htslib</strong></td><td class='num'>1.24</td><td>(base)</td><td><code>bgzip, tabix</code></td><td><code>src/pfvarx/annotation/snpeff_db.py</code></td><td>Compresses and indexes VCF and BED files</td></tr>
+<tr><td><strong>snakemake-minimal</strong></td><td class='num'>9.27.1</td><td>pipeline</td><td><code>snakemake</code></td><td><code>src/pfvarx/execution/runner.py</code></td><td>Runs the workflow steps in order, in parallel, and resumes them</td></tr>
+<tr><td><strong>samtools</strong></td><td class='num'>1.24</td><td>pipeline</td><td><code>samtools</code></td><td><code>src/pfvarx/inputs/guidance.py</code><br><code>src/pfvarx/references/prepare.py</code><br><code>workflow/rules/l1_align.smk</code><br><code>workflow/rules/l1_metrics.smk</code><br><code>workflow/rules/l1_umi.smk</code></td><td>Sorts, merges, indexes and counts alignments; FASTA index; host-read filtering</td></tr>
+<tr><td><strong>picard-slim</strong></td><td class='num'>3.5.0</td><td>pipeline</td><td><code>picard</code></td><td><code>src/pfvarx/references/prepare.py</code><br><code>workflow/rules/l1_align.smk</code></td><td>MarkDuplicates; CreateSequenceDictionary for the reference</td></tr>
+<tr><td><strong>mosdepth</strong></td><td class='num'>0.3.14</td><td>pipeline</td><td><code>mosdepth</code></td><td><code>src/pfvarx/quality/metrics.py</code><br><code>workflow/rules/common.smk</code><br><code>workflow/rules/l1_metrics.smk</code><br><code>workflow/scripts/l1_gate.py</code></td><td>Depth and callable fraction over the core genome and targets</td></tr>
+<tr><td><strong>fastp</strong></td><td class='num'>1.1.0</td><td>reads</td><td><code>fastp</code></td><td><code>src/pfvarx/benchmarking/resources.py</code><br><code>workflow/rules/common.smk</code><br><code>workflow/rules/l1_fastq_qc.smk</code><br><code>workflow/scripts/l1_gate.py</code></td><td>Read QC: adapter and quality trimming per library, read statistics</td></tr>
+<tr><td><strong>bwa-mem2</strong></td><td class='num'>2.3</td><td>reads</td><td><code>bwa-mem2</code></td><td><code>src/pfvarx/configuration/models.py</code><br><code>src/pfvarx/references/host.py</code><br><code>src/pfvarx/references/prepare.py</code><br><code>workflow/Snakefile</code><br><code>workflow/rules/common.smk</code><br><code>workflow/rules/l1_align.smk</code><br><code>workflow/rules/l1_umi.smk</code></td><td>Aligns reads to the parasite (or parasite+human) reference; builds the index</td></tr>
+<tr><td><strong>fgbio-minimal</strong></td><td class='num'>4.1.1</td><td>targeted</td><td><code>fgbio</code></td><td><code>src/pfvarx/configuration/library.py</code><br><code>src/pfvarx/inputs/alignment_entry.py</code><br><code>src/pfvarx/inputs/assay.py</code><br><code>src/pfvarx/inputs/guidance.py</code><br><code>src/pfvarx/inputs/validate.py</code><br><code>workflow/rules/common.smk</code><br><code>workflow/rules/l1_align.smk</code><br><code>workflow/rules/l1_umi.smk</code></td><td>UMI grouping and consensus reads; primer trimming for targeted designs</td></tr>
+<tr><td><strong>numpy</strong></td><td class='num'>2.5.4</td><td>calling</td><td><code>import numpy</code></td><td><code>src/pfvarx/benchmarking/evaluate.py</code><br><code>src/pfvarx/caller/call.py</code><br><code>src/pfvarx/caller/mixture.py</code><br><code>src/pfvarx/caller/pairhmm.py</code><br><code>src/pfvarx/caller/stats.py</code><br><code>src/pfvarx/downstream/structure.py</code></td><td>Numerical arrays for the caller and analyses</td></tr>
+<tr><td><strong>scipy</strong></td><td class='num'>1.18.1</td><td>calling</td><td><code>import scipy</code></td><td><code>src/pfvarx/caller/mixture.py</code><br><code>src/pfvarx/caller/pairhmm.py</code><br><code>src/pfvarx/caller/stats.py</code></td><td>Statistical tests and optimisation in the caller</td></tr>
+<tr><td><strong>numba</strong> (llvmlite)</td><td class='num'>0.68.1 (0.50.0)</td><td>calling</td><td><code>import numba</code></td><td><code>src/pfvarx/caller/pairhmm.py</code></td><td>Compiles the pair-HMM for indel rescoring; without it the numpy version runs (same results, slower)</td></tr>
+<tr><td><strong>bcftools</strong></td><td class='num'>1.24</td><td>calling</td><td><code>bcftools</code></td><td><code>src/pfvarx/benchmarking/evaluate.py</code><br><code>workflow/rules/l2_caller.smk</code><br><code>workflow/rules/l3_cohort.smk</code></td><td>Normalises per-sample VCFs, merges the cohort VCF, benchmarking comparisons</td></tr>
+<tr><td><strong>snpeff</strong></td><td class='num'>5.4.0c</td><td>annotation</td><td><code>snpEff</code></td><td><code>src/pfvarx/annotation/snpeff_db.py</code><br><code>src/pfvarx/configuration/models.py</code><br><code>workflow/rules/l4_annotation.smk</code></td><td>Builds a database from your FASTA+GFF and annotates variant effects</td></tr>
+<tr><td><strong>r-base</strong></td><td class='num'>4.5.3</td><td>coi, spatial</td><td><code>Rscript</code></td><td><code>src/pfvarx/downstream/coi.py</code><br><code>src/pfvarx/downstream/relatedness.py</code><br><code>src/pfvarx/downstream/spatial.py</code><br><code>workflow/scripts/da001_moire.R</code><br><code>workflow/scripts/da004_dcifer.R</code><br><code>workflow/scripts/da007_gam.R</code></td><td>Runs the R analysis scripts</td></tr>
+<tr><td><strong>r-jsonlite</strong></td><td class='num'>2.0.0</td><td>coi, spatial</td><td><code>library(jsonlite)</code></td><td><code>workflow/scripts/da001_moire.R</code><br><code>workflow/scripts/da004_dcifer.R</code><br><code>workflow/scripts/da007_gam.R</code></td><td>Passes data between Python and R as JSON</td></tr>
+<tr><td><strong>r-moire</strong></td><td class='num'>3.7.0</td><td>coi</td><td><code>library(moire)</code></td><td><code>workflow/scripts/da001_moire.R</code></td><td>DA001: complexity of infection (MOI) and within-host allele frequencies</td></tr>
+<tr><td><strong>r-dcifer</strong></td><td class='num'>1.5.2</td><td>related</td><td><code>library(dcifer)</code></td><td><code>workflow/scripts/da004_dcifer.R</code></td><td>DA004: relatedness between polyclonal samples</td></tr>
+<tr><td><strong>hmmibd</strong></td><td class='num'>2.1.3</td><td>related</td><td><code>hmmIBD</code></td><td><code>src/pfvarx/downstream/relatedness.py</code><br><code>src/pfvarx/reporting/build.py</code></td><td>DA004: identity-by-descent segments between monoclonal samples</td></tr>
+<tr><td><strong>scikit-allel</strong></td><td class='num'>1.3.13</td><td>structure</td><td><code>import allel</code></td><td><code>src/pfvarx/downstream/structure.py</code><br><code>workflow/scripts/da004_dcifer.R</code></td><td>DA003/DA005: diversity, PCA and population-structure statistics</td></tr>
+<tr><td><strong>iqtree</strong></td><td class='num'>2.4.0</td><td>phylogeny</td><td><code>iqtree2</code></td><td><code>src/pfvarx/downstream/phylogeny.py</code></td><td>DA006: maximum-likelihood phylogeny of single-lineage samples</td></tr>
+<tr><td><strong>r-mgcv</strong></td><td class='num'>1.9_4</td><td>spatial</td><td><code>library(mgcv)</code></td><td><code>workflow/scripts/da007_gam.R</code></td><td>DA007: spatial and temporal smoothing (GAM) of marker prevalence</td></tr>
+<tr><td><strong>rtg-tools</strong></td><td class='num'>3.13</td><td>bench</td><td><code>rtg vcfeval</code></td><td><code>src/pfvarx/benchmarking/evaluate.py</code></td><td>Benchmarking: compares calls with truth VCFs (precision, recall)</td></tr>
+<tr><td><strong>pytest</strong></td><td class='num'>9.2.0</td><td>dev</td><td><code>pytest</code></td><td><code>tests/</code></td><td>Runs the test suite</td></tr>
+<tr><td><strong>ruff</strong></td><td class='num'>0.17.4</td><td>dev</td><td><code>ruff</code></td><td><code>pyproject.toml</code></td><td>Lint and style checks</td></tr>
+<tr><td><strong>mypy</strong></td><td class='num'>2.4.1</td><td>dev</td><td><code>mypy</code></td><td><code>pyproject.toml</code></td><td>Type checks</td></tr>
+<tr><td><strong>types-pyyaml</strong></td><td class='num'>(locked)</td><td>dev</td><td><code>—</code></td><td></td><td>Type information for mypy</td></tr>
+</table></div>
+
+<h2 id="inv-steps">4. Pipeline steps and rules</h2>
+<p>The workflow is <code>workflow/Snakefile</code>, which includes the rule files below. Each rule is one step; its command, inputs, outputs, threads and memory are in the rule. Layer 0 (configuration, validation, preparation, planning) runs in Python before Snakemake.</p>
+<div class="tablewrap"><table>
+<tr><th>Layer</th><th>Rule file</th><th>Rules (steps)</th><th>Tools</th></tr>
+<tr><td>1 Alignment</td><td><code>workflow/rules/l1_align.smk</code></td><td><code>bwa_mem2_lane</code>, <code>merge_lanes</code>, <code>mark_duplicates</code>, <code>insert_metrics_preclip</code>, <code>trim_primers</code>, <code>alignment_entry</code>, <code>entry_trim_primers</code>, <code>entry_finalize</code></td><td>bwa-mem2, samtools, Picard, fgbio</td></tr>
+<tr><td>1 Read QC</td><td><code>workflow/rules/l1_fastq_qc.smk</code></td><td><code>fastp</code></td><td>fastp</td></tr>
+<tr><td>1 Alignment QC and gate</td><td><code>workflow/rules/l1_metrics.smk</code></td><td><code>flagstat</code>, <code>mosdepth_core</code>, <code>mosdepth_targets</code>, <code>l1_gate</code></td><td>samtools, mosdepth, Python</td></tr>
+<tr><td>1 UMI consensus (targeted with UMI)</td><td><code>workflow/rules/l1_umi.smk</code></td><td><code>umi_fastq_to_bam</code>, <code>umi_align_zipper</code>, <code>umi_group</code>, <code>umi_consensus</code>, <code>umi_realign</code>, <code>umi_preclip_and_trim</code></td><td>fgbio, bwa-mem2, samtools</td></tr>
+<tr><td>2 Variant calling</td><td><code>workflow/rules/l2_caller.smk</code></td><td><code>pfvarx_call</code>, <code>normalise_sample</code></td><td>PfVarX caller, bcftools</td></tr>
+<tr><td>3 Cohort</td><td><code>workflow/rules/l3_cohort.smk</code></td><td><code>cohort_merge</code>, <code>cohort_status</code>, <code>cohort_evidence</code>, <code>cohort_microhaplotypes</code>, <code>cohort_qc</code></td><td>bcftools, Python (samples in worker processes)</td></tr>
+<tr><td>4 Annotation</td><td><code>workflow/rules/l4_annotation.smk</code></td><td><code>snpeff_build</code>, <code>snpeff_annotate</code></td><td>SnpEff</td></tr>
+<tr><td>5 Downstream analyses</td><td><code>workflow/rules/l5_downstream.smk</code></td><td><code>da001_clonality</code>, <code>da_eligibility</code>, <code>da_execute</code></td><td>Python, R, hmmIBD, IQ-TREE</td></tr>
+</table></div>
+<p>Each run writes per-step timing and memory to <code>runs/&lt;RUN_ID&gt;/benchmarks/&lt;step&gt;/</code> and per-step logs to <code>runs/&lt;RUN_ID&gt;/logs/&lt;step&gt;/</code>.</p>
+
+<h2 id="inv-algos">5. PfVarX algorithms and code</h2>
+<p>PfVarX's own algorithms are Python modules under <code>src/pfvarx/</code>. The main ones:</p>
+<div class="tablewrap"><table>
+<tr><th>Algorithm</th><th>Path</th><th>What it does</th><th>Settings</th></tr>
+<tr><td>Variant caller (driver)</td><td><code>src/pfvarx/caller/call.py</code></td><td>Reads evidence from the BAM in 250 kb pieces, screens candidate SNVs and indels, assigns status classes, writes the per-sample VCF and evidence table</td><td><code>layer2.yaml</code></td></tr>
+<tr><td>Error model and statistics</td><td><code>src/pfvarx/caller/stats.py</code></td><td>Context-stratified sequencing-error fitting and the statistical tests behind each call</td><td><code>layer2.yaml</code></td></tr>
+<tr><td>Indel rescoring</td><td><code>src/pfvarx/caller/pairhmm.py</code></td><td>Local pair-HMM rescoring of reads against reference and indel haplotypes</td><td><code>layer2.yaml</code></td></tr>
+<tr><td>Technical mixture</td><td><code>src/pfvarx/caller/mixture.py</code></td><td>Adaptive mixture estimation of within-sample allele frequencies (WSAF) and technical K, with bootstrap</td><td><code>layer2.yaml</code></td></tr>
+<tr><td>Caller contract</td><td><code>src/pfvarx/caller_adapter.py</code></td><td>Runs the native caller or an external one and checks its outputs</td><td><code>caller:</code> in <code>config.yaml</code></td></tr>
+<tr><td>QC gates</td><td><code>src/pfvarx/quality/policy.py</code>, <code>quality/metrics.py</code>, <code>workflow/scripts/l1_gate.py</code></td><td>Parses tool metrics (fastp, flagstat, Picard, mosdepth, fgbio) and applies the QC policy per sample</td><td><code>config/registry/qc_policy_*.yaml</code></td></tr>
+<tr><td>Eligibility</td><td><code>src/pfvarx/eligibility/engine.py</code></td><td>Decides which samples and cohorts qualify for each analysis</td><td><code>config/registry/downstream_analyses.yaml</code></td></tr>
+<tr><td>Human DNA removal</td><td><code>src/pfvarx/references/host.py</code></td><td>Builds the parasite+human reference and filters read pairs aligned to the human genome</td><td><code>reference.host_removal</code></td></tr>
+<tr><td>Inputs Preparation</td><td><code>src/pfvarx/inputs/preparation.py</code></td><td>Builds the sample metadata from input files and merges study metadata</td><td><code>study_metadata</code></td></tr>
+<tr><td>Downstream analyses</td><td><code>src/pfvarx/downstream/*.py</code></td><td>DA001–DA008 (section 8)</td><td><code>layer5.yaml</code></td></tr>
+</table></div>
+<p>Every Python module and workflow script, with its own one-line description:</p>
+<div class="filter"><input type="search" data-filter="modules-table" placeholder="Filter modules, e.g. caller, report, inputs"></div>
+<div class="tablewrap"><table id="modules-table">
+<tr><th>Path</th><th>Purpose</th></tr>
+<tr><td><code>src/pfvarx/__init__.py</code></td><td>PfVarX package.</td></tr>
+<tr><td><code>src/pfvarx/annotation/__init__.py</code></td><td>Layer 4 annotation.</td></tr>
+<tr><td><code>src/pfvarx/annotation/snpeff_db.py</code></td><td>Build a SnpEff database from the pinned FASTA+GFF, check it, and annotate (Layer 4).</td></tr>
+<tr><td><code>src/pfvarx/benchmarking/__init__.py</code></td><td>Independent benchmarking (shares the production caller).</td></tr>
+<tr><td><code>src/pfvarx/benchmarking/evaluate.py</code></td><td>Benchmark evaluation of a completed run against declared truth (benchmarking workspace).</td></tr>
+<tr><td><code>src/pfvarx/benchmarking/partitions.py</code></td><td>Immutable benchmarking / held-out partition of truth samples, locked before tuning.</td></tr>
+<tr><td><code>src/pfvarx/benchmarking/resources.py</code></td><td>Summarise measured per-job resources (Snakemake benchmark records) into a profile.</td></tr>
+<tr><td><code>src/pfvarx/caller/__init__.py</code></td><td>Layer 2 PfVarX-Call.</td></tr>
+<tr><td><code>src/pfvarx/caller/call.py</code></td><td>PfVarX-Call: per-sample SNP and small-indel caller (Layer 2 orchestration).</td></tr>
+<tr><td><code>src/pfvarx/caller/mixture.py</code></td><td>Haploid clone-mixture model (L2.6; Equations 3.17-3.26).</td></tr>
+<tr><td><code>src/pfvarx/caller/pairhmm.py</code></td><td>Pair hidden Markov model (L2.5; Equations 3.11-3.16): a Numba-compiled kernel, with the vectorised numpy version kept as the reference and used without Numba.</td></tr>
+<tr><td><code>src/pfvarx/caller/stats.py</code></td><td>Numerical primitives for PfVarX-Call (L2.4): beta-binomial likelihoods and fitting.</td></tr>
+<tr><td><code>src/pfvarx/caller_adapter.py</code></td><td>Dispatch Layer 2 through the versioned sample output contract.</td></tr>
+<tr><td><code>src/pfvarx/cli.py</code></td><td>PfVarX command-line interface (Layer 0). Every command prints JSON.</td></tr>
+<tr><td><code>src/pfvarx/cohort/__init__.py</code></td><td>Layer 3 cohort integration.</td></tr>
+<tr><td><code>src/pfvarx/cohort/evidence.py</code></td><td>Layer 3 cohort evidence matrix and missingness semantics.</td></tr>
+<tr><td><code>src/pfvarx/cohort/merge.py</code></td><td>Layer 3 variant-only cohort merge that works at any cohort size.</td></tr>
+<tr><td><code>src/pfvarx/cohort/microhap.py</code></td><td>Layer 3 multiplexed microhaplotypes: read-backed haplotypes at catalogue loci.</td></tr>
+<tr><td><code>src/pfvarx/configuration/__init__.py</code></td><td>Layer 0 configuration: schemas, loading, precedence and freezing.</td></tr>
+<tr><td><code>src/pfvarx/configuration/library.py</code></td><td>Library catalog: targeted panels and library protocols, referenced from the sample manifest.</td></tr>
+<tr><td><code>src/pfvarx/configuration/loader.py</code></td><td>Load, validate and freeze the three user YAML files plus maintainer parameters.</td></tr>
+<tr><td><code>src/pfvarx/configuration/migrate.py</code></td><td>Migrate a workspace from configuration schema 3 to 4 (``./pfvarx config-migrate``).</td></tr>
+<tr><td><code>src/pfvarx/configuration/models.py</code></td><td>Typed schemas for the three user-edited YAML files.</td></tr>
+<tr><td><code>src/pfvarx/configuration/web.py</code></td><td>Loopback-only configuration editor and CLI preflight launcher.</td></tr>
+<tr><td><code>src/pfvarx/constants.py</code></td><td>Centralised, versioned identifiers, status vocabularies and reason codes.</td></tr>
+<tr><td><code>src/pfvarx/diagnostics/__init__.py</code></td><td>Layer 0 structured diagnostics.</td></tr>
+<tr><td><code>src/pfvarx/diagnostics/events.py</code></td><td>Structured diagnostic events (append-only JSONL) with redaction.</td></tr>
+<tr><td><code>src/pfvarx/downstream/__init__.py</code></td><td>Layer 5 downstream analyses.</td></tr>
+<tr><td><code>src/pfvarx/downstream/coi.py</code></td><td>DA001 complexity of infection and clonal status.</td></tr>
+<tr><td><code>src/pfvarx/downstream/common.py</code></td><td>Shared Layer 5 data adapters and the terminal status manifest (Appendix F.5).</td></tr>
+<tr><td><code>src/pfvarx/downstream/diversity.py</code></td><td>DA003 genetic diversity.</td></tr>
+<tr><td><code>src/pfvarx/downstream/hrp.py</code></td><td>DA009 pfhrp2/pfhrp3 joint deletion: single and dual deletion in every assay design.</td></tr>
+<tr><td><code>src/pfvarx/downstream/loci.py</code></td><td>The loci MOIRE (DA001) and Dcifer (DA004) are given, and which kind they are.</td></tr>
+<tr><td><code>src/pfvarx/downstream/phylogeny.py</code></td><td>DA006 conventional single-lineage phylogenetics (IQ-TREE 2).</td></tr>
+<tr><td><code>src/pfvarx/downstream/relatedness.py</code></td><td>DA004 relatedness and identity by descent.</td></tr>
+<tr><td><code>src/pfvarx/downstream/resistance.py</code></td><td>DA002 drug-resistance markers with callable denominators.</td></tr>
+<tr><td><code>src/pfvarx/downstream/run.py</code></td><td>Layer 5 dispatcher: the eligibility checkpoint and execution of one analysis.</td></tr>
+<tr><td><code>src/pfvarx/downstream/spatial.py</code></td><td>DA007 spatial and temporal summary of a source outcome (default: DA002 markers).</td></tr>
+<tr><td><code>src/pfvarx/downstream/cnv.py</code></td><td>DA008 copy-number markers: GC-corrected gene depth ratio (GcModel from random core windows), flank ratio, junction read pairs, calls and prevalence.</td></tr>
+<tr><td><code>src/pfvarx/downstream/structure.py</code></td><td>DA005 population structure: haploid PCA and Hudson FST (scikit-allel).</td></tr>
+<tr><td><code>src/pfvarx/eligibility/__init__.py</code></td><td>Layer 0 scientific eligibility.</td></tr>
+<tr><td><code>src/pfvarx/eligibility/engine.py</code></td><td>Scientific eligibility engine (L0.5): sample-by-analysis matrix and cohort decisions.</td></tr>
+<tr><td><code>src/pfvarx/eligibility/territory.py</code></td><td>The genomic territory a run can speak about, and each sample&#x27;s callable evidence within it.</td></tr>
+<tr><td><code>src/pfvarx/execution/__init__.py</code></td><td>Layer 0 execution.</td></tr>
+<tr><td><code>src/pfvarx/execution/progress.py</code></td><td>Live run progress page (<code>runs/&lt;RUN_ID&gt;/progress.html</code>) from the Snakemake log and the frozen estimate; opens the report when the run ends.</td></tr>
+<tr><td><code>src/pfvarx/execution/preflight.py</code></td><td>Config-driven preparation and auditable verification before scientific execution.</td></tr>
+<tr><td><code>src/pfvarx/execution/retention.py</code></td><td>Conservative cleanup of completed-run intermediates only; preview by default.</td></tr>
+<tr><td><code>src/pfvarx/execution/runner.py</code></td><td>Build the frozen plan, launch Snakemake, isolate failed samples and finalise the run (L0.8).</td></tr>
+<tr><td><code>src/pfvarx/fixtures/__init__.py</code></td><td>Synthetic software-test fixtures.</td></tr>
+<tr><td><code>src/pfvarx/fixtures/synthetic.py</code></td><td>Deterministic synthetic fixtures for software testing (NOT biological validation).</td></tr>
+<tr><td><code>src/pfvarx/genomic_evidence.py</code></td><td>Shared interval and alignment conventions.</td></tr>
+<tr><td><code>src/pfvarx/initialization/__init__.py</code></td><td>Layer 0 workspace initialisation: config-init, init and check-layout.</td></tr>
+<tr><td><code>src/pfvarx/initialization/layout.py</code></td><td>Create purpose- and assay-specific input folders; never create result folders.</td></tr>
+<tr><td><code>src/pfvarx/initialization/workspace.py</code></td><td>Profile-aware initialization after the locked environment has been installed.</td></tr>
+<tr><td><code>src/pfvarx/inputs/__init__.py</code></td><td>Layer 0 input validation and registry.</td></tr>
+<tr><td><code>src/pfvarx/inputs/alignment_entry.py</code></td><td>L1.9 imported-alignment entry: re-check the file and do the steps its documented state needs.</td></tr>
+<tr><td><code>src/pfvarx/inputs/assay.py</code></td><td>Resolve what each library is, from the sample manifest and the library catalog.</td></tr>
+<tr><td><code>src/pfvarx/inputs/content.py</code></td><td>Recognise input files by their content and structure, never by their name.</td></tr>
+<tr><td><code>src/pfvarx/inputs/guidance.py</code></td><td>Plain-language explanations and fixes for input-validation failures.</td></tr>
+<tr><td><code>src/pfvarx/inputs/metadata_join.py</code></td><td>Join a study-metadata table into the sample sheet by ``sample_id`` (``./pfvarx join-metadata``).</td></tr>
+<tr><td><code>src/pfvarx/inputs/organize.py</code></td><td>Explicit registration/discovery and checksum-verified HTTPS acquisition. Originals are read-only.</td></tr>
+<tr><td><code>src/pfvarx/inputs/preparation.py</code></td><td>Inputs Preparation, first part: the sample metadata and the optional study metadata merge.</td></tr>
+<tr><td><code>src/pfvarx/inputs/registry.py</code></td><td>Validate every configured input and build the sample/lane/read-group registry.</td></tr>
+<tr><td><code>src/pfvarx/inputs/transfer.py</code></td><td>Input-file transfer rules shared by the configuration GUI and the CLI.</td></tr>
+<tr><td><code>src/pfvarx/inputs/validate.py</code></td><td>Read-only input validation (L0.4). Nothing here writes or modifies a source file.</td></tr>
+<tr><td><code>src/pfvarx/installation.py</code></td><td>Install the tools the saved configuration needs (GUI: Install required tools).</td></tr>
+<tr><td><code>src/pfvarx/io.py</code></td><td>Safe file primitives: hashing, atomic writes and path containment.</td></tr>
+<tr><td><code>src/pfvarx/planning/__init__.py</code></td><td>Layer 0 planning: FO/DA dependencies and resource feasibility.</td></tr>
+<tr><td><code>src/pfvarx/planning/history.py</code></td><td>Resource history of real-data runs on this computer and the time, peak RAM and storage estimate per step (MEASURED_HISTORY or UNKNOWN).</td></tr>
+<tr><td><code>src/pfvarx/planning/plan.py</code></td><td>Objective and resource planning (L0.7). Read-only: it never creates output artefacts.</td></tr>
+<tr><td><code>src/pfvarx/planning/resources.py</code></td><td>Compute requests of the workflow rules and job classes, read from ``config/registry/job_resources.yaml``.</td></tr>
+<tr><td><code>src/pfvarx/provenance/__init__.py</code></td><td>Layer 0 provenance snapshots.</td></tr>
+<tr><td><code>src/pfvarx/provenance/snapshot.py</code></td><td>Content-addressed snapshot of the run-defining files (configuration, policy, code).</td></tr>
+<tr><td><code>src/pfvarx/quality/__init__.py</code></td><td>Layer 0 QC.</td></tr>
+<tr><td><code>src/pfvarx/quality/cohort.py</code></td><td>Layer 3 cohort QC (gate G5): how complete each sample is in the cohort.</td></tr>
+<tr><td><code>src/pfvarx/quality/metrics.py</code></td><td>Parse tool outputs into a flat, unit-labelled metric dictionary.</td></tr>
+<tr><td><code>src/pfvarx/quality/policy.py</code></td><td>Evaluate versioned QC gates. A gate without a threshold is NOT_EVALUATED, never PASS.</td></tr>
+<tr><td><code>src/pfvarx/references/__init__.py</code></td><td>Layer 0 reference identity and conditional index preparation.</td></tr>
+<tr><td><code>src/pfvarx/references/host.py</code></td><td>Optional Human DNA removal by competitive alignment (L0.4 and L1.2), wgs design only.</td></tr>
+<tr><td><code>src/pfvarx/references/prepare.py</code></td><td>Conditional, idempotent derivation of reference indexes (L0.4).</td></tr>
+<tr><td><code>src/pfvarx/reporting/__init__.py</code></td><td>Layer 6 reporting.</td></tr>
+<tr><td><code>src/pfvarx/reporting/build.py</code></td><td>Layer 6 harvester and renderer: results -&gt; dashboard_data.json -&gt; one offline HTML file.</td></tr>
+<tr><td><code>src/pfvarx/reporting/clonality.py</code></td><td>Per-sample clonality report: monoclonal, or polyclonal with the number of clones and each</td></tr>
+<tr><td><code>src/pfvarx/runs/__init__.py</code></td><td>Layer 0 run registry.</td></tr>
+<tr><td><code>src/pfvarx/runs/registry.py</code></td><td>Atomic run creation with NEW, RESUME and EXTEND modes (L0.6).</td></tr>
+<tr><td><code>workflow/scripts/da001_moire.R</code></td><td>DA001: MOIRE (Murphy &amp; Greenhouse) on long-form allele-presence data.</td></tr>
+<tr><td><code>workflow/scripts/da004_dcifer.R</code></td><td>DA004: Dcifer relatedness for pairs that include polyclonal samples.</td></tr>
+<tr><td><code>workflow/scripts/da007_gam.R</code></td><td>DA007: binomial GAM of marker prevalence on time, smoothness by REML (mgcv).</td></tr>
+<tr><td><code>workflow/scripts/l1_gate.py</code></td><td>Collect Layer 1 metrics for one sample and apply the frozen QC policy (checkpoint).</td></tr>
+</table></div>
+
+<h2 id="inv-params">6. All parameters</h2>
+<p>Tool and algorithm settings, one file per layer in <code>config/parameters/</code>. Each records its value, its <em>source class</em> (where the value comes from) and a note. Rules read them as <code>P["layer1.fastp_length_required"]</code>; Python reads them with <code>load_parameters()</code>. Every run freezes the values it used in <code>runs/&lt;RUN_ID&gt;/frozen_config.json</code>.</p>
+<div class="tablewrap"><table>
+<tr><th>Source class</th><th>Meaning</th></tr>
+<tr><td><code>SOFTWARE_DEFAULT</code></td><td>the tool's own default</td></tr>
+<tr><td><code>LITERATURE_SUPPORTED</code></td><td>a published standard; citation in <code>docs/thresholds.md</code></td></tr>
+<tr><td><code>EMPIRICALLY_CALIBRATED</code>, <code>ASSAY_VALIDATED</code></td><td>measured on real data for this assay</td></tr>
+<tr><td><code>FRAMEWORK_POLICY</code>, <code>DECLARED_SCOPE</code></td><td>a design decision of PfVarX</td></tr>
+<tr><td><code>UNCALIBRATED_PROVISIONAL</code></td><td>a working value still to be tested; the note often lists the values to test</td></tr>
+<tr><td><code>UNSET_BLOCKING</code></td><td>no value yet (must be null); the step that needs it is blocked</td></tr>
+</table></div>
+<div class="filter"><input type="search" data-filter="params-table" placeholder="Filter parameters, e.g. fastp, layer2, PROVISIONAL"></div>
+<div class="tablewrap"><table id="params-table">
+<tr><th>File</th><th>Parameter</th><th>Value</th><th>Source</th><th>Note</th></tr>
+<tr><td><code>layer0.yaml</code></td><td><code>fastq_records_checked_for_encoding</code></td><td class='num'>10000</td><td><span class='pill'>FRAMEWORK_POLICY</span></td><td>records sampled for the quality-range check; whole-file mate/count checks are exhaustive</td></tr>
+<tr><td><code>layer0.yaml</code></td><td><code>indel_length_bound_bp</code></td><td class='num'>50</td><td><span class='pill'>DECLARED_SCOPE</span></td><td>SNPs and indels &lt;=50 bp are in scope</td></tr>
+<tr><td><code>layer0.yaml</code></td><td><code>core_mask_fraction_min</code></td><td class='num'>0.7</td><td><span class='pill'>FRAMEWORK_POLICY</span></td><td>core mask covering less of the genome than this is flagged CORE_MASK_SUSPECT</td></tr>
+<tr><td><code>layer0.yaml</code></td><td><code>core_mask_fraction_max</code></td><td class='num'>0.97</td><td><span class='pill'>FRAMEWORK_POLICY</span></td><td>core mask covering more of the genome than this is flagged CORE_MASK_SUSPECT</td></tr>
+<tr><td><code>layer0.yaml</code></td><td><code>alignment_state_reads_checked</code></td><td class='num'>2000</td><td><span class='pill'>FRAMEWORK_POLICY</span></td><td>reads read from an imported BAM/CRAM to check its documented processing state</td></tr>
+<tr><td><code>layer0.yaml</code></td><td><code>core_mask_max_intervals</code></td><td class='num'>1000</td><td><span class='pill'>FRAMEWORK_POLICY</span></td><td>a core mask with more intervals than this is flagged CORE_MASK_SUSPECT (a gene list rather than a region mask; the standard 3D7 core has fewer than 200)</td></tr>
+<tr><td><code>layer1.yaml</code></td><td><code>fastp_adapter_kit_default</code></td><td class='num'>TRUSEQ</td><td><span class='pill'>FRAMEWORK_POLICY</span></td><td>adapters for libraries whose manifest row and protocol name none (TRUSEQ | NEXTERA | AUTO); fastp auto-detection can mistake AT-rich poly-T runs for its FlowCell1 adapter</td></tr>
+<tr><td><code>layer1.yaml</code></td><td><code>fastp_qualified_quality_phred</code></td><td class='num'>15</td><td><span class='pill'>SOFTWARE_DEFAULT</span></td><td>fastp default (Chen 2018); verified in the pinned fastp 1.1.0 --help</td></tr>
+<tr><td><code>layer1.yaml</code></td><td><code>fastp_unqualified_percent_limit</code></td><td class='num'>40</td><td><span class='pill'>SOFTWARE_DEFAULT</span></td><td></td></tr>
+<tr><td><code>layer1.yaml</code></td><td><code>fastp_n_base_limit</code></td><td class='num'>5</td><td><span class='pill'>SOFTWARE_DEFAULT</span></td><td></td></tr>
+<tr><td><code>layer1.yaml</code></td><td><code>fastp_cut_window_size</code></td><td class='num'>4</td><td><span class='pill'>SOFTWARE_DEFAULT</span></td><td>sliding window for --cut_right</td></tr>
+<tr><td><code>layer1.yaml</code></td><td><code>fastp_cut_mean_quality</code></td><td class='num'>20</td><td><span class='pill'>SOFTWARE_DEFAULT</span></td><td>mean quality threshold for --cut_right</td></tr>
+<tr><td><code>layer1.yaml</code></td><td><code>fastp_length_required</code></td><td class='num'>50</td><td><span class='pill'>UNCALIBRATED_PROVISIONAL</span></td><td>grid {30,50,70}; Experiment C</td></tr>
+<tr><td><code>layer1.yaml</code></td><td><code>fastp_cut_right</code></td><td class='num'>False</td><td><span class='pill'>UNCALIBRATED_PROVISIONAL</span></td><td>grid {off, w4 Q15, w4 Q20, w4 Q25}; Experiment C</td></tr>
+<tr><td><code>layer1.yaml</code></td><td><code>fastp_low_complexity_filter</code></td><td class='num'>False</td><td><span class='pill'>FRAMEWORK_POLICY</span></td><td>would bias against AT-rich reads</td></tr>
+<tr><td><code>layer1.yaml</code></td><td><code>fastp_dedup</code></td><td class='num'>False</td><td><span class='pill'>FRAMEWORK_POLICY</span></td><td></td></tr>
+<tr><td><code>layer1.yaml</code></td><td><code>bwa_mem2_fixed_batch_K</code></td><td class='num'>100000000</td><td><span class='pill'>FRAMEWORK_POLICY</span></td><td>thread-count-independent output</td></tr>
+<tr><td><code>layer1.yaml</code></td><td><code>bwa_mem2_host_extra_mem_mb</code></td><td class='num'>12000</td><td><span class='pill'>UNCALIBRATED_PROVISIONAL</span></td><td>added to the bwa-mem2 request when reference.host_fasta is set: a human-sized index is loaded into memory (commonly reported 10-16 GB in total); replace with a measured profile</td></tr>
+<tr><td><code>layer1.yaml</code></td><td><code>picard_optical_pixel_distance_unpatterned</code></td><td class='num'>100</td><td><span class='pill'>SOFTWARE_DEFAULT</span></td><td></td></tr>
+<tr><td><code>layer1.yaml</code></td><td><code>picard_optical_pixel_distance_patterned</code></td><td class='num'>2500</td><td><span class='pill'>SOFTWARE_DEFAULT</span></td><td>Picard documentation for patterned flow cells</td></tr>
+<tr><td><code>layer1.yaml</code></td><td><code>mosdepth_exclude_flag</code></td><td class='num'>1796</td><td><span class='pill'>SOFTWARE_DEFAULT</span></td><td></td></tr>
+<tr><td><code>layer1.yaml</code></td><td><code>fgbio_trimprimers_slop</code></td><td class='num'>5</td><td><span class='pill'>SOFTWARE_DEFAULT</span></td><td></td></tr>
+<tr><td><code>layer1.yaml</code></td><td><code>fgbio_group_strategy</code></td><td class='num'>Adjacency</td><td><span class='pill'>LITERATURE_SUPPORTED</span></td><td>directed adjacency (Smith 2017, UMI-tools); fgbio best-practice pipeline</td></tr>
+<tr><td><code>layer1.yaml</code></td><td><code>fgbio_group_edits</code></td><td class='num'>1</td><td><span class='pill'>SOFTWARE_DEFAULT</span></td><td></td></tr>
+<tr><td><code>layer1.yaml</code></td><td><code>fgbio_group_min_map_q</code></td><td class='num'>1</td><td><span class='pill'>SOFTWARE_DEFAULT</span></td><td></td></tr>
+<tr><td><code>layer1.yaml</code></td><td><code>fgbio_consensus_min_reads</code></td><td class='num'>1</td><td><span class='pill'>FRAMEWORK_POLICY</span></td><td>call with 1, filter later</td></tr>
+<tr><td><code>layer1.yaml</code></td><td><code>fgbio_consensus_error_pre_umi</code></td><td class='num'>45</td><td><span class='pill'>SOFTWARE_DEFAULT</span></td><td></td></tr>
+<tr><td><code>layer1.yaml</code></td><td><code>fgbio_consensus_error_post_umi</code></td><td class='num'>40</td><td><span class='pill'>SOFTWARE_DEFAULT</span></td><td></td></tr>
+<tr><td><code>layer1.yaml</code></td><td><code>fgbio_consensus_min_input_base_quality</code></td><td class='num'>20</td><td><span class='pill'>LITERATURE_SUPPORTED</span></td><td>fgbio best-practice consensus pipeline</td></tr>
+<tr><td><code>layer1.yaml</code></td><td><code>fgbio_filter_min_reads</code></td><td class='num'>3</td><td><span class='pill'>LITERATURE_SUPPORTED</span></td><td>fgbio best-practice consensus pipeline</td></tr>
+<tr><td><code>layer1.yaml</code></td><td><code>fgbio_filter_min_base_quality</code></td><td class='num'>45</td><td><span class='pill'>LITERATURE_SUPPORTED</span></td><td>fgbio best-practice consensus pipeline</td></tr>
+<tr><td><code>layer1.yaml</code></td><td><code>fgbio_filter_max_read_error_rate</code></td><td class='num'>0.025</td><td><span class='pill'>SOFTWARE_DEFAULT</span></td><td></td></tr>
+<tr><td><code>layer1.yaml</code></td><td><code>fgbio_filter_max_base_error_rate</code></td><td class='num'>0.2</td><td><span class='pill'>LITERATURE_SUPPORTED</span></td><td>fgbio best-practice consensus pipeline</td></tr>
+<tr><td><code>layer1.yaml</code></td><td><code>fgbio_filter_max_no_call_fraction</code></td><td class='num'>0.2</td><td><span class='pill'>SOFTWARE_DEFAULT</span></td><td></td></tr>
+<tr><td><code>layer2.yaml</code></td><td><code>min_mapping_quality</code></td><td class='num'>20</td><td><span class='pill'>UNCALIBRATED_PROVISIONAL</span></td><td>grid {1,10,20,30}; Experiment C</td></tr>
+<tr><td><code>layer2.yaml</code></td><td><code>min_base_quality</code></td><td class='num'>13</td><td><span class='pill'>UNCALIBRATED_PROVISIONAL</span></td><td>grid {10,13,20}; Experiment C</td></tr>
+<tr><td><code>layer2.yaml</code></td><td><code>window_size_bp</code></td><td class='num'>5000</td><td><span class='pill'>UNCALIBRATED_PROVISIONAL</span></td><td>grid {2,5,10} kb</td></tr>
+<tr><td><code>layer2.yaml</code></td><td><code>min_usable_depth</code></td><td class='num'>5</td><td><span class='pill'>LITERATURE_SUPPORTED</span></td><td>MalariaGEN Pf7 2023 and Pf8 2025: positions need &gt;=5 reads to be callable and no allele fraction is computed below 5 reads</td></tr>
+<tr><td><code>layer2.yaml</code></td><td><code>screening_threshold_neglog10</code></td><td class='num'>6.0</td><td><span class='pill'>UNCALIBRATED_PROVISIONAL</span></td><td>lambda(m): largest value retaining &gt;=99% truth SNPs and indels</td></tr>
+<tr><td><code>layer2.yaml</code></td><td><code>error_mean_default</code></td><td class='num'>0.005</td><td><span class='pill'>UNCALIBRATED_PROVISIONAL</span></td><td>used only until the per-mode error model is fitted</td></tr>
+<tr><td><code>layer2.yaml</code></td><td><code>overdispersion_phi_default</code></td><td class='num'>200.0</td><td><span class='pill'>UNCALIBRATED_PROVISIONAL</span></td><td>mode-level phi(m) until fitted</td></tr>
+<tr><td><code>layer2.yaml</code></td><td><code>known_ref_trim_fraction</code></td><td class='num'>0.025</td><td><span class='pill'>UNCALIBRATED_PROVISIONAL</span></td><td>grid {0.01,0.025,0.05}</td></tr>
+<tr><td><code>layer2.yaml</code></td><td><code>pass_min_fragments</code></td><td class='num'>2</td><td><span class='pill'>LITERATURE_SUPPORTED</span></td><td>MalariaGEN Pf7 2023: an allele seen in fewer than 2 reads is treated as absent</td></tr>
+<tr><td><code>layer2.yaml</code></td><td><code>pass_min_neglog10</code></td><td class='num'>10.0</td><td><span class='pill'>UNCALIBRATED_PROVISIONAL</span></td><td>PASS operating point; Experiment C</td></tr>
+<tr><td><code>layer2.yaml</code></td><td><code>strand_bias_max_neglog10</code></td><td class='num'>8.0</td><td><span class='pill'>UNCALIBRATED_PROVISIONAL</span></td><td>Fisher exact strand test; Experiment C</td></tr>
+<tr><td><code>layer2.yaml</code></td><td><code>pairhmm_gap_open</code></td><td class='num'>0.001</td><td><span class='pill'>UNCALIBRATED_PROVISIONAL</span></td><td>initial value; refit per mode</td></tr>
+<tr><td><code>layer2.yaml</code></td><td><code>pairhmm_gap_extend</code></td><td class='num'>0.1</td><td><span class='pill'>UNCALIBRATED_PROVISIONAL</span></td><td></td></tr>
+<tr><td><code>layer2.yaml</code></td><td><code>k_max</code></td><td class='num'>3</td><td><span class='pill'>UNCALIBRATED_PROVISIONAL</span></td><td>grid {3,4,5}; Experiments F and M</td></tr>
+<tr><td><code>layer2.yaml</code></td><td><code>em_tolerance</code></td><td class='num'>1e-08</td><td><span class='pill'>FRAMEWORK_POLICY</span></td><td></td></tr>
+<tr><td><code>layer2.yaml</code></td><td><code>em_max_iterations</code></td><td class='num'>1000</td><td><span class='pill'>FRAMEWORK_POLICY</span></td><td></td></tr>
+<tr><td><code>layer2.yaml</code></td><td><code>em_restarts</code></td><td class='num'>20</td><td><span class='pill'>FRAMEWORK_POLICY</span></td><td></td></tr>
+<tr><td><code>layer2.yaml</code></td><td><code>em_restart_agreement</code></td><td class='num'>0.0001</td><td><span class='pill'>FRAMEWORK_POLICY</span></td><td></td></tr>
+<tr><td><code>layer2.yaml</code></td><td><code>k_test_alpha</code></td><td class='num'>0.05</td><td><span class='pill'>LITERATURE_SUPPORTED</span></td><td>conventional level; over-selection measured</td></tr>
+<tr><td><code>layer2.yaml</code></td><td><code>k_bootstrap_replicates_analysis</code></td><td class='num'>39</td><td><span class='pill'>UNCALIBRATED_PROVISIONAL</span></td><td>used only when no precomputed critical-value surface exists; outputs labelled; 39 is the smallest B for which p &lt; 0.05 is attainable</td></tr>
+<tr><td><code>layer2.yaml</code></td><td><code>mixture_min_component_weight</code></td><td class='num'>0.02</td><td><span class='pill'>UNCALIBRATED_PROVISIONAL</span></td><td>components below this DNA proportion are treated as unidentified; Experiments F and M</td></tr>
+<tr><td><code>layer2.yaml</code></td><td><code>mixture_informative_min_sites</code></td><td class='num'>20</td><td><span class='pill'>UNCALIBRATED_PROVISIONAL</span></td><td></td></tr>
+<tr><td><code>layer2.yaml</code></td><td><code>wsaf_interval_level</code></td><td class='num'>0.95</td><td><span class='pill'>FRAMEWORK_POLICY</span></td><td></td></tr>
+<tr><td><code>layer2.yaml</code></td><td><code>candidate_min_alt_reads</code></td><td class='num'>2</td><td><span class='pill'>FRAMEWORK_POLICY</span></td><td>reads carrying an allele before it is screened; PASS separately needs pass_min_fragments</td></tr>
+<tr><td><code>layer2.yaml</code></td><td><code>pairhmm_max_reads</code></td><td class='num'>200</td><td><span class='pill'>FRAMEWORK_POLICY</span></td><td>runtime cap on reads re-scored per indel candidate</td></tr>
+<tr><td><code>layer2.yaml</code></td><td><code>pairhmm_flank_bp</code></td><td class='num'>60</td><td><span class='pill'>FRAMEWORK_POLICY</span></td><td>reference flank on each side of the indel haplotypes</td></tr>
+<tr><td><code>layer2.yaml</code></td><td><code>error_fit_exclude_fraction</code></td><td class='num'>0.05</td><td><span class='pill'>FRAMEWORK_POLICY</span></td><td>sites with &gt;= pass_min_fragments reads and &gt;= this fraction for a non-reference allele are left out of the error-model fit, with a truncated likelihood; MalariaGEN Pf7 treats alleles below 5% of reads as absent</td></tr>
+<tr><td><code>layer2.yaml</code></td><td><code>mixture_site_spacing_bp</code></td><td class='num'>500</td><td><span class='pill'>FRAMEWORK_POLICY</span></td><td>minimum distance between PASS SNVs used by the mixture model (a linkage proxy)</td></tr>
+<tr><td><code>layer2.yaml</code></td><td><code>mixture_indel_exclusion_bp</code></td><td class='num'>10</td><td><span class='pill'>FRAMEWORK_POLICY</span></td><td>SNVs this close to a called indel are left out of the mixture model (alignment artefacts beside indels); calls are unchanged</td></tr>
+<tr><td><code>layer2.yaml</code></td><td><code>mixture_constrained_calling</code></td><td class='num'>False</td><td><span class='pill'>FRAMEWORK_POLICY</span></td><td>pass-two: promote LOW_CONFIDENCE candidates whose reads fit an allowed clone fraction; off until benchmarked</td></tr>
+<tr><td><code>layer2.yaml</code></td><td><code>mixture_constrained_min_log10_lr</code></td><td class='num'>10.0</td><td><span class='pill'>UNCALIBRATED_PROVISIONAL</span></td><td>log10 LR of the best allowed clone fraction against error needed for promotion; to be set from simulated mixtures</td></tr>
+<tr><td><code>layer2.yaml</code></td><td><code>focal_loss_min_length_bp</code></td><td class='num'>50</td><td><span class='pill'>UNCALIBRATED_PROVISIONAL</span></td><td>shortest low-depth run reported as focal callability loss</td></tr>
+<tr><td><code>layer2.yaml</code></td><td><code>homopolymer_tract_classes</code></td><td class='num'>[[1, 1], [2, 4], [5, 9], [10, 10000]]</td><td><span class='pill'>FRAMEWORK_POLICY</span></td><td>homopolymer run lengths (bp, inclusive) that each get their own indel error model; the last class also takes every longer run</td></tr>
+<tr><td><code>layer2.yaml</code></td><td><code>indel_error_init_divisor</code></td><td class='num'>5</td><td><span class='pill'>FRAMEWORK_POLICY</span></td><td>starting indel error rate = error_mean_default / this, before each tract class is fitted</td></tr>
+<tr><td><code>layer2.yaml</code></td><td><code>indel_error_floor</code></td><td class='num'>1e-06</td><td><span class='pill'>FRAMEWORK_POLICY</span></td><td>smallest fitted indel error rate used</td></tr>
+<tr><td><code>layer2.yaml</code></td><td><code>error_rate_cap</code></td><td class='num'>0.25</td><td><span class='pill'>FRAMEWORK_POLICY</span></td><td>largest per-allele error rate used for WSAF intervals and constrained scoring (0.25: all four bases equally likely)</td></tr>
+<tr><td><code>layer2.yaml</code></td><td><code>error_fit_min_sites</code></td><td class='num'>50</td><td><span class='pill'>FRAMEWORK_POLICY</span></td><td>known-reference sites needed to fit the error model; with fewer, error_mean_default and overdispersion_phi_default are used</td></tr>
+<tr><td><code>layer2.yaml</code></td><td><code>error_fit_min_nonzero_for_phi</code></td><td class='num'>50</td><td><span class='pill'>FRAMEWORK_POLICY</span></td><td>sites with error reads needed to estimate phi; with fewer, mu is fitted and phi stays at overdispersion_phi_default</td></tr>
+<tr><td><code>layer2.yaml</code></td><td><code>overdispersion_phi_bounds</code></td><td class='num'>[10.0, 10000000.0]</td><td><span class='pill'>FRAMEWORK_POLICY</span></td><td>range of the fitted phi; the lower bound (intra-sample correlation &lt;= 0.09) because near-all-zero data cannot identify stronger overdispersion</td></tr>
+<tr><td><code>layer2.yaml</code></td><td><code>wsaf_profile_grid_points</code></td><td class='num'>2001</td><td><span class='pill'>FRAMEWORK_POLICY</span></td><td>grid points on [0, 1] for the profile-likelihood WSAF estimate and interval (step 0.0005)</td></tr>
+<tr><td><code>layer2.yaml</code></td><td><code>indel_anchor_bp</code></td><td class='num'>5</td><td><span class='pill'>FRAMEWORK_POLICY</span></td><td>a read re-scored for an indel must cover this many reference bases on each side of the event</td></tr>
+<tr><td><code>layer2.yaml</code></td><td><code>pileup_max_depth</code></td><td class='num'>1000000</td><td><span class='pill'>FRAMEWORK_POLICY</span></td><td>pysam pileup depth cap, far above any expected depth so that no read is dropped</td></tr>
+<tr><td><code>layer2.yaml</code></td><td><code>evidence_chunk_bp</code></td><td class='num'>250000</td><td><span class='pill'>FRAMEWORK_POLICY</span></td><td>work unit for parallel evidence collection; results do not depend on it</td></tr>
+<tr><td><code>layer2.yaml</code></td><td><code>k_bootstrap_max_iterations</code></td><td class='num'>200</td><td><span class='pill'>FRAMEWORK_POLICY</span></td><td>EM iteration cap for the bootstrap replicate fits of the K test (never above em_max_iterations)</td></tr>
+<tr><td><code>layer2.yaml</code></td><td><code>k_bootstrap_restart_divisor</code></td><td class='num'>10</td><td><span class='pill'>FRAMEWORK_POLICY</span></td><td>bootstrap replicate fits use em_restarts / this EM starts, and at least k_bootstrap_min_restarts</td></tr>
+<tr><td><code>layer2.yaml</code></td><td><code>k_bootstrap_min_restarts</code></td><td class='num'>2</td><td><span class='pill'>FRAMEWORK_POLICY</span></td><td></td></tr>
+<tr><td><code>layer2.yaml</code></td><td><code>pairhmm_support_min_log10_ratio</code></td><td class='num'>1.0</td><td><span class='pill'>FRAMEWORK_POLICY</span></td><td>a read supports the indel (or the reference) when its log10 likelihood ratio for that haplotype is at least this; reads in between are uninformative</td></tr>
+<tr><td><code>layer2.yaml</code></td><td><code>linkage_min_fragments</code></td><td class='num'>2</td><td><span class='pill'>FRAMEWORK_POLICY</span></td><td>fragments that must carry two alternative alleles together before they are joined into one linkage block</td></tr>
+<tr><td><code>layer2.yaml</code></td><td><code>em_min_agreeing_starts</code></td><td class='num'>2</td><td><span class='pill'>FRAMEWORK_POLICY</span></td><td>EM starts that must reach the best log-likelihood (within em_restart_agreement) for a mixture fit to count as stable</td></tr>
+<tr><td><code>layer2.yaml</code></td><td><code>em_mstep_logit_bound</code></td><td class='num'>30.0</td><td><span class='pill'>FRAMEWORK_POLICY</span></td><td>bound on each component&#x27;s log-weight ratio in the M-step optimiser (a weight ratio of e^30 is far beyond any identifiable component)</td></tr>
+<tr><td><code>layer2.yaml</code></td><td><code>em_mstep_max_iterations</code></td><td class='num'>50</td><td><span class='pill'>FRAMEWORK_POLICY</span></td><td>L-BFGS-B iterations per M-step; EM itself runs to em_tolerance or em_max_iterations</td></tr>
+<tr><td><code>layer2.yaml</code></td><td><code>genotype_alt_min_wsaf</code></td><td class='num'>0.5</td><td><span class='pill'>FRAMEWORK_POLICY</span></td><td>the haploid GT is the dominant allele: ALT when WSAF is at least this. Also the dominant allele used by diversity (DA003) and phylogeny (DA006)</td></tr>
+<tr><td><code>layer2.yaml</code></td><td><code>vcf_qual_cap</code></td><td class='num'>9999</td><td><span class='pill'>FRAMEWORK_POLICY</span></td><td>largest QUAL written to the VCF (the screen statistic, -log10); larger values are written as this</td></tr>
+<tr><td><code>layer3.yaml</code></td><td><code>norm_multiallelic</code></td><td class='num'>-any</td><td><span class='pill'>FRAMEWORK_POLICY</span></td><td></td></tr>
+<tr><td><code>layer3.yaml</code></td><td><code>norm_check_ref</code></td><td class='num'>e</td><td><span class='pill'>FRAMEWORK_POLICY</span></td><td></td></tr>
+<tr><td><code>layer3.yaml</code></td><td><code>norm_multi_overlaps</code></td><td class='num'>.</td><td><span class='pill'>FRAMEWORK_POLICY</span></td><td>replaces version default 0 (reference)</td></tr>
+<tr><td><code>layer3.yaml</code></td><td><code>dominant_allele_fraction</code></td><td class='num'>0.95</td><td><span class='pill'>LITERATURE_SUPPORTED</span></td><td>MalariaGEN Pf7 2023: an allele below 5% of reads is treated as absent, so &gt;=0.95 is a single-allele call (1 - value for REF)</td></tr>
+<tr><td><code>layer3.yaml</code></td><td><code>cohort_site_call_rate_min</code></td><td class='num'>0.8</td><td><span class='pill'>FRAMEWORK_POLICY</span></td><td>cohort QC summary: sites called (ALT, MIXED or REF) in at least this share of samples are counted as complete; reported, not gated</td></tr>
+<tr><td><code>layer3.yaml</code></td><td><code>microhap_min_depth</code></td><td class='num'>10</td><td><span class='pill'>UNCALIBRATED_PROVISIONAL</span></td><td>complete fragments (both mates resolved at every variable position) a sample needs at a microhaplotype locus; below it the locus is UNCALLABLE for that sample, never read as no haplotype. No published standard; amplicon panels normally run far above this</td></tr>
+<tr><td><code>layer3.yaml</code></td><td><code>microhap_min_haplotype_reads</code></td><td class='num'>2</td><td><span class='pill'>LITERATURE_SUPPORTED</span></td><td>MalariaGEN Pf7 2023: an allele seen in fewer than 2 reads is treated as absent; applied here to fragments carrying a haplotype</td></tr>
+<tr><td><code>layer3.yaml</code></td><td><code>microhap_min_haplotype_fraction</code></td><td class='num'>0.05</td><td><span class='pill'>LITERATURE_SUPPORTED</span></td><td>MalariaGEN Pf7 2023: an allele below 5% of reads is treated as absent; applied to a haplotype&#x27;s share of the locus&#x27;s complete fragments</td></tr>
+<tr><td><code>layer3.yaml</code></td><td><code>microhap_max_variable_positions</code></td><td class='num'>32</td><td><span class='pill'>FRAMEWORK_POLICY</span></td><td>variable positions used per locus; a locus with more is truncated to the first 32 and recorded (VARIABLE_POSITIONS_CAPPED), which bounds the haplotype string and the work per fragment</td></tr>
+<tr><td><code>layer3.yaml</code></td><td><code>microhap_min_loci_for_basis</code></td><td class='num'>10</td><td><span class='pill'>UNCALIBRATED_PROVISIONAL</span></td><td>microhaplotype loci called in the cohort before DA001 and DA004 use microhaplotypes instead of biallelic SNVs; with fewer, the larger biallelic set is kept and the basis is recorded. Same floor as da001_min_informative_loci</td></tr>
+<tr><td><code>layer3.yaml</code></td><td><code>microhap_derived_window_bp</code></td><td class='num'>150</td><td><span class='pill'>FRAMEWORK_POLICY</span></td><td>wgs: length of each derived microhaplotype locus. A haplotype needs fragments that resolve every variable position, so a locus must be spannable by one fragment; 150 bp matches a common Illumina read length. Longer loci are allowed but produce more incomplete fragments, which the artifact counts</td></tr>
+<tr><td><code>layer3.yaml</code></td><td><code>microhap_derived_min_sites</code></td><td class='num'>2</td><td><span class='pill'>FRAMEWORK_POLICY</span></td><td>PASS SNVs a derived locus needs: with one site a microhaplotype is just that biallelic site and gains nothing</td></tr>
+<tr><td><code>layer3.yaml</code></td><td><code>microhap_derived_max_loci</code></td><td class='num'>2000</td><td><span class='pill'>FRAMEWORK_POLICY</span></td><td>derived loci used, bounding the work per sample; the excess is recorded as DERIVED_LOCI_CAPPED</td></tr>
+<tr><td><code>layer4.yaml</code></td><td><code>snpeff_upstream_downstream_len</code></td><td class='num'>0</td><td><span class='pill'>FRAMEWORK_POLICY</span></td><td>compact gene-dense genome</td></tr>
+<tr><td><code>layer5.yaml</code></td><td><code>da001_credibility</code></td><td class='num'>0.95</td><td><span class='pill'>UNCALIBRATED_PROVISIONAL</span></td><td>candidate {0.90,0.95}</td></tr>
+<tr><td><code>layer5.yaml</code></td><td><code>da001_min_informative_loci</code></td><td class='num'>10</td><td><span class='pill'>UNCALIBRATED_PROVISIONAL</span></td><td></td></tr>
+<tr><td><code>layer5.yaml</code></td><td><code>population_frequency_min_samples</code></td><td class='num'>10</td><td><span class='pill'>UNCALIBRATED_PROVISIONAL</span></td><td>FWS and the MOIRE COI count use allele frequencies estimated from the analysed samples; each sample is 1/n of its own reference frequency (n=1 gives FWS 0 exactly), so both are withheld below this many samples. P(COI&gt;1) and the clonality call are kept</td></tr>
+<tr><td><code>layer5.yaml</code></td><td><code>da001_fws_reference_cutoff</code></td><td class='num'>0.95</td><td><span class='pill'>LITERATURE_SUPPORTED</span></td><td>Fws &gt;= 0.95 as the conventional proxy for a clonal infection (Manske 2012; Auburn 2012; MalariaGEN Pf7 2023, Pf8 2025); reported for comparison only</td></tr>
+<tr><td><code>layer5.yaml</code></td><td><code>da006_min_monoclonal</code></td><td class='num'>4</td><td><span class='pill'>FRAMEWORK_POLICY</span></td><td>mathematical floor for an informative unrooted topology</td></tr>
+<tr><td><code>layer5.yaml</code></td><td><code>da006_min_informative_sites</code></td><td class='num'>10</td><td><span class='pill'>UNCALIBRATED_PROVISIONAL</span></td><td></td></tr>
+<tr><td><code>layer5.yaml</code></td><td><code>da006_max_sample_missing</code></td><td class='num'>0.2</td><td><span class='pill'>UNCALIBRATED_PROVISIONAL</span></td><td></td></tr>
+<tr><td><code>layer5.yaml</code></td><td><code>da006_max_site_missing</code></td><td class='num'>0.2</td><td><span class='pill'>UNCALIBRATED_PROVISIONAL</span></td><td></td></tr>
+<tr><td><code>layer5.yaml</code></td><td><code>da006_ufboot</code></td><td class='num'>1000</td><td><span class='pill'>LITERATURE_SUPPORTED</span></td><td>IQ-TREE; rely on a branch only at UFBoot &gt;= 95 and SH-aLRT &gt;= 80 (Hoang 2018; Guindon 2010)</td></tr>
+<tr><td><code>layer5.yaml</code></td><td><code>da006_alrt</code></td><td class='num'>1000</td><td><span class='pill'>LITERATURE_SUPPORTED</span></td><td></td></tr>
+<tr><td><code>layer5.yaml</code></td><td><code>da004_min_informative_markers</code></td><td class='num'>200</td><td><span class='pill'>LITERATURE_SUPPORTED</span></td><td>Taylor 2019: about 200 biallelic markers keep relatedness error below 0.1. Minimum for WGS; for every design, pairs below it are ESTIMATED_LOW_PRECISION and get no relatedness label</td></tr>
+<tr><td><code>layer5.yaml</code></td><td><code>da004_min_informative_markers_targeted</code></td><td class='num'>20</td><td><span class='pill'>UNCALIBRATED_PROVISIONAL</span></td><td>minimum for targeted panels, whose SNPs are few and linked within amplicons; no published standard exists. Pairs below it are EXCLUDED_FEW_MARKERS</td></tr>
+<tr><td><code>layer5.yaml</code></td><td><code>da005_ld_window</code></td><td class='num'>100</td><td><span class='pill'>SOFTWARE_DEFAULT</span></td><td>scikit-allel locate_unlinked</td></tr>
+<tr><td><code>layer5.yaml</code></td><td><code>da005_ld_step</code></td><td class='num'>20</td><td><span class='pill'>SOFTWARE_DEFAULT</span></td><td></td></tr>
+<tr><td><code>layer5.yaml</code></td><td><code>da005_ld_threshold</code></td><td class='num'>0.1</td><td><span class='pill'>SOFTWARE_DEFAULT</span></td><td></td></tr>
+<tr><td><code>layer5.yaml</code></td><td><code>da005_min_group_size</code></td><td class='num'>3</td><td><span class='pill'>UNCALIBRATED_PROVISIONAL</span></td><td></td></tr>
+<tr><td><code>layer5.yaml</code></td><td><code>da005_min_independent_loci</code></td><td class='num'>10</td><td><span class='pill'>UNCALIBRATED_PROVISIONAL</span></td><td>targeted panels: separate target regions needed for PCA/FST; the core genome is not limited. Same floor as da006 and DA001 informative loci</td></tr>
+<tr><td><code>layer5.yaml</code></td><td><code>da006_min_independent_loci</code></td><td class='num'>10</td><td><span class='pill'>UNCALIBRATED_PROVISIONAL</span></td><td>targeted panels: separate target regions needed for a tree; equals da006_min_informative_sites</td></tr>
+<tr><td><code>layer5.yaml</code></td><td><code>da003_min_group_size</code></td><td class='num'>3</td><td><span class='pill'>UNCALIBRATED_PROVISIONAL</span></td><td></td></tr>
+<tr><td><code>layer5.yaml</code></td><td><code>da003_bootstrap_replicates</code></td><td class='num'>200</td><td><span class='pill'>FRAMEWORK_POLICY</span></td><td>bootstrap over samples for diversity intervals</td></tr>
+<tr><td><code>layer5.yaml</code></td><td><code>da004_dcifer_alpha</code></td><td class='num'>0.05</td><td><span class='pill'>LITERATURE_SUPPORTED</span></td><td>Dcifer significance level for the relatedness confidence interval (Gerlovina 2022)</td></tr>
+<tr><td><code>layer5.yaml</code></td><td><code>da004_dcifer_null_grid</code></td><td class='num'>1000</td><td><span class='pill'>SOFTWARE_DEFAULT</span></td><td>Dcifer ibdDat nr: grid resolution for relatedness estimates</td></tr>
+<tr><td><code>layer5.yaml</code></td><td><code>da002_min_callable_per_group</code></td><td class='num'>3</td><td><span class='pill'>UNCALIBRATED_PROVISIONAL</span></td><td></td></tr>
+<tr><td><code>layer5.yaml</code></td><td><code>da002_reporting_floor</code></td><td class='num'>0.05</td><td><span class='pill'>LITERATURE_SUPPORTED</span></td><td>MalariaGEN Pf7 2023: an allele below 5% of reads is treated as absent</td></tr>
+<tr><td><code>layer5.yaml</code></td><td><code>da002_mixed_threshold</code></td><td class='num'>0.95</td><td><span class='pill'>LITERATURE_SUPPORTED</span></td><td>MalariaGEN Pf7 2023: the other allele below 5% of reads is treated as absent, so &gt;=0.95 is MUTANT rather than MIXED</td></tr>
+<tr><td><code>layer5.yaml</code></td><td><code>da008_amplification_ratio</code></td><td class='num'>1.5</td><td><span class='pill'>UNCALIBRATED_PROVISIONAL</span></td><td>gene depth / core depth at or above this is AMPLIFIED (with the interval check); halfway between one and two copies</td></tr>
+<tr><td><code>layer5.yaml</code></td><td><code>da008_amplification_lower</code></td><td class='num'>1.25</td><td><span class='pill'>UNCALIBRATED_PROVISIONAL</span></td><td>lower bootstrap bound of the ratio must reach this for AMPLIFIED</td></tr>
+<tr><td><code>layer5.yaml</code></td><td><code>da008_deletion_ratio</code></td><td class='num'>0.1</td><td><span class='pill'>UNCALIBRATED_PROVISIONAL</span></td><td>gene depth / core depth at or below this, with covered flanks, is DELETED</td></tr>
+<tr><td><code>layer5.yaml</code></td><td><code>da008_present_ratio</code></td><td class='num'>0.3</td><td><span class='pill'>UNCALIBRATED_PROVISIONAL</span></td><td>gene depth / core depth at or above this counts the gene as present; between the deletion and present ratios is UNKNOWN (ambiguous)</td></tr>
+<tr><td><code>layer5.yaml</code></td><td><code>da008_flank_min_ratio</code></td><td class='num'>0.3</td><td><span class='pill'>UNCALIBRATED_PROVISIONAL</span></td><td>flank depth / core depth needed before a low gene depth is called DELETED rather than UNKNOWN</td></tr>
+<tr><td><code>layer5.yaml</code></td><td><code>da008_min_core_depth</code></td><td class='num'>20</td><td><span class='pill'>UNCALIBRATED_PROVISIONAL</span></td><td>median core-genome depth below this leaves every locus UNKNOWN</td></tr>
+<tr><td><code>layer5.yaml</code></td><td><code>da008_flank_bp</code></td><td class='num'>2000</td><td><span class='pill'>FRAMEWORK_POLICY</span></td><td>length of each flank and of the window searched for junction read pairs</td></tr>
+<tr><td><code>layer5.yaml</code></td><td><code>da008_window_bp</code></td><td class='num'>200</td><td><span class='pill'>FRAMEWORK_POLICY</span></td><td>window size for median depths and the bootstrap interval</td></tr>
+<tr><td><code>layer5.yaml</code></td><td><code>da008_gc_windows</code></td><td class='num'>3000</td><td><span class='pill'>FRAMEWORK_POLICY</span></td><td>random core-genome windows per sample that give the expected depth for each GC content</td></tr>
+<tr><td><code>layer5.yaml</code></td><td><code>da008_bootstrap</code></td><td class='num'>1000</td><td><span class='pill'>FRAMEWORK_POLICY</span></td><td>bootstrap replicates for the depth-ratio interval</td></tr>
+<tr><td><code>layer5.yaml</code></td><td><code>da007_min_samples_per_unit</code></td><td class='num'>3</td><td><span class='pill'>UNCALIBRATED_PROVISIONAL</span></td><td></td></tr>
+<tr><td><code>layer5.yaml</code></td><td><code>da007_gam_min_samples</code></td><td class='num'>10</td><td><span class='pill'>UNCALIBRATED_PROVISIONAL</span></td><td>samples with valid place and date needed before a GAM is fitted</td></tr>
+<tr><td><code>layer5.yaml</code></td><td><code>da007_gam_max_basis</code></td><td class='num'>4</td><td><span class='pill'>FRAMEWORK_POLICY</span></td><td>largest basis dimension k for the time smooth</td></tr>
+<tr><td><code>layer5.yaml</code></td><td><code>da007_gam_interval_level</code></td><td class='num'>0.95</td><td><span class='pill'>FRAMEWORK_POLICY</span></td><td></td></tr>
+<tr><td><code>layer5.yaml</code></td><td><code>da001_moire_burnin</code></td><td class='num'>10000</td><td><span class='pill'>SOFTWARE_DEFAULT</span></td><td>moire run_mcmc default (Murphy and Greenhouse 2024); convergence still to be assessed per data set</td></tr>
+<tr><td><code>layer5.yaml</code></td><td><code>da001_moire_samples</code></td><td class='num'>1000</td><td><span class='pill'>SOFTWARE_DEFAULT</span></td><td>moire run_mcmc default samples_per_chain</td></tr>
+<tr><td><code>layer5.yaml</code></td><td><code>da001_allele_presence_floor</code></td><td class='num'>0.05</td><td><span class='pill'>LITERATURE_SUPPORTED</span></td><td>MalariaGEN Pf7 2023: an allele below 5% of reads is treated as absent</td></tr>
+<tr><td><code>layer5.yaml</code></td><td><code>da001_thin_bp</code></td><td class='num'>500</td><td><span class='pill'>FRAMEWORK_POLICY</span></td><td>distance thinning as a linkage proxy for MOIRE&#x27;s independent-loci assumption</td></tr>
+<tr><td><code>layer5.yaml</code></td><td><code>da002_k13_prevalence_alert</code></td><td class='num'>0.05</td><td><span class='pill'>LITERATURE_SUPPORTED</span></td><td>WHO: more than 5% of patients carrying a validated PfKelch13 marker is the molecular criterion for suspected artemisinin partial resistance; used to flag prevalence rows, never to decide resistance</td></tr>
+<tr><td><code>layer5.yaml</code></td><td><code>da004_related_ibd</code></td><td class='num'>0.5</td><td><span class='pill'>LITERATURE_SUPPORTED</span></td><td>IBD &gt;= 0.5 as the reporting convention for closely related pairs; display label only</td></tr>
+<tr><td><code>layer5.yaml</code></td><td><code>da004_clonal_ibd</code></td><td class='num'>0.9</td><td><span class='pill'>LITERATURE_SUPPORTED</span></td><td>IBD &gt;= 0.9 as the reporting convention for near-identical (clonal) pairs; display label only</td></tr>
+<tr><td><code>layer5.yaml</code></td><td><code>da006_ufboot_support</code></td><td class='num'>95</td><td><span class='pill'>LITERATURE_SUPPORTED</span></td><td>IQ-TREE guidance: rely on a branch only at UFBoot &gt;= 95 (Hoang 2018)</td></tr>
+<tr><td><code>layer5.yaml</code></td><td><code>da006_alrt_support</code></td><td class='num'>80</td><td><span class='pill'>LITERATURE_SUPPORTED</span></td><td>IQ-TREE guidance: SH-aLRT &gt;= 80 (Guindon 2010)</td></tr>
+<tr><td><code>layer5.yaml</code></td><td><code>da001_moire_pt_chains</code></td><td class='num'>1</td><td><span class='pill'>SOFTWARE_DEFAULT</span></td><td>moire run_mcmc pt_chains: number of parallel-tempering chains</td></tr>
+<tr><td><code>layer5.yaml</code></td><td><code>da003_interval_level</code></td><td class='num'>0.95</td><td><span class='pill'>FRAMEWORK_POLICY</span></td><td>percentile bootstrap interval for expected heterozygosity</td></tr>
+<tr><td><code>layer5.yaml</code></td><td><code>da003_min_bootstrap_values</code></td><td class='num'>10</td><td><span class='pill'>FRAMEWORK_POLICY</span></td><td>bootstrap replicates with a value needed before an interval is reported</td></tr>
+<tr><td><code>layer5.yaml</code></td><td><code>da004_dcifer_coi_lrank</code></td><td class='num'>2</td><td><span class='pill'>SOFTWARE_DEFAULT</span></td><td>Dcifer getCOI lrank: allele-count rank for the naive COI of samples without a DA001 count</td></tr>
+<tr><td><code>layer5.yaml</code></td><td><code>da004_dcifer_afreq_tol</code></td><td class='num'>1e-05</td><td><span class='pill'>SOFTWARE_DEFAULT</span></td><td>Dcifer calcAfreq convergence tolerance</td></tr>
+<tr><td><code>layer5.yaml</code></td><td><code>da005_min_samples</code></td><td class='num'>3</td><td><span class='pill'>FRAMEWORK_POLICY</span></td><td>eligible samples needed for PCA</td></tr>
+<tr><td><code>layer5.yaml</code></td><td><code>da005_min_sites</code></td><td class='num'>3</td><td><span class='pill'>FRAMEWORK_POLICY</span></td><td>polymorphic SNVs without missing calls needed for PCA; also the unlinked SNVs needed before LD pruning is used</td></tr>
+<tr><td><code>layer5.yaml</code></td><td><code>da005_pca_components</code></td><td class='num'>4</td><td><span class='pill'>FRAMEWORK_POLICY</span></td><td>principal components reported (fewer when samples or sites limit it)</td></tr>
+<tr><td><code>layer5.yaml</code></td><td><code>da007_gam_grid_points</code></td><td class='num'>20</td><td><span class='pill'>FRAMEWORK_POLICY</span></td><td>time points at which the GAM prevalence curve is reported</td></tr>
+<tr><td><code>layer5.yaml</code></td><td><code>da007_time_origin</code></td><td class='num'>2000-01-01</td><td><span class='pill'>FRAMEWORK_POLICY</span></td><td>date from which GAM time is counted in days; only shifts the time axis</td></tr>
+<tr><td><code>layer5.yaml</code></td><td><code>da008_interval_level</code></td><td class='num'>0.95</td><td><span class='pill'>FRAMEWORK_POLICY</span></td><td>percentile bootstrap interval for the depth ratio</td></tr>
+<tr><td><code>layer5.yaml</code></td><td><code>da008_gc_min_windows_per_bin</code></td><td class='num'>20</td><td><span class='pill'>FRAMEWORK_POLICY</span></td><td>core-genome windows closest in GC content whose median depth is the expected depth</td></tr>
+<tr><td><code>layer5.yaml</code></td><td><code>da009_dropout_max_ratio</code></td><td class='num'>0.05</td><td><span class='pill'>UNCALIBRATED_PROVISIONAL</span></td><td>targeted designs: gene amplicon depth / control amplicon depth at or below this is DELETED (amplicon dropout). No published standard; WHO protocols use a qualitative dropout against controls</td></tr>
+<tr><td><code>layer5.yaml</code></td><td><code>da009_present_min_ratio</code></td><td class='num'>0.2</td><td><span class='pill'>UNCALIBRATED_PROVISIONAL</span></td><td>gene amplicon depth / control amplicon depth at or above this counts the gene as PRESENT; in between is UNKNOWN (ambiguous)</td></tr>
+<tr><td><code>layer5.yaml</code></td><td><code>da009_min_control_depth</code></td><td class='num'>20</td><td><span class='pill'>UNCALIBRATED_PROVISIONAL</span></td><td>median depth of the panel&#x27;s control amplicons needed before a missing gene amplicon may be called DELETED; below it the assay did not work for that sample and every gene is UNKNOWN</td></tr>
+<tr><td><code>layer5.yaml</code></td><td><code>da009_min_control_amplicons</code></td><td class='num'>2</td><td><span class='pill'>FRAMEWORK_POLICY</span></td><td>control target regions outside pfhrp2/pfhrp3 the panel must carry: without controls a missing amplicon cannot be told from a failed PCR</td></tr>
+<tr><td><code>layer5.yaml</code></td><td><code>da009_min_samples_per_unit</code></td><td class='num'>3</td><td><span class='pill'>UNCALIBRATED_PROVISIONAL</span></td><td>judged samples needed before a country-month joint prevalence is reported; below it counts are given and the prevalence withheld</td></tr>
+<tr><td><code>layer5.yaml</code></td><td><code>da009_interval_level</code></td><td class='num'>0.95</td><td><span class='pill'>FRAMEWORK_POLICY</span></td><td>Wilson interval level for joint prevalence and the level recorded with the co-occurrence test</td></tr>
+<tr><td><code>layer5.yaml</code></td><td><code>da009_dropout_ratio_grid</code></td><td class='num'>[0.02, 0.05, 0.1, 0.2]</td><td><span class='pill'>FRAMEWORK_POLICY</span></td><td>targeted designs: dropout ratios at which each call is recomputed for the sensitivity table, so a reader sees which calls depend on the provisional cut-off. Does not change any reported call</td></tr>
+<tr><td><code>layer5.yaml</code></td><td><code>da009_deletion_ratio_grid</code></td><td class='num'>[0.05, 0.1, 0.2, 0.3]</td><td><span class='pill'>FRAMEWORK_POLICY</span></td><td>whole-genome sequencing: the same, for the depth-ratio deletion cut-off</td></tr>
+<tr><td><code>layer5.yaml</code></td><td><code>da002_interval_level</code></td><td class='num'>0.95</td><td><span class='pill'>FRAMEWORK_POLICY</span></td><td>Wilson interval level for each sample&#x27;s marker read fraction and for marker prevalence</td></tr>
+<tr><td><code>layer5.yaml</code></td><td><code>da008_prevalence_interval_level</code></td><td class='num'>0.95</td><td><span class='pill'>FRAMEWORK_POLICY</span></td><td>Wilson interval level for the prevalence of copy-number events</td></tr>
+<tr><td><code>layer5.yaml</code></td><td><code>da008_window_min_fill</code></td><td class='num'>0.5</td><td><span class='pill'>FRAMEWORK_POLICY</span></td><td>a last, partial depth window is used when it holds at least this share of a full window</td></tr>
+<tr><td><code>layer5.yaml</code></td><td><code>da005_jackknife_blocks</code></td><td class='num'>10</td><td><span class='pill'>FRAMEWORK_POLICY</span></td><td>blocks of sites for the jackknife standard error of Hudson FST</td></tr>
+<tr><td><code>layer5.yaml</code></td><td><code>da007_grid_cell_degrees</code></td><td class='num'>0.5</td><td><span class='pill'>FRAMEWORK_POLICY</span></td><td>size of the latitude/longitude grid cells that samples are grouped into</td></tr>
+<tr><td><code>layer6.yaml</code></td><td><code>max_embedded_records</code></td><td class='num'>200000</td><td><span class='pill'>FRAMEWORK_POLICY</span></td><td>above this, views are paginated summaries; omitted records counted</td></tr>
+<tr><td><code>layer6.yaml</code></td><td><code>benchmark_interval_level</code></td><td class='num'>0.95</td><td><span class='pill'>FRAMEWORK_POLICY</span></td><td>level of the wild cluster bootstrap intervals for sensitivity and precision (benchmarking)</td></tr>
+<tr><td><code>layer6.yaml</code></td><td><code>benchmark_bootstrap_max_vectors</code></td><td class='num'>9999</td><td><span class='pill'>FRAMEWORK_POLICY</span></td><td>wild cluster bootstrap: all weight vectors are enumerated up to this many, otherwise this many are drawn</td></tr>
+<tr><td><code>layer6.yaml</code></td><td><code>benchmark_bootstrap_seed</code></td><td class='num'>1</td><td><span class='pill'>FRAMEWORK_POLICY</span></td><td>seed of the drawn weight vectors, so a benchmark report is reproducible</td></tr>
+<tr><td><code>layer6.yaml</code></td><td><code>benchmark_rademacher_min_clusters</code></td><td class='num'>10</td><td><span class='pill'>FRAMEWORK_POLICY</span></td><td>from this many samples (clusters) Rademacher weights are used; below it the Webb six-point weights, which behave better with few clusters</td></tr>
+<tr><td><code>layer6.yaml</code></td><td><code>benchmark_clonal_min_expected_wsaf</code></td><td class='num'>0.999</td><td><span class='pill'>FRAMEWORK_POLICY</span></td><td>a truth allele expected at this within-sample fraction or above is clonal and is not scored for WSAF calibration</td></tr>
+<tr><td><code>layer6.yaml</code></td><td><code>benchmark_wsaf_bins</code></td><td class='num'>[[0.0, 0.1], [0.1, 0.2], [0.2, 0.35], [0.35, 0.5], [0.5, 0.999]]</td><td><span class='pill'>FRAMEWORK_POLICY</span></td><td>expected-WSAF bins of the minor-allele detection rate; lower bound included, upper excluded</td></tr>
+<tr><td><code>layer6.yaml</code></td><td><code>benchmark_calibration_min_sites</code></td><td class='num'>3</td><td><span class='pill'>FRAMEWORK_POLICY</span></td><td>detected mixture sites needed before the observed-versus-expected WSAF line is fitted</td></tr>
+</table></div>
+
+<h2 id="inv-gates">7. All QC gates</h2>
+<p>Thresholds in <code>config/registry/qc_policy_pfvarx_qc_v1.yaml</code> (policy version 1.3.0). <code>min</code>: FAIL below <code>fail</code>, WARNING below <code>warn</code>; <code>max</code>: the reverse; <code>descriptive</code>: reported only. A FAIL on a non-mandatory gate counts as a WARNING.</p>
+<div class="tablewrap"><table>
+<tr><th>Gate</th><th>Metric</th><th>Direction</th><th>Fail</th><th>Warn</th><th>Source</th><th>Designs</th><th>Mandatory</th><th>Reference</th></tr>
+<tr><td><code>G1.read_retention</code></td><td><code>reads_retained_fraction</code></td><td>min</td><td class='num'>0.5</td><td class='num'>0.7</td><td><span class='pill'>UNCALIBRATED_PROVISIONAL</span></td><td>wgs, targeted_no_umi, targeted_umi</td><td>yes</td><td>no published standard; depends on library and adapter content</td></tr>
+<tr><td><code>G1.mean_length</code></td><td><code>mean_read_length_after</code></td><td>min</td><td class='num'>70</td><td class='num'>null</td><td><span class='pill'>LITERATURE_SUPPORTED</span></td><td>wgs, targeted_no_umi, targeted_umi</td><td>no</td><td>Li 2013 (BWA-MEM is designed for reads of 70 bp and longer); reported as a warning</td></tr>
+<tr><td><code>G1.q30</code></td><td><code>q30_fraction_after</code></td><td>descriptive</td><td class='num'>null</td><td class='num'>null</td><td><span class='pill'>FRAMEWORK_POLICY</span></td><td>wgs, targeted_no_umi, targeted_umi</td><td>no</td><td>instrument specifications differ by platform and read length; reported, not gated</td></tr>
+<tr><td><code>G2.mapped</code></td><td><code>mapped_fraction</code></td><td>min</td><td class='num'>0.5</td><td class='num'>0.8</td><td><span class='pill'>UNCALIBRATED_PROVISIONAL</span></td><td>wgs, targeted_no_umi, targeted_umi</td><td>yes</td><td>no published standard; host DNA content varies by sample type (Oyola 2016)</td></tr>
+<tr><td><code>G2.host_fraction</code></td><td><code>host_fraction</code></td><td>descriptive</td><td class='num'>null</td><td class='num'>null</td><td><span class='pill'>FRAMEWORK_POLICY</span></td><td>wgs, targeted_no_umi, targeted_umi</td><td>no</td><td>host (human) read pairs removed by competitive alignment when reference.host_fasta is set; reported, not gated (depth and callability gates decide)</td></tr>
+<tr><td><code>G2.properly_paired</code></td><td><code>properly_paired_fraction</code></td><td>min</td><td class='num'>null</td><td class='num'>null</td><td><span class='pill'>UNSET_BLOCKING</span></td><td>wgs, targeted_no_umi, targeted_umi</td><td>no</td><td>no published standard; reported only</td></tr>
+<tr><td><code>G2.duplicates</code></td><td><code>duplicate_fraction</code></td><td>max</td><td class='num'>0.6</td><td class='num'>0.3</td><td><span class='pill'>UNCALIBRATED_PROVISIONAL</span></td><td>wgs</td><td>yes</td><td>no published standard; selective whole-genome amplification raises duplication</td></tr>
+<tr><td><code>G2.depth</code></td><td><code>median_depth_core</code></td><td>min</td><td class='num'>5</td><td class='num'>20</td><td><span class='pill'>LITERATURE_SUPPORTED</span></td><td>wgs</td><td>yes</td><td>MalariaGEN Pf7 2023 (positions need &gt;=5 reads to be callable; a median below 5 means under half the core is callable). The warning level is framework policy</td></tr>
+<tr><td><code>G2.callable</code></td><td><code>callable_fraction_core</code></td><td>min</td><td class='num'>0.5</td><td class='num'>0.8</td><td><span class='pill'>LITERATURE_SUPPORTED</span></td><td>wgs</td><td>yes</td><td>MalariaGEN Pf7 2023 (samples with callability &lt;50% at &gt;=5 reads were removed). The warning level is framework policy</td></tr>
+<tr><td><code>G3.on_target</code></td><td><code>on_target_fraction</code></td><td>min</td><td class='num'>0.5</td><td class='num'>0.7</td><td><span class='pill'>UNCALIBRATED_PROVISIONAL</span></td><td>targeted_no_umi, targeted_umi</td><td>yes</td><td>no published standard; panel specific</td></tr>
+<tr><td><code>G3.dropout</code></td><td><code>amplicon_dropout_fraction</code></td><td>max</td><td class='num'>0.5</td><td class='num'>0.2</td><td><span class='pill'>UNCALIBRATED_PROVISIONAL</span></td><td>targeted_no_umi, targeted_umi</td><td>yes</td><td>no published standard; panel specific</td></tr>
+<tr><td><code>G3.amplicon_depth</code></td><td><code>median_amplicon_depth</code></td><td>min</td><td class='num'>100</td><td class='num'>null</td><td><span class='pill'>LITERATURE_SUPPORTED</span></td><td>targeted_no_umi</td><td>no</td><td>Early 2019 (sensitivity and precision fall below 100 reads per amplicon); MAD4HatTeR guidance (&gt;=100 reads per amplicon). Raw reads only, so not applied to UMI consensus reads; reported as a warning</td></tr>
+<tr><td><code>G3.umi_singletons</code></td><td><code>umi_singleton_fraction</code></td><td>max</td><td class='num'>null</td><td class='num'>null</td><td><span class='pill'>UNSET_BLOCKING</span></td><td>targeted_umi</td><td>no</td><td>no published standard; reported only</td></tr>
+<tr><td><code>G4.mixture_converged</code></td><td><code>mixture_converged</code></td><td>min</td><td class='num'>1</td><td class='num'>null</td><td><span class='pill'>FRAMEWORK_POLICY</span></td><td>wgs, targeted_no_umi, targeted_umi</td><td>no</td><td>numerical convergence of the mixture model</td></tr>
+<tr><td><code>G5.cohort_missingness</code></td><td><code>cohort_missing_fraction</code></td><td>max</td><td class='num'>0.5</td><td class='num'>0.2</td><td><span class='pill'>UNCALIBRATED_PROVISIONAL</span></td><td>wgs, targeted_no_umi, targeted_umi</td><td>yes</td><td>no published standard; share of cohort sites where the sample is MISSING_LOW_DEPTH or UNCALLABLE (FO003/FO004; a FAIL excludes the sample from DA001–DA007)</td></tr>
+<tr><td><code>G5.cohort_mixed_fraction</code></td><td><code>cohort_mixed_fraction</code></td><td>descriptive</td><td class='num'>null</td><td class='num'>null</td><td><span class='pill'>FRAMEWORK_POLICY</span></td><td>wgs, targeted_no_umi, targeted_umi</td><td>no</td><td>descriptive; share of cohort sites with MIXED evidence</td></tr>
+</table></div>
+
+<h2 id="inv-analyses">8. Downstream analyses</h2>
+<div class="tablewrap"><table>
+<tr><th>ID</th><th>Analysis</th><th>Code</th><th>Tools</th><th>Needs first</th></tr>
+<tr><td><strong>DA001</strong></td><td>Complexity of infection and clonal status</td><td><code>src/pfvarx/downstream/coi.py</code><br><code>workflow/scripts/da001_moire.R</code></td><td>MOIRE (R)</td><td>—</td></tr>
+<tr><td><strong>DA002</strong></td><td>Drug-resistance markers</td><td><code>src/pfvarx/downstream/resistance.py</code></td><td>Python, resistance catalog</td><td>—</td></tr>
+<tr><td><strong>DA003</strong></td><td>Genetic diversity</td><td><code>src/pfvarx/downstream/diversity.py</code></td><td>scikit-allel</td><td>—</td></tr>
+<tr><td><strong>DA004</strong></td><td>Relatedness and identity by descent</td><td><code>src/pfvarx/downstream/relatedness.py</code><br><code>workflow/scripts/da004_dcifer.R</code></td><td>hmmIBD, Dcifer (R)</td><td>DA001</td></tr>
+<tr><td><strong>DA005</strong></td><td>Population structure</td><td><code>src/pfvarx/downstream/structure.py</code></td><td>scikit-allel</td><td>DA001</td></tr>
+<tr><td><strong>DA006</strong></td><td>Conventional single-lineage phylogenetics</td><td><code>src/pfvarx/downstream/phylogeny.py</code></td><td>IQ-TREE</td><td>DA001</td></tr>
+<tr><td><strong>DA007</strong></td><td>Spatial and temporal summary</td><td><code>src/pfvarx/downstream/spatial.py</code><br><code>workflow/scripts/da007_gam.R</code></td><td>mgcv (R)</td><td>DA002 (its source)</td></tr>
+<tr><td><strong>DA008</strong></td><td>Copy-number markers (WGS)</td><td><code>src/pfvarx/downstream/cnv.py</code><br><code>config/registry/cnv_catalog_pfvarx_v1.tsv</code></td><td>Python, pysam</td><td>—</td></tr>
+</table></div>
+<p>Analyses, prerequisites and eligibility rules: <code>config/registry/downstream_analyses.yaml</code>. Settings: <code>config/parameters/layer5.yaml</code>. Resistance markers for DA002: <code>config/registry/resistance_catalog_pfvarx_v1.tsv</code>.</p>
+
+<div class="partbanner">Part C · Change and test</div>
+
+<h2 id="experiment">9. Experiment safely in a test workspace</h2>
+<p>Experiments change only a test workspace; the source in <code>~/PfVarX</code> and on GitHub stays untouched. Make one baseline, run it unchanged, then copy it for every variant.</p>
+<div class="cmd"><pre>mkdir -p ~/pfvarx-lab
+python3 ~/PfVarX/bootstrap.py --profile development --workspace ~/pfvarx-lab/exp-baseline
+cd ~/pfvarx-lab/exp-baseline
+<span class="c"># set the release label and final output in config/config.yaml (or use the GUI), then:</span>
+./pfvarx init
+./pfvarx fixture --design wgs --depth 30          <span class="c"># synthetic test data, or add your own files</span>
+./pfvarx validate && ./pfvarx prepare && ./pfvarx pipeline --mode NEW</pre></div>
+<p>The workspace has its own copies of <code>config/parameters/</code>, <code>config/registry/</code>, <code>src/</code> and <code>workflow/</code>. Edits there change only that workspace's runs. To make a variant:</p>
+<div class="cmd"><pre>cd ~/pfvarx-lab
+rsync -a --exclude .pixi --exclude runs --exclude results exp-baseline/ exp-variant1/
+cd exp-variant1                                   <span class="c"># edit, then ./pfvarx pipeline --mode NEW</span></pre></div>
+<p>The copy reuses the baseline's inputs and prepared reference. Leaving out <code>.pixi</code> saves 1–3 GB; Pixi recreates the environment from its cache on the first <code>./pfvarx</code> command.</p>
+<div class="callout tip"><strong>Which data?</strong> Synthetic data (<code>./pfvarx fixture</code>) shows whether a change works. To decide whether it is better, use reads with known answers: reference strains (3D7, Dd2…), replicate samples, mixtures of known proportion, or your own cohort.</div>
+
+<h2 id="grid">10. Choose the best parameter value</h2>
+<p>To compare several values of one parameter, run the same data once per value and compare the results. Save the two scripts below in <code>~/pfvarx-lab/</code> once.</p>
+<h3>Run a grid of values: <code>grid.sh</code></h3>
+<div class="cmd"><pre>#!/usr/bin/env bash
+# Usage: ./grid.sh LAYER PARAMETER "VALUE1 VALUE2 ..."
+#   e.g. ./grid.sh layer1 fastp_length_required "30 50 70"
+# Copies ~/pfvarx-lab/exp-baseline once per value, sets the parameter and runs it.
+set -euo pipefail
+LAYER=$1; KEY=$2; VALUES=$3; BASE=~/pfvarx-lab/exp-baseline
+for v in $VALUES; do
+  ws=~/pfvarx-lab/grid-$KEY-$v
+  rm -rf "$ws"
+  rsync -a --exclude .pixi --exclude runs --exclude results "$BASE/" "$ws/"
+  python3 - "$ws/config/parameters/$LAYER.yaml" "$KEY" "$v" &lt;&lt;'PY'
+import re, sys
+path, key, value = sys.argv[1:]
+text = open(path).read()
+new, n = re.subn(rf"^(  {re.escape(key)}: \{{value: )[^,}}]+", rf"\g&lt;1&gt;{value}", text, flags=re.M)
+if n != 1:
+    sys.exit(f"{key} not found in {path}")
+open(path, "w").write(new)
+PY
+  echo "== $KEY = $v"
+  (cd "$ws" &amp;&amp; ./pfvarx validate &gt; /dev/null &amp;&amp; ./pfvarx pipeline --mode NEW &gt; run.json; tail -c 200 run.json)
+done</pre></div>
+<h3>Compare the runs: <code>grid_summary.py</code></h3>
+<div class="cmd"><pre>#!/usr/bin/env python3
+"""Usage: python3 grid_summary.py ~/pfvarx-lab/exp-baseline ~/pfvarx-lab/grid-*
+One row per workspace (its latest run): QC verdicts, read and depth metrics, variant
+statuses and total step time, from runs/&lt;RUN_ID&gt;/results/report/dashboard_data.json."""
+import json, statistics, sys
+from collections import Counter
+from pathlib import Path
+
+def mean(values):
+    values = [v for v in values if isinstance(v, (int, float))]
+    return round(statistics.mean(values), 4) if values else None
+
+print("\t".join(["workspace", "PASS", "WARNING", "FAIL", "reads_kept", "median_depth",
+                 "callable", "duplicates", "variants", "PASS_calls", "low_conf", "step_time_s"]))
+for ws in map(Path, sys.argv[1:]):
+    reports = sorted(ws.glob("runs/*/results/report/dashboard_data.json"))
+    if not reports:
+        print(f"{ws.name}\t(no run)")
+        continue
+    d = json.loads(reports[-1].read_text())
+    verdicts = Counter(s["qc_verdict"] for s in d["samples"])
+    metric = lambda key: mean([s["metrics"].get(key) for s in d["samples"]])
+    statuses = d.get("variant_summary", {}).get("statuses", {})
+    wall = sum(m.get("wall_s") or 0 for m in d["resources"]["measured"])
+    print("\t".join(str(x) for x in [ws.name, verdicts["PASS"], verdicts["WARNING"], verdicts["FAIL"],
+        metric("reads_retained_fraction"), metric("median_depth_core"), metric("callable_fraction_core"),
+        metric("duplicate_fraction"), d.get("variants_total"), statuses.get("PASS"),
+        statuses.get("LOW_CONFIDENCE"), round(wall, 1)]))</pre></div>
+<div class="cmd"><pre>cd ~/pfvarx-lab
+chmod +x grid.sh
+./grid.sh layer1 fastp_length_required "30 50 70"
+python3 grid_summary.py exp-baseline grid-fastp_length_required-*  | column -t</pre></div>
+<h3>How to choose</h3>
+<ul>
+  <li>Prefer the value that keeps the most usable data (reads kept, callable fraction, PASS calls) <em>without</em> raising errors: more LOW_CONFIDENCE calls, more QC WARNINGs, or calls that disagree with known answers.</li>
+  <li>With a truth set, decide on accuracy first (section 12: precision and recall), then on speed.</li>
+  <li>Change one parameter at a time; test interactions only after single effects are clear.</li>
+  <li>Record the grid, the data and the decision, then make the chosen value the default (section 14) with source <code>EMPIRICALLY_CALIBRATED</code> and the evidence in <code>docs/thresholds.md</code>.</li>
+</ul>
+
+<h2 id="qc">11. Test QC thresholds</h2>
+<p><code>config/quality.yaml</code> only selects a QC policy and cannot loosen it. To test other thresholds, register a new policy in the test workspace and select it:</p>
+<div class="cmd"><pre>cd ~/pfvarx-lab/exp-variant1
+cp config/registry/qc_policy_pfvarx_qc_v1.yaml config/registry/qc_policy_exp_depth10.yaml
+sed -i 's/^policy_id: .*/policy_id: exp_depth10/; s/^version: .*/version: "exp-1"/' config/registry/qc_policy_exp_depth10.yaml
+code config/registry/qc_policy_exp_depth10.yaml   <span class="c"># edit fail / warn of the gates to test</span>
+sed -i 's/^policy_id: .*/policy_id: exp_depth10/' config/quality.yaml
+./pfvarx validate && ./pfvarx pipeline --mode NEW</pre></div>
+<p>The file name must be <code>qc_policy_&lt;id&gt;.yaml</code> and contain <code>policy_id: &lt;id&gt;</code>. Compare verdicts with <code>grid_summary.py</code> or each sample's <code>results/qc/samples/&lt;sample&gt;/qc_decision.json</code>. A QC threshold is right when samples that are truly good pass and samples that give wrong or unreliable calls are stopped; check the borderline samples by hand.</p>
+
+<h2 id="measure">12. Measure speed and accuracy</h2>
+<h3>Speed and memory</h3>
+<p>Every step of every run is measured by Snakemake:</p>
+<div class="cmd"><pre>RUN=runs/&lt;RUN_ID&gt;
+<span class="c"># seconds (s) and peak memory in MB (max_rss) for every step and sample</span>
+for f in $RUN/benchmarks/*/*.tsv; do printf "%-45s " "${f#$RUN/benchmarks/}"; tail -1 "$f" | cut -f1,3; done | sort -k2 -n -r | head -20
+<span class="c"># the same, summed per step, is in the report: Resources section</span></pre></div>
+<p>While a run works, <code>runs/&lt;RUN_ID&gt;/progress.html</code> shows the steps running now, the time so far and the expected finish (it opens by itself from a desktop terminal or the GUI). After each COMPLETED real-data run, the measurements are added to this computer's resource history, <code>~/.local/share/pfvarx/history/&lt;host&gt;.jsonl</code>; <code>./pfvarx workflow-check</code> uses it to print the expected time, peak memory and storage of each step, and the report's Resources section compares that estimate with the measured run.</p>
+<div class="cmd"><pre>./pfvarx workflow-check 2&gt;&amp;1 &gt;/dev/null | sed -n '/Expected resources/,$p'   <span class="c"># the estimate table only</span>
+./pfvarx resources-learn --run-id &lt;RUN_ID&gt;       <span class="c"># add an older run to the history</span>
+wc -l ~/.local/share/pfvarx/history/*.jsonl      <span class="c"># runs learned on this computer</span>
+PFVARX_HISTORY_DIR=~/pfvarx-lab/hist-x ./pfvarx workflow-check   <span class="c"># try a separate history</span></pre></div>
+<p>Synthetic runs are never learned from, so a fixture run does not change the estimates. A step with no real-data history shows as unknown.</p>
+<p>Compare the same step between a baseline and a variant run on the same data and the same computer. Run each at least twice; the first run may include file-cache effects.</p>
+<h3>Accuracy</h3>
+<ul>
+  <li><strong>Alignment and duplicates:</strong> mapped and properly-paired fractions, duplicate fraction, depth and callable fraction (<code>grid_summary.py</code>, the QC section of the report).</li>
+  <li><strong>Variant calls against a truth set:</strong> the benchmarking workflow compares calls with truth VCFs (RTG Tools vcfeval) and reports precision, recall and WSAF agreement. Use a separate benchmark workspace:</li>
+</ul>
+<div class="cmd"><pre>python3 ~/PfVarX/bootstrap.py --profile benchmark --rtg --workspace ~/pfvarx-lab/bench
+cd ~/pfvarx-lab/bench
+<span class="c"># put truth.json, confident_regions.bed and &lt;SAMPLE&gt;.truth.vcf in inputs/truth/ (see docs/benchmarking/README.md)</span>
+./pfvarx benchmark-partition                       <span class="c"># lock development / held-out samples, once</span>
+./pfvarx pipeline --mode NEW
+./pfvarx benchmark-evaluate                        <span class="c"># precision, recall, WSAF on the development set</span>
+./pfvarx benchmark-resources                       <span class="c"># measured resource profile</span></pre></div>
+<div class="callout warn"><strong>Use the held-out set once.</strong> Tune and compare on the development samples. Evaluate the final choice on the held-out samples a single time; repeating it turns the held-out set into training data.</div>
+
+<h2 id="replace">13. Replace or upgrade a tool</h2>
+<p>Replace a tool when measurements show it is slow, uses too much memory, gives worse results, or is no longer maintained. Worked example: replacing Picard MarkDuplicates with <code>samtools markdup</code> for WGS duplicate marking.</p>
+<ol class="steps">
+  <li><strong>Measure the current tool</strong> on a baseline run: time and memory of the <code>markdup</code> step (section 12) and the duplicate fraction per sample.</li>
+  <li><strong>Try the new tool by hand</strong> on one sample in a test workspace, without changing the pipeline:
+<div class="cmd"><pre>cd ~/pfvarx-lab/exp-baseline
+RUN=runs/&lt;RUN_ID&gt;; IN=$RUN/results/work/merged/PF001.bam      <span class="c"># needs retention: intermediates: keep</span>
+time ( ./pfvarx tool samtools sort -n -o /tmp/qn.bam $IN &amp;&amp;
+       ./pfvarx tool samtools fixmate -m /tmp/qn.bam /tmp/fm.bam &amp;&amp;
+       ./pfvarx tool samtools sort -o /tmp/pos.bam /tmp/fm.bam &amp;&amp;
+       ./pfvarx tool samtools markdup -s -f /tmp/markdup.txt /tmp/pos.bam /tmp/PF001.md.bam )
+cat /tmp/markdup.txt                                <span class="c"># duplicate counts</span>
+grep -A2 "^LIBRARY" $RUN/results/qc/samples/PF001/PF001.markdup.txt   <span class="c"># Picard's, to compare</span></pre></div></li>
+  <li><strong>Decide</strong> from time, memory and duplicate fractions on several samples, then create a branch:
+<div class="cmd"><pre>cd ~/PfVarX && git checkout develop && git pull && git checkout -b step/04-markdup-tool</pre></div></li>
+  <li><strong>Add the package if it is new.</strong> Put it under the right feature in <code>pixi.toml</code> (samtools is already in <code>pipeline</code>), then lock and install:
+<div class="cmd"><pre>pixi lock && pixi install --locked && git diff --stat pixi.lock</pre></div></li>
+  <li><strong>Change the rule.</strong> Edit the command of <code>rule mark_duplicates</code> in <code>workflow/rules/l1_align.smk</code>. Keep the same output files (<code>alignments/&lt;sample&gt;.bam</code> and the metrics file): later steps depend on them. To compare both tools, choose the tool with a new parameter instead, for example <code>layer1.markdup_tool: {value: picard, source: FRAMEWORK_POLICY}</code>, read as <code>P["layer1.markdup_tool"]</code>.</li>
+  <li><strong>Keep the QC metrics working.</strong> <code>src/pfvarx/quality/metrics.py</code> parses each tool's report into the metric names the QC gates use (<code>picard_duplicates()</code> produces <code>duplicate_fraction</code>). Add a parser for the new tool's report that produces the same names, and use it in <code>workflow/scripts/l1_gate.py</code>.</li>
+  <li><strong>Update the bookkeeping</strong> for a new tool or package:
+    <ul>
+      <li>threads and memory of the rule → its entry under a job class in <code>config/registry/job_resources.yaml</code>, read in the rule as <code>threads("rule")</code> and <code>mem("rule")</code> (<code>tests/unit/test_resource_plan.py</code> fails if a rule writes a number or is missing from the file);</li>
+      <li>a new numeric setting → <code>config/parameters/layer*.yaml</code> with a source class and note, read with <code>frozen_param</code>; never an inline fallback (<code>tests/unit/test_no_hardcoded_parameters.py</code>);</li>
+      <li>a new rule's benchmark folder → its job class in <code>RULE_TO_JOB</code> (<code>src/pfvarx/planning/history.py</code>) and, if its log name differs, <code>RULE_ALIASES</code> and a label in <code>STEP_LABELS</code> (<code>src/pfvarx/execution/progress.py</code>), so estimates and the progress page include it;</li>
+      <li>version recording → <code>SCIENTIFIC_PACKAGES</code> in <code>src/pfvarx/provenance/snapshot.py</code>;</li>
+      <li>the tools list in the GUI → <code>TOOLS</code> in <code>src/pfvarx/installation.py</code>;</li>
+      <li>which installation needs it → <code>scripts/check_installs.py</code>, and for a new feature <code>environment_for()</code> in <code>bootstrap.py</code> and the environments in <code>pixi.toml</code>.</li>
+    </ul></li>
+  <li><strong>Test</strong> up the ladder (section 15): the one step, a fixture run, the comparison with the baseline, then the full suite and <code>check_installs.py</code>.</li>
+  <li><strong>Document</strong> (section 16) and release (section 19).</li>
+</ol>
+<p>The same steps apply to any tool:</p>
+<div class="tablewrap"><table>
+<tr><th>Tool</th><th>Rule to edit</th><th>Report parsed by</th><th>Alternatives people use</th></tr>
+<tr><td>fastp (read QC)</td><td><code>fastp</code> in <code>l1_fastq_qc.smk</code>; options in <code>fastp_args()</code>, <code>common.smk</code></td><td><code>quality/metrics.py: fastp()</code></td><td>Trimmomatic, cutadapt</td></tr>
+<tr><td>bwa-mem2 (alignment)</td><td><code>bwa_mem2_lane</code> in <code>l1_align.smk</code>; <code>umi_align_zipper</code>, <code>umi_realign</code> in <code>l1_umi.smk</code>; index in <code>references/prepare.py</code></td><td><code>quality/metrics.py: flagstat()</code></td><td>bwa mem, minimap2 (short-read mode)</td></tr>
+<tr><td>Picard MarkDuplicates</td><td><code>mark_duplicates</code> in <code>l1_align.smk</code></td><td><code>quality/metrics.py: picard_duplicates()</code></td><td>samtools markdup, sambamba markdup</td></tr>
+<tr><td>mosdepth (coverage)</td><td><code>mosdepth_core</code>, <code>mosdepth_targets</code> in <code>l1_metrics.smk</code></td><td><code>quality/metrics.py: mosdepth_region_dist()</code></td><td>samtools depth, bedtools</td></tr>
+<tr><td>fgbio (UMI, primers)</td><td><code>l1_umi.smk</code>; <code>trim_primers</code> in <code>l1_align.smk</code></td><td><code>quality/metrics.py: umi_family_sizes()</code></td><td>UMI-tools, iVar trim</td></tr>
+<tr><td>Native caller</td><td><code>pfvarx_call</code> in <code>l2_caller.smk</code></td><td>caller contract, <code>docs/caller.md</code></td><td>any caller via <code>caller.backend: external</code></td></tr>
+<tr><td>bcftools (normalise, merge)</td><td><code>normalise_sample</code> in <code>l2_caller.smk</code>; <code>cohort_merge</code> in <code>l3_cohort.smk</code></td><td>—</td><td>—</td></tr>
+<tr><td>SnpEff (annotation)</td><td><code>snpeff_build</code>, <code>snpeff_annotate</code> in <code>l4_annotation.smk</code>; <code>annotation/snpeff_db.py</code></td><td><code>annotation/</code></td><td>Ensembl VEP, bcftools csq</td></tr>
+<tr><td>Analysis tools (MOIRE, Dcifer, hmmIBD, scikit-allel, IQ-TREE, mgcv)</td><td><code>da_execute</code> in <code>l5_downstream.smk</code> → <code>src/pfvarx/downstream/*.py</code>, <code>workflow/scripts/*.R</code></td><td>each analysis module</td><td>THE REAL McCOIL (COI), isoRelate (IBD), ADMIXTURE (structure), RAxML-NG (phylogeny)</td></tr>
+</table></div>
+<h3>Upgrade a tool version</h3>
+<div class="cmd"><pre>cd ~/PfVarX && git checkout -b step/NN-upgrade-samtools
+code pixi.toml                    <span class="c"># e.g. samtools = "&gt;=1.25,&lt;2"</span>
+pixi lock
+git diff pixi.lock | grep -E "^[-+].*samtools" | head    <span class="c"># old and new version</span>
+pixi install --locked
+pixi run pytest -q tests                                 <span class="c"># full suite before merging</span></pre></div>
+<p>Every run records the versions it used (report: Software section), so results before and after an upgrade stay traceable.</p>
+<h3>Plug in a different variant caller</h3>
+<p>Without changing PfVarX code: set in <code>config/config.yaml</code></p>
+<div class="cmd"><pre>caller:
+  backend: external
+  executable: /absolute/path/to/my_caller_adapter
+  sha256: &lt;sha256sum of that file&gt;          <span class="c"># sha256sum /absolute/path/to/my_caller_adapter</span></pre></div>
+<p>The program must produce the per-sample outputs described in <code>docs/caller.md</code> (VCF with GT, AD, DP, PST, WSAF, WSAFLO, WSAFHI and the evidence and callability files). Compare it with the native caller through the benchmarking workflow (section 12).</p>
+
+<h2 id="recipes">14. Other changes</h2>
+<h3>Make a tested parameter value the default</h3>
+<ol class="steps">
+  <li>On a branch in <code>~/PfVarX</code>, edit the entry in <code>config/parameters/layerN.yaml</code>: value, source class, and a note naming the evidence.</li>
+  <li>For <code>LITERATURE_SUPPORTED</code> or calibrated values, add the citation or measurement to <code>docs/thresholds.md</code>.</li>
+  <li>For a QC gate, edit <code>config/registry/qc_policy_pfvarx_qc_v1.yaml</code> and raise its <code>version</code>.</li>
+  <li><code>pixi run test-unit</code> (every parameter needs a value and an allowed source), a fixture run, then the full suite.</li>
+</ol>
+<h3>Add a configuration setting</h3>
+<p>The CLI and the GUI must change together: the model (<code>src/pfvarx/configuration/models.py</code>), help text (<code>src/pfvarx/configuration/gui/field-guide.json</code>), the templates (<code>config/templates/analysis.yaml</code>, <code>benchmarking.yaml</code>), then <code>pixi run python scripts/configuration_guide.py</code> and <code>pixi run pytest -q tests/unit/test_cli_gui_parity.py</code>.</p>
+<h3>Change the GUI or the report</h3>
+<p>GUI: <code>src/pfvarx/configuration/gui/</code> (<code>index.html</code>, <code>app.js</code>, <code>style.css</code>) and <code>configuration/web.py</code>; check with <code>pixi run python scripts/check_gui_buttons.py</code>. Report: <code>src/pfvarx/reporting/</code> (<code>build.py</code>, <code>views.js</code>, <code>charts.js</code>, <code>tables.js</code>, <code>dashboard.css</code>); rebuild a run's report with <code>./pfvarx report</code>.</p>
+<h3>Try edited source in a workspace</h3>
+<div class="cmd"><pre>for d in src workflow config/parameters config/registry; do
+  rsync -a --delete --exclude __pycache__ ~/PfVarX/$d/ ~/pfvarx-lab/exp-variant1/$d/
+done</pre></div>
+<p>The workspace's own <code>config.yaml</code>, <code>quality.yaml</code> and <code>compute.yaml</code> are not touched.</p>
+
+<h2 id="testing">15. Testing ladder</h2>
+<p>Climb from the fastest check to the slowest; stop and fix at the first failure.</p>
+<div class="tablewrap"><table>
+<tr><th>Level</th><th>Command (in <code>~/PfVarX</code>)</th><th>Time</th><th>Catches</th></tr>
+<tr><td>1</td><td><code>pixi run lint</code></td><td>seconds</td><td>syntax, imports, style</td></tr>
+<tr><td>2</td><td><code>pixi run typecheck</code></td><td>seconds</td><td>wrong types, missing arguments</td></tr>
+<tr><td>3</td><td><code>pixi run pytest -q tests/unit -k NAME</code></td><td>seconds</td><td>the part you changed</td></tr>
+<tr><td>4</td><td><code>pixi run pytest -q tests/unit tests/scientific</code></td><td>~1 min</td><td>parity, parameters, resource plan, caller maths</td></tr>
+<tr><td>5</td><td><code>./pfvarx tool snakemake … --forcerun RULE</code> in a workspace (section 25)</td><td>seconds–minutes</td><td>one step really runs</td></tr>
+<tr><td>6</td><td><code>./pfvarx fixture</code> + <code>./pfvarx pipeline --mode NEW</code></td><td>1–6 min</td><td>the whole pipeline end to end</td></tr>
+<tr><td>7</td><td><code>scripts/check_gui_buttons.py</code>, <code>check_installs.py</code>, <code>sync_sop.py --check</code></td><td>~2 min</td><td>GUI buttons, installations, SOP copies</td></tr>
+<tr><td>8</td><td><code>development/local_ci.sh</code> (or <code>pixi run pytest -q tests</code>)</td><td>~17 min</td><td>everything the GitHub CI checks, with real pipeline runs for all designs and the release archive; required before every merge</td></tr>
+<tr><td>9</td><td><code>pixi run verify --output ~/pfvarx-lab/verify-new</code></td><td>longer</td><td>every final output and benchmarking in fresh workspaces</td></tr>
+<tr><td>10</td><td>CI on GitHub, started by hand only (Actions → PfVarX CI → Run workflow, or <code>gh workflow run ci.yaml --ref BRANCH</code>); it needs free Actions minutes</td><td>~45 min</td><td>a clean machine from the lock file</td></tr>
+</table></div>
+<div class="callout stop"><strong>Software tests are not scientific validation.</strong> Passing tests on synthetic data shows the code works. Whether a value or a tool is better is decided on real data with known answers, and recorded with its evidence.</div>
+
+<h2 id="docs">16. Documentation rules</h2>
+<p>Every change updates the documentation in the same branch. Search for every name, path, command or setting you changed:</p>
+<div class="cmd"><pre>grep -rn "old_name_or_path" README.md docs CHANGELOG.md</pre></div>
+<div class="tablewrap"><table>
+<tr><th>Changed</th><th>Update</th></tr>
+<tr><td>Anything</td><td><code>CHANGELOG.md</code>: what changed and why</td></tr>
+<tr><td>A setting</td><td><code>field-guide.json</code>, the templates, then <code>scripts/configuration_guide.py</code></td></tr>
+<tr><td>A threshold or parameter source</td><td><code>docs/thresholds.md</code></td></tr>
+<tr><td>A command or GUI tab</td><td><code>docs/orchestration.md</code>, <code>docs/configuration.md</code>, <code>docs/getting-started.md</code> and <code>.html</code></td></tr>
+<tr><td><code>docs/caller.md</code>, <code>configuration.md</code>, <code>sequencing.md</code></td><td><code>pixi run python scripts/sync_sop.py</code> (SOP appendices E–G copy them)</td></tr>
+<tr><td>Installation or a tool</td><td><code>README.md</code> install table, <code>docs/deployment.md</code>, and this guide's inventory</td></tr>
+</table></div>
+<p>The pipeline version is set only in <code>src/pfvarx/__init__.py</code>.</p>
+
+<div class="partbanner">Part D · Git and GitHub</div>
+
+<h2 id="git-setup">17. Git and GitHub setup (once per computer)</h2>
+<div class="cmd"><pre>gh auth login                                    <span class="c"># GitHub.com → HTTPS → log in with a browser</span>
+gh auth setup-git                                <span class="c"># Git uses that login</span>
+gh auth status                                   <span class="c"># which account is active</span>
+git config --global user.name  "hadish-bekuretsion1"
+git config --global user.email "&lt;email of your GitHub account&gt;"
+git config --global pull.rebase true
+git config --global core.autocrlf input          <span class="c"># WSL2: Linux line endings</span>
+git config --global core.editor "code --wait"    <span class="c"># VS Code for commit messages</span>
+git config --list --global                       <span class="c"># check</span>
+
+cd ~ && git clone https://github.com/hadish-bekuretsion1/PfVarX.git
+cd PfVarX && git remote -v                       <span class="c"># origin = the GitHub repository</span></pre></div>
+<p>With two GitHub accounts logged in, switch the active one with <code>gh auth switch</code>; this project uses <strong>hadish-bekuretsion1</strong>.</p>
+
+<h2 id="git-daily">18. Everyday workflow</h2>
+<div class="cards">
+  <div class="card"><h4>main</h4><p>Released code. Never commit to it directly.</p></div>
+  <div class="card"><h4>develop</h4><p>Finished, tested changes. Reached only through pull requests.</p></div>
+  <div class="card"><h4>step/…, exp/…, gui/…, docs/…</h4><p>One branch per change, from the latest <code>develop</code>.</p></div>
+</div>
+<div class="cmd"><pre><span class="c"># 1. Start a change from the latest develop</span>
+cd ~/PfVarX
+git checkout develop
+git pull
+git checkout -b step/04-markdup-tool
+
+<span class="c"># 2. Work, then look at what changed</span>
+git status                                       <span class="c"># changed and new files</span>
+git diff                                         <span class="c"># line-by-line changes</span>
+git diff --stat                                  <span class="c"># files and line counts</span>
+
+<span class="c"># 3. Save a step (a commit)</span>
+git add workflow/rules/l1_align.smk src/pfvarx/quality/metrics.py   <span class="c"># chosen files</span>
+git add -A                                       <span class="c"># or every change</span>
+git commit -m "Mark duplicates with samtools markdup
+
+Picard took 4x longer on 24 samples with the same duplicate fractions."
+
+<span class="c"># 4. Send the branch to GitHub</span>
+git push -u origin step/04-markdup-tool          <span class="c"># first push of a branch</span>
+git push                                         <span class="c"># later pushes</span>
+
+<span class="c"># 5. Before stopping work, or before switching computers</span>
+git add -A && git commit -m "WIP: markdup parser" && git push
+<span class="c"># on the other computer</span>
+git fetch && git checkout step/04-markdup-tool && git pull</pre></div>
+<p>Commit messages: a first line that says what the change does (under 72 characters), a blank line, then why. Commit small, related steps; never commit data, results or environments (<code>.gitignore</code> already excludes <code>.pixi/</code>, workspaces and runs).</p>
+
+<h2 id="git-release">19. Pull requests, CI and releases</h2>
+<div class="cmd"><pre><span class="c"># Open a pull request from your branch into develop</span>
+gh pr create --base develop --title "Mark duplicates with samtools markdup" --body "What, why, tests run."
+gh pr create --base develop --fill               <span class="c"># or take title and body from the commits</span>
+gh pr list                                       <span class="c"># open pull requests</span>
+gh pr view --web                                 <span class="c"># open it in the browser</span>
+
+<span class="c"># Full local CI on the branch (about 17 minutes); GitHub CI does not start by itself</span>
+development/local_ci.sh                          <span class="c"># ends with LOCAL CI PASSED</span>
+development/local_ci.sh --quick                  <span class="c"># 3 minutes, no integration tests (while working)</span>
+grep -E "passed in|failed|LOCAL CI" ~/pfvarx-lab/local_ci_$(git rev-parse --short HEAD).log
+
+<span class="c"># Record the result on the pull request</span>
+gh pr comment &lt;PR-number&gt; --body "Local CI on $(git rev-parse --short HEAD): … passed — LOCAL CI PASSED."
+
+<span class="c"># Optional, when Actions minutes are available: run the GitHub CI by hand</span>
+gh workflow run ci.yaml --ref &lt;branch&gt;
+gh run list --limit 5 &amp;&amp; gh run watch            <span class="c"># follow it</span>
+gh run view --log-failed                         <span class="c"># log of a failed run</span>
+
+<span class="c"># Merge when local CI passed (or on GitHub: Merge pull request → Confirm merge)</span>
+gh pr merge --merge
+
+<span class="c"># Update your copy and remove the finished branch</span>
+git checkout develop && git pull
+git branch -d step/04-markdup-tool
+git push origin --delete step/04-markdup-tool    <span class="c"># remote copy, if GitHub did not delete it</span>
+
+<span class="c"># Release: develop into main</span>
+git checkout develop && git pull && development/local_ci.sh   <span class="c"># full local CI on develop first</span>
+gh pr create --base main --head develop --title "Release: markdup with samtools" --body "Changes since the last release; local CI result."
+gh pr merge &lt;PR-number&gt; --merge
+git checkout main && git pull
+git fetch origin && git rev-parse origin/main^{tree} origin/develop^{tree}   <span class="c"># two equal hashes: main = develop</span></pre></div>
+<p>Each pull request records the local CI result (branch, commit, tests passed) in its description or a comment. The GitHub workflow <code>.github/workflows/ci.yaml</code> runs only when started by hand, so commits are not marked with a red ✕ when the free Actions minutes are used up.</p>
+<h3>What users receive</h3>
+<p>Users get the release archive, not this repository. It is built from <code>main</code> and contains only what is needed to configure and run analyses:</p>
+<div class="cmd"><pre>git checkout main &amp;&amp; git pull
+pixi run package --output ~/pfvarx-release          <span class="c"># pfvarx-&lt;version&gt;-source.zip and its .sha256</span>
+cd ~/pfvarx-release &amp;&amp; sha256sum -c pfvarx-*-source.zip.sha256
+unzip -l pfvarx-*-source.zip | grep development/   <span class="c"># prints nothing: development content is left out</span></pre></div>
+<p><code>scripts/package.py</code> selects the files that go in. Anything kept in <code>development/</code> (this guide, notes, experiment scripts) never reaches users; <code>tests/unit/test_distribution.py</code> checks that.</p>
+<h3>Version tags</h3>
+<div class="cmd"><pre>code src/pfvarx/__init__.py                      <span class="c"># set __version__, e.g. "0.1.0", on a branch, merged as usual</span>
+git checkout main && git pull
+git tag -a v0.1.0 -m "PfVarX 0.1.0"
+git push origin v0.1.0
+gh release create v0.1.0 --title "PfVarX 0.1.0" --notes-file CHANGELOG.md
+git tag                                          <span class="c"># list tags</span>
+git checkout v0.1.0                              <span class="c"># look at that release; return with: git checkout main</span></pre></div>
+
+<h2 id="git-history">20. History and comparison</h2>
+<div class="cmd"><pre>git log --oneline --graph --decorate -20        <span class="c"># recent history as a graph</span>
+git log --oneline main..develop                  <span class="c"># on develop but not yet released</span>
+git log -p -- config/parameters/layer1.yaml      <span class="c"># every change to one file</span>
+git log -S "fastp_length_required" --oneline     <span class="c"># commits that added or removed a text</span>
+git show &lt;commit&gt;                                <span class="c"># one commit in full</span>
+git blame workflow/rules/l1_align.smk            <span class="c"># who changed each line, and when</span>
+git diff develop...step/04-markdup-tool          <span class="c"># what a branch changes</span>
+git diff main develop --stat                     <span class="c"># differences between two branches</span>
+git show main:config/parameters/layer1.yaml      <span class="c"># a file as it is on another branch</span>
+git branch -a                                    <span class="c"># local and remote branches</span>
+gh browse                                        <span class="c"># open the repository on GitHub</span></pre></div>
+
+<h2 id="git-fix">21. Fixing mistakes</h2>
+<div class="tablewrap"><table>
+<tr><th>Situation</th><th>Command</th></tr>
+<tr><td>Undo changes to a file (not committed)</td><td><code>git restore path/to/file</code></td></tr>
+<tr><td>Unstage a file you added</td><td><code>git restore --staged path/to/file</code></td></tr>
+<tr><td>Fix the last commit's message or add a forgotten file (not pushed yet)</td><td><code>git add file &amp;&amp; git commit --amend</code></td></tr>
+<tr><td>Undo the last commit but keep its changes (not pushed yet)</td><td><code>git reset --soft HEAD~1</code></td></tr>
+<tr><td>Undo a commit that is already pushed</td><td><code>git revert &lt;commit&gt;</code> then <code>git push</code> (adds a new commit that reverses it)</td></tr>
+<tr><td>Committed on the wrong branch (not pushed)</td><td><code>git branch step/new-name</code>, <code>git reset --hard HEAD~1</code>, <code>git checkout step/new-name</code></td></tr>
+<tr><td>Make a local branch match GitHub exactly (discards local commits)</td><td><code>git fetch &amp;&amp; git reset --hard origin/&lt;branch&gt;</code></td></tr>
+<tr><td>Get back a commit you thought was lost</td><td><code>git reflog</code>, then <code>git checkout -b rescue &lt;commit&gt;</code></td></tr>
+<tr><td>Bring back a deleted file from the last commit</td><td><code>git restore --source=HEAD path/to/file</code></td></tr>
+<tr><td>A file from another branch</td><td><code>git restore --source=develop path/to/file</code></td></tr>
+</table></div>
+<div class="callout stop"><strong>Commands that discard work:</strong> <code>git reset --hard</code>, <code>git checkout -- file</code>, <code>git clean -fd</code> and <code>git push --force</code> cannot be undone for uncommitted changes. Run <code>git status</code> first, and never force-push <code>main</code> or <code>develop</code>.</div>
+
+<h2 id="git-conflicts">22. Conflicts</h2>
+<p>A conflict happens when your branch and <code>develop</code> changed the same lines. Bring <code>develop</code> into your branch and resolve:</p>
+<div class="cmd"><pre>git fetch origin
+git checkout step/04-markdup-tool
+git rebase origin/develop                        <span class="c"># replay your commits on the latest develop</span>
+<span class="c"># Git stops at a conflict and lists the files. In VS Code each conflict shows</span>
+<span class="c"># "Accept Current / Incoming / Both"; keep what is right, remove the markers</span>
+<span class="c"># &lt;&lt;&lt;&lt;&lt;&lt;&lt;  =======  &gt;&gt;&gt;&gt;&gt;&gt;&gt;, then:</span>
+git add path/to/resolved-file
+git rebase --continue
+<span class="c"># give up and return to before the rebase:</span>
+git rebase --abort
+
+pixi run pytest -q tests/unit                    <span class="c"># test after resolving</span>
+git push --force-with-lease                      <span class="c"># your own branch only: rebase rewrote its commits</span></pre></div>
+<p>Generated files are not resolved by hand: after a conflict in the SOP manual run <code>pixi run python scripts/sync_sop.py</code>; in <code>docs/configuration-guide.*</code> run <code>pixi run python scripts/configuration_guide.py</code>; in <code>pixi.lock</code> take either side and run <code>pixi lock</code>.</p>
+
+<h2 id="git-more">23. Worktrees, stash and tags</h2>
+<div class="cmd"><pre><span class="c"># Put unfinished work aside to switch branches</span>
+git stash push -m "half-done parser"
+git stash list
+git stash pop                                    <span class="c"># bring it back</span>
+
+<span class="c"># Two branches checked out at once, in separate folders</span>
+git worktree add ../PfVarX-markdup step/04-markdup-tool
+git worktree list
+git worktree remove ../PfVarX-markdup
+
+<span class="c"># Clean up branches already merged into develop</span>
+git checkout develop && git pull
+git branch --merged | grep -vE "main|develop|\*" | xargs -r git branch -d
+git fetch --prune                                <span class="c"># forget remote branches deleted on GitHub</span></pre></div>
+
+<div class="partbanner">Part E · Reference</div>
+
+<h2 id="rules">24. Rules and things to avoid</h2>
+<div class="tablewrap"><table>
+<tr><th>Do</th><th>Avoid</th></tr>
+<tr><td>Experiment in a copy of a test workspace</td><td>Experimenting directly on <code>main</code> or <code>develop</code></td></tr>
+<tr><td>One branch per change, from the latest <code>develop</code></td><td>Unrelated changes in one branch</td></tr>
+<tr><td>Values in <code>config/parameters/</code>, read as <code>P["layerN.key"]</code></td><td>Numbers typed into rule commands</td></tr>
+<tr><td>A new QC policy file for different thresholds</td><td>Editing <code>quality.yaml</code> to loosen thresholds (it cannot)</td></tr>
+<tr><td>Honest source classes, evidence in <code>docs/thresholds.md</code></td><td>Marking a tested value as calibrated without the measurement</td></tr>
+<tr><td><code>pixi lock</code> after editing <code>pixi.toml</code>; commit both</td><td>Installing tools by hand into an environment</td></tr>
+<tr><td>Same output files when replacing a tool</td><td>Changing output names that later steps read</td></tr>
+<tr><td>Your own reads, reference strains and cohort for comparisons</td><td>Downloading outside datasets (such as Pf8) to calibrate</td></tr>
+<tr><td><code>--mode NEW</code> for each experiment; keep both runs</td><td>Overwriting the run you compare against</td></tr>
+<tr><td>CLI and GUI changed together</td><td>A setting that exists in only one of them</td></tr>
+<tr><td>Pull requests and a passed full local CI (<code>development/local_ci.sh</code>) before merging</td><td>Pushing directly to <code>main</code> or <code>develop</code>; force-pushing them</td></tr>
+</table></div>
+
+<h2 id="cheats">25. Command cheat sheet</h2>
+<div class="cmd"><pre><span class="c"># ---- development copy ~/PfVarX ----</span>
+git checkout develop && git pull                 <span class="c"># latest develop</span>
+git checkout -b step/NN-name                     <span class="c"># new branch</span>
+pixi install --locked                            <span class="c"># environment from the lock file</span>
+pixi run lint && pixi run typecheck              <span class="c"># fast checks</span>
+pixi run pytest -q tests/unit -k NAME            <span class="c"># focused tests</span>
+pixi run pytest -q tests                         <span class="c"># full suite (~16 min)</span>
+pixi lock                                        <span class="c"># after editing pixi.toml</span>
+pixi run python scripts/check_installs.py        <span class="c"># tools per installation</span>
+pixi run python scripts/check_gui_buttons.py     <span class="c"># every GUI button</span>
+pixi run python scripts/sync_sop.py              <span class="c"># SOP appendices</span>
+pixi run python scripts/configuration_guide.py   <span class="c"># configuration guide</span>
+git add -A && git commit -m "What and why" && git push
+development/local_ci.sh                          <span class="c"># full local CI before the pull request</span>
+gh pr create --base develop --fill
+
+<span class="c"># ---- test workspace ~/pfvarx-lab/&lt;name&gt; ----</span>
+./pfvarx fixture --design wgs --depth 30         <span class="c"># synthetic data</span>
+./pfvarx validate && ./pfvarx prepare            <span class="c"># check and prepare</span>
+./pfvarx pipeline --mode NEW                     <span class="c"># new run</span>
+./pfvarx status                                  <span class="c"># runs and their state</span>
+./pfvarx report                                  <span class="c"># rebuild the dashboard</span>
+./pfvarx tool samtools flagstat FILE.bam         <span class="c"># any installed tool</span>
+./pfvarx configure --gui                         <span class="c"># configuration editor</span>
+
+<span class="c"># ---- one step only (dry run; replace -n with -p to run) ----</span>
+RUN=$PWD/runs/&lt;RUN_ID&gt;
+./pfvarx tool snakemake -s workflow/Snakefile --directory $RUN \
+  --config run_dir=$RUN root=$PWD --cores 4 -n \
+  --forcerun mark_duplicates $RUN/results/alignments/PF001.bam
+
+<span class="c"># ---- parameter grid ----</span>
+./grid.sh layer1 fastp_length_required "30 50 70"
+python3 grid_summary.py exp-baseline grid-* | column -t</pre></div>
+
+<h2 id="trouble">26. Troubleshooting</h2>
+<div class="tablewrap"><table>
+<tr><th>Problem</th><th>What to do</th></tr>
+<tr><td><code>QC policy 'x' is not registered</code></td><td>The file must be <code>config/registry/qc_policy_x.yaml</code> and contain <code>policy_id: x</code>.</td></tr>
+<tr><td>A parameter <code>needs 'value' and 'source'</code></td><td>Each entry needs both; <code>source</code> must be an allowed class (section 6).</td></tr>
+<tr><td><code>grid.sh</code>: <code>not found in …yaml</code></td><td>Check the layer file and spelling in the parameter table (section 6).</td></tr>
+<tr><td>A red ✕ on a commit on GitHub; the check log says <code>spending limit</code> or <code>account payments</code></td><td>The free GitHub Actions minutes are used up and the check never ran; the code is not at fault. GitHub CI is now started by hand only, so new commits are not marked. Rely on <code>development/local_ci.sh</code>.</td></tr>
+<tr><td>Two local CI runs at once, or a log that looks mixed</td><td>Two copies of <code>local_ci.sh</code> on the same commit write the same log. Stop one (<code>pgrep -af local_ci.sh</code>, then <code>kill PID</code>) and run it again.</td></tr>
+<tr><td>Parity test fails</td><td>A setting is missing from <code>field-guide.json</code>, a template or the configuration guide (section 14).</td></tr>
+<tr><td><code>test_resource_plan</code> fails</td><td>A rule writes its threads or memory as a number, or is missing from <code>config/registry/job_resources.yaml</code>; add it there and use <code>threads("rule")</code> / <code>mem("rule")</code>. A rule written <code>mem("pfvarx_call", job="pfvarx_call")</code> takes the plan's request, which can rise to the memory measured on this computer (<code>memory_basis: MEASURED_HISTORY</code>).</td></tr>
+<tr><td>A run shows INTERRUPTED</td><td>Its process ended before it finished (Ctrl+C, kill, out of memory, restart): <code>run_status()</code> in <code>src/pfvarx/runs/registry.py</code> checks the recorded process. Continue with <code>./pfvarx pipeline --mode RESUME --run-id RUN_ID</code>.</td></tr>
+<tr><td><code>SOP appendices out of date</code></td><td><code>pixi run python scripts/sync_sop.py</code></td></tr>
+<tr><td><code>pixi lock</code> fails</td><td>It needs internet access to the conda channels; check the version range exists.</td></tr>
+<tr><td>A change has no effect in a workspace</td><td>The workspace has its own copy of the code; <code>rsync</code> it (section 14).</td></tr>
+<tr><td><code>git push</code> is rejected</td><td>GitHub has newer commits: <code>git pull</code>, resolve if needed, push again.</td></tr>
+<tr><td><code>Permission denied</code> or 403 from GitHub</td><td><code>gh auth status</code>; switch to hadish-bekuretsion1 with <code>gh auth switch</code>; <code>gh auth setup-git</code>.</td></tr>
+<tr><td>CI fails but tests pass locally</td><td><code>gh run view --log-failed</code>; often <code>pixi.lock</code> not committed or a file missing from <code>git add</code>.</td></tr>
+<tr><td>Disk full</td><td>Delete old workspaces and runs in <code>~/pfvarx-lab</code>; <code>pixi clean cache</code>.</td></tr>
+<tr><td>WSL2 is slow or runs out of memory</td><td>Work under <code>~</code>, not <code>/mnt/c</code>; raise <code>memory=</code> in <code>.wslconfig</code>; <code>wsl --shutdown</code>.</td></tr>
+</table></div>
+
+<footer>PfVarX Development Guide · inventory generated from the repository's <code>main</code> branch (3b36fc2, 2026-11-22). After tools, parameters or gates change, regenerate the inventory tables or check <code>pixi.toml</code>, <code>config/parameters/</code> and <code>config/registry/</code> directly.</footer>
+</main>
+</div>
+<script>
+// Copy buttons, table filters, contents filter, and the current section in the contents.
+document.querySelectorAll(".cmd").forEach(block => {
+  const button = document.createElement("button");
+  button.type = "button"; button.textContent = "Copy";
+  button.addEventListener("click", async () => {
+    const pre = block.querySelector("pre");
+    try { await navigator.clipboard.writeText(pre.innerText); button.textContent = "Copied"; }
+    catch { const r = document.createRange(); r.selectNodeContents(pre); const s = getSelection(); s.removeAllRanges(); s.addRange(r); button.textContent = "Selected"; }
+    setTimeout(() => { button.textContent = "Copy"; }, 1500);
+  });
+  block.append(button);
+});
+document.querySelectorAll("input[data-filter]").forEach(input => {
+  const table = document.getElementById(input.dataset.filter);
+  input.addEventListener("input", () => {
+    const q = input.value.trim().toLowerCase();
+    [...table.rows].slice(1).forEach(row => { row.hidden = q && !row.textContent.toLowerCase().includes(q); });
+  });
+});
+const tocFilter = document.getElementById("tocfilter");
+tocFilter.addEventListener("input", () => {
+  const q = tocFilter.value.trim().toLowerCase();
+  document.querySelectorAll("nav.toc a").forEach(a => { a.hidden = q && !a.textContent.toLowerCase().includes(q); });
+});
+const links = [...document.querySelectorAll("nav.toc a")];
+const observer = new IntersectionObserver(entries => {
+  for (const e of entries) if (e.isIntersecting) links.forEach(a => a.classList.toggle("active", a.getAttribute("href") === "#" + e.target.id));
+}, {rootMargin: "0px 0px -70% 0px"});
+links.map(a => document.querySelector(a.getAttribute("href"))).filter(Boolean).forEach(t => observer.observe(t));
+</script>
+</body>
+</html>

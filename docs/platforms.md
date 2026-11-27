@@ -6,9 +6,9 @@ installation target. A terminal is an interface, not an operating-system compati
 | Target | Pixi platform | Installation status |
 | --- | --- | --- |
 | Linux x86-64 | `linux-64` | Existing baseline; previous package selections retained |
-| Linux ARM64 (AArch64) | `linux-aarch64` | Dependencies locked; experimental pending native qualification |
-| macOS Intel | `osx-64` | Dependencies locked; experimental pending native qualification |
-| macOS Apple silicon | `osx-arm64` | Dependencies locked; experimental pending native qualification |
+| Linux ARM64 (AArch64) | `linux-aarch64` | Dependencies locked; experimental pending native CI |
+| macOS Intel | `osx-64` | Dependencies locked; experimental pending native CI |
+| macOS Apple silicon | `osx-arm64` | Dependencies locked; experimental pending native CI |
 
 The locks declare macOS 13+, or Linux kernel 4.18+ with glibc 2.28+. Use a native
 terminal, Python and Pixi for your architecture. On Apple silicon, avoid running the
@@ -39,10 +39,10 @@ All 118 environments resolve for all four targets. That establishes package avai
 not a successful pipeline run or equivalent scientific results on new hardware.
 macOS/ARM targets remain experimental until native integration checks pass.
 
-Native qualification runs each platform independently: locked installation, platform
-identity, full synthetic integration runs and the spawn process model used by macOS. On a
-new platform, run `pixi run python scripts/verify.py` on the exact source revision and
-review the result before claiming runtime support.
+The manually dispatched **PfVarX CI** workflow runs the four native platforms independently:
+locked installation, platform identity, lint, typing, unit/scientific tests, full synthetic
+integration runs, and source-archive checks. It also tests the spawn process model used by
+macOS. Review the results on the exact source revision before claiming runtime support.
 Synthetic checks do not replace independent scientific calibration or held-out validation.
 CPU architectures can differ numerically, especially near decision thresholds; no bitwise
 cross-platform equivalence or unchanged accuracy is claimed from dependency solving.
@@ -57,6 +57,6 @@ Linux and Windows hosts, `system_profiler` on macOS) in its provenance, with
 `used_for_compute: false`, and the report says so in the Software section: PfVarX runs
 correctly on a machine with a GPU, uses its CPUs, and no result depends on an accelerator.
 Every pinned tool (fastp, bwa-mem2, samtools, fgbio, mosdepth, SnpEff, IQ-TREE, hmmIBD and the
-R packages) is a CPU program, and the native caller uses NumPy and SciPy. Cloud/server execution still uses one host; HPC examples still run inside one
+R packages) is a CPU program, and the native caller uses NumPy, SciPy and Numba. Cloud/server execution still uses one host; HPC examples still run inside one
 allocated Linux node. The optional Apptainer image builder is a Linux deployment route,
 not a native macOS installer or a qualified multi-architecture container distribution.

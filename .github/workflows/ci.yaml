@@ -1,0 +1,59 @@
+name: PfVarX CI
+# Started by hand only (Actions -> PfVarX CI -> Run workflow, or `gh workflow run ci.yaml`).
+# Hosted minutes are limited, so the full suite is run locally before every merge and release
+# (the same steps as below); automatic runs that cannot start would only mark commits as failed.
+on:
+  workflow_dispatch:
+concurrency:
+  group: ci-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+permissions:
+  contents: read
+jobs:
+  checks:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - runner: ubuntu-24.04
+            platform: linux-64
+          - runner: ubuntu-24.04-arm
+            platform: linux-aarch64
+          - runner: macos-15-intel
+            platform: osx-64
+          - runner: macos-15
+            platform: osx-arm64
+    name: Checks (${{ matrix.platform }})
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 60  # the suite takes 15-28 minutes on hosted runners
+    steps:
+      - uses: actions/checkout@v4
+      - uses: prefix-dev/setup-pixi@v0.8.1
+        with:
+          pixi-version: v0.83.0
+          locked: true
+          environments: default
+      - name: Lint
+        run: pixi run lint
+      - name: Verify native platform and lock
+        run: |
+          pixi run python -c "import runpy; assert runpy.run_path('bootstrap.py')['host_platform']() == '${{ matrix.platform }}'"
+          pixi lock --check
+      - name: Type checking
+        run: pixi run typecheck
+      - name: Import and help smoke
+        run: pixi run pfvarx --help && pixi run pfvarx version
+      - name: Unit and scientific tests
+        run: pixi run pytest -q tests/unit tests/scientific
+      - name: Integration tests (dry runs and full synthetic pipeline runs)
+        run: pixi run pytest -q tests/integration
+      - name: Validate software-only source archive
+        shell: bash
+        run: |
+          version="$(pixi run --locked pfvarx version)"
+          pixi run python scripts/package.py --output "$RUNNER_TEMP/pfvarx-release"
+          cd "$RUNNER_TEMP/pfvarx-release"
+          python -c 'import hashlib,pathlib,sys; p=pathlib.Path(sys.argv[1]); expected,name=p.read_text().split(); assert hashlib.sha256(pathlib.Path(name).read_bytes()).hexdigest() == expected' "pfvarx-${version}-source.zip.sha256"
+          python -m zipfile -e "pfvarx-${version}-source.zip" unpacked
+          python unpacked/pfvarx/scripts/package.py --check
+

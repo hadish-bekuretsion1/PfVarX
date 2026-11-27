@@ -1,11 +1,11 @@
 # PfVarX
 
-PfVarX 1.0.0 is a configuration-driven pipeline for paired-end *Plasmodium falciparum*
+PfVarX 0.0.0 is a configuration-driven pipeline for paired-end *Plasmodium falciparum*
 SNP/small-indel analysis, with a custom caller, QC, cohort integration, annotation,
 eligibility-gated downstream methods and one offline scientific dashboard.
 
-This source release contains software, locked environment definitions, templates
-and policies. It contains no study reads, reference genome, truth dataset, run
+This source release contains software, locked environment definitions, templates,
+policies and tests. It contains no study reads, reference genome, truth dataset, run
 or historical report. Methods remain **scientifically unvalidated and uncalibrated**.
 See [scientific status](docs/status.md) before interpreting results.
 
@@ -17,7 +17,7 @@ from installing Pixi to opening the report, with a troubleshooting table.
 Native installation targets are Linux x86-64, Linux ARM64, and macOS 13+ on Intel or
 Apple silicon. You need Git, Python 3.11+ for bootstrap, and Pixi on PATH. On Windows, use WSL2 with a supported Linux distribution.
 macOS and Linux ARM64 are newly enabled, experimental targets pending successful native
-qualification runs; a solved lock is not runtime or scientific validation. See
+CI runs; a solved lock is not runtime or scientific validation. See
 [platform support](docs/platforms.md). This example creates a workspace whose tools are installed on demand.
 Run each step in order and resolve any errors before continuing.
 
@@ -61,12 +61,12 @@ Either way each final output gets only the tools it uses:
 
 | Final output | Bootstrap option (up front) | Installed beyond the shared base* |
 | --- | --- | --- |
-| FO001 alignment and QC | `--final-output FO001` | fastp, bwa-mem2 (and fgbio for targeted designs, as `fgbio-minimal` without R). No variant caller, bcftools, numpy, scipy or R |
-| FO002 per-sample calls | `--final-output FO002` | adds the variant caller (numpy, scipy) and bcftools |
+| FO001 alignment and QC | `--final-output FO001` | fastp, bwa-mem2 (and fgbio for targeted designs, as `fgbio-minimal` without R). No variant caller, bcftools, numpy, scipy, numba or R |
+| FO002 per-sample calls | `--final-output FO002` | adds the variant caller (numpy, scipy, numba) and bcftools |
 | FO003 cohort | `--final-output FO003` | same tools as FO002, plus the cohort step |
 | FO004 annotation and analyses | `--final-output FO004 --analyses DA003` (or `--auto-analyses`) | adds SnpEff and only the requested analyses' tools: R with MOIRE (DA001), Dcifer and hmmIBD (DA004), scikit-allel (DA005), IQ-TREE (DA006), mgcv (DA007); DA002 and DA008 need no extra tool |
 | Benchmarking | `--profile benchmark` | as FO002, plus RTG Tools with `--rtg` |
-| Full development environment | `--profile development` | every tool for every final output and analysis |
+| Full development environment | `--profile development` | everything, plus the test tools |
 
 \* Snakemake, samtools, Picard (`picard-slim`, without R) and mosdepth, with the Python,
 pysam and htslib of the control environment: every final output uses them. To see what each installation gets, run
@@ -173,7 +173,7 @@ outputs, logs and frozen configuration under `runs/<RUN_ID>/`.
 - [Sample analysis](docs/analysis/README.md) and [benchmarking](docs/benchmarking/README.md); step-by-step HTML guides
   with commands and expected output: [sample analysis](docs/PfVarX_Sample_Analysis_Guide.html) and
   [benchmarking](docs/PfVarX_Benchmarking_Guide.html)
-- [Reporting](docs/reporting/README.md), [deployment](docs/deployment.md)
+- [Reporting](docs/reporting/README.md), [deployment](docs/deployment.md), [testing](docs/testing.md)
 - [Configuration guide](docs/configuration-guide.md) and [thresholds and their sources](docs/thresholds.md);
   every threshold, setting and compute request is in a configuration file, none in the code
   ([where values are kept](docs/thresholds.md#where-values-are-kept))

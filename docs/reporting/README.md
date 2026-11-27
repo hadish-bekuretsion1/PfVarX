@@ -242,7 +242,8 @@ DATA** at the top of Overview. The complete
 synthetic generator and verification code are retained; generated data is not shipped.
 This is a software fixture, not an experimental finding or accuracy claim.
 
-The dashboard acceptance checks exercise all available views,
+Run core tests from a full/development installation with `pixi run test`. Browser dependencies are separate from the analysis
+lock; see [testing](../testing.md). The acceptance runner exercises all available views,
 navigation and persistence, true-data tooltips, filters, pagination, schema errors,
 missing values, local JSON import, CSV/XLSX/PNG/PDF exports, and offline operation.
 Use both an informative synthetic FO004 benchmark and FO001/FO002/skipped-analysis

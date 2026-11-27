@@ -268,7 +268,8 @@ WHO list before use; the list changes.
 ## Where values are kept
 
 Every threshold, analysis setting and compute request is read from a configuration file; the
-program code holds none of them and repeats none of them as a fallback.
+program code holds none of them, and `tests/unit/test_no_hardcoded_parameters.py` fails if a
+parameter is repeated in the code as a fallback.
 
 | File | Holds | Who edits it |
 | --- | --- | --- |

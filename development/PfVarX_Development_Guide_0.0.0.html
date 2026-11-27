@@ -1,0 +1,567 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>PfVarX Development</title>
+<style>
+:root{--bg:#f4f6f9;--paper:#fff;--ink:#1b2b3a;--muted:#55687a;--line:#d9e1e8;--accent:#1f5f8b;--accent-soft:#e8f1f8;--code:#f1f4f7;--ok:#1d7a46;--ok-bg:#e6f4ec;--warn:#8a5a00;--warn-bg:#fff4d9;--bad:#a3271f;--bad-bg:#fde9e7;--side:#eaf0f5}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#11171d;--paper:#182129;--ink:#e3eaf0;--muted:#9fb0bf;--line:#2c3a46;--accent:#7cb8e4;--accent-soft:#1d3142;--code:#121a21;--ok:#6fd39a;--ok-bg:#163525;--warn:#f0c46b;--warn-bg:#3a2e12;--bad:#f39a90;--bad-bg:#3d1c19;--side:#141c23}}
+:root[data-theme="dark"]{--bg:#11171d;--paper:#182129;--ink:#e3eaf0;--muted:#9fb0bf;--line:#2c3a46;--accent:#7cb8e4;--accent-soft:#1d3142;--code:#121a21;--ok:#6fd39a;--ok-bg:#163525;--warn:#f0c46b;--warn-bg:#3a2e12;--bad:#f39a90;--bad-bg:#3d1c19;--side:#141c23}
+*{box-sizing:border-box}html{scroll-behavior:smooth}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.6 system-ui,-apple-system,"Segoe UI",sans-serif}
+header{background:var(--accent);color:#fff;padding:22px 28px}
+:root[data-theme="dark"] header{color:#0d1720}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) header{color:#0d1720}}
+header h1{margin:0;font-size:26px}header p{margin:6px 0 0;opacity:.92}
+.layout{display:flex;align-items:flex-start}
+nav{width:280px;flex:none;position:sticky;top:0;max-height:100vh;overflow:auto;background:var(--side);padding:18px 14px;font-size:13.5px;border-right:1px solid var(--line)}
+nav a{display:block;color:var(--accent);text-decoration:none;padding:5px 8px;border-radius:5px}nav a:hover{background:var(--paper)}
+nav .grp{font-weight:700;color:var(--muted);text-transform:uppercase;font-size:11.5px;letter-spacing:.06em;margin:14px 8px 4px}
+main{flex:1;min-width:0;max-width:1100px;padding:26px 40px 80px;background:var(--paper)}
+h2{font-size:24px;margin:48px 0 14px;padding:12px 16px;background:var(--accent-soft);border-left:5px solid var(--accent);border-radius:4px;scroll-margin-top:12px}
+h3{font-size:18px;margin:28px 0 8px;color:var(--accent)}h4{margin:18px 0 6px}
+p,li{max-width:80ch}
+code{font:13.5px ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;background:var(--code);padding:1px 5px;border-radius:4px;overflow-wrap:anywhere}
+pre{background:var(--code);border:1px solid var(--line);border-radius:6px;padding:14px 16px;overflow:auto;line-height:1.45}pre code{background:none;padding:0;font-size:13px}
+pre.out{border-left:4px solid var(--ok)}pre.out::before{content:"Expected output";display:block;font:600 11px system-ui;color:var(--ok);text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px}
+pre.dry{border-left:4px solid var(--warn)}pre.dry::before{content:"Dry run: shows what would happen, changes nothing";display:block;font:600 11px system-ui;color:var(--warn);text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px}
+table{border-collapse:collapse;width:100%;margin:10px 0 16px;font-size:14px;display:block;overflow-x:auto}
+th,td{border:1px solid var(--line);padding:7px 10px;text-align:left;vertical-align:top}th{background:var(--accent-soft)}
+.step{border:1px solid var(--line);border-radius:8px;padding:4px 18px 10px;margin:18px 0;background:var(--paper)}
+.meta{display:grid;grid-template-columns:150px 1fr;gap:4px 12px;font-size:14.5px;margin:10px 0}.meta b{color:var(--muted)}
+.note,.warn,.bad{border-radius:6px;padding:10px 14px;margin:12px 0}
+.note{background:var(--accent-soft)}.warn{background:var(--warn-bg)}.bad{background:var(--bad-bg)}
+.ok{color:var(--ok);font-weight:700}
+.toolbar{float:right}.toolbar button{font:inherit;font-size:13px;padding:4px 10px;border-radius:5px;border:1px solid #ffffff88;background:transparent;color:inherit;cursor:pointer}
+@media (max-width:860px){.layout{display:block}nav{position:static;width:auto;max-height:none;border-right:0}main{padding:18px 16px 60px}.meta{grid-template-columns:1fr}}
+@media print{nav,.toolbar{display:none}main{max-width:none;padding:0}h2{break-before:page}}
+</style>
+</head>
+<body>
+<header>
+<div class="toolbar"><button type="button" onclick="toggleTheme()">Light / dark</button></div>
+<h1>PfVarX 0.0.0 — Development</h1>
+<p>How to set up, understand, change, test, verify, package and release PfVarX: every directory, file, tool, command, dry run and expected output a developer needs.</p>
+</header>
+<div class="layout">
+<nav aria-label="Contents">
+<div class="grp">Basics</div>
+<a href="#model">0. Branch and release model</a>
+<a href="#setup">1. Set up the computer</a>
+<a href="#clone">2. Get the source</a>
+<a href="#env">3. Install the environments</a>
+<div class="grp">The code</div>
+<a href="#tree">4. Repository map</a>
+<a href="#src">5. Source modules</a>
+<a href="#workflow">6. Workflow rules and tools</a>
+<a href="#config">7. Configuration, parameters, registry</a>
+<a href="#tools">8. Tools and package versions</a>
+<a href="#tasks">9. Pixi tasks</a>
+<div class="grp">Working</div>
+<a href="#rules">10. Project rules</a>
+<a href="#daily">11. Everyday workflow</a>
+<a href="#ladder">12. Testing ladder</a>
+<a href="#verifyrun">13. End-to-end verification</a>
+<a href="#sandbox">14. Experiment in a test workspace</a>
+<a href="#browser">15. Browser checks</a>
+<div class="grp">Changes</div>
+<a href="#setting">16. Add or change a setting</a>
+<a href="#param">17. Change a parameter or QC gate</a>
+<a href="#rule">18. Add a workflow rule</a>
+<a href="#analysis">19. Add a downstream analysis</a>
+<a href="#upgrade">20. Upgrade or replace a tool</a>
+<a href="#docs">21. Documentation</a>
+<div class="grp">Ship</div>
+<a href="#package">22. Package the source</a>
+<a href="#release">23. Release procedure</a>
+<a href="#tomain">24. Bring develop to main</a>
+<a href="#git">25. Git and GitHub commands</a>
+<a href="#trouble">26. Troubleshooting</a>
+</nav>
+<main>
+
+<div class="note"><b>About the example outputs.</b> The "Expected output" blocks were produced on 27 November 2026 on the <code>develop</code> branch at version 0.0.0 (Linux x86-64). Counts, hashes and times will change as the code changes.</div>
+
+<h2 id="model">0. Branch and release model</h2>
+<table>
+<tr><th>Branch</th><th>Holds</th><th>Who uses it</th></tr>
+<tr><td><code>develop</code></td><td>Everything: analysis software, <code>tests/</code>, <code>.github/workflows/ci.yaml</code>, <code>development/</code>, <code>CLAUDE.md</code>, <code>docs/testing.md</code>, the maintainer scripts</td><td>Developers. All work starts here, on a feature branch merged into <code>develop</code> by pull request.</td></tr>
+<tr><td><code>main</code></td><td>The same files as <code>develop</code>: it is brought level by a pull request from <code>develop</code> once a change there is tested (<a href="#tomain">section 24</a>). Release tags (<code>v0.0.0</code>) point at <code>main</code>.</td><td>Users</td></tr>
+</table>
+<div class="note">Since 27 November 2026 (pull requests #55 and #58) <code>main</code> mirrors <code>develop</code>. What users receive is still the analysis software only: the release archive is built with <code>scripts/package.py</code>, which leaves out <code>development/</code> and <code>CLAUDE.md</code> (<a href="#package">section 22</a>); never publish a plain <code>git archive</code> of <code>main</code>.</div>
+
+<h2 id="setup">1. Set up the computer (Ubuntu or WSL2)</h2>
+<div class="step">
+<table>
+<tr><th>Need</th><th>Why</th><th>Install</th></tr>
+<tr><td>Git</td><td>Source control</td><td><code>sudo apt-get install -y git</code></td></tr>
+<tr><td>curl</td><td>Pixi installer</td><td><code>sudo apt-get install -y curl</code></td></tr>
+<tr><td>Python 3.11+</td><td><code>bootstrap.py</code>, <code>package.py --check</code></td><td><code>sudo apt-get install -y python3</code></td></tr>
+<tr><td>GitHub CLI</td><td>Private repo, PRs, releases</td><td><code>sudo apt-get install -y gh</code></td></tr>
+<tr><td>Pixi</td><td>All tools in locked environments</td><td><code>curl -fsSL https://pixi.sh/install.sh | bash</code></td></tr>
+<tr><td>Google Chrome / Chromium</td><td>Dashboard and GUI browser checks, screenshots</td><td>optional</td></tr>
+<tr><td>Hardware</td><td>4+ cores, 8+ GB RAM, ≈10 GB disk for the full environment and tests</td><td>–</td></tr>
+</table>
+<pre><code>git --version && python3 --version && gh --version | head -1
+exec bash && pixi --version
+gh auth login           # GitHub.com, HTTPS, browser
+gh auth setup-git
+git config --global user.name  "Your Name"
+git config --global user.email "you@example.org"</code></pre>
+</div>
+
+<h2 id="clone">2. Get the source</h2>
+<div class="step">
+<pre><code>cd ~
+git clone https://github.com/hadish-bekuretsion1/PfVarX.git
+cd PfVarX
+git checkout develop
+git status -sb</code></pre>
+<pre class="out"><code>## develop...origin/develop</code></pre>
+</div>
+
+<h2 id="env">3. Install the environments</h2>
+<div class="step">
+<div class="meta"><b>Why</b><span>The <code>default</code> environment contains every feature, including the developer tools (pytest, ruff, mypy).</span><b>Needs</b><span>internet to conda-forge and bioconda</span><b>Creates</b><span><code>.pixi/envs/default/</code> (never copy it between computers)</span></div>
+<pre><code>pixi install --locked          # exactly what pixi.lock records; refuses if pixi.toml and the lock disagree
+pixi run pfvarx version</code></pre>
+<pre class="out"><code>0.0.0</code></pre>
+<p>Other environments exist for each kind of installation (<code>control</code>, <code>alignment-qc</code>, <code>core</code>, <code>aligned</code>, <code>selected-*</code>); <code>bootstrap.py</code> chooses them for user workspaces. Check which tools each installation receives:</p>
+<pre><code>pixi run python scripts/check_installs.py</code></pre>
+</div>
+
+<h2 id="tree">4. Repository map</h2>
+<table>
+<tr><th>Path</th><th>What it is</th><th>In the release archive?</th></tr>
+<tr><td><code>bootstrap.py</code></td><td>Exports and installs a user workspace (stdlib only)</td><td>yes</td></tr>
+<tr><td><code>pfvarx</code></td><td>Launcher: picks the locked environment recorded by bootstrap; <code>./pfvarx tool X</code> runs a tool</td><td>yes</td></tr>
+<tr><td><code>pixi.toml</code>, <code>pixi.lock</code></td><td>Features, environments, tasks; the solved lock for 4 platforms</td><td>yes</td></tr>
+<tr><td><code>pyproject.toml</code></td><td>Package metadata (version read from <code>src/pfvarx/__init__.py</code>), ruff and mypy settings</td><td>yes</td></tr>
+<tr><td><code>src/pfvarx/</code></td><td>The Python package (section 5)</td><td>yes</td></tr>
+<tr><td><code>workflow/Snakefile</code>, <code>workflow/rules/*.smk</code>, <code>workflow/scripts/</code></td><td>Snakemake workflow (section 6); R scripts <code>da001_moire.R</code>, <code>da004_dcifer.R</code>, <code>da007_gam.R</code>; <code>l1_gate.py</code></td><td>yes</td></tr>
+<tr><td><code>config/templates/</code></td><td><code>analysis.yaml</code>, <code>benchmarking.yaml</code>, <code>quality.yaml</code>, <code>compute.yaml</code>, <code>library_catalog.yaml</code></td><td>yes</td></tr>
+<tr><td><code>config/parameters/layer0…layer6.yaml</code></td><td>Every maintainer value, each with its source class</td><td>yes</td></tr>
+<tr><td><code>config/registry/</code></td><td>QC policy, job resources, downstream analysis contracts, catalogues, unreliable-context BED</td><td>yes</td></tr>
+<tr><td><code>config/geo/</code></td><td>Geographic boundaries for DA007</td><td>yes</td></tr>
+<tr><td><code>scripts/verify.py</code></td><td>Isolated end-to-end verification runner</td><td>yes</td></tr>
+<tr><td><code>scripts/check_installs.py</code>, <code>build_container.py</code></td><td>Installation contents; Apptainer context</td><td>yes</td></tr>
+<tr><td><code>scripts/package.py</code></td><td>Deterministic source ZIP without the development material</td><td>yes</td></tr>
+<tr><td><code>scripts/sync_sop.py</code></td><td>Copies <code>docs/caller.md</code>, <code>configuration.md</code>, <code>sequencing.md</code> into SOP appendices E–G</td><td>yes</td></tr>
+<tr><td><code>scripts/configuration_guide.py</code></td><td>Regenerates the configuration guide from <code>gui/field-guide.json</code></td><td>yes</td></tr>
+<tr><td><code>scripts/check_gui_buttons.py</code></td><td>Exercises every GUI button in throw-away workspaces</td><td>yes</td></tr>
+<tr><td><code>tests/unit/</code> (347), <code>tests/scientific/</code> (15), <code>tests/integration/</code> (21), <code>tests/dashboard/</code></td><td>Test suites (counts from <code>pytest --collect-only</code>)</td><td>yes</td></tr>
+<tr><td><code>.github/workflows/ci.yaml</code></td><td>GitHub CI (started by hand only)</td><td>yes</td></tr>
+<tr><td><code>development/</code></td><td><code>local_ci.sh</code>, the development guide, notes; never packaged</td><td>no</td></tr>
+<tr><td><code>CLAUDE.md</code></td><td>Working rules for the AI assistant</td><td>no</td></tr>
+<tr><td><code>docs/</code></td><td>User guides (md + html), SOP manual (md + html), <code>testing.md</code></td><td>yes</td></tr>
+<tr><td><code>CHANGELOG.md</code>, <code>README.md</code>, <code>LICENSE</code></td><td>–</td><td>yes</td></tr>
+</table>
+
+<h2 id="src">5. Source modules (<code>src/pfvarx/</code>)</h2>
+<table>
+<tr><th>Module</th><th>Files</th><th>Purpose</th></tr>
+<tr><td><code>cli.py</code></td><td>–</td><td>Typer command-line interface; every command prints JSON</td></tr>
+<tr><td><code>configuration/</code></td><td><code>models.py loader.py migrate.py library.py web.py legacy_parameters.yaml gui/</code></td><td>Schemas, loading, precedence, freezing; the GUI server (<code>web.py</code>) and front end (<code>gui/index.html app.js style.css field-guide.json</code>)</td></tr>
+<tr><td><code>initialization/</code></td><td><code>layout.py workspace.py</code></td><td><code>config-init</code>, <code>init</code>, <code>check-layout</code></td></tr>
+<tr><td><code>inputs/</code></td><td><code>content.py assay.py alignment_entry.py metadata_join.py organize.py preparation.py registry.py guidance.py …</code></td><td>Input validation, sample sheet, registry, fix-it guidance</td></tr>
+<tr><td><code>references/</code></td><td><code>prepare.py host.py</code></td><td>Reference identity, index preparation, host (human) reference</td></tr>
+<tr><td><code>planning/</code></td><td><code>plan.py resources.py history.py</code></td><td>FO/DA dependencies, resource feasibility, time/memory estimates</td></tr>
+<tr><td><code>execution/</code></td><td><code>preflight.py runner.py progress.py retention.py</code></td><td>Dry run, Snakemake passes, progress page, clean-up</td></tr>
+<tr><td><code>quality/</code></td><td><code>policy.py metrics.py cohort.py</code></td><td>QC gates G1–G5</td></tr>
+<tr><td><code>caller/</code></td><td><code>call.py mixture.py pairhmm.py stats.py</code></td><td>Layer 2 PfVarX-Call: read evidence, mixture fit, indel rescoring</td></tr>
+<tr><td><code>caller_adapter.py</code></td><td>–</td><td>Dispatches Layer 2 through the <code>pfvarx.layer2/1</code> contract (native or external)</td></tr>
+<tr><td><code>cohort/</code></td><td><code>merge.py evidence.py microhap.py</code></td><td>Layer 3 cohort merge at any cohort size, evidence matrix, microhaplotypes (samples in worker processes)</td></tr>
+<tr><td><code>annotation/</code></td><td><code>snpeff_db.py</code></td><td>Layer 4 SnpEff database and annotation</td></tr>
+<tr><td><code>eligibility/</code></td><td><code>engine.py territory.py</code></td><td>Scientific eligibility per sample and analysis</td></tr>
+<tr><td><code>downstream/</code></td><td><code>coi.py resistance.py diversity.py relatedness.py structure.py phylogeny.py spatial.py cnv.py hrp.py loci.py common.py run.py</code></td><td>Layer 5 DA001–DA009</td></tr>
+<tr><td><code>reporting/</code></td><td><code>build.py clonality.py dashboard_template.html dashboard.css core.js tables.js charts.js views.js exports.js dashboard.schema.json</code></td><td>Layer 6 offline dashboard</td></tr>
+<tr><td><code>benchmarking/</code></td><td><code>evaluate.py partitions.py resources.py</code></td><td>Evaluator, partition lock, resource profile</td></tr>
+<tr><td><code>runs/</code>, <code>provenance/</code>, <code>diagnostics/</code></td><td><code>registry.py snapshot.py events.py</code></td><td>Run registry and reuse keys, snapshots, structured events</td></tr>
+<tr><td><code>fixtures/</code></td><td><code>synthetic.py</code></td><td>Synthetic software-test datasets</td></tr>
+<tr><td><code>installation.py</code></td><td>–</td><td><code>install-tools</code></td></tr>
+<tr><td><code>constants.py</code>, <code>io.py</code>, <code>genomic_evidence.py</code></td><td>–</td><td>Status vocabularies and reason codes; safe hashing and atomic writes; interval conventions</td></tr>
+<tr><td><code>__init__.py</code></td><td>–</td><td><code>__version__ = "0.0.0"</code>: the only place the version is set</td></tr>
+</table>
+
+<h2 id="workflow">6. Workflow rules and the tools they run</h2>
+<table>
+<tr><th>File</th><th>Rule</th><th>Tools</th></tr>
+<tr><td><code>l1_fastq_qc.smk</code></td><td><code>fastp</code></td><td>fastp</td></tr>
+<tr><td><code>l1_align.smk</code></td><td><code>bwa_mem2_lane</code></td><td>bwa-mem2 mem, samtools sort</td></tr>
+<tr><td><code>l1_align.smk</code></td><td><code>merge_lanes</code></td><td>samtools merge</td></tr>
+<tr><td><code>l1_align.smk</code></td><td><code>mark_duplicates (wgs)</code></td><td>Picard MarkDuplicates, samtools index</td></tr>
+<tr><td><code>l1_align.smk</code></td><td><code>insert_metrics_preclip, trim_primers (targeted)</code></td><td>fgbio TrimPrimers, samtools stats</td></tr>
+<tr><td><code>l1_align.smk</code></td><td><code>alignment_entry, entry_trim_primers, entry_finalize</code></td><td>BAM/CRAM entry: samtools, fgbio, Picard (only the missing steps)</td></tr>
+<tr><td><code>l1_umi.smk</code></td><td><code>umi_fastq_to_bam</code></td><td>fgbio FastqToBam</td></tr>
+<tr><td><code>l1_umi.smk</code></td><td><code>umi_align_zipper</code></td><td>samtools fastq, bwa-mem2 mem, fgbio ZipperBams</td></tr>
+<tr><td><code>l1_umi.smk</code></td><td><code>umi_group</code></td><td>fgbio GroupReadsByUmi</td></tr>
+<tr><td><code>l1_umi.smk</code></td><td><code>umi_consensus</code></td><td>fgbio CallMolecularConsensusReads, FilterConsensusReads</td></tr>
+<tr><td><code>l1_umi.smk</code></td><td><code>umi_realign</code></td><td>bwa-mem2 mem, samtools sort, index</td></tr>
+<tr><td><code>l1_umi.smk</code></td><td><code>umi_preclip_and_trim</code></td><td>fgbio TrimPrimers</td></tr>
+<tr><td><code>l1_metrics.smk</code></td><td><code>flagstat</code></td><td>samtools flagstat</td></tr>
+<tr><td><code>l1_metrics.smk</code></td><td><code>mosdepth_core</code></td><td>mosdepth</td></tr>
+<tr><td><code>l1_metrics.smk</code></td><td><code>mosdepth_targets</code></td><td>samtools, mosdepth</td></tr>
+<tr><td><code>l1_metrics.smk</code></td><td><code>l1_gate</code></td><td>workflow/scripts/l1_gate.py (QC gates G1–G3)</td></tr>
+<tr><td><code>l2_caller.smk</code></td><td><code>pfvarx_call</code></td><td>PfVarX caller via caller_adapter.py</td></tr>
+<tr><td><code>l2_caller.smk</code></td><td><code>normalise_sample</code></td><td>bcftools norm, annotate, index</td></tr>
+<tr><td><code>l3_cohort.smk</code></td><td><code>cohort_merge</code></td><td><code>pfvarx.cohort.merge</code>: bcftools merge and index, raising the open-file limit and merging in batches above it</td></tr>
+<tr><td><code>l3_cohort.smk</code></td><td><code>cohort_status, cohort_evidence, cohort_microhaplotypes, cohort_qc</code></td><td>PfVarX (G5 cohort gate)</td></tr>
+<tr><td><code>l4_annotation.smk</code></td><td><code>snpeff_build</code></td><td>SnpEff database from FASTA + GFF</td></tr>
+<tr><td><code>l4_annotation.smk</code></td><td><code>snpeff_annotate</code></td><td>SnpEff</td></tr>
+<tr><td><code>l5_downstream.smk</code></td><td><code>da001_clonality</code></td><td>PfVarX + R moire (da001_moire.R)</td></tr>
+<tr><td><code>l5_downstream.smk</code></td><td><code>da_eligibility</code></td><td>PfVarX eligibility engine</td></tr>
+<tr><td><code>l5_downstream.smk</code></td><td><code>da_execute</code></td><td>PfVarX DA002–DA009; R dcifer, hmmIBD, scikit-allel, IQ-TREE, R mgcv</td></tr>
+</table>
+<p>Threads and memory of every rule come from <code>config/registry/job_resources.yaml</code>; a rule must never write them as numbers (<code>tests/unit/test_resource_plan.py</code> fails).</p>
+
+<h2 id="config">7. Configuration, parameters and registry</h2>
+<table>
+<tr><th>File</th><th>Holds</th><th>Edited by</th></tr>
+<tr><td><code>config/templates/analysis.yaml</code>, <code>benchmarking.yaml</code></td><td>Project settings (purpose, final output, design, reference, analyses, caller)</td><td>users (copied to <code>config/config.yaml</code>)</td></tr>
+<tr><td><code>config/templates/quality.yaml</code>, <code>compute.yaml</code></td><td>Quality choices; cores, memory, jobs, retries</td><td>users</td></tr>
+<tr><td><code>config/templates/library_catalog.yaml</code></td><td>Targeted panels and library protocols</td><td>users</td></tr>
+<tr><td><code>config/parameters/layer0.yaml … layer6.yaml</code></td><td>Every numeric setting of input checks, reads, caller, cohort, annotation, analyses, report, each with a source class</td><td>maintainers</td></tr>
+<tr><td><code>config/registry/qc_policy_pfvarx_qc_v1.yaml</code></td><td>QC gates G1–G5 (policy 1.3.0)</td><td>maintainers</td></tr>
+<tr><td><code>config/registry/job_resources.yaml</code></td><td>Threads/memory per rule, planning factors</td><td>maintainers</td></tr>
+<tr><td><code>config/registry/downstream_analyses.yaml</code></td><td>DA001–DA009 contracts: designs, scales, prerequisites</td><td>maintainers</td></tr>
+<tr><td><code>resistance_catalog_pfvarx_v1.tsv</code>, <code>cnv_catalog_pfvarx_v1.tsv</code>, <code>microhap_panel_pfvarx_v1.tsv</code></td><td>Draft catalogues (block real DA002/DA008/DA009 until verified); the microhaplotype panel holds no loci</td><td>maintainers</td></tr>
+<tr><td><code>context_unreliable.bed</code></td><td>Unreliable sequence context</td><td>maintainers</td></tr>
+<tr><td><code>src/pfvarx/configuration/legacy_parameters.yaml</code></td><td>Values for runs frozen before a parameter existed</td><td>maintainers</td></tr>
+</table>
+<p>No threshold, setting or compute request may be written in the code. Code reads a run's values from its frozen configuration with <code>loader.frozen_param</code>.</p>
+
+<h2 id="tools">8. Tools and package versions (0.0.0 lock, linux-64)</h2>
+<table>
+<tr><th>Pixi feature</th><th>Package</th><th>Version</th><th>Used for</th></tr>
+<tr><td>base</td><td>python</td><td>3.12.16</td><td>Everything</td></tr>
+<tr><td>base</td><td>pydantic</td><td>2.14.3</td><td>Configuration schemas</td></tr>
+<tr><td>base</td><td>typer</td><td>0.27.3</td><td>CLI</td></tr>
+<tr><td>base</td><td>pyyaml</td><td>6.0.3</td><td>YAML</td></tr>
+<tr><td>base</td><td>pysam / htslib</td><td>0.23.3 / 1.24</td><td>BAM and VCF access</td></tr>
+<tr><td>pipeline</td><td>snakemake-minimal</td><td>9.27.1</td><td>Workflow engine</td></tr>
+<tr><td>pipeline</td><td>samtools</td><td>1.24</td><td>sort, merge, index, stats, flagstat, faidx</td></tr>
+<tr><td>pipeline</td><td>picard-slim</td><td>3.5.0 (OpenJDK 25.0.2)</td><td>MarkDuplicates, CreateSequenceDictionary</td></tr>
+<tr><td>pipeline</td><td>mosdepth</td><td>0.3.14</td><td>Depth over core mask or targets</td></tr>
+<tr><td>reads</td><td>fastp</td><td>1.1.0</td><td>Trimming and read QC</td></tr>
+<tr><td>reads</td><td>bwa-mem2</td><td>2.3</td><td>Alignment and index</td></tr>
+<tr><td>calling</td><td>numpy</td><td>2.5.4</td><td>Caller</td></tr>
+<tr><td>calling</td><td>scipy</td><td>1.18.1</td><td>Caller statistics</td></tr>
+<tr><td>calling</td><td>numba / llvmlite</td><td>0.68.1 / 0.50.0</td><td>Compiled pair-HMM for indel rescoring (falls back to numpy without it)</td></tr>
+<tr><td>calling</td><td>bcftools</td><td>1.24</td><td>norm, merge, index, view</td></tr>
+<tr><td>targeted</td><td>fgbio-minimal</td><td>4.1.1</td><td>UMI consensus, primer trimming</td></tr>
+<tr><td>annotation</td><td>snpeff</td><td>5.4.0c</td><td>Annotation</td></tr>
+<tr><td>coi</td><td>r-base, r-moire, r-jsonlite</td><td>4.5.3, 3.7.0, 2.0.0</td><td>DA001</td></tr>
+<tr><td>related</td><td>r-dcifer, hmmibd</td><td>1.5.2, 2.1.3</td><td>DA004</td></tr>
+<tr><td>structure</td><td>scikit-allel</td><td>1.3.13</td><td>DA005</td></tr>
+<tr><td>phylogeny</td><td>iqtree</td><td>2.4.0</td><td>DA006</td></tr>
+<tr><td>spatial</td><td>r-mgcv</td><td>1.9-4</td><td>DA007</td></tr>
+<tr><td>bench</td><td>rtg-tools</td><td>3.13</td><td>Optional vcfeval cross-check</td></tr>
+<tr><td>dev</td><td>pytest</td><td>9.2.0</td><td>Tests</td></tr>
+<tr><td>dev</td><td>ruff</td><td>0.17.4</td><td>Lint</td></tr>
+<tr><td>dev</td><td>mypy (+ types-pyyaml)</td><td>2.4.1</td><td>Type checking</td></tr>
+</table>
+<p>Read the current versions any time: <code>pixi list -e default | grep -E 'samtools|bcftools|fastp|bwa-mem2|snakemake'</code>.</p>
+
+<h2 id="tasks">9. Pixi tasks (develop)</h2>
+<table>
+<tr><th>Task</th><th>Runs</th></tr>
+<tr><td><code>pixi run lint</code></td><td><code>ruff check src tests scripts bootstrap.py pfvarx</code></td></tr>
+<tr><td><code>pixi run typecheck</code></td><td><code>mypy src/pfvarx</code></td></tr>
+<tr><td><code>pixi run test</code></td><td><code>pytest -q tests</code> (everything, ≈20 min)</td></tr>
+<tr><td><code>pixi run test-unit</code></td><td><code>pytest -q tests/unit</code></td></tr>
+<tr><td><code>pixi run verify</code></td><td><code>python scripts/verify.py</code></td></tr>
+<tr><td><code>pixi run package</code></td><td><code>python scripts/package.py</code></td></tr>
+<tr><td><code>pixi run &lt;command&gt;</code></td><td>Any pipeline command, e.g. <code>pixi run validate</code> = <code>pfvarx validate</code></td></tr>
+</table>
+
+<h2 id="rules">10. Project rules (enforced by tests)</h2>
+<table>
+<tr><th>Rule</th><th>Do</th><th>Enforced by</th></tr>
+<tr><td>CLI and GUI change together</td><td>A setting: model + <code>gui/field-guide.json</code> + templates + regenerate guide. A GUI tab/stage: matching CLI command and "Terminal equivalent" text</td><td><code>tests/unit/test_cli_gui_parity.py</code></td></tr>
+<tr><td>Docs with every change</td><td>Update README, <code>docs/*.md</code> and <code>*.html</code>, SOP md+html, analysis/benchmarking/reporting guides, CHANGELOG in the same change</td><td>review; <code>test_sop_mirrors.py</code></td></tr>
+<tr><td>No values in code</td><td>Parameters in <code>config/parameters/</code>, resources in <code>job_resources.yaml</code></td><td><code>test_no_hardcoded_parameters.py</code>, <code>test_resource_plan.py</code></td></tr>
+<tr><td>One version</td><td>Change only <code>src/pfvarx/__init__.py</code>, then every current-release doc</td><td><code>test_version.py</code></td></tr>
+<tr><td>Development material stays out of releases</td><td>Put dev-only files in <code>development/</code>; never link them from user docs</td><td><code>test_distribution.py</code></td></tr>
+<tr><td>Matrix declarations</td><td>Each analysis declares <code>USES_COHORT_MATRIX</code> truthfully</td><td><code>test_matrix_declarations.py</code></td></tr>
+<tr><td>Dashboard views</td><td>Each analysis has a tab, headline numbers and a view block built in <code>daViews</code></td><td><code>test_dashboard_views.py</code></td></tr>
+<tr><td>Validation guidance</td><td>Every failure explains cause and numbered fix</td><td><code>test_validation_guidance.py</code></td></tr>
+</table>
+
+<h2 id="daily">11. Everyday workflow</h2>
+<div class="step">
+<pre><code>cd ~/PfVarX
+git checkout develop && git pull --ff-only
+git checkout -b fix/short-description            # feature/…, fix/…, docs/…
+# … edit …
+pixi run lint && pixi run typecheck
+pixi run pytest -q tests/unit/test_the_area.py   # the tests nearest your change
+git add -A && git commit -m "Say what changed and why"
+git push -u origin fix/short-description
+gh pr create --base develop --title "…" --body "…"
+# after review
+gh pr merge --merge --delete-branch</code></pre>
+<p>Before merging: run the full suite (or <code>development/local_ci.sh</code>) and record the result on the PR, because GitHub CI is started by hand only.</p>
+</div>
+
+<h2 id="ladder">12. Testing ladder</h2>
+<p>Run from the repository root on <code>develop</code>. Climb as far as the change needs; always reach step 6 before merging.</p>
+<div class="step">
+<h4>1. Lint</h4>
+<pre><code>pixi run lint</code></pre>
+<pre class="out"><code>All checks passed!</code></pre>
+<h4>2. Type checking</h4>
+<pre><code>pixi run typecheck</code></pre>
+<pre class="out"><code>Success: no issues found in 85 source files</code></pre>
+<h4>3. Generated-document checks</h4>
+<pre><code>pixi run python scripts/configuration_guide.py --check     # prints nothing and exits 0 when current
+pixi run python scripts/sync_sop.py --check</code></pre>
+<pre class="out"><code>SOP appendices are current</code></pre>
+<p>When out of date: <code>out of date: docs/configuration-guide.md (run python scripts/configuration_guide.py)</code>; fix by running the script without <code>--check</code>.</p>
+<h4>4. Unit and scientific tests (≈1–3 min)</h4>
+<pre><code>pixi run pytest -q tests/unit tests/scientific
+pixi run pytest --collect-only -q tests/unit | tail -1</code></pre>
+<pre class="out"><code>347 tests collected in 1.37s</code></pre>
+<h4>5. Integration tests (real pipelines on synthetic data, ≈15 min)</h4>
+<pre><code>pixi run pytest -q tests/integration</code></pre>
+<table>
+<tr><th>Integration test</th><th>Proves</th></tr>
+<tr><td>Dry runs (WGS, targeted non-UMI, UMI)</td><td>Each design builds its DAG and creates no run</td></tr>
+<tr><td>Annotated WGS cohort to DA002</td><td>Alignment, calling, cohort, annotation, one analysis</td></tr>
+<tr><td>Every downstream analysis</td><td>An 11-sample cohort runs DA001–DA009</td></tr>
+<tr><td>Targeted UMI to DA002</td><td>UMI route reaches resistance analysis</td></tr>
+<tr><td>No sample passing QC</td><td>Explicit empty-cohort outcome, no crash</td></tr>
+<tr><td>BAM entry variants</td><td>Only the missing steps run</td></tr>
+</table>
+<h4>6. Everything</h4>
+<pre><code>pixi run pytest -q tests</code></pre>
+<pre class="out"><code>........................................................................ [ 19%]
+…
+..                                                                       [100%]
+383 passed, 1 skipped in 2599.59s (0:43:19)</code></pre>
+<h4>7. Local CI (the same steps as GitHub CI, plus the archive)</h4>
+<pre><code>development/local_ci.sh --quick     # ≈3 min, skips integration tests
+development/local_ci.sh             # ≈17-20 min</code></pre>
+<p>Steps: <code>pixi install --locked</code> → lint → typecheck → <code>pfvarx --help</code> and <code>version</code> → unit + scientific → integration → build the archive, <code>sha256sum -c</code>, unpack, <code>package.py --check</code>. The last line is <code>LOCAL CI PASSED</code>. The log goes to <code>~/pfvarx-lab/local_ci_&lt;commit&gt;.log</code> (<code>PFVARX_CI_LOG_DIR</code> to change).</p>
+</div>
+
+<h2 id="verifyrun">13. End-to-end verification runner</h2>
+<div class="step">
+<div class="meta"><b>What</b><span>Copies the current source into new workspaces, writes fixtures, runs each command and checks the output contracts.</span><b>Scenarios</b><span><code>wgs targeted umi benchmark fo001 fo003 auto</code></span><b>Rule</b><span>The output folder must not exist</span></div>
+<h4>Dry run only (all scenarios, ≈5 min)</h4>
+<pre class="dry"><code>pixi run python scripts/verify.py --dry-run-only --output /absolute/path/new-preflight</code></pre>
+<pre class="out"><code>[wgs] config-init --purpose analysis
+[wgs] init
+[wgs] fixture --design wgs --purpose analysis
+[wgs] check-layout
+[wgs] validate
+[wgs] prepare
+[wgs] prepare --dry-run
+[wgs] ready
+[wgs] dry-run
+…
+[auto] dry-run
+
+$ for f in /absolute/path/new-preflight/*/verification.json; do …; done
+auto PASSED
+benchmark PASSED
+fo001 PASSED
+fo003 PASSED
+targeted PASSED
+umi PASSED
+wgs PASSED</code></pre>
+<p>Each <code>verification.json</code> records <code>"scope": "dry-run"</code>, <code>"snakemake_exit": 0</code>, <code>"runs_or_results_created": false</code> and one log per command (<code>00-config-init.log</code> … <code>08-dry-run.log</code>).</p>
+<h4>Full runs</h4>
+<pre><code>pixi run python scripts/verify.py wgs benchmark --output /absolute/path/new-full</code></pre>
+<p>The <code>wgs</code> scenario (9 samples, FO004) completed in about 3.5 minutes; <code>benchmark</code> (14 samples) in about 4.5 minutes, including both evaluations and the refused second held-out attempt.</p>
+</div>
+
+<h2 id="sandbox">14. Experiment in a test workspace</h2>
+<div class="step">
+<p>Never experiment in the source tree. Make a throw-away workspace from your working copy:</p>
+<pre><code>python3 bootstrap.py --profile development --workspace ~/pfvarx-lab/try-1
+cd ~/pfvarx-lab/try-1
+./pfvarx fixture --design wgs --n-mono 6 --n-poly 3 --depth 40 --seed 7     # options: --low-depth-sample, --variant-scale N
+nano config/config.yaml        # release_label: SYNTHETIC_SOFTWARE_FIXTURE; final_output; analyses
+./pfvarx validate && ./pfvarx prepare && ./pfvarx ready
+./pfvarx dry-run               # plan only
+./pfvarx pipeline</code></pre>
+<p>To try a parameter value, change it in the workspace copy of <code>config/parameters/layerN.yaml</code>, run with <code>--mode NEW</code>, and compare <code>qc_decision.json</code>, VCF PASS counts and the dashboard. Measure accuracy with a benchmarking workspace (see the Benchmarking guide) and resources with <code>./pfvarx benchmark-resources --run-id RUN_ID</code>.</p>
+<p>Fault injection (tests only): <code>PFVARX_FAULT_INJECT=pfvarx_call:PF002 ./pfvarx pipeline</code> makes that sample's call job fail with exit 70, to check that the other samples continue. Never leave it set.</p>
+</div>
+
+<h2 id="browser">15. Browser checks (dashboard and GUI)</h2>
+<div class="step">
+<pre><code>pixi run python -m venv ~/pfvarx-lab/browser-env
+~/pfvarx-lab/browser-env/bin/pip install -r tests/dashboard/requirements.txt
+~/pfvarx-lab/browser-env/bin/python -m playwright install chromium
+# dashboard of a finished run
+~/pfvarx-lab/browser-env/bin/python tests/dashboard/check_dashboard.py RUN/results/report ~/pfvarx-lab/browser-checks
+# configuration GUI
+PFVARX_GUI_PYTHON=$PWD/.pixi/envs/default/bin/python PFVARX_BROWSER_EXECUTABLE=/usr/bin/google-chrome \
+  ~/pfvarx-lab/browser-env/bin/python tests/dashboard/check_configure.py
+# every GUI button in throw-away workspaces
+pixi run python scripts/check_gui_buttons.py</code></pre>
+<p>Checks: navigation, tooltips, table search/sort, CSV/XLSX/PNG export, print-to-PDF, offline operation (network requests fail the check), console errors. Use <code>PFVARX_BROWSER_EXECUTABLE</code> to use an installed Chrome.</p>
+</div>
+
+<h2 id="setting">16. Add or change a setting</h2>
+<div class="step">
+<ol>
+<li>Model: <code>src/pfvarx/configuration/models.py</code>.</li>
+<li>Help text (single source): <code>src/pfvarx/configuration/gui/field-guide.json</code>.</li>
+<li>Templates: <code>config/templates/analysis.yaml</code>, <code>benchmarking.yaml</code> (or <code>quality.yaml</code>/<code>compute.yaml</code>).</li>
+<li>GUI: <code>gui/index.html</code>, <code>gui/app.js</code>; shared behaviour in Python (<code>configuration/web.py</code>), never only in JavaScript.</li>
+<li>Regenerate the guide and check parity:</li>
+</ol>
+<pre><code>pixi run python scripts/configuration_guide.py
+pixi run pytest -q tests/unit/test_cli_gui_parity.py tests/unit/test_configuration.py tests/unit/test_configuration_gui.py</code></pre>
+<p>A schema change also needs <code>configuration/migrate.py</code> and documentation of the migration (<code>./pfvarx config-migrate</code>).</p>
+</div>
+
+<h2 id="param">17. Change a parameter or a QC gate</h2>
+<div class="step">
+<ul>
+<li><b>Parameter</b>: edit <code>config/parameters/layerN.yaml</code> with its source class and a note; read it with <code>frozen_param</code>; list it in <code>docs/thresholds.md</code>; add a value to <code>legacy_parameters.yaml</code> if older frozen runs must keep working.</li>
+<li><b>QC gate</b>: edit <code>config/registry/qc_policy_pfvarx_qc_v1.yaml</code> (fields: <code>gate stage metric unit direction fail warn threshold_source reference designs mandatory warning_permitted_for</code>) and bump its <code>version</code> (now 1.3.0).</li>
+</ul>
+<pre><code>pixi run pytest -q tests/unit/test_no_hardcoded_parameters.py tests/unit/test_quality_eligibility.py tests/unit/test_cohort_qc.py</code></pre>
+<p>Test a new threshold on a benchmarking workspace with truth before changing the shipped value; record the evidence and change <code>threshold_source</code> from <code>UNCALIBRATED_PROVISIONAL</code> only with that evidence.</p>
+</div>
+
+<h2 id="rule">18. Add a workflow rule</h2>
+<div class="step">
+<ol>
+<li>Add the rule to the right <code>workflow/rules/lN_*.smk</code>, with <code>log:</code> and <code>benchmark:</code> paths like its neighbours.</li>
+<li>Read threads and memory from <code>config/registry/job_resources.yaml</code> (add an entry).</li>
+<li>Add any new tool to a feature in <code>pixi.toml</code> and re-lock (section 20).</li>
+<li>Dry run on fixtures for every affected design; then integration tests.</li>
+</ol>
+<pre><code>pixi run pytest -q tests/unit/test_resource_plan.py
+pixi run python scripts/verify.py --dry-run-only --output /absolute/path/new-preflight
+pixi run pytest -q tests/integration</code></pre>
+</div>
+
+<h2 id="analysis">19. Add a downstream analysis</h2>
+<div class="step">
+<ol>
+<li>Contract in <code>config/registry/downstream_analyses.yaml</code> (designs, scales, prerequisites, metadata).</li>
+<li>Module in <code>src/pfvarx/downstream/</code> with an honest <code>USES_COHORT_MATRIX</code>; write a <code>status_manifest.json</code> with a terminal state.</li>
+<li>Parameters in <code>config/parameters/layer5.yaml</code>; tools in a <code>pixi.toml</code> feature; <code>bootstrap.py</code> and <code>installation.py</code> must install them for that analysis.</li>
+<li>Dashboard: tab, headline numbers and view block in <code>reporting/views.js</code> (inside <code>daViews</code>).</li>
+<li>Tests: a unit test for the method, an entry in the all-analyses integration test.</li>
+<li>Docs: analysis guide table, SOP Section 4 matrix (md + html), <code>docs/sequencing.md</code> eligibility, CHANGELOG.</li>
+</ol>
+<pre><code>pixi run pytest -q tests/unit/test_matrix_declarations.py tests/unit/test_dashboard_views.py tests/unit/test_install_by_final_output.py</code></pre>
+</div>
+
+<h2 id="upgrade">20. Upgrade or replace a tool</h2>
+<div class="step">
+<pre><code>nano pixi.toml                     # change the version range of the package in its feature
+pixi lock                          # re-solve for all four platforms (needs internet)
+git diff --stat pixi.lock
+pixi install --locked
+pixi run python scripts/check_installs.py
+pixi run pytest -q tests           # full suite: tool output formats matter</code></pre>
+<p>Record the new versions in CHANGELOG and in the user guides that name versions. A caller replacement goes through the Layer 2 adapter contract (<code>caller.backend: external</code>, see <code>docs/caller.md</code>), not by editing <code>l2_caller.smk</code>.</p>
+</div>
+
+<h2 id="docs">21. Documentation</h2>
+<div class="step">
+<table>
+<tr><th>Change</th><th>Update</th></tr>
+<tr><td>Any change</td><td><code>CHANGELOG.md</code> under <code>## Unreleased</code></td></tr>
+<tr><td>Commands, workflow, install</td><td><code>README.md</code>, <code>docs/getting-started.md</code>+<code>.html</code>, <code>docs/README.html</code>, <code>docs/orchestration.md</code>, SOP md+html</td></tr>
+<tr><td>Settings</td><td><code>field-guide.json</code> → <code>configuration_guide.py</code>; <code>docs/configuration.md</code> → <code>sync_sop.py</code></td></tr>
+<tr><td>Caller, sequencing rules</td><td><code>docs/caller.md</code>, <code>docs/sequencing.md</code> → <code>sync_sop.py</code></td></tr>
+<tr><td>Analyses, outputs</td><td><code>docs/analysis/README.md</code>, <code>docs/reporting/README.md</code>, <code>docs/status.md</code></td></tr>
+<tr><td>Benchmarking</td><td><code>docs/benchmarking/README.md</code></td></tr>
+<tr><td>Thresholds</td><td><code>docs/thresholds.md</code></td></tr>
+</table>
+<pre><code>git grep -n "OLD_NAME" -- '*.md' '*.html'      # find every stale mention before committing</code></pre>
+</div>
+
+<h2 id="package">22. Package the source</h2>
+<div class="step">
+<pre><code>pixi run python scripts/package.py --output /absolute/path/dist</code></pre>
+<pre class="out"><code>{
+  "archive": "/absolute/path/dist/pfvarx-0.0.0-source.zip",
+  "sha256": "cf266b303828f168860f94e8a39f42e1dd3c400111fab6c61297fd5bed0a9b12",
+  "checksum": "/absolute/path/dist/pfvarx-0.0.0-source.zip.sha256",
+  "files": 218
+}</code></pre>
+<pre><code>cd /absolute/path/dist && sha256sum -c pfvarx-0.0.0-source.zip.sha256
+python3 -m zipfile -e pfvarx-0.0.0-source.zip unpacked && python3 unpacked/pfvarx/scripts/package.py --check</code></pre>
+<pre class="out"><code>pfvarx-0.0.0-source.zip: OK</code></pre>
+<p>The archive is byte-reproducible and excludes <code>development/</code>, workspaces, caches, environments and symlinks. The same archive is the release asset: it keeps <code>tests/</code> and <code>.github/</code>, so a downloaded release can re-run its own checks (section 23).</p>
+</div>
+
+<h2 id="release">23. Release procedure</h2>
+<div class="step">
+<ol>
+<li>On a branch from <code>develop</code>: set <code>__version__</code> in <code>src/pfvarx/__init__.py</code>; update every current-release reference: <code>README.md</code>, <code>docs/README.html</code>, <code>docs/status.md</code>, <code>docs/configuration-guide.md</code>+<code>.html</code>, SOP md+html (title, "finalized … " and Appendix D), the sample-analysis and benchmarking guides and this guide; rename the top <code>CHANGELOG.md</code> section to <code>## X.Y.Z (YYYY-MM-DD)</code>.</li>
+<li>Check: <code>pixi run pytest -q tests/unit/test_version.py</code>, then the full ladder (section 12).</li>
+<li>Pull request into <code>develop</code>; after it merges, a pull request from <code>develop</code> into <code>main</code> (section 24).</li>
+<li>Tag <code>main</code> and build the archive with <code>scripts/package.py</code> from that tag (never <code>git archive</code>: <code>main</code> holds the development material):</li>
+</ol>
+<pre><code>git fetch origin --tags
+git tag -a v0.0.0 origin/main -m "PfVarX 0.0.0"
+git push origin v0.0.0
+git worktree add ../pfvarx-v0.0.0 v0.0.0 &amp;&amp; cd ../pfvarx-v0.0.0
+pixi run python scripts/package.py --output "$PWD/../dist"
+cd ../dist &amp;&amp; sha256sum -c pfvarx-0.0.0-source.zip.sha256
+gh release create v0.0.0 --verify-tag --latest --title "PfVarX 0.0.0" --notes-file release-notes.md \
+  pfvarx-0.0.0-source.zip pfvarx-0.0.0-source.zip.sha256
+gh release download v0.0.0 -D /tmp/check &amp;&amp; (cd /tmp/check &amp;&amp; sha256sum -c pfvarx-0.0.0-source.zip.sha256)</code></pre>
+<pre class="out"><code>pfvarx-0.0.0-source.zip: OK</code></pre>
+<div class="warn">A tag of the same name that already points elsewhere must be replaced deliberately: delete its GitHub release first, then <code>git tag -d vX.Y.Z &amp;&amp; git push origin :refs/tags/vX.Y.Z</code> before creating it again. Published versions should normally never be re-used.</div>
+</div>
+
+<h2 id="tomain">24. Bring develop to main</h2>
+<div class="step">
+<p>After a change is merged into <code>develop</code> and its tests pass there, bring <code>main</code> level with one pull request. Do not use <code>--delete-branch</code> here: it would delete <code>develop</code>.</p>
+<pre><code>git fetch origin
+git diff --stat origin/main origin/develop       # only the tested change should be listed
+gh pr create --base main --head develop --title "…" --body "Brings main level with develop (#NN)."
+gh pr merge develop --merge
+git fetch origin &amp;&amp; git diff --quiet origin/main origin/develop &amp;&amp; echo "main = develop"</code></pre>
+<pre class="out"><code>main = develop</code></pre>
+<p>Never open a separate feature branch against <code>main</code>: a branch built from <code>main</code> while <code>develop</code> moves on conflicts with the next <code>develop</code> → <code>main</code> merge.</p>
+</div>
+
+<h2 id="git">25. Git and GitHub commands</h2>
+<pre><code>git status -sb                         # branch and changes
+git log --oneline --graph -15          # history
+git diff origin/develop...HEAD --stat  # what your branch changes
+git fetch --prune origin               # update remote branches
+git rebase origin/develop              # bring your branch up to date (before pushing)
+git stash push -m wip / git stash pop  # park changes
+git worktree add ../pfvarx-wt-x develop  # second checkout, e.g. to run tests while you edit
+git restore FILE                       # discard local edits of a file
+git revert &lt;commit&gt;                    # undo a pushed commit safely
+gh pr list / gh pr view NN / gh pr checks NN
+gh pr merge NN --merge --delete-branch
+gh release list</code></pre>
+<p>If <code>gh pr edit --base</code> fails with a "Projects (classic)" GraphQL error, use the REST API: <code>gh api -X PATCH repos/hadish-bekuretsion1/PfVarX/pulls/NN -f base=develop</code>, and check the result before merging stacked PRs.</p>
+
+<h2 id="trouble">26. Troubleshooting</h2>
+<table>
+<tr><th>Symptom</th><th>Fix</th></tr>
+<tr><td><code>pixi install --locked</code> refuses</td><td><code>pixi.toml</code> changed without re-locking: run <code>pixi lock</code>, review <code>pixi.lock</code>, commit both</td></tr>
+<tr><td><code>test_version.py</code> fails</td><td>A doc names another version: update the files it lists</td></tr>
+<tr><td><code>test_cli_gui_parity.py</code> fails</td><td>Add the GUI help/template/guide entry; regenerate the guide</td></tr>
+<tr><td><code>test_sop_mirrors.py</code> fails</td><td><code>pixi run python scripts/sync_sop.py</code></td></tr>
+<tr><td><code>test_resource_plan.py</code> fails</td><td>Rule writes threads/memory as numbers, or is missing from <code>job_resources.yaml</code></td></tr>
+<tr><td><code>package.py --check</code> fails "not pristine"</td><td>Run it on a fresh unpacked archive, not a working checkout</td></tr>
+<tr><td>Integration test slow or hung</td><td>Check free memory (bwa-mem2 requests 6.5 GB); run one test with <code>-x -k name -s</code></td></tr>
+<tr><td>Tests fight over files</td><td>Do not edit the tree while tests run; use a <code>git worktree</code></td></tr>
+</table>
+<p style="color:var(--muted);font-size:14px;margin-top:40px">PfVarX 0.0.0 · Development guide · generated 27 November 2026 from the develop branch, its tests and live verification runs.</p>
+</main>
+</div>
+<script>
+function toggleTheme(){var r=document.documentElement;var dark=r.dataset.theme?r.dataset.theme==="dark":matchMedia("(prefers-color-scheme: dark)").matches;r.dataset.theme=dark?"light":"dark";try{localStorage.setItem("pfvarx-theme",r.dataset.theme)}catch(e){}}
+try{var t=localStorage.getItem("pfvarx-theme");if(t)document.documentElement.dataset.theme=t}catch(e){}
+</script>
+</body>
+</html>

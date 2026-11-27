@@ -1,13 +1,35 @@
 # Changelog
 
-## Unreleased
+## 0.0.0 (2026-11-27)
 
-### Documentation: public repository, no tests in the release
+The pipeline version was reset to 0.0.0 on 2026-11-27. This section brings together the
+changes previously listed under "Unreleased", "1.0.0 (2026-11-26)" and "0.0.0 (2026-11-24)",
+newest first. Parameter-file, QC-policy, configuration-schema and catalogue versions are
+separate series and were not reset.
+
+### Version 0.0.0 and refreshed guides
+
+- `src/pfvarx/__init__.py` sets 0.0.0; the README, quick start, status page, configuration
+  guide, SOP manual (title, authority line and Appendix D), sample-analysis, benchmarking and
+  development guides state it. `development/PfVarX_Development_Guide_1.0.0.html` is now
+  `…_0.0.0.html`.
+- The sample-analysis and benchmarking guides' expected outputs come from new synthetic WGS and
+  benchmark runs at 0.0.0 (run IDs, hashes, report sizes, the run clean-up of the cohort file
+  lists, the resource profile); every QC verdict, analysis outcome and benchmark score is the
+  same as before. They also name Numba among the caller's tools, explain how the caller and
+  cohort steps use threads, and give the benchmark metrics' `layer6` settings.
+- The development guide describes `main` as mirroring `develop` (pull requests #55 and #58) and
+  the release archive as built with `scripts/package.py`, never `git archive`; its module map,
+  rule table, tool table and test counts are current. The maintenance guide lists all 182
+  maintainer parameters (it listed 107) and the modules it had missed.
+- `docs/caller.md` (and SOP Appendix E), `docs/benchmarking/README.md`, the README install
+  table, `docs/deployment.md` and `docs/platforms.md` describe Numba, the configurable caller
+  decisions and the benchmark settings.
+
+### Documentation: public repository
 
 The repository is public: the README, getting started (md and html), `docs/README.html` and
-the sample analysis guide no longer ask for GitHub sign-in or a token before cloning. The
-README no longer says the release contains tests, and describes `--profile development` as
-every tool for every final output and analysis.
+the sample analysis guide no longer ask for GitHub sign-in or a token before cloning.
 
 ### Layer 3 scales to large cohorts (same results)
 
@@ -37,8 +59,9 @@ Measured limits of the cohort steps, each now removed:
 Checked: the old and new cohort evidence give identical matrix, missingness and site files
 with 1 and 3 workers; the old and new microhaplotypes (derived loci) give identical haplotypes,
 loci and summary on 9- and 13-sample WGS cohorts with 1 and 2 workers; and the synthetic WGS,
-targeted, UMI and benchmark verification runs are identical to the previous code, and the
-merge was checked under low open-file limits.
+targeted, UMI and benchmark verification runs are identical to the previous code.
+`tests/unit/test_cohort_scaling.py` covers the merge under low open-file limits, the compact
+statuses and the worker processes.
 
 ### The remaining decisions in the code move to the parameter files; benchmark coverage fix
 
@@ -112,9 +135,11 @@ definitions, numerical-safety guards, seed derivation and operational limits.
 
 - `docs/PfVarX_Sample_Analysis_Guide.html` and `docs/PfVarX_Benchmarking_Guide.html`: every step with
   its purpose, tools and versions, command, dry run and expected output, taken from real runs of
-  1.0.0 on the synthetic test data. Linked from the README and the analysis and benchmarking guides.
+  1.0.0 on the synthetic test data. Linked from the README and the analysis and benchmarking guides,
+  and included in the source archive.
+- `development/PfVarX_Development_Guide_0.0.0.html` (named `…_1.0.0.html` until the version reset; not released): the same for development, testing,
+  packaging and releasing.
 
-## 1.0.0 (2026-11-26)
 
 ### Dashboard tables no longer draw long values over the next column
 
@@ -125,19 +150,8 @@ definitions, numerical-safety guards, seed derivation and operational limits.
 - Display only: table data, filters and CSV/XLSX/PDF exports are unchanged. An existing
   dashboard picks up the fix when it is rebuilt with `pfvarx report --run-id RUN_ID`; the
   pipeline does not need to run again.
-
-### The published repository holds the analysis software only
-
-- Development material is no longer on `main`: the test suite (`tests/`), the GitHub CI
-  workflow, `development/`, `docs/testing.md`, the maintainer notes and the maintainer-only
-  scripts (`package.py`, `sync_sop.py`, `configuration_guide.py`, `check_gui_buttons.py`).
-  It continues on the `develop` branch.
-- The SOP manual (`.md` and `.html`) drops Part I, the development procedures D01–D16. It now
-  covers routine analysis (Part II), benchmarking (Part III) and the appendices.
-- `pixi.toml` drops the `test`, `test-unit` and `package` tasks. `scripts/verify.py`,
-  `scripts/check_installs.py` and `scripts/build_container.py` remain for users.
-- Documentation no longer points to tests, CI or the removed scripts. Analysis code and
-  results are unchanged.
+- The SOP manual's HTML sidebar link to Appendix E now opens it. It still pointed to the
+  appendix's former title.
 
 ### Microhaplotype loci from your own inputs, and pfhrp2/3 evidence that needs no cut-off
 
@@ -338,7 +352,6 @@ next release is tagged.
   experimental until those jobs pass; dependency resolution alone is not qualification.
 - No caller algorithms, scientific thresholds, GPU support or scheduler backends change.
 
-## 0.0.0 (2026-11-24)
 
 First tagged release (`v0.0.0`). The release version was reset to 0.0.0 after 0.4.2, as the
 baseline for the first reviewed release. The sections below 0.0.0 are the earlier development numbering, kept as history.

@@ -6,7 +6,7 @@ The native local executor targets Linux x86-64 (`linux-64`), Linux ARM64
 (`linux-aarch64`), Intel macOS (`osx-64`) and Apple silicon macOS (`osx-arm64`).
 All four platforms have locked dependencies; macOS requires version 13 or later, and
 Linux locks declare glibc 2.28+ and kernel 4.18+. macOS and Linux ARM64 are experimental
-until native qualification runs pass. See [platform support](platforms.md) for qualification
+until the native CI matrix passes. See [platform support](platforms.md) for qualification
 limits. Windows uses WSL2 with a supported Linux distribution. Git/source access,
 Python 3.11+ for bootstrap and Pixi are prerequisites. Private GitHub repositories require
 authorized login. Clone alone cannot run setup; use an explicit post-clone command:
@@ -63,7 +63,7 @@ An FO001 workspace lists fastp and bwa-mem2 (and fgbio for targeted designs) and
 bcftools, SnpEff or R; setting a later `final_output` in it is refused with the bootstrap
 option to use.
 
-Use `--profile development` for a full installation with every method and tool. A standalone Python wheel
+Use `--profile development` for all methods/tests/scripts. A standalone Python wheel
 is not a complete pipeline: workflow, policy, resource and tool dependencies are
 required. Do not copy `.pixi` between filesystem prefixes. Installing creates a local
 environment; source distribution itself contains none. Use `./pfvarx` in selected
@@ -76,7 +76,7 @@ versions and hashes. The one source manifest declares valid combinations; only t
 selected environment is installed. The `control` environment (on-demand workspaces before
 `install-tools`) has the Python control plane, pysam and HTSlib only. Every tools environment
 adds the `pipeline` feature: Snakemake, SAMtools, Picard (`picard-slim`, without R) and mosdepth.
-FO002 and later add the `calling` feature (NumPy/SciPy for the caller, BCFtools); FO001 has neither.
+FO002 and later add the `calling` feature (NumPy/SciPy/Numba for the caller, BCFtools); FO001 has none of them.
 Targeted designs add fgbio (`fgbio-minimal`, without R). R is installed only for the analyses
 that run R scripts (DA001, DA004, DA005, DA006 through MOIRE, and DA007). FASTQ adds
 BWA-MEM2/fastp; targeted FASTQ adds fgbio. FO004 adds SnpEff, then exactly selected
@@ -127,13 +127,19 @@ The pipeline release version has one source: `__version__` in `src/pfvarx/__init
 The package metadata reads it from there (`[tool.hatch.version]` in `pyproject.toml`);
 `./pfvarx version`, VCF headers, run snapshots, reports and the source archive name all
 take it from the same place. `pixi.toml` deliberately has no version. To release, change
-`__version__`, add a changelog section with that version and tag
+`__version__`, add a changelog section with that version, run the tests
+(`tests/unit/test_version.py` fails on any disagreeing current-release reference) and tag
 the reviewed commit `v<version>`. Schema, parameter-file, QC-policy, registry and
 catalogue versions are independent and are not changed by a release.
 
-Before publication run the isolated workflow checks (`pixi run python scripts/verify.py`)
-and checksum/extraction validation. Attach the final source ZIP/checksum to the reviewed
-release; it contains the analysis software only. Never attach a study workspace or a guessed
+Before publication run [testing](testing.md), isolated workflow checks, source package
+checks and checksum/extraction validation. CI on GitHub runs only on demand (Actions → PfVarX CI → Run
+workflow, or `gh workflow run ci.yaml --ref BRANCH`), because hosted minutes are limited; the same
+steps are run locally before every merge and release, and that result is recorded on the pull
+request. A newer run on the same branch cancels the older one. The CI pins an explicit Ubuntu runner and
+validates the software-only archive for the current version. Attach the final source
+ZIP/checksum to the reviewed release; it contains the analysis software only, without
+the development material in `development/`. Never attach a study workspace or a guessed
 scientific-validation claim.
 
 Keep the previous source/lock for rollback. Use NEW workspaces for capability/assay/input

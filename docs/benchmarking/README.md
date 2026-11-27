@@ -14,7 +14,7 @@ Nothing in this distribution is a truth dataset, an analysis result, or a calibr
 
 | Activity | Inputs | What it establishes |
 |---|---|---|
-| Unit/scientific tests (run during development; not shipped) | Generated small numerical/test examples | Tested software behavior and mathematical checks |
+| Unit/scientific tests | Generated small numerical/test examples | Tested software behavior and mathematical checks |
 | Synthetic end-to-end verification | `pfvarx fixture` | Tool integration, QC/eligibility, outputs and evaluation plumbing |
 | Real-truth benchmarking | Independently established truth and confidence regions | Agreement with that truth in the tested assay/context |
 | Calibration | Predeclared development experiments | Empirical settings with provenance; not automatically performed by the evaluator |
@@ -245,11 +245,17 @@ investigated; the evaluator is not a substitute for strict truth/reference valid
 
 Sensitivity is TP/(TP+FN), precision TP/(TP+FP), and F1 their harmonic mean. Uncertainty
 uses a wild cluster bootstrap of the linearized ratio estimator over pure truth samples:
-Rademacher weights with at least ten clusters, Webb weights below, enumeration when
-small enough. Very small truth sets cannot establish general performance.
+Rademacher weights from `layer6.benchmark_rademacher_min_clusters` clusters (ten), Webb
+six-point weights below, every weight vector enumerated up to
+`benchmark_bootstrap_max_vectors` (9 999) and drawn with `benchmark_bootstrap_seed` beyond, at
+`benchmark_interval_level` (0.95). Very small truth sets cannot establish general performance.
 
 Mixture summaries include WSAF slope/intercept/RMSE/interval coverage, detection by
-expected-frequency bin and technical K agreement. Check source tables and sample
+expected-frequency bin and technical K agreement. Interval coverage is judged against the
+level the caller's WSAF intervals were computed at (`layer2.wsaf_interval_level`); alleles
+expected at `layer6.benchmark_clonal_min_expected_wsaf` (0.999) or above are clonal and not
+scored; the bins are `benchmark_wsaf_bins`, and the calibration line needs
+`benchmark_calibration_min_sites` (3) detected sites. Check source tables and sample
 exclusions; a summary alone does not establish mixture identifiability or clinical COI.
 
 RTG Tools is installed only with `--rtg` or the full/development environment. The executable is detected and reported as available, but RTG

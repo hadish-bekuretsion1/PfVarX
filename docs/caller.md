@@ -103,6 +103,12 @@ the native caller as the default. External tool dependencies are managed separat
 
 Native calling uses context-stratified error fitting, probabilistic screening, local
 pair-HMM indel rescoring, read-backed linkage and adaptive technical mixture estimation.
+Its decision values (screening and PASS thresholds, the pair-HMM support ratio, the linkage
+fragment minimum, the genotype cut-off and the EM settings) are read from
+`config/parameters/layer2.yaml`. The pair-HMM runs as a Numba-compiled kernel when Numba is
+installed and as the numpy reference otherwise, with the same read decisions; worker
+processes share read evidence, error-model fits, indel rescoring, linkage windows and
+bootstrap replicates, and the output does not depend on their number.
 Full local haplotype assembly and validated assay-specific calibration remain open.
 Technical mixture count describes DNA evidence. Parasite genomes remain haploid.
 

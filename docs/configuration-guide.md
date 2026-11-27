@@ -1,6 +1,6 @@
 # PfVarX configuration guide
 
-Version 1.0.0. Open the editor with `./pfvarx configure --gui` from your study workspace. Choose settings from the actual laboratory protocol and intended output. Save the form to create input directories. When editing YAML directly, run `./pfvarx init` after saving.
+Version 0.0.0. Open the editor with `./pfvarx configure --gui` from your study workspace. Choose settings from the actual laboratory protocol and intended output. Save the form to create input directories. When editing YAML directly, run `./pfvarx init` after saving.
 
 The editor shows project settings from `config/config.yaml`, quality settings from `config/quality.yaml`, and compute settings from `config/compute.yaml`. Values below use YAML names. `null` means leave an optional field unset. Relative paths are resolved from the workspace.
 

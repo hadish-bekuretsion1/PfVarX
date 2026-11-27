@@ -230,7 +230,7 @@ def export_workspace(
             )
         )
         if profile == "development":
-            keep |= name.startswith(("scripts/", "containers/"))
+            keep |= name.startswith(("tests/", "scripts/", ".github/", "containers/"))
         if not keep:
             continue
         if profile not in ("development", ON_DEMAND):  # on demand: all code, tools installed later

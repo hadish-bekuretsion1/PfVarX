@@ -24,7 +24,7 @@ from pfvarx.downstream.common import Context, write_manifest
 from pfvarx.io import read_tsv, write_json, write_tsv
 
 # Layer 5 memory: the cohort evidence matrix is loaded for this analysis only when it reads it
-# (summarises DA002's marker calls, not the matrix).
+# (summarises DA002's marker calls, not the matrix). tests/unit/test_matrix_declarations.py checks the declaration against the code.
 USES_COHORT_MATRIX = False
 GEO = Path("config") / "geo" / "ne_110m_countries.geojson"  # relative to the workspace root
 

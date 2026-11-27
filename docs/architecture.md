@@ -86,7 +86,8 @@ copy. That costs a measured 25 bytes per cell against 473 for a dict per cell, a
 kept as a float64 exactly as the file holds it, so no comparison against a reporting floor can
 move. Each analysis declares whether it reads the matrix (`USES_COHORT_MATRIX`); the four that
 work from the alignments never pay for it, and an analysis that does not declare itself is given
-the matrix, so a new one cannot lose its evidence by omission.
+the matrix, so a new one cannot lose its evidence by omission
+(`tests/unit/test_matrix_declarations.py`).
 
 ## Microhaplotype loci
 
@@ -107,6 +108,7 @@ reads a run's values from its frozen configuration; a run frozen before a parame
 uses `configuration/legacy_parameters.yaml` through `loader.frozen_param`. To add a setting,
 add it to the matching file with a source class and a note, read it with `frozen_param`, and
 list it in [thresholds](thresholds.md#where-values-are-kept).
+`tests/unit/test_no_hardcoded_parameters.py` and `tests/unit/test_resource_plan.py` enforce it.
 
 ## CLI and GUI parity
 
@@ -116,9 +118,12 @@ to one must be made to the other in the same commit.
 
 | When you change | Also change |
 | --- | --- |
-| A setting in `configuration/models.py` | Its entry in `gui/field-guide.json`, both project templates (`config/templates/analysis.yaml`, `benchmarking.yaml`) or the quality/compute template, and `docs/configuration-guide.md` and `.html` |
-| The help text of a setting | `gui/field-guide.json` only (it is the single source), and the configuration guide that mirrors it |
+| A setting in `configuration/models.py` | Its entry in `gui/field-guide.json`, both project templates (`config/templates/analysis.yaml`, `benchmarking.yaml`) or the quality/compute template, then run `python scripts/configuration_guide.py` to refresh `docs/configuration-guide.md` and `.html` |
+| The help text of a setting | `gui/field-guide.json` only (it is the single source), then run `python scripts/configuration_guide.py` |
 | A GUI tab or button | Its CLI command in `cli.py` and the "Terminal equivalent" line in `gui/index.html` |
 | A CLI configuration or preflight command | The GUI tab or stage that runs it (`configuration/web.py`, `gui/app.js`) |
 | Shared rules (paths, transfers, validation) | Put them in one Python module both use, never in the GUI JavaScript alone |
 
+`tests/unit/test_cli_gui_parity.py` fails when the two sides drift: a setting missing from
+the GUI help, the templates or the guide; guide text that differs from the GUI; a GUI tab
+naming a command that does not exist; or a GUI stage the CLI lacks.

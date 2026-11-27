@@ -1,6 +1,6 @@
 # Implementation and scientific status
 
-This distribution contains the complete **implemented** PfVarX 1.0.0 software, including
+This distribution contains the complete **implemented** PfVarX 0.0.0 software, including
 subsequent type-safety and source-distribution cleanup. It is ready for controlled
 benchmark experiments. It is not a claim that every proposed research method exists,
 that empirical thresholds are calibrated, or that biological accuracy is established.
@@ -37,9 +37,8 @@ verified; no automatic cluster/container deployment claim is made.
 - Offline dashboard, exports, benchmark partitions, exact-normalized accuracy/mixture
   evaluation, wild-cluster uncertainty and resource-profile generation.
 - Typed-source checks, unit/scientific/integration tests (including a synthetic cohort
-  that runs all nine analyses), version and CLI/GUI consistency tests, browser checks and
-  clean-distribution tests, run during development; that test suite is not part of this
-  distribution. Isolated synthetic end-to-end verification ships as `scripts/verify.py`.
+  that runs all nine analyses), version and CLI/GUI consistency tests, isolated synthetic
+  end-to-end verification, browser checks, and clean-distribution tests.
 
 ## Limits that matter before scientific benchmarking
 
@@ -58,7 +57,7 @@ verified; no automatic cluster/container deployment claim is made.
 | Confidence/callability | Shared confidence BED; compare documented metric denominators carefully. Truth validation is partly an external experiment responsibility. |
 | Held-out protection | Partition hash and refusal of repeated attempts in one evaluation directory; no global access-control/experiment lock or family-aware splitting. |
 | Resampling intervals | Unrestricted wild cluster bootstrap of the linearized ratio estimator; not restricted wild cluster bootstrap-t. |
-| Execution | Local executor with locks for Linux x86-64, Linux ARM64 and macOS 13+ (Intel/Apple silicon); macOS and Linux ARM64 are experimental pending native qualification (see [platform support](platforms.md)). Linux can run inside a single SLURM node allocation; the `executor` setting is recorded but every value runs on one host. Per-rule cluster or cloud scheduling and object storage are not implemented. `tmp_dir` can point job temporary files at node-local scratch. CRAM and targeted existing-alignment entry have less validation than WGS BAM. VCF entry is explicitly rejected; use FASTQ/BAM/CRAM. |
+| Execution | Local executor with locks for Linux x86-64, Linux ARM64 and macOS 13+ (Intel/Apple silicon); macOS and Linux ARM64 are experimental pending native CI qualification (see [platform support](platforms.md)). Linux can run inside a single SLURM node allocation; the `executor` setting is recorded but every value runs on one host. Per-rule cluster or cloud scheduling and object storage are not implemented. `tmp_dir` can point job temporary files at node-local scratch. CRAM and targeted existing-alignment entry have less validation than WGS BAM. VCF entry is explicitly rejected; use FASTQ/BAM/CRAM. |
 | Cohort scale (Layer 3) | The cohort merge raises the open-file limit to the number of samples (up to the system's hard limit; `planning.cohort_merge_file_headroom` spare) and runs the same single merge, so it no longer stops at about 1 000 samples under the common Linux limit of 1 024 (about 250 under the macOS default of 256). Beyond the hard limit it merges in batches: the same records, genotypes and sample order, with records that share a position possibly listed in another order (the log records the strategy). Cohort evidence holds caller statuses at 1 byte per sample and site (87 before; measured 1.4 including the site list), and it and the microhaplotypes run their samples in worker processes (`cohort_evidence` and `cohort_microhaplotypes` threads in `job_resources.yaml`) with output identical to one process; measured 89 s with one worker and 46 s with two on 40 samples x 3 000 sites. Microhaplotypes open each alignment once instead of once per locus. File lists reach these steps through files, so the cohort size is not limited by the command-line length (about 10 000 samples on Linux before). |
 | Cohort scale (Layer 5) | The analyses that read cohort evidence hold one cell per sample per cohort site: measured at 25 bytes per cell (473 before the columnar store, an 18.8x reduction), so 200 samples over 5 000 sites is about 25 MB and 500 over 50 000 about 630 MB. DA002, DA007, DA008 and DA009 work from the alignments and never load it. The eligibility checkpoint warns (`RESOURCE_MEMORY_TIGHT`) before the analyses run when the estimate passes half of `per_job.max_mem_mb`. Evidence is still read whole into memory, not streamed, so a cohort of several thousand samples over a dense site set remains beyond one host. |
 | Accelerators | Graphics processors are detected and recorded in provenance; nothing computes on them. No CUDA, Metal or other GPU backend, and no result depends on an accelerator. |
