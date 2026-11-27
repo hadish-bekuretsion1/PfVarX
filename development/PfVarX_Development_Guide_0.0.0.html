@@ -41,7 +41,7 @@ th,td{border:1px solid var(--line);padding:7px 10px;text-align:left;vertical-ali
 <body>
 <header>
 <div class="toolbar"><button type="button" onclick="toggleTheme()">Light / dark</button></div>
-<h1>PfVarX 1.0.0 — Development</h1>
+<h1>PfVarX 0.0.0 — Development</h1>
 <p>How to set up, understand, change, test, verify, package and release PfVarX: every directory, file, tool, command, dry run and expected output a developer needs.</p>
 </header>
 <div class="layout">
@@ -75,21 +75,21 @@ th,td{border:1px solid var(--line);padding:7px 10px;text-align:left;vertical-ali
 <div class="grp">Ship</div>
 <a href="#package">22. Package the source</a>
 <a href="#release">23. Release procedure</a>
-<a href="#tomain">24. Bring a fix to main</a>
+<a href="#tomain">24. Bring develop to main</a>
 <a href="#git">25. Git and GitHub commands</a>
 <a href="#trouble">26. Troubleshooting</a>
 </nav>
 <main>
 
-<div class="note"><b>About the example outputs.</b> The "Expected output" blocks were produced on 26 November 2026 on the <code>develop</code> branch at version 1.0.0 (Linux x86-64). Counts, hashes and times will change as the code changes.</div>
+<div class="note"><b>About the example outputs.</b> The "Expected output" blocks were produced on 27 November 2026 on the <code>develop</code> branch at version 0.0.0 (Linux x86-64). Counts, hashes and times will change as the code changes.</div>
 
 <h2 id="model">0. Branch and release model</h2>
 <table>
 <tr><th>Branch</th><th>Holds</th><th>Who uses it</th></tr>
-<tr><td><code>develop</code></td><td>Everything: analysis software <b>plus</b> <code>tests/</code>, <code>.github/workflows/ci.yaml</code>, <code>development/</code>, <code>CLAUDE.md</code>, <code>docs/testing.md</code>, the maintainer scripts, SOP Part I</td><td>Developers. All work starts here.</td></tr>
-<tr><td><code>main</code></td><td>The analysis software only (published release, tag <code>v1.0.0</code>)</td><td>Users</td></tr>
+<tr><td><code>develop</code></td><td>Everything: analysis software, <code>tests/</code>, <code>.github/workflows/ci.yaml</code>, <code>development/</code>, <code>CLAUDE.md</code>, <code>docs/testing.md</code>, the maintainer scripts</td><td>Developers. All work starts here, on a feature branch merged into <code>develop</code> by pull request.</td></tr>
+<tr><td><code>main</code></td><td>The same files as <code>develop</code>: it is brought level by a pull request from <code>develop</code> once a change there is tested (<a href="#tomain">section 24</a>). Release tags (<code>v0.0.0</code>) point at <code>main</code>.</td><td>Users</td></tr>
 </table>
-<div class="warn">Never merge <code>develop</code> into <code>main</code> as a whole: it would bring tests, CI and the development material back. Bring finished changes to <code>main</code> one commit at a time (<a href="#tomain">section 24</a>). <code>develop</code> records <code>main</code> as merged, so it shows 0 commits behind.</div>
+<div class="note">Since 27 November 2026 (pull requests #55 and #58) <code>main</code> mirrors <code>develop</code>. What users receive is still the analysis software only: the release archive is built with <code>scripts/package.py</code>, which leaves out <code>development/</code> and <code>CLAUDE.md</code> (<a href="#package">section 22</a>); never publish a plain <code>git archive</code> of <code>main</code>.</div>
 
 <h2 id="setup">1. Set up the computer (Ubuntu or WSL2)</h2>
 <div class="step">
@@ -126,14 +126,14 @@ git status -sb</code></pre>
 <div class="meta"><b>Why</b><span>The <code>default</code> environment contains every feature, including the developer tools (pytest, ruff, mypy).</span><b>Needs</b><span>internet to conda-forge and bioconda</span><b>Creates</b><span><code>.pixi/envs/default/</code> (never copy it between computers)</span></div>
 <pre><code>pixi install --locked          # exactly what pixi.lock records; refuses if pixi.toml and the lock disagree
 pixi run pfvarx version</code></pre>
-<pre class="out"><code>1.0.0</code></pre>
+<pre class="out"><code>0.0.0</code></pre>
 <p>Other environments exist for each kind of installation (<code>control</code>, <code>alignment-qc</code>, <code>core</code>, <code>aligned</code>, <code>selected-*</code>); <code>bootstrap.py</code> chooses them for user workspaces. Check which tools each installation receives:</p>
 <pre><code>pixi run python scripts/check_installs.py</code></pre>
 </div>
 
-<h2 id="tree">4. Repository map (develop)</h2>
+<h2 id="tree">4. Repository map</h2>
 <table>
-<tr><th>Path</th><th>What it is</th><th>On main?</th></tr>
+<tr><th>Path</th><th>What it is</th><th>In the release archive?</th></tr>
 <tr><td><code>bootstrap.py</code></td><td>Exports and installs a user workspace (stdlib only)</td><td>yes</td></tr>
 <tr><td><code>pfvarx</code></td><td>Launcher: picks the locked environment recorded by bootstrap; <code>./pfvarx tool X</code> runs a tool</td><td>yes</td></tr>
 <tr><td><code>pixi.toml</code>, <code>pixi.lock</code></td><td>Features, environments, tasks; the solved lock for 4 platforms</td><td>yes</td></tr>
@@ -146,15 +146,15 @@ pixi run pfvarx version</code></pre>
 <tr><td><code>config/geo/</code></td><td>Geographic boundaries for DA007</td><td>yes</td></tr>
 <tr><td><code>scripts/verify.py</code></td><td>Isolated end-to-end verification runner</td><td>yes</td></tr>
 <tr><td><code>scripts/check_installs.py</code>, <code>build_container.py</code></td><td>Installation contents; Apptainer context</td><td>yes</td></tr>
-<tr><td><code>scripts/package.py</code></td><td>Deterministic software-only source ZIP</td><td>develop only</td></tr>
-<tr><td><code>scripts/sync_sop.py</code></td><td>Copies <code>docs/caller.md</code>, <code>configuration.md</code>, <code>sequencing.md</code> into SOP appendices E–G</td><td>develop only</td></tr>
-<tr><td><code>scripts/configuration_guide.py</code></td><td>Regenerates the configuration guide from <code>gui/field-guide.json</code></td><td>develop only</td></tr>
-<tr><td><code>scripts/check_gui_buttons.py</code></td><td>Exercises every GUI button in throw-away workspaces</td><td>develop only</td></tr>
-<tr><td><code>tests/unit/</code> (332), <code>tests/scientific/</code> (9), <code>tests/integration/</code> (21), <code>tests/dashboard/</code></td><td>Test suites (counts from <code>pytest --collect-only</code>)</td><td>develop only</td></tr>
-<tr><td><code>.github/workflows/ci.yaml</code></td><td>GitHub CI (started by hand only)</td><td>develop only</td></tr>
-<tr><td><code>development/</code></td><td><code>local_ci.sh</code>, the development guide, notes; never packaged</td><td>develop only</td></tr>
-<tr><td><code>CLAUDE.md</code></td><td>Working rules for the AI assistant</td><td>develop only</td></tr>
-<tr><td><code>docs/</code></td><td>User guides (md + html), SOP manual (md + html), <code>testing.md</code> (develop only)</td><td>yes</td></tr>
+<tr><td><code>scripts/package.py</code></td><td>Deterministic source ZIP without the development material</td><td>yes</td></tr>
+<tr><td><code>scripts/sync_sop.py</code></td><td>Copies <code>docs/caller.md</code>, <code>configuration.md</code>, <code>sequencing.md</code> into SOP appendices E–G</td><td>yes</td></tr>
+<tr><td><code>scripts/configuration_guide.py</code></td><td>Regenerates the configuration guide from <code>gui/field-guide.json</code></td><td>yes</td></tr>
+<tr><td><code>scripts/check_gui_buttons.py</code></td><td>Exercises every GUI button in throw-away workspaces</td><td>yes</td></tr>
+<tr><td><code>tests/unit/</code> (347), <code>tests/scientific/</code> (15), <code>tests/integration/</code> (21), <code>tests/dashboard/</code></td><td>Test suites (counts from <code>pytest --collect-only</code>)</td><td>yes</td></tr>
+<tr><td><code>.github/workflows/ci.yaml</code></td><td>GitHub CI (started by hand only)</td><td>yes</td></tr>
+<tr><td><code>development/</code></td><td><code>local_ci.sh</code>, the development guide, notes; never packaged</td><td>no</td></tr>
+<tr><td><code>CLAUDE.md</code></td><td>Working rules for the AI assistant</td><td>no</td></tr>
+<tr><td><code>docs/</code></td><td>User guides (md + html), SOP manual (md + html), <code>testing.md</code></td><td>yes</td></tr>
 <tr><td><code>CHANGELOG.md</code>, <code>README.md</code>, <code>LICENSE</code></td><td>–</td><td>yes</td></tr>
 </table>
 
@@ -171,7 +171,7 @@ pixi run pfvarx version</code></pre>
 <tr><td><code>quality/</code></td><td><code>policy.py metrics.py cohort.py</code></td><td>QC gates G1–G5</td></tr>
 <tr><td><code>caller/</code></td><td><code>call.py mixture.py pairhmm.py stats.py</code></td><td>Layer 2 PfVarX-Call: read evidence, mixture fit, indel rescoring</td></tr>
 <tr><td><code>caller_adapter.py</code></td><td>–</td><td>Dispatches Layer 2 through the <code>pfvarx.layer2/1</code> contract (native or external)</td></tr>
-<tr><td><code>cohort/</code></td><td><code>evidence.py microhap.py</code></td><td>Layer 3 evidence matrix, microhaplotypes</td></tr>
+<tr><td><code>cohort/</code></td><td><code>merge.py evidence.py microhap.py</code></td><td>Layer 3 cohort merge at any cohort size, evidence matrix, microhaplotypes (samples in worker processes)</td></tr>
 <tr><td><code>annotation/</code></td><td><code>snpeff_db.py</code></td><td>Layer 4 SnpEff database and annotation</td></tr>
 <tr><td><code>eligibility/</code></td><td><code>engine.py territory.py</code></td><td>Scientific eligibility per sample and analysis</td></tr>
 <tr><td><code>downstream/</code></td><td><code>coi.py resistance.py diversity.py relatedness.py structure.py phylogeny.py spatial.py cnv.py hrp.py loci.py common.py run.py</code></td><td>Layer 5 DA001–DA009</td></tr>
@@ -181,7 +181,7 @@ pixi run pfvarx version</code></pre>
 <tr><td><code>fixtures/</code></td><td><code>synthetic.py</code></td><td>Synthetic software-test datasets</td></tr>
 <tr><td><code>installation.py</code></td><td>–</td><td><code>install-tools</code></td></tr>
 <tr><td><code>constants.py</code>, <code>io.py</code>, <code>genomic_evidence.py</code></td><td>–</td><td>Status vocabularies and reason codes; safe hashing and atomic writes; interval conventions</td></tr>
-<tr><td><code>__init__.py</code></td><td>–</td><td><code>__version__ = "1.0.0"</code>: the only place the version is set</td></tr>
+<tr><td><code>__init__.py</code></td><td>–</td><td><code>__version__ = "0.0.0"</code>: the only place the version is set</td></tr>
 </table>
 
 <h2 id="workflow">6. Workflow rules and the tools they run</h2>
@@ -205,7 +205,7 @@ pixi run pfvarx version</code></pre>
 <tr><td><code>l1_metrics.smk</code></td><td><code>l1_gate</code></td><td>workflow/scripts/l1_gate.py (QC gates G1–G3)</td></tr>
 <tr><td><code>l2_caller.smk</code></td><td><code>pfvarx_call</code></td><td>PfVarX caller via caller_adapter.py</td></tr>
 <tr><td><code>l2_caller.smk</code></td><td><code>normalise_sample</code></td><td>bcftools norm, annotate, index</td></tr>
-<tr><td><code>l3_cohort.smk</code></td><td><code>cohort_merge</code></td><td>bcftools merge, index</td></tr>
+<tr><td><code>l3_cohort.smk</code></td><td><code>cohort_merge</code></td><td><code>pfvarx.cohort.merge</code>: bcftools merge and index, raising the open-file limit and merging in batches above it</td></tr>
 <tr><td><code>l3_cohort.smk</code></td><td><code>cohort_status, cohort_evidence, cohort_microhaplotypes, cohort_qc</code></td><td>PfVarX (G5 cohort gate)</td></tr>
 <tr><td><code>l4_annotation.smk</code></td><td><code>snpeff_build</code></td><td>SnpEff database from FASTA + GFF</td></tr>
 <tr><td><code>l4_annotation.smk</code></td><td><code>snpeff_annotate</code></td><td>SnpEff</td></tr>
@@ -231,7 +231,7 @@ pixi run pfvarx version</code></pre>
 </table>
 <p>No threshold, setting or compute request may be written in the code. Code reads a run's values from its frozen configuration with <code>loader.frozen_param</code>.</p>
 
-<h2 id="tools">8. Tools and package versions (1.0.0 lock, linux-64)</h2>
+<h2 id="tools">8. Tools and package versions (0.0.0 lock, linux-64)</h2>
 <table>
 <tr><th>Pixi feature</th><th>Package</th><th>Version</th><th>Used for</th></tr>
 <tr><td>base</td><td>python</td><td>3.12.16</td><td>Everything</td></tr>
@@ -247,6 +247,7 @@ pixi run pfvarx version</code></pre>
 <tr><td>reads</td><td>bwa-mem2</td><td>2.3</td><td>Alignment and index</td></tr>
 <tr><td>calling</td><td>numpy</td><td>2.5.4</td><td>Caller</td></tr>
 <tr><td>calling</td><td>scipy</td><td>1.18.1</td><td>Caller statistics</td></tr>
+<tr><td>calling</td><td>numba / llvmlite</td><td>0.68.1 / 0.50.0</td><td>Compiled pair-HMM for indel rescoring (falls back to numpy without it)</td></tr>
 <tr><td>calling</td><td>bcftools</td><td>1.24</td><td>norm, merge, index, view</td></tr>
 <tr><td>targeted</td><td>fgbio-minimal</td><td>4.1.1</td><td>UMI consensus, primer trimming</td></tr>
 <tr><td>annotation</td><td>snpeff</td><td>5.4.0c</td><td>Annotation</td></tr>
@@ -311,7 +312,7 @@ gh pr merge --merge --delete-branch</code></pre>
 <pre class="out"><code>All checks passed!</code></pre>
 <h4>2. Type checking</h4>
 <pre><code>pixi run typecheck</code></pre>
-<pre class="out"><code>Success: no issues found in 84 source files</code></pre>
+<pre class="out"><code>Success: no issues found in 85 source files</code></pre>
 <h4>3. Generated-document checks</h4>
 <pre><code>pixi run python scripts/configuration_guide.py --check     # prints nothing and exits 0 when current
 pixi run python scripts/sync_sop.py --check</code></pre>
@@ -320,7 +321,7 @@ pixi run python scripts/sync_sop.py --check</code></pre>
 <h4>4. Unit and scientific tests (≈1–3 min)</h4>
 <pre><code>pixi run pytest -q tests/unit tests/scientific
 pixi run pytest --collect-only -q tests/unit | tail -1</code></pre>
-<pre class="out"><code>332 tests collected in 0.83s</code></pre>
+<pre class="out"><code>347 tests collected in 1.37s</code></pre>
 <h4>5. Integration tests (real pipelines on synthetic data, ≈15 min)</h4>
 <pre><code>pixi run pytest -q tests/integration</code></pre>
 <table>
@@ -337,7 +338,7 @@ pixi run pytest --collect-only -q tests/unit | tail -1</code></pre>
 <pre class="out"><code>........................................................................ [ 19%]
 …
 ..                                                                       [100%]
-362 passed, 1 skipped in 1169.11s (0:19:29)</code></pre>
+383 passed, 1 skipped in 2599.59s (0:43:19)</code></pre>
 <h4>7. Local CI (the same steps as GitHub CI, plus the archive)</h4>
 <pre><code>development/local_ci.sh --quick     # ≈3 min, skips integration tests
 development/local_ci.sh             # ≈17-20 min</code></pre>
@@ -484,51 +485,48 @@ pixi run pytest -q tests           # full suite: tool output formats matter</cod
 <div class="step">
 <pre><code>pixi run python scripts/package.py --output /absolute/path/dist</code></pre>
 <pre class="out"><code>{
-  "archive": "/absolute/path/dist/pfvarx-1.0.0-source.zip",
-  "sha256": "a442fa198a7ce2c58d06c57db28aecd1bb754ecc6e12254d4e76a1ee1e2aa2a8",
-  "checksum": "/absolute/path/dist/pfvarx-1.0.0-source.zip.sha256",
-  "files": 212
+  "archive": "/absolute/path/dist/pfvarx-0.0.0-source.zip",
+  "sha256": "cf266b303828f168860f94e8a39f42e1dd3c400111fab6c61297fd5bed0a9b12",
+  "checksum": "/absolute/path/dist/pfvarx-0.0.0-source.zip.sha256",
+  "files": 218
 }</code></pre>
-<pre><code>cd /absolute/path/dist && sha256sum -c pfvarx-1.0.0-source.zip.sha256
-python3 -m zipfile -e pfvarx-1.0.0-source.zip unpacked && python3 unpacked/pfvarx/scripts/package.py --check</code></pre>
-<pre class="out"><code>pfvarx-1.0.0-source.zip: OK</code></pre>
-<p>The archive is byte-reproducible and excludes <code>development/</code>, workspaces, caches, environments and symlinks. Note: this develop-branch archive still contains <code>tests/</code>; the published 1.0.0 release asset was built from <code>main</code> with <code>git archive</code> (section 23).</p>
+<pre><code>cd /absolute/path/dist && sha256sum -c pfvarx-0.0.0-source.zip.sha256
+python3 -m zipfile -e pfvarx-0.0.0-source.zip unpacked && python3 unpacked/pfvarx/scripts/package.py --check</code></pre>
+<pre class="out"><code>pfvarx-0.0.0-source.zip: OK</code></pre>
+<p>The archive is byte-reproducible and excludes <code>development/</code>, workspaces, caches, environments and symlinks. The same archive is the release asset: it keeps <code>tests/</code> and <code>.github/</code>, so a downloaded release can re-run its own checks (section 23).</p>
 </div>
 
 <h2 id="release">23. Release procedure</h2>
 <div class="step">
 <ol>
-<li>On a branch from <code>develop</code>: set <code>__version__</code> in <code>src/pfvarx/__init__.py</code>; update every current-release reference: <code>README.md</code>, <code>docs/README.html</code>, <code>docs/status.md</code>, <code>docs/configuration-guide.md</code>+<code>.html</code>, SOP md+html (title, "finalized … " and Appendix D); rename <code>## Unreleased</code> to <code>## X.Y.Z (YYYY-MM-DD)</code>.</li>
+<li>On a branch from <code>develop</code>: set <code>__version__</code> in <code>src/pfvarx/__init__.py</code>; update every current-release reference: <code>README.md</code>, <code>docs/README.html</code>, <code>docs/status.md</code>, <code>docs/configuration-guide.md</code>+<code>.html</code>, SOP md+html (title, "finalized … " and Appendix D), the sample-analysis and benchmarking guides and this guide; rename the top <code>CHANGELOG.md</code> section to <code>## X.Y.Z (YYYY-MM-DD)</code>.</li>
 <li>Check: <code>pixi run pytest -q tests/unit/test_version.py</code>, then the full ladder (section 12).</li>
-<li>PR into <code>develop</code>; the same edits on a branch from <code>main</code> (section 24); PR into <code>main</code>.</li>
-<li>After both merge, tag and publish:</li>
+<li>Pull request into <code>develop</code>; after it merges, a pull request from <code>develop</code> into <code>main</code> (section 24).</li>
+<li>Tag <code>main</code> and build the archive with <code>scripts/package.py</code> from that tag (never <code>git archive</code>: <code>main</code> holds the development material):</li>
 </ol>
-<pre><code>git fetch origin
-git tag -a v1.0.0 origin/main -m "PfVarX 1.0.0"
-git archive --format=zip --prefix=PfVarX-source/ -o pfvarx-1.0.0-source.zip v1.0.0
-sha256sum pfvarx-1.0.0-source.zip &gt; pfvarx-1.0.0-source.zip.sha256
-git push origin v1.0.0
-gh release create v1.0.0 --verify-tag --latest --title "PfVarX 1.0.0" --notes-file release-notes.md \
-  pfvarx-1.0.0-source.zip pfvarx-1.0.0-source.zip.sha256
-gh release download v1.0.0 -D /tmp/check &amp;&amp; (cd /tmp/check &amp;&amp; sha256sum -c pfvarx-1.0.0-source.zip.sha256)</code></pre>
-<pre class="out"><code>https://github.com/hadish-bekuretsion1/PfVarX/releases/tag/v1.0.0
-pfvarx-1.0.0-source.zip: OK</code></pre>
+<pre><code>git fetch origin --tags
+git tag -a v0.0.0 origin/main -m "PfVarX 0.0.0"
+git push origin v0.0.0
+git worktree add ../pfvarx-v0.0.0 v0.0.0 &amp;&amp; cd ../pfvarx-v0.0.0
+pixi run python scripts/package.py --output "$PWD/../dist"
+cd ../dist &amp;&amp; sha256sum -c pfvarx-0.0.0-source.zip.sha256
+gh release create v0.0.0 --verify-tag --latest --title "PfVarX 0.0.0" --notes-file release-notes.md \
+  pfvarx-0.0.0-source.zip pfvarx-0.0.0-source.zip.sha256
+gh release download v0.0.0 -D /tmp/check &amp;&amp; (cd /tmp/check &amp;&amp; sha256sum -c pfvarx-0.0.0-source.zip.sha256)</code></pre>
+<pre class="out"><code>pfvarx-0.0.0-source.zip: OK</code></pre>
+<div class="warn">A tag of the same name that already points elsewhere must be replaced deliberately: delete its GitHub release first, then <code>git tag -d vX.Y.Z &amp;&amp; git push origin :refs/tags/vX.Y.Z</code> before creating it again. Published versions should normally never be re-used.</div>
 </div>
 
-<h2 id="tomain">24. Bring a fix to main (without the development material)</h2>
+<h2 id="tomain">24. Bring develop to main</h2>
 <div class="step">
+<p>After a change is merged into <code>develop</code> and its tests pass there, bring <code>main</code> level with one pull request. Do not use <code>--delete-branch</code> here: it would delete <code>develop</code>.</p>
 <pre><code>git fetch origin
-git checkout -b fix/xyz-main origin/main
-git cherry-pick -x &lt;commit-on-develop&gt;
-# conflicts usually only in CHANGELOG.md: keep both sections, newest first
-git add CHANGELOG.md && git cherry-pick --continue
-git ls-files tests development .github | wc -l     # must print 0
-git push -u origin fix/xyz-main
-gh pr create --base main --title "…" --body "Cherry-picked from develop (#NN)"</code></pre>
-<p>Then record <code>main</code> on <code>develop</code> without taking its deletions (keeps <code>develop</code> 0 commits behind):</p>
-<pre><code>git checkout -b sync/main-into-develop origin/develop
-git merge -s ours origin/main -m "Record main as merged into develop, keeping the development material"
-git push -u origin sync/main-into-develop &amp;&amp; gh pr create --base develop …</code></pre>
+git diff --stat origin/main origin/develop       # only the tested change should be listed
+gh pr create --base main --head develop --title "…" --body "Brings main level with develop (#NN)."
+gh pr merge develop --merge
+git fetch origin &amp;&amp; git diff --quiet origin/main origin/develop &amp;&amp; echo "main = develop"</code></pre>
+<pre class="out"><code>main = develop</code></pre>
+<p>Never open a separate feature branch against <code>main</code>: a branch built from <code>main</code> while <code>develop</code> moves on conflicts with the next <code>develop</code> → <code>main</code> merge.</p>
 </div>
 
 <h2 id="git">25. Git and GitHub commands</h2>
@@ -558,7 +556,7 @@ gh release list</code></pre>
 <tr><td>Integration test slow or hung</td><td>Check free memory (bwa-mem2 requests 6.5 GB); run one test with <code>-x -k name -s</code></td></tr>
 <tr><td>Tests fight over files</td><td>Do not edit the tree while tests run; use a <code>git worktree</code></td></tr>
 </table>
-<p style="color:var(--muted);font-size:14px;margin-top:40px">PfVarX 1.0.0 · Development guide · generated 26 November 2026 from the develop branch, its tests and live verification runs.</p>
+<p style="color:var(--muted);font-size:14px;margin-top:40px">PfVarX 0.0.0 · Development guide · generated 27 November 2026 from the develop branch, its tests and live verification runs.</p>
 </main>
 </div>
 <script>

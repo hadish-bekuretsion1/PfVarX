@@ -57,6 +57,6 @@ Linux and Windows hosts, `system_profiler` on macOS) in its provenance, with
 `used_for_compute: false`, and the report says so in the Software section: PfVarX runs
 correctly on a machine with a GPU, uses its CPUs, and no result depends on an accelerator.
 Every pinned tool (fastp, bwa-mem2, samtools, fgbio, mosdepth, SnpEff, IQ-TREE, hmmIBD and the
-R packages) is a CPU program, and the native caller uses NumPy and SciPy. Cloud/server execution still uses one host; HPC examples still run inside one
+R packages) is a CPU program, and the native caller uses NumPy, SciPy and Numba. Cloud/server execution still uses one host; HPC examples still run inside one
 allocated Linux node. The optional Apptainer image builder is a Linux deployment route,
 not a native macOS installer or a qualified multi-architecture container distribution.

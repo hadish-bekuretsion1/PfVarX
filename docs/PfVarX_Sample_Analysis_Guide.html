@@ -41,7 +41,7 @@ th,td{border:1px solid var(--line);padding:7px 10px;text-align:left;vertical-ali
 <body>
 <header>
 <div class="toolbar"><button type="button" onclick="toggleTheme()">Light / dark</button></div>
-<h1>PfVarX 1.0.0 — Sample Analysis</h1>
+<h1>PfVarX 0.0.0 — Sample Analysis</h1>
 <p>Step-by-step: what to do, which command, which tools and dependencies, and what the output looks like. For paired-end WGS, targeted (with or without UMI) FASTQ and existing BAM/CRAM.</p>
 </header>
 <div class="layout">
@@ -84,7 +84,7 @@ th,td{border:1px solid var(--line);padding:7px 10px;text-align:left;vertical-ali
 </nav>
 <main id="top">
 
-<div class="note"><b>About the example outputs.</b> Every "Expected output" block below was produced by running the command on PfVarX 1.0.0 with the built-in synthetic test dataset (9 samples, whole-genome, project <code>VERIFY_WGS</code>), on 26 November 2026. Long absolute paths are shortened to <code>…/</code>. Your sample names, counts, hashes, run IDs and times will differ. Synthetic data tests the software; it is not a biological result.</div>
+<div class="note"><b>About the example outputs.</b> Every "Expected output" block below was produced by running the command on PfVarX 0.0.0 with the built-in synthetic test dataset (9 samples, whole-genome, project <code>VERIFY_WGS</code>), on 27 November 2026. Long absolute paths are shortened to <code>…/</code>. Your sample names, counts, hashes, run IDs and times will differ. Synthetic data tests the software; it is not a biological result.</div>
 
 <h2 id="overview">0. Overview of the run</h2>
 <p>One analysis happens in one <b>workspace</b>, a folder that holds the study's configuration, inputs, prepared references and runs. The order of work is always:</p>
@@ -104,11 +104,11 @@ th,td{border:1px solid var(--line);padding:7px 10px;text-align:left;vertical-ali
 </table>
 <p>Inside the run, the workflow has seven layers. Which layers run depends on the <b>final output</b> you choose:</p>
 <table>
-<tr><th>Layer</th><th>What happens</th><th>Tools (version in the 1.0.0 lock)</th><th>Runs for</th></tr>
+<tr><th>Layer</th><th>What happens</th><th>Tools (version in the 0.0.0 lock)</th><th>Runs for</th></tr>
 <tr><td>L0</td><td>Input checks, reference preparation</td><td>PfVarX, samtools 1.24, Picard 3.5.0, bwa-mem2 2.3</td><td>all</td></tr>
 <tr><td>L1</td><td>Read trimming/QC, alignment, duplicate marking or primer clipping, UMI consensus, coverage, QC gate</td><td>fastp 1.1.0, bwa-mem2 2.3, samtools 1.24, Picard MarkDuplicates 3.5.0, fgbio 4.1.1 (targeted), mosdepth 0.3.14</td><td>FO001–FO004</td></tr>
-<tr><td>L2</td><td>Per-sample SNP / small-indel calling with mixture (WSAF) model, normalisation</td><td>PfVarX native caller (Python 3.12, NumPy 2.5.4, SciPy 1.18.1, pysam 0.23.3), bcftools 1.24</td><td>FO002–FO004</td></tr>
-<tr><td>L3</td><td>Cohort merge, evidence matrix, microhaplotypes, cohort QC</td><td>bcftools 1.24, PfVarX</td><td>FO003–FO004</td></tr>
+<tr><td>L2</td><td>Per-sample SNP / small-indel calling with mixture (WSAF) model, normalisation</td><td>PfVarX native caller (Python 3.12, NumPy 2.5.4, SciPy 1.18.1, Numba 0.68.1, pysam 0.23.3), bcftools 1.24</td><td>FO002–FO004</td></tr>
+<tr><td>L3</td><td>Cohort merge, evidence matrix, microhaplotypes, cohort QC</td><td>bcftools 1.24, PfVarX (samples in worker processes)</td><td>FO003–FO004</td></tr>
 <tr><td>L4</td><td>Functional annotation</td><td>SnpEff 5.4.0c (Java, OpenJDK 25)</td><td>FO004</td></tr>
 <tr><td>L5</td><td>Eligibility and downstream analyses DA001–DA009</td><td>R 4.5.3 + moire 3.7.0, dcifer 1.5.2, mgcv 1.9-4; hmmIBD 2.1.3; scikit-allel 1.3.13; IQ-TREE 2.4.0</td><td>FO004</td></tr>
 <tr><td>L6</td><td>Offline report dashboard, clonality report</td><td>PfVarX</td><td>all</td></tr>
@@ -144,11 +144,11 @@ pixi --version</code></pre>
 <div class="meta"><b>Why</b><span>The source checkout is the read-only master copy; workspaces are exported from it.</span><b>Needs</b><span>git, internet</span><b>Creates</b><span><code>~/pfvarx/PfVarX-source/</code></span></div>
 <pre><code>mkdir -p ~/pfvarx && cd ~/pfvarx
 git clone https://github.com/hadish-bekuretsion1/PfVarX.git PfVarX-source
-cd PfVarX-source && git checkout v1.0.0 && cd ..</code></pre>
-<p>Or download <code>pfvarx-1.0.0-source.zip</code> and its <code>.sha256</code> from the GitHub release and check it:</p>
-<pre><code>sha256sum -c pfvarx-1.0.0-source.zip.sha256
-unzip -q pfvarx-1.0.0-source.zip        # creates PfVarX-source/</code></pre>
-<pre class="out"><code>pfvarx-1.0.0-source.zip: OK</code></pre>
+cd PfVarX-source && git checkout v0.0.0 && cd ..</code></pre>
+<p>Or download <code>pfvarx-0.0.0-source.zip</code> and its <code>.sha256</code> from the GitHub release and check it:</p>
+<pre><code>sha256sum -c pfvarx-0.0.0-source.zip.sha256
+unzip -q pfvarx-0.0.0-source.zip        # creates PfVarX-source/</code></pre>
+<pre class="out"><code>pfvarx-0.0.0-source.zip: OK</code></pre>
 <p>The source contains: <code>bootstrap.py</code>, <code>pfvarx</code> (launcher), <code>pixi.toml</code>, <code>pixi.lock</code>, <code>pyproject.toml</code>, <code>src/pfvarx/</code>, <code>workflow/</code>, <code>config/</code> (templates, parameters, registry), <code>scripts/</code>, <code>docs/</code>.</p>
 </div>
 
@@ -160,7 +160,7 @@ unzip -q pfvarx-1.0.0-source.zip        # creates PfVarX-source/</code></pre>
 python3 PfVarX-source/bootstrap.py --workspace ~/pfvarx/my-study
 cd ~/pfvarx/my-study
 ./pfvarx version</code></pre>
-<pre class="out"><code>1.0.0</code></pre>
+<pre class="out"><code>0.0.0</code></pre>
 <p>Only the small <b>control</b> environment (configuration, GUI, validation) is installed. The pipeline tools are installed in step 8 for exactly what your saved configuration needs.</p>
 <h4>Option B — tools up front (for a machine without internet later, for example an HPC node)</h4>
 <pre><code>python3 PfVarX-source/bootstrap.py --workspace ~/pfvarx/my-study --final-output FO002
@@ -288,7 +288,7 @@ caller:
 <tr><th>Need</th><th>Tools installed</th></tr>
 <tr><td>Every run</td><td>Snakemake 9.27.1, samtools 1.24, Picard 3.5.0, mosdepth 0.3.14</td></tr>
 <tr><td>FASTQ input</td><td>fastp 1.1.0, bwa-mem2 2.3</td></tr>
-<tr><td>FO002+</td><td>NumPy 2.5.4, SciPy 1.18.1, bcftools 1.24</td></tr>
+<tr><td>FO002+</td><td>NumPy 2.5.4, SciPy 1.18.1, Numba 0.68.1, bcftools 1.24</td></tr>
 <tr><td>Targeted designs</td><td>fgbio 4.1.1</td></tr>
 <tr><td>FO004</td><td>SnpEff 5.4.0c</td></tr>
 <tr><td>DA001</td><td>R 4.5.3, moire 3.7.0, jsonlite 2.0.0</td></tr>
@@ -374,6 +374,7 @@ per_job:
 max_retries: 2                       # transient failures only
 retry_memory_factor: 1.5</code></pre>
 <p>Rules: per-job limits ≤ totals; leave memory for the OS. bwa-mem2 alignment requests 6.5 GB, so <code>max_mem_mb</code> below that blocks the plan (<code>RESOURCE_MEMORY_EXCEEDED</code>). On HPC, submit the run inside one node allocation (all executors use a single host).</p>
+<p><b>Threads.</b> The variant caller requests 8 threads per sample and the cohort evidence and microhaplotype steps 8 threads for the cohort (<code>config/registry/job_resources.yaml</code>); each is capped at <code>per_job.max_threads</code>. Set <code>max_cores</code> and <code>per_job.max_threads</code> to the computer's thread count (<code>nproc</code>): the caller's run time falls almost in proportion, and the results do not depend on the number of threads. With enough memory for two caller jobs (about 5 GB each), <code>max_jobs: 2</code> calls two samples at once.</p>
 </div>
 
 <h2 id="layout">14. Check the layout</h2>
@@ -528,22 +529,25 @@ Storage of the results: alignments 20 MB; total 20 MB</code></pre>
 <div class="meta"><b>Purpose</b><span>Executes the one configured final output as a new run.</span><b>GUI</b><span>Tab 6, <b>Run workflow</b> (<code>./pfvarx workflow-run</code> repeats the check, then runs); a live progress page opens</span><b>Writes</b><span><code>runs/RUN_ID/</code> and the link <code>results → runs/RUN_ID/results</code></span></div>
 <pre><code>./pfvarx pipeline                 # same as: ./pfvarx pipeline --mode NEW</code></pre>
 <pre class="out"><code>{
-  "run_id": "20261126T160227Z-VERIFY_WGS-9dde0372",
+  "run_id": "20261127T085024Z-VERIFY_WGS-56c57387",
   "status": "COMPLETED",
   "passes": [
-    {"pass": 1, "exit_code": 0, "failed_samples": {}, "log": "…/runs/20261126T160227Z-VERIFY_WGS-9dde0372/logs/snakemake.pass1.log"}
+    {"pass": 1, "exit_code": 0, "failed_samples": {}, "log": "…/runs/20261127T085024Z-VERIFY_WGS-56c57387/logs/snakemake.pass1.log"}
   ],
   "downstream_failures": [],
   "report": {
-    "dashboard": "runs/20261126T160227Z-VERIFY_WGS-9dde0372/results/report/pfvarx_dashboard.html",
-    "bytes": 1199468,
+    "dashboard": "runs/20261127T085024Z-VERIFY_WGS-56c57387/results/report/pfvarx_dashboard.html",
+    "bytes": 1198119,
     "dashboard_data": "runs/…/results/report/dashboard_data.json",
     "qc_matrix": "runs/…/results/qc/centralized_quality_matrix.json"
   },
-  "cleanup": {"schema": "pfvarx.cleanup/1", "apply": true, "files": [], "bytes_eligible": 0, "deleted": []}
+  "cleanup": {"schema": "pfvarx.cleanup/1", "apply": true, "bytes_eligible": 4086,
+              "deleted": ["results/work/cohort_evidence.bams.txt", "results/work/cohort_evidence.callable.txt",
+                          "results/work/cohort_merge.vcfs.txt", "results/work/cohort_microhaplotypes.bams.txt",
+                          "results/work/cohort_microhaplotypes.callable.txt"], …}
 }
 
-Run progress page: …/runs/20261126T160227Z-VERIFY_WGS-9dde0372/progress.html</code></pre>
+Run progress page: …/runs/20261127T085024Z-VERIFY_WGS-56c57387/progress.html</code></pre>
 <p>The example (9 synthetic samples, FO004) took about 3.5 minutes and ran 97 workflow steps. A real <i>P. falciparum</i> genome takes far longer, mostly in alignment and the caller. <b>Record the run ID.</b> The run ID is <code>&lt;UTC time&gt;-&lt;project_id&gt;-&lt;hash&gt;</code>. Closing the browser does not stop the run.</p>
 <p>What each executed job does (from <code>logs/snakemake.pass1.log</code>), for a WGS FASTQ sample:</p>
 <table>
@@ -566,21 +570,21 @@ Run progress page: …/runs/20261126T160227Z-VERIFY_WGS-9dde0372/progress.html</
 <div class="step">
 <pre><code>./pfvarx status</code></pre>
 <pre class="out"><code>{
-  "effective_config_hash": "c5e295a2ae4ec7d58bfa2ae519b1b23655723a36e8604863bf97a44c2f7bc568",
-  "latest_run": "20261126T160227Z-VERIFY_WGS-9dde0372",
+  "effective_config_hash": "a87a298568e3dd8b12d39b3c2b28805eae49f58e026d370fa1f57802e717071b",
+  "latest_run": "20261127T085024Z-VERIFY_WGS-56c57387",
   "latest_status": {
     "downstream_failures": [],
     "mode": "NEW",
     "passes": [{"exit_code": 0, "failed_samples": {}, "pass": 1, …}],
-    "reuse_key": "66f3525b43801d92dbeeeadf5c675269b49371ea10e7b4919445c2dc2873b5a1",
-    "run_id": "20261126T160227Z-VERIFY_WGS-9dde0372",
+    "reuse_key": "3b79893432a60b1660a12e27b16ab865672e5bb706d358efaafc23e3bc9ab8ab",
+    "run_id": "20261127T085024Z-VERIFY_WGS-56c57387",
     "status": "COMPLETED",
     "updated_utc": "2026-11-26T16:05:56.037132+00:00"
   }
 }</code></pre>
-<pre><code>./pfvarx run-verify --run-id 20261126T160227Z-VERIFY_WGS-9dde0372</code></pre>
+<pre><code>./pfvarx run-verify --run-id 20261127T085024Z-VERIFY_WGS-56c57387</code></pre>
 <pre class="out"><code>{
-  "run_id": "20261126T160227Z-VERIFY_WGS-9dde0372",
+  "run_id": "20261127T085024Z-VERIFY_WGS-56c57387",
   "frozen_integrity": "PASS",
   "tampered": [],
   "workspace_drift": [],
@@ -768,7 +772,7 @@ python3 PfVarX-source/bootstrap.py --workspace ~/pfvarx/my-study && cd ~/pfvarx/
 ./pfvarx status
 ./pfvarx run-verify --run-id RUN_ID
 xdg-open results/report/pfvarx_dashboard.html</code></pre>
-<p style="color:var(--muted);font-size:14px;margin-top:40px">PfVarX 1.0.0 · Sample analysis guide · generated 26 November 2026 from the release source and a live synthetic run.</p>
+<p style="color:var(--muted);font-size:14px;margin-top:40px">PfVarX 0.0.0 · Sample analysis guide · generated 27 November 2026 from the release source and a live synthetic run.</p>
 </main>
 </div>
 <script>
