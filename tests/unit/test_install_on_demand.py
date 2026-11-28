@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import json
 import runpy
 import subprocess
 from pathlib import Path
@@ -44,6 +45,13 @@ def fake_pixi(monkeypatch: pytest.MonkeyPatch, ws: Path, calls: list[list[str]])
         python = installation.environment_python(ws, command[-1])
         python.parent.mkdir(parents=True, exist_ok=True)
         python.write_text("")
+        records = python.parents[1] / "conda-meta"
+        records.mkdir(exist_ok=True)
+        packages = installation.locked_versions(ws)[command[-1]]
+        for package, _, _ in installation.TOOLS:
+            if package in packages:
+                version = packages[package]
+                (records / f"{package}-{version}-test.json").write_text(json.dumps({"name": package, "version": version}))
         return subprocess.CompletedProcess(command, 0)
     monkeypatch.setattr(installation.shutil, "which", lambda name: "/usr/bin/pixi")
     monkeypatch.setattr(installation.subprocess, "run", run)
@@ -144,3 +152,34 @@ def test_the_gui_lists_tools_for_unsaved_choices(tmp_path: Path) -> None:
     assert {"SnpEff", "IQ-TREE", "MOIRE", "BCFtools"} <= set(names) and "mgcv" not in names
     assert yaml.safe_load((ws / "config/config.yaml").read_text())["final_output"] == "FO002"  # nothing saved
 
+
+
+def test_partial_installation_reports_each_package_and_rechecks(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    ws = on_demand_workspace(tmp_path)
+    set_config(ws, final_output="FO001")
+    fake_pixi(monkeypatch, ws, [])
+    installation.install(ws)
+    records = ws / ".pixi/envs/alignment-qc/conda-meta"
+    next(records.glob("samtools-*.json")).unlink()
+    state = installation.status(ws)
+    rows = {t["package"]: t for t in state["tools"]}
+    assert not state["current"]
+    assert rows["fastp"]["installed"] and not rows["samtools"]["installed"]
+    assert installation.install(ws)["status"] == "INSTALLED"
+    assert installation.status(ws)["current"]
+
+
+def test_full_workspace_plan_uses_selected_input_and_output(tmp_path: Path) -> None:
+    ws = on_demand_workspace(tmp_path)
+    path = ws / "config/installation.json"
+    meta = read_json(path)
+    meta.update(profile="development", environment="default", max_final_output="FO004")
+    path.write_text(json.dumps(meta))
+    set_config(ws, final_output="FO001")
+    names = {t["name"] for t in installation.status(ws)["tools"]}
+    assert {"fastp", "BWA-MEM2", "SAMtools"} <= names
+    assert not {"BCFtools", "NumPy", "SnpEff", "IQ-TREE"} & names
+    set_config(ws, final_output="FO002", input_type="BAM")
+    names = {t["name"] for t in installation.status(ws)["tools"]}
+    assert {"BCFtools", "NumPy", "SAMtools"} <= names
+    assert not {"fastp", "BWA-MEM2", "SnpEff", "IQ-TREE"} & names
