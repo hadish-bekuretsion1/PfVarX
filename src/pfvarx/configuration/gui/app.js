@@ -318,7 +318,7 @@ function showTools(plan) {
     rows.replaceChildren();
     for (const tool of plan.tools) {
         const row = document.createElement("tr");
-        for (const text of [tool.name, tool.version, tool.used_for, tool.installed ? "Yes" : "Not yet"]) {
+        for (const text of [tool.name, tool.version, tool.used_for, tool.installed ? "Installed" : (tool.installed_version ? "Version mismatch (" + tool.installed_version + ")" : "Not installed")]) {
             const cell = document.createElement("td");
             cell.textContent = text;
             row.append(cell);
@@ -477,7 +477,9 @@ function changed(id) {
             const result = await request("check", {values});
             if (current !== generation) return;
             showInputFolders(result.directories);
-            showTools(await request("tools-plan", {values}));
+            const plan = await request("tools-plan", {values});
+            if (current !== generation) return;
+            showTools(plan);
             status.textContent = state.migration_needed
                 ? "Ready to save. This workspace uses configuration schema 3: saving first runs the migration " +
                   "(terminal equivalent: ./pfvarx config-migrate --apply), which writes the library catalog and the " +
@@ -610,7 +612,19 @@ byId("install-tools").addEventListener("click", async () => {
     } catch (error) {
         byId("tools-result").textContent = error.message;
     }
-    refreshTools();
+    await refreshTools();
+    if (values) {
+        const current = ++generation;
+        try {
+            const plan = await request("tools-plan", {values});
+            if (current === generation) showTools(plan);
+        } catch (error) {
+            if (current === generation) {
+                byId("tools-rows").replaceChildren();
+                byId("tools-result").textContent += "\nTool table unavailable: " + error.message;
+            }
+        }
+    }
 });
 refreshTools();
 

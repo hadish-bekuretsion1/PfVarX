@@ -18,6 +18,7 @@ configuration are not installed yet. Workspaces installed up front
 
 from __future__ import annotations
 
+import json
 import os
 import runpy
 import shutil
@@ -83,11 +84,14 @@ def required(root: Path, cfg: Any = None) -> dict[str, Any]:
     bootstrap = runpy.run_path(str(root / "bootstrap.py"))
     if cfg.final_output.value == "FO004" and cfg.analyses.selection == "auto":
         analyses = sorted(bootstrap["METHODS"])  # eligibility decides per run; install every method's tools
-    else:
+    elif cfg.final_output.value == "FO004":
         requested = list(cfg.analyses.requested)
         analyses = sorted(set(requested) | set(internal_prerequisites(requested, load_registry(root),
                                                                       cfg.analyses.spatial_outcome_source)))
-    environment = bootstrap["environment_for"](cfg.assay_design.value, analyses, False, cfg.input_type.value,
+    else:
+        analyses = []
+    rtg = cfg.purpose.value == "benchmarking" and bool(metadata(root).get("rtg"))
+    environment = bootstrap["environment_for"](cfg.assay_design.value, analyses, rtg, cfg.input_type.value,
                                                cfg.final_output.value)
     return {"environment": environment, "final_output": cfg.final_output.value, "design": cfg.assay_design.value,
             "input_type": cfg.input_type.value, "analyses": analyses}
@@ -131,13 +135,37 @@ def locked_versions(root: Path) -> dict[str, dict[str, str]]:
     return _LOCK_CACHE[key]
 
 
-def tools_for(root: Path, environment: str) -> list[dict[str, Any]]:
+def tools_for(root: Path, environment: str, need: dict[str, Any] | None = None) -> list[dict[str, Any]]:
     """The tools and packages *environment* installs, with locked version and what each is for."""
-    installed = environment_python(root, environment).is_file()
+    prefix = root / ".pixi" / "envs" / environment
     packages = locked_versions(root).get(environment, {})
-    return [{"package": package, "name": name, "version": packages[package], "used_for": purpose,
-             "installed": installed}
-            for package, name, purpose in TOOLS if package in packages]
+    versions = {}
+    selected = locked_versions(root)[need["environment"]] if need is not None else packages
+    tracked = {name for name, _, _ in TOOLS if name in selected}
+    if need is not None:
+        if need["input_type"] != "FASTQ":
+            tracked.discard("fastp")
+            if need["design"] != "targeted_umi":
+                tracked.discard("bwa-mem2")
+    for record in (prefix / "conda-meta").glob("*.json"):
+        # Conda record names are <package>-<version>-<build>.json.
+        package = record.stem.rsplit("-", 2)[0]
+        if package not in packages or package not in tracked:
+            continue
+        try:
+            info = json.loads(record.read_bytes())
+        except (OSError, ValueError):
+            continue
+        if isinstance(info, dict) and info.get("name") == package and isinstance(info.get("version"), str):
+            versions[package] = info["version"]
+    return [{"package": package, "name": name, "version": packages.get(package, selected[package]), "used_for": purpose,
+             "installed_version": versions.get(package), "installed": package in packages and versions.get(package) == packages[package]}
+            for package, name, purpose in TOOLS if package in tracked]
+
+
+def _complete(root: Path, environment: str, tools: list[dict[str, Any]]) -> bool:
+    return bool(tools) and environment_python(root, environment).is_file() and all(t["installed"] for t in tools)
+
 
 
 def plan(root: Path, values: dict[str, Any] | None = None) -> dict[str, Any]:
@@ -148,34 +176,36 @@ def plan(root: Path, values: dict[str, Any] | None = None) -> dict[str, Any]:
 
         cfg = validate_bundle(root, values).config
     meta = metadata(root)
-    if meta.get("profile") != ON_DEMAND:
+    # A freshly exported up-front workspace may still lack its editable configuration.
+    # In that case its explicitly installed profile is the only available plan.
+    upfront = meta.get("profile") != ON_DEMAND
+    need = None if upfront and cfg is None and not (root / "config/config.yaml").exists() else required(root, cfg)
+    if upfront:
         environment = meta.get("environment", "default")
-        return {"mode": "up-front", "environment": environment, "tools": tools_for(root, environment),
-                "installed": True}
-    need = required(root, cfg)
-    environment = need["environment"]
-    return {"mode": ON_DEMAND, "environment": environment, "required_for": need,
-            "tools": tools_for(root, environment), "installed": environment_python(root, environment).is_file()}
+    else:
+        assert need is not None
+        environment = need["environment"]
+    tools = tools_for(root, environment, need)
+    return {"mode": "up-front" if upfront else ON_DEMAND, "environment": environment, "required_for": need,
+            "tools": tools, "installed": _complete(root, environment, tools)}
 
 
 def status(root: Path) -> dict[str, Any]:
-    """Whether the tools for the saved configuration are installed."""
-    meta = metadata(root)
-    if meta.get("profile") != ON_DEMAND:
-        environment = meta.get("environment", "default")
-        return {"mode": "up-front", "current": True, "installed_environment": environment,
-                "tools": tools_for(root, environment),
-                "detail": "Tools were installed with the workspace (bootstrap --final-output or --profile)."}
-    need = required(root)
-    installed = meta.get("environment", CONTROL)
-    current = installed == need["environment"] and environment_python(root, installed).is_file()
-    return {"mode": ON_DEMAND, "current": current, "installed_environment": installed,
-            "required_environment": need["environment"], "required_for": need,
-            "tools": tools_for(root, need["environment"]),
-            "detail": (f"Installed for this configuration (environment {installed})." if current else
-                       f"Not installed yet for this configuration: {need['final_output']}, {need['design']}, "
-                       f"{need['input_type']} needs environment {need['environment']}. Click Install required "
-                       "tools on the Input directories tab, or run ./pfvarx install-tools.")}
+    """Verify packages required by the saved configuration in its execution environment."""
+    selection = plan(root)
+    environment = selection["environment"]
+    installed = metadata(root).get("environment", "default")
+    current = installed == environment and selection["installed"]
+    if current:
+        detail = f"Required packages installed for this configuration in {environment}."
+    elif selection["mode"] == ON_DEMAND:
+        detail = (f"Required packages for {environment} are not ready. Click Install required tools "
+                  "on the Input directories tab, or run ./pfvarx install-tools.")
+    else:
+        detail = f"Package verification incomplete. Run pixi install --locked -e {environment} in this workspace."
+    return {"mode": selection["mode"], "current": current, "installed_environment": installed,
+            "required_environment": environment, "required_for": selection["required_for"],
+            "tools": selection["tools"], "detail": detail}
 
 
 def require_tools(root: Path) -> None:
@@ -194,7 +224,7 @@ def install(root: Path) -> dict[str, Any]:
         return {"status": "NOT_NEEDED", **status(root)}
     need = required(root)
     environment = need["environment"]
-    if meta.get("environment") == environment and environment_python(root, environment).is_file():
+    if meta.get("environment") == environment and _complete(root, environment, tools_for(root, environment, need)):
         return {"status": "ALREADY_INSTALLED", "environment": environment, "required_for": need}
     pixi = shutil.which("pixi")
     if pixi is None:
@@ -208,6 +238,10 @@ def install(root: Path) -> dict[str, Any]:
     if result.returncode or not environment_python(root, environment).is_file():
         raise ValueError(f"Installing environment {environment} failed (exit {result.returncode}); see {LOG}. "
                          "It needs internet access to the conda channels, or a filled Pixi cache.")
+    tools = tools_for(root, environment, need)
+    if not _complete(root, environment, tools):
+        missing = ", ".join(t["name"] for t in tools if not t["installed"])
+        raise ValueError(f"Pixi finished but package verification failed for {environment}: {missing}. See {LOG}.")
     meta.update(environment=environment, tools_installed_for=need)
     meta.setdefault("environments_installed", [])
     if environment not in meta["environments_installed"]:
